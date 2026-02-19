@@ -1,0 +1,93 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.RoomTagDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mahal Tanımla - Room Tag" 
+        Height="450" Width="400"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        FontFamily="Segoe UI">
+    
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Grid.Row="0" Text="MAHAL TANIMLAMA" FontSize="18" FontWeight="Bold" 
+                   Foreground="Orange" Margin="0,0,0,20" HorizontalAlignment="Center"/>
+        
+        <!-- Room Name -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,15">
+            <TextBlock Text="Mahal Adı" Margin="0,0,0,5"/>
+            <TextBox x:Name="RoomNameText" Height="35"/>
+        </StackPanel>
+        
+        <!-- Room Type -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,15">
+            <TextBlock Text="Kullanım Amacı / Tip" Margin="0,0,0,5"/>
+            <ComboBox x:Name="RoomTypeCombo" Height="35"
+                      DisplayMemberPath="Key" SelectedValuePath="Value"
+                      SelectionChanged="RoomType_Changed"/>
+        </StackPanel>
+        
+        <!-- Area -->
+        <Border Grid.Row="3" Background="#222" Padding="10" CornerRadius="5" Margin="0,0,0,15">
+            <DockPanel>
+                <TextBlock Text="Otomatik Hesaplanan Alan:" DockPanel.Dock="Left"/>
+                <TextBlock x:Name="AreaText" Text="0.00 m²" FontWeight="Bold" Foreground="#4CAF50" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+            </DockPanel>
+        </Border>
+        
+        <!-- Suggested Fixtures -->
+        <Grid Grid.Row="4" Margin="0,0,0,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <!-- Detected Fixtures -->
+            <TextBlock Grid.Row="0" Text="Tespit Edilen Vitrifiyeler (DWG/Plan):" Margin="0,0,0,5" FontSize="12" Foreground="Orange"/>
+            <ListBox Grid.Row="1" x:Name="DetectedFixturesList" Background="#252525" BorderThickness="0" Foreground="White" Margin="0,0,0,10">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Type}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding LoadUnit, StringFormat={}{0} LU}" Foreground="#4CAF50" FontWeight="Bold" Margin="10,0,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="İPTAL" Click="Cancel_Click" Width="100" Height="35" Margin="0,0,10,0" 
+                    Background="#444" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+            <Button Content="KAYDET" Click="Create_Click" Width="120" Height="35" 
+                    Background="#FF9800" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+        </StackPanel>
+    </Grid>
+</Window>

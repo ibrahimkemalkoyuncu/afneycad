@@ -1,0 +1,64 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.LicenseDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AfneyCAD Enterprise License" 
+        Height="350" Width="500"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource DarkBackground}"
+        ResizeMode="NoResize"
+        FontFamily="Segoe UI"
+        ShowInTaskbar="True">
+    
+    <Window.Resources>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#444"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            
+            <!-- Logo / Title -->
+            <TextBlock Text="AfneyCAD Enterprise" 
+                       FontSize="28" FontWeight="Bold" Foreground="Orange" 
+                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+            
+            <TextBlock Text="Profesyonel Sürüm" 
+                       FontSize="16" Foreground="#AAA" 
+                       HorizontalAlignment="Center" Margin="0,0,0,30"/>
+
+            <!-- Status Message -->
+            <TextBlock x:Name="StatusMessage" Text="Lütfen lisans anahtarınızı giriniz:" 
+                       Foreground="White" Margin="0,0,0,5" HorizontalAlignment="Left"/>
+            
+            <!-- Key Input -->
+            <TextBox x:Name="LicenseKeyBox" Width="350" Height="35" FontSize="16" 
+                     TextAlignment="Center" CharacterCasing="Upper" MaxLength="29"
+                     ToolTip="Örnek: AFNEY-XXXX-XXXX-XXXX"/>
+            
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Button x:Name="ActivateButton" Content="✓ Aktive Et" Click="ActivateButton_Click" 
+                        Background="#007ACC" FontWeight="Bold" Width="120" Height="40"/>
+                
+                <Button x:Name="TrialButton" Content="Deneme Modu" Click="TrialButton_Click" 
+                        Background="#444" Width="120" Height="40"/>
+                
+                <Button x:Name="ExitButton" Content="Çıkış" Click="ExitButton_Click" 
+                        Background="#7A2A2A" Width="80" Height="40"/>
+            </StackPanel>
+            
+            <TextBlock Text="© 2026 AfneyTech Systems. All rights reserved." 
+                       FontSize="11" Foreground="#555" HorizontalAlignment="Center" Margin="0,40,0,0"/>
+        </StackPanel>
+    </Grid>
+</Window>

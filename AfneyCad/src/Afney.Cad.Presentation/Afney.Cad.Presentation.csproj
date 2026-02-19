@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="2.88.7" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Afney.Cad.Application\Afney.Cad.Application.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Infrastructure\Afney.Cad.Infrastructure.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Render\Afney.Cad.Render.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Database\Afney.Cad.Database.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Commands\Afney.Cad.Commands.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj" />
+  </ItemGroup>
+</Project>

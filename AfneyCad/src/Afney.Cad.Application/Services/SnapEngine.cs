@@ -1,0 +1,134 @@
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Abstractions;
+using Afney.Cad.Geometry.Primitives;
+
+namespace Afney.Cad.Application.Services;
+
+/*
+   NE: Yakalama Motoru (Snap Engine)
+   NEDEN: Kullanıcının boru uçlarına, vana merkezlerine veya hat ortalarına hassas şekilde kenetlenmesini sağlamak için.
+
+   MÜHENDİSLİK DETAYI:
+   - AutoCAD'deki OSNAP (Object Snap) mantığıyla çalışır.
+   - Ekran zoom seviyesine göre değişken bir yakalama alanı (Aperture) hesaplar.
+   - En yakın Snap noktasını (Endpoint, Center, Midpoint vb.) bularak çizimi doğrusal hale getirir.
+   - Sıhhi tesisat hatlarının sızdırmazlık (bağlantı) bütünlüğü için kritiktir.
+*/
+public class SnapEngine
+{
+    private readonly CadDatabase _database;
+    private const double ApertureSize = 15.0; // Pixel cinsinden yakalama alanı
+
+    public SnapEngine(CadDatabase database)
+    {
+        _database = database;
+    }
+
+    /*
+    METOD ADI: FindSnapPoint
+    AMACI: Kullanıcının mouse imlecine en yakın hassas yakalama noktasını bulmak.
+    NEDEN: Milimetrik hassasiyet gerektiren CAD çizimlerinde elle tıklama yeterli değildir.
+    NASIL: 
+    - Veritabanındaki tüm nesnelerin statik snap noktalarını (uç, orta, merkez) kontrol eder.
+    - Eğer 'lastPoint' verilmişse (çizim devam ediyorsa), hatlar üzerinde diklik (Perpendicular) noktalarını hesaplar.
+    */
+    /*
+       NE: Snap Noktası Bul (FindSnapPoint)
+       NEDEN: Mouse imlecinin yakınındaki en uygun hassas yakalama noktasını (Uç, Orta, Merkez veya Dik) uzamsal sorgu ile saptamak için.
+    */
+    public SnapPoint? FindSnapPoint(Vector3D cursorPosition, double currentZoom, Vector3D? lastPoint = null)
+    {
+        // Zoom seviyesine göre dünya koordinatlarında arama yarıçapı
+        double searchRadius = ApertureSize / currentZoom;
+        
+        // --- PERFORMANS KORUMASI ---
+        // Çok geniş alanda snap aramak (zoom out iken) performansı düşürür.
+        const double MaxSearchRadius = 5000.0; // 5 metre sınırı (Dünya birimi)
+        if (searchRadius > MaxSearchRadius) searchRadius = MaxSearchRadius;
+        
+        // KONUMSAL SORGULAMA: Tüm çizim yerine sadece aperture içindeki nesneleri tara
+        var searchBox = new CadBoundingBox(
+            new Vector3D(cursorPosition.X - searchRadius, cursorPosition.Y - searchRadius, -1000),
+            new Vector3D(cursorPosition.X + searchRadius, cursorPosition.Y + searchRadius, 1000)
+        );
+
+        SnapPoint? bestSnap = null;
+        double minDistance = double.MaxValue;
+
+        foreach (var entity in _database.QueryEntities(searchBox))
+        {
+            // 1. STATİK NOKTALARI KONTROL ET (Endpoint, Midpoint, Center vb.)
+            foreach (var snap in entity.GetSnapPoints())
+            {
+                double distance = cursorPosition.DistanceTo(snap.Position);
+                if (distance <= searchRadius && distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestSnap = snap;
+                }
+            }
+
+            // 2. DİNAMİK NOKTALAR (PERPENDICULAR) - Sadece çizim devam ediyorsa
+            if (lastPoint.HasValue)
+            {
+                SnapPoint? perpSnap = CalculatePerpendicularSnap(entity, cursorPosition, lastPoint.Value);
+                if (perpSnap.HasValue)
+                {
+                    double dist = cursorPosition.DistanceTo(perpSnap.Value.Position);
+                    if (dist <= searchRadius && dist < minDistance)
+                    {
+                        minDistance = dist;
+                        bestSnap = perpSnap;
+                    }
+                }
+            }
+        }
+
+        return bestSnap;
+    }
+
+    /*
+    METOD ADI: CalculatePerpendicularSnap
+    AMACI: Bir nesne üzerine, referans noktasından (lastPoint) inilen dikmenin ayağını bulmak.
+    */
+    /*
+       NE: Diklik Snap'i Hesapla (CalculatePerpendicularSnap)
+       NEDEN: Devam eden bir çizim hattından bir nesneye (boru veya çizgi) inilen dikmenin temas noktasını geometrik olarak saptamak için.
+    */
+    private SnapPoint? CalculatePerpendicularSnap(CadEntity entity, Vector3D cursor, Vector3D lastPoint)
+    {
+        if (entity is Afney.Cad.Domain.Entities.Basic.LineEntity line)
+        {
+            Vector3D perp = GetPerpendicularPoint(lastPoint, line.StartPoint, line.EndPoint);
+            return new SnapPoint(perp, SnapPointType.Perpendicular);
+        }
+        else if (entity is Afney.Cad.Mechanical.Entities.PipeEntity pipe)
+        {
+            Vector3D perp = GetPerpendicularPoint(lastPoint, pipe.StartPoint, pipe.EndPoint);
+            return new SnapPoint(perp, SnapPointType.Perpendicular);
+        }
+
+        return null;
+    }
+
+    /*
+       NE: Dik Noktayı Getir (GetPerpendicularPoint)
+       NEDEN: Bir noktanın bir doğru parçası üzerindeki en yakın izdüşümünü vektörel çarpım ile bularak diklik noktasını saptamak için.
+    */
+    private Vector3D GetPerpendicularPoint(Vector3D p, Vector3D s, Vector3D e)
+    {
+        Vector3D v = e - s;
+        Vector3D w = p - s;
+        double c1 = w.Dot(v);
+        double c2 = v.Dot(v);
+
+        if (c2 <= 0) return s;
+
+        double b = c1 / c2;
+        // İzdüşüm noktası hattın dışındaysa s veya e'ye kısıtlayalım (AutoCAD mantığı)
+        if (b < 0) return s;
+        if (b > 1) return e;
+
+        return s + (v * b);
+    }
+}

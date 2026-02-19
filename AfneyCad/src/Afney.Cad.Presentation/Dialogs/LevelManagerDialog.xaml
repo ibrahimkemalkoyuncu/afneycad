@@ -1,0 +1,132 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.LevelManagerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kat Yöneticisi - Level Manager" 
+        Height="500" Width="700"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource DarkBackground}"
+        FontFamily="Segoe UI">
+    
+    <Window.Resources>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="RowBackground" Value="#2A2A2A"/>
+            <Setter Property="AlternatingRowBackground" Value="#242424"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Proje Katları" FontSize="18" FontWeight="Bold" 
+                   Foreground="Orange" Margin="0,0,0,10"/>
+        
+        <!-- KAT LİSTESİ -->
+        <DataGrid x:Name="LevelsGrid" Grid.Row="1" AutoGenerateColumns="False" 
+                  CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
+                  SelectionMode="Single" SelectionUnit="FullRow"
+                  Background="#252526" RowBackground="#2D2D30" AlternatingRowBackground="#333333"
+                  Foreground="White" BorderThickness="0" GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="#444" Margin="0,0,0,10"
+                  SelectionChanged="LevelsGrid_SelectionChanged"
+                  ItemsSource="{Binding Levels}">
+            
+            <DataGrid.Resources>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#1E1E1E"/>
+                    <Setter Property="Foreground" Value="#FFA500"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Padding" Value="10,5"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    <Setter Property="BorderBrush" Value="#555"/>
+                </Style>
+                <!-- Seçili Satır Stili -->
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#007ACC"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#444"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#CCC"/>
+                
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Padding" Value="5"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="DataGridCell">
+                                <Border Padding="{TemplateBinding Padding}" 
+                                        Background="{TemplateBinding Background}" 
+                                        BorderBrush="{TemplateBinding BorderBrush}" 
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#007ACC"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Kat Adı" Binding="{Binding Name}" Width="*" 
+                                    Foreground="White" FontSize="13"/>
+                <DataGridTextColumn Header="Kot (mm)" Binding="{Binding Elevation, StringFormat=F0}" Width="120" 
+                                    Foreground="LightGreen" FontSize="13"/>
+                <DataGridTextColumn Header="Yük (mm)" Binding="{Binding Height, StringFormat=F0}" Width="120" 
+                                    Foreground="LightBlue" FontSize="13"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        
+        <!-- Input Panel -->
+        <Border Grid.Row="2" Background="#333" Padding="10" Margin="0,10,0,10" CornerRadius="3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="120"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="Kat Adı:" VerticalAlignment="Center" Foreground="#AAA" Margin="0,0,5,0"/>
+                <TextBox Grid.Column="1" x:Name="NameTextBox" Margin="0,0,10,0" Padding="5" Background="#222" Foreground="White"/>
+                
+                <TextBlock Grid.Column="2" Text="Kot:" VerticalAlignment="Center" Foreground="#AAA" Margin="0,0,5,0"/>
+                <TextBox Grid.Column="3" x:Name="ElevationTextBox" Margin="0,0,10,0" Padding="5" Background="#222" Foreground="White" Text="0"/>
+                
+                <TextBlock Grid.Column="4" Text="Yükseklik:" VerticalAlignment="Center" Foreground="#AAA" Margin="0,0,5,0"/>
+                <TextBox Grid.Column="5" x:Name="HeightTextBox" Padding="5" Background="#222" Foreground="White" Text="3000"/>
+            </Grid>
+        </Border>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="➕ Ekle" Click="AddButton_Click" Width="100" Margin="0,0,5,0" 
+                    Background="#2A7A2A" Foreground="White" Padding="8" FontWeight="SemiBold"/>
+            <Button Content="✏️ Güncelle" Click="UpdateButton_Click" Width="100" Margin="0,0,5,0" 
+                    Background="#2A5A7A" Foreground="White" Padding="8" FontWeight="SemiBold"/>
+            <Button Content="🗑️ Sil" Click="DeleteButton_Click" Width="100" Margin="0,0,5,0" 
+                    Background="#7A2A2A" Foreground="White" Padding="8" FontWeight="SemiBold"/>
+            <Border Width="10"/>
+            <Button Content="Kapat" Click="CloseButton_Click" Width="100" 
+                    Background="#555" Foreground="White" Padding="8" FontWeight="SemiBold"/>
+        </StackPanel>
+    </Grid>
+</Window>

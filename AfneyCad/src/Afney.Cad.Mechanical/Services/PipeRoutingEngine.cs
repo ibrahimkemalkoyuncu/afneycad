@@ -1,0 +1,271 @@
+using Afney.Cad.Database.Core;
+using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Mechanical.Entities;
+using Afney.Cad.Domain.Abstractions;
+using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Standards;
+using System.Collections.Generic;
+
+namespace Afney.Cad.Mechanical.Services;
+
+/*
+   NE: Boru Yönlendirme Motoru (PipeRoutingEngine)
+   NEDEN: Kullanıcı fare ile çizim yaparken otomatik olarak boru ağı oluşturmak, dirsek ve branşmanları yönetmek için.
+   
+   NASIL (Mühendislik Detayı):
+   - Pure Logic: Veritabanından bağımsız çalışır, sadece oluşturulan nesneleri döner.
+   - Sorumluluk Ayrımı: Nesnelerin veritabanına eklenmesi Komut (Command) katmanının sorumluluğundadır.
+   - Süreklilik: Önceki boru hatlarını takip ederek köşe dönüşlerinde (Dirsek) ve ayrılma noktalarında (Tee) geometrik hesaplamaları yapar.
+   - Hassasiyet: Vana montajı gibi işlemlerde boruyu milimetrik olarak böler ve araya vana yerleştirir.
+*/
+public class PipeRoutingEngine
+{
+    private PipeEntity? _lastPipe;
+    private Vector3D? _lastPoint;
+    private double _currentDiameter = 100.0;
+    private double _currentSlope = 0.0; // % olarak eğim
+    private MechanicalSystemType _currentSystemType = MechanicalSystemType.DomesticColdWater;
+    
+    public Vector3D? LastPoint => _lastPoint;
+
+    public PipeRoutingEngine()
+    {
+    }
+
+    /// <summary>
+    /// Yeni bir boru rotası başlatır.
+    /// </summary>
+    public void StartRoute(Vector3D startPoint, double diameter)
+    {
+        _lastPoint = startPoint;
+        _lastPipe = null;
+        _currentDiameter = diameter;
+    }
+
+    /// <summary>
+    /// Rotalama için varsayılan çapı ayarlar.
+    /// </summary>
+    public void SetDiameter(double diameter)
+    {
+        _currentDiameter = diameter;
+    }
+
+    public void SetSystemType(MechanicalSystemType systemType)
+    {
+        _currentSystemType = systemType;
+    }
+
+    private PipeDefinition? _currentStandardDef;
+
+    /// <summary>
+    /// Rotalama için standart fiziksel özelliklerini ayarlar.
+    /// </summary>
+    public void SetStandardDefinition(PipeDefinition? def)
+    {
+        _currentStandardDef = def;
+        if (def != null)
+        {
+            // Eğer standarttan veri gelirse, çap bilgisini buradan güncelle
+            _currentDiameter = def.InnerDiameter;
+        }
+    }
+
+    /// <summary>
+    /// Rotalama için eğim (%) değerini ayarlar.
+    /// </summary>
+    public void SetSlope(double slope)
+    {
+        _currentSlope = slope;
+    }
+
+    /// <summary>
+    /// Belirlenen noktaya yeni bir boru segmenti ve gerekiyorsa dirsek ekler.
+    /// NASIL: Eğim (Slope) varsa, bitiş noktasının Z koordinatını yatay mesafe üzerinden otomatik hesaplar.
+    /// </summary>
+    /// <returns>Oluşturulan yeni nesne listesi.</returns>
+    private AutoFittingSelector? _fittingSelector;
+
+    public void SetFittingSelector(AutoFittingSelector selector)
+    {
+        _fittingSelector = selector;
+    }
+
+    public List<CadEntity> AddPoint(Vector3D newPoint)
+    {
+        var createdEntities = new List<CadEntity>();
+        
+        if (_lastPoint == null)
+        {
+            _lastPoint = newPoint;
+            return createdEntities;
+        }
+        
+        var start = _lastPoint.Value;
+        
+        var adjustedEnd = newPoint;
+        if (Math.Abs(_currentSlope) > 0.0001)
+        {
+            double dx = newPoint.X - start.X;
+            double dy = newPoint.Y - start.Y;
+            double horizontalDist = Math.Sqrt(dx * dx + dy * dy);
+            
+            double dz = horizontalDist * (_currentSlope / 100.0);
+            adjustedEnd = new Vector3D(newPoint.X, newPoint.Y, start.Z - dz); 
+        }
+        
+        // Yeni boru oluştur
+        var newPipe = new PipeEntity(start, adjustedEnd, _currentDiameter)
+        {
+            SystemType = _currentSystemType,
+            PipeMaterialType = PipeMaterial.PPRC_PN20, // Varsayılan: Temiz Su
+            Slope = _currentSlope,
+            Layer = GetLayerNameForSystem(_currentSystemType)
+        };
+        newPipe.ApplySystemColor();
+
+        // Eğer önceki boru varsa, köşeye dirsek yerleştir
+        if (_lastPipe != null)
+        {
+            MechanicalEntity fitting;
+            
+            if (_fittingSelector != null)
+            {
+                fitting = _fittingSelector.SelectElbow(_lastPipe, newPipe);
+            }
+            else
+            {
+                // Fallback: Manuel Dirsek
+                 fitting = new ElbowEntity(start, _currentDiameter, 
+                    (start - _lastPipe.StartPoint).Normalize(), 
+                    (adjustedEnd - start).Normalize() 
+                )
+                {
+                     Color = 0xFFFFA500,
+                     SystemType = _currentSystemType
+                     // Material = PipeMaterial.PPRC_PN20 // ElbowEntity'de henüz Material property yoksa eklemeliyim
+                };
+            }
+            
+            createdEntities.Add(fitting);
+        }
+
+        createdEntities.Add(newPipe);
+        
+        _lastPipe = newPipe;
+        _lastPoint = adjustedEnd;
+        
+        return createdEntities;
+    }
+
+    /// <summary>
+    /// Mevcut bir boru hattından yeni bir branşman (ayrım) başlatır.
+    /// </summary>
+    /// <param name="targetPipe">Bölünecek ana boru.</param>
+    /// <param name="branchPoint">T-Parçasının yerleşeceği nokta.</param>
+    /// <returns>Oluşturulan (Yeni Borular, Tee) ve silinmesi gereken (Eski Boru) nesneler hakkında bilgi içeren bir yapı döndürebilir. Şimdilik sadece yenileri döner.</returns>
+    public List<CadEntity> StartBranch(PipeEntity targetPipe, Vector3D branchPoint)
+    {
+        var createdEntities = new List<CadEntity>();
+        
+        // Geometriyi hesapla
+        var dir = (targetPipe.EndPoint - targetPipe.StartPoint).Normalize();
+        var branchDir = new Vector3D(-dir.Y, dir.X, 0); 
+        
+        double diameter = targetPipe.InnerDiameter;
+        
+        var tee = new TeeEntity(branchPoint, diameter, diameter, dir, branchDir);
+        tee.Color = 0xFFFFA500;
+        
+        // Orijinal boruyu bölerek iki yeni boru oluştur
+        var pipeA = new PipeEntity(targetPipe.StartPoint, branchPoint, diameter)
+        {
+            Color = targetPipe.Color,
+            PipeMaterialType = targetPipe.PipeMaterialType,
+            FlowRate = targetPipe.FlowRate,
+            Layer = targetPipe.Layer,
+            SystemType = targetPipe.SystemType
+        };
+        
+        var pipeB = new PipeEntity(branchPoint, targetPipe.EndPoint, diameter)
+        {
+            Color = targetPipe.Color,
+            PipeMaterialType = targetPipe.PipeMaterialType,
+            FlowRate = targetPipe.FlowRate,
+            Layer = targetPipe.Layer,
+            SystemType = targetPipe.SystemType
+        }; 
+        
+        createdEntities.Add(pipeA);
+        createdEntities.Add(pipeB);
+        createdEntities.Add(tee);
+        
+        _lastPoint = branchPoint;
+        _lastPipe = null; 
+        
+        return createdEntities;
+    }
+
+    /// <summary>
+    /// Boru hattı üzerine bir vana yerleştirir ve boruyu böler.
+    /// </summary>
+    public List<CadEntity> InsertValve(PipeEntity targetPipe, Vector3D insertPoint)
+    {
+        var createdEntities = new List<CadEntity>();
+        
+        var dir = (targetPipe.EndPoint - targetPipe.StartPoint).Normalize();
+        double angle = Math.Atan2(dir.Y, dir.X); 
+        
+        double diameter = targetPipe.InnerDiameter;
+        
+        var valve = new Valve()
+        {
+            Position = insertPoint,
+            InnerDiameter = diameter,
+            RotationAngle = angle,
+            Color = 0xFFFF0000,
+            PipeMaterialType = targetPipe.PipeMaterialType,
+            SystemType = targetPipe.SystemType
+        };
+        
+        // Vana boyutu kadar boşluk bırak (Gap)
+        double gap = diameter / 2.0; 
+        
+        var p1End = insertPoint - (dir * gap);
+        var p2Start = insertPoint + (dir * gap);
+        
+        var pipeA = new PipeEntity(targetPipe.StartPoint, p1End, diameter)
+        {
+            Color = targetPipe.Color,
+            PipeMaterialType = targetPipe.PipeMaterialType,
+            FlowRate = targetPipe.FlowRate,
+            Layer = targetPipe.Layer,
+            SystemType = targetPipe.SystemType
+        };
+        
+        var pipeB = new PipeEntity(p2Start, targetPipe.EndPoint, diameter)
+        {
+             Color = targetPipe.Color,
+            PipeMaterialType = targetPipe.PipeMaterialType,
+            FlowRate = targetPipe.FlowRate,
+            Layer = targetPipe.Layer,
+            SystemType = targetPipe.SystemType
+        };
+        
+        createdEntities.Add(pipeA);
+        createdEntities.Add(valve);
+        createdEntities.Add(pipeB);
+        
+        return createdEntities;
+    }
+    private string GetLayerNameForSystem(MechanicalSystemType sysType)
+    {
+        switch (sysType)
+        {
+            case MechanicalSystemType.WasteWater: return "MEK_PIS_SU";
+            case MechanicalSystemType.DomesticColdWater: return "MEK_TEMIZ_SU";
+            case MechanicalSystemType.DomesticHotWater: return "MEK_SICAK_SU";
+            default: return "MEK_GENEL";
+        }
+    }
+}
+

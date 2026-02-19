@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Afney.Cad.Domain\Afney.Cad.Domain.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Geometry\Afney.Cad.Geometry.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Database\Afney.Cad.Database.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ACadSharp" Version="3.4.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+</Project>

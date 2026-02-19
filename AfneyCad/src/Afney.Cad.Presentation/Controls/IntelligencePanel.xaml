@@ -1,0 +1,48 @@
+<UserControl x:Class="Afney.Cad.Presentation.Controls.IntelligencePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#2D2D30" Foreground="White">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="INTELLIGENCE PANEL" FontWeight="Bold" Foreground="#FF5555" Margin="0,0,0,10"/>
+        
+        <StackPanel Grid.Row="1" Margin="0,0,0,15">
+            <TextBlock Text="SELECTED ENTITY:" Foreground="Gray" FontSize="10"/>
+            <TextBlock x:Name="EntityTitle" Text="None" FontSize="14" FontWeight="Bold"/>
+        </StackPanel>
+        
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="PropertiesList">
+                <Border Background="#3E3E42" Padding="5" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Diameter (DN):" Foreground="#AAA" FontSize="10"/>
+                        <TextBlock Text="50 mm" FontWeight="SemiBold"/>
+                        <TextBlock Text="Suggested: DN65" Foreground="#FFE64D" FontStyle="Italic" FontSize="10"/>
+                    </StackPanel>
+                </Border>
+                
+                <Border Background="#3E3E42" Padding="5" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Velocity (v):" Foreground="#AAA" FontSize="10"/>
+                        <TextBlock Text="1.25 m/s" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+                
+                <Border Background="#3E3E42" Padding="5" Margin="0,5">
+                    <StackPanel>
+                        <TextBlock Text="Pressure Loss (ΔP):" Foreground="#AAA" FontSize="10"/>
+                        <TextBlock Text="0.45 bar" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <Button Grid.Row="3" Content="AUTO FIX SYSTEM" Background="#007ACC" Foreground="White" FontWeight="Bold" Padding="10" Margin="0,10,0,0"/>
+    </Grid>
+</UserControl>

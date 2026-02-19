@@ -1,0 +1,43 @@
+<UserControl x:Class="Afney.Cad.Presentation.Controls.ProjectNavigatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#2D2D30" Foreground="White">
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="PROJECT NAVIGATOR" FontWeight="Bold" Foreground="#FFE64D" Margin="5,5,5,10"/>
+        
+        <TreeView Grid.Row="1" Background="Transparent" BorderThickness="0">
+            <TreeView.Resources>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+            </TreeView.Resources>
+            
+            <TreeViewItem Header="🏢 Building" IsExpanded="True">
+                <TreeViewItem Header="Floor 0 (Z=0.00)"/>
+                <TreeViewItem Header="Floor 1 (Z=3.00)"/>
+                <TreeViewItem Header="Floor 2 (Z=6.00)"/>
+            </TreeViewItem>
+            
+            <TreeViewItem Header="💧 Systems" IsExpanded="True">
+                <TreeViewItem Header="Domestic Cold Water"/>
+                <TreeViewItem Header="Domestic Hot Water"/>
+                <TreeViewItem Header="Waste Water"/>
+            </TreeViewItem>
+            
+            <TreeViewItem Header="🧬 Risers">
+                <TreeViewItem Header="R-01"/>
+                <TreeViewItem Header="R-02"/>
+            </TreeViewItem>
+            
+            <TreeViewItem Header="📊 Reports">
+                <TreeViewItem Header="Pressure Drop Report"/>
+                <TreeViewItem Header="Bill of Materials"/>
+            </TreeViewItem>
+        </TreeView>
+    </Grid>
+</UserControl>

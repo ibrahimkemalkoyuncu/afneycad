@@ -1,0 +1,48 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/Afney.Cad.Application/Afney.Cad.Application.csproj">
+
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Commands/Afney.Cad.Commands.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Common/Afney.Cad.Common.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Database/Afney.Cad.Database.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Domain/Afney.Cad.Domain.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Geometry/Afney.Cad.Geometry.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Infrastructure/Afney.Cad.Infrastructure.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Mechanical/Afney.Cad.Mechanical.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Presentation/Afney.Cad.Presentation.csproj">
+      <Platform Solution="Release|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.Render/Afney.Cad.Render.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/Afney.Cad.SpatialIndex/Afney.Cad.SpatialIndex.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+
+  <Folder Name="/tests/">
+    <Project Path="tests/Afney.Cad.Tests/Afney.Cad.Tests.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+</Solution>

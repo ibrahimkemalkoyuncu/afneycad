@@ -1,0 +1,45 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.MahalDetailsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mahal Analizi" Height="400" Width="450"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1E1E1E" Foreground="White">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,15">
+            <TextBlock x:Name="MahalTitle" Text="MAHAL ANALİZİ" FontSize="18" FontWeight="Bold" Foreground="Orange"/>
+            <TextBlock x:Name="MahalSubTitle" Text="Mutfak - 15.50 m²" FontSize="12" Foreground="Gray"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" Text="BAĞLI VİTRİFİYE VE YÜK BİRİMLERİ" FontWeight="Bold" Margin="0,0,0,5" Foreground="Cyan"/>
+        
+        <DataGrid x:Name="FixtureGrid" Grid.Row="2" Background="#2D2D2D" Foreground="White" BorderThickness="0" 
+                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Cihaz Tipi" Binding="{Binding FixtureType}" Width="*"/>
+                <DataGridTextColumn Header="Yük Birimi (FU)" Binding="{Binding LoadUnits}" Width="100"/>
+            </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+
+        <Border Grid.Row="3" Background="#333" Padding="10" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="TOPLAM YÜK BİRİMİ (∑FU):" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="TotalFUText" Text="2.5" FontSize="16" FontWeight="Bold" Foreground="Orange" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <Button Grid.Row="4" Content="KAPAT" IsCancel="True" HorizontalAlignment="Right" Width="100" Height="30" Margin="0,15,0,0" Background="#3E3E42" Foreground="White" BorderThickness="0"/>
+    </Grid>
+</Window>
