@@ -1,0 +1,17 @@
+﻿c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(111,9): error CS1003: Syntax error, ')' expected [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(105,34): error CS1073: Unexpected token ';' [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(105,80): error CS1056: Unexpected character '\' [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(105,104): error CS1003: Syntax error, ':' expected [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(105,104): error CS1525: Invalid expression term ';' [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(105,104): error CS1026: ) expected [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(113,25): error CS1525: Invalid expression term '/' [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(113,32): error CS1010: Newline in constant [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(113,35): error CS1003: Syntax error, ',' expected [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(114,34): error CS1026: ) expected [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\HydraulicReportService.cs(132,2): error CS1513: } expected [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+
+Build FAILED.
+    0 Warning(s)
+    11 Error(s)
+
+Time Elapsed 00:00:05.26

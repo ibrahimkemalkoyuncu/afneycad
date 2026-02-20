@@ -16,28 +16,15 @@ obj/
 *.cache
 *.swp
 
-# Logs and User Artifacts
-*.log
-*.txt
-*.html
-!README.md
-!ARCHITECTURE.md
-!BIM_BLUEPRINT.md
-!DWG_ENGINE_BLUEPRINT.md
-!METHOD_DOCUMENTATION.md
-!SUGGESTED_IMPROVEMENTS.md
-!FULL_METHOD_DOCUMENTATION.md
-!UNUSED_METHODS_REPORT.md
-build.log
-build_output.txt
-FULL_METHOD_DOCUMENTATION.html
-raw_methods_list.txt
-
 # OS Files
 .DS_Store
 Thumbs.db
+
 
 # Other outputs
 CALC/
 *.ifc
 *.bld
+*.md
+*.ps1
+*.html

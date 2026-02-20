@@ -1,0 +1,7 @@
+﻿c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1786,121): error CS0103: The name '_currentFilePath' does not exist in the current context [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_ilg4n4s3_wpftmp.csproj]
+
+Build FAILED.
+    14 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:06.38

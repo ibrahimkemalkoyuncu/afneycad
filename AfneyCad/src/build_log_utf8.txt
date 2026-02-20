@@ -1,0 +1,22 @@
+﻿  Geri y├╝klenecek projeler belirleniyor...
+  Geri y├╝kleme i├ğin t├╝m projeler g├╝ncel.
+  Afney.Cad.Common -> c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Common\bin\Debug\net10.0\Afney.Cad.Common.dll
+  Afney.Cad.Geometry -> c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Geometry\bin\Debug\net10.0\Afney.Cad.Geometry.dll
+  Afney.Cad.Domain -> c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Domain\bin\Debug\net10.0\Afney.Cad.Domain.dll
+  Afney.Cad.SpatialIndex -> c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.SpatialIndex\bin\Debug\net10.0\Afney.Cad.SpatialIndex.dll
+  Afney.Cad.Database -> c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Database\bin\Debug\net10.0\Afney.Cad.Database.dll
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Engine\Hydraulics\HardyCrossSolver.cs(51,26): error CS1061: 'NetworkPipe' bir 'PipeMaterialType' tan─▒m─▒ i├ğermiyor ve 'NetworkPipe' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'PipeMaterialType' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Engine\Hydraulics\HardyCrossSolver.cs(103,61): error CS1061: 'NetworkPipe' bir 'PipeMaterialType' tan─▒m─▒ i├ğermiyor ve 'NetworkPipe' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'PipeMaterialType' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\FlowCalculationService.cs(127,24): warning CS0219: 'density' de─şi┼şkeni atan─▒r ancak de─şeri hi├ğbir zaman kullan─▒lmaz [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\PipingRoutingService.cs(24,29): warning CS0414: 'PipingRoutingService._gridSize' alan─▒ atan─▒r ancak de─şeri hi├ğbir zaman kullan─▒lmaz [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+
+Olu┼şturma BA┼ŞARISIZ OLDU.
+
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\FlowCalculationService.cs(127,24): warning CS0219: 'density' de─şi┼şkeni atan─▒r ancak de─şeri hi├ğbir zaman kullan─▒lmaz [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\PipingRoutingService.cs(24,29): warning CS0414: 'PipingRoutingService._gridSize' alan─▒ atan─▒r ancak de─şeri hi├ğbir zaman kullan─▒lmaz [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Engine\Hydraulics\HardyCrossSolver.cs(51,26): error CS1061: 'NetworkPipe' bir 'PipeMaterialType' tan─▒m─▒ i├ğermiyor ve 'NetworkPipe' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'PipeMaterialType' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Engine\Hydraulics\HardyCrossSolver.cs(103,61): error CS1061: 'NetworkPipe' bir 'PipeMaterialType' tan─▒m─▒ i├ğermiyor ve 'NetworkPipe' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'PipeMaterialType' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+    2 Uyar─▒
+    2 Hata
+
+Ge├ğen S├╝re 00:00:31.07

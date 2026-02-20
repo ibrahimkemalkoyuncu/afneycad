@@ -81,6 +81,51 @@ namespace Afney.Cad.Presentation.Dialogs
             }
         }
 
+        private void Export_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentReport == null) return;
+
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='UTF-8'><title>Kritik Hat Raporu</title>");
+                sb.AppendLine("<style>body{font-family:sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #ddd;padding:8px;text-align:center;} th{background-color:#f2f2f2;} h2{color:#d35400;}</style>");
+                sb.AppendLine("</head><body>");
+                
+                sb.AppendLine($"<h2>Kritik Hat Basınç Kaybı Raporu</h2>");
+                sb.AppendLine($"<p>Sistem Tipi: <strong>{_currentReport.SystemType}</strong> | En Uç Nokta: <strong>{_currentReport.DisadvantagedFixture}</strong></p>");
+                
+                sb.AppendLine("<table>");
+                sb.AppendLine("<tr><th>Boru ID</th><th>Çap (DN)</th><th>Boy (m)</th><th>Debi (m3/h)</th><th>Hız (m/s)</th><th>Kayıp (mSS)</th><th>Kümülatif (mSS)</th></tr>");
+                
+                foreach(var s in _currentReport.Segments)
+                {
+                    sb.AppendLine($"<tr><td>{s.PipeId}</td><td>{s.Diameter:F0}</td><td>{s.Length:F2}</td><td>{s.FlowRate:F2}</td><td>{s.Velocity:F2}</td><td>{s.PressureDrop:F3}</td><td>{s.CumulativeLoss:F3}</td></tr>");
+                }
+                sb.AppendLine("</table>");
+
+                sb.AppendLine($"<h3>Analiz Sonucu</h3>");
+                sb.AppendLine($"<p>Toplam Sürtünme: <strong>{_currentReport.TotalLinearLoss:F2} mSS</strong></p>");
+                sb.AppendLine($"<p>Statik Yükseklik: <strong>{_currentReport.StaticHead:F2} m</strong></p>");
+                sb.AppendLine($"<p style='color:red; font-size:18px;'>Gereken Pompa Basıncı: <strong>{_currentReport.TotalPressureRequired:F2} mSS</strong></p>");
+
+                sb.AppendLine("</body></html>");
+
+                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "KritikHatRaporu_" + Guid.NewGuid() + ".html");
+                System.IO.File.WriteAllText(tempPath, sb.ToString(), System.Text.Encoding.UTF8);
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = tempPath,
+                    UseShellExecute = true
+                });
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Dışa aktarma sırasında hata oluştu: {ex.Message}");
+            }
+        }
+
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();

@@ -1764,6 +1764,46 @@ namespace Afney.Cad.Presentation
         }
 
         /*
+           NE: Detaylı Hidrolik Hesap Raporu Üret
+           NEDEN: Sistemdeki tüm boru segmentlerinin hız, debi, yük birimi ve sürtünme kaybı bilgilerini içeren HTML tablosu oluşturup mühendise sunmak için. (Faz 7)
+        */
+        private void OnGenerateHydraulicReport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var pipes = _database.GetAllEntities().OfType<Afney.Cad.Mechanical.Entities.PipeEntity>().ToList();
+                if (!pipes.Any())
+                {
+                    MessageBox.Show("Raporlanacak boru bulunamadı. Lütfen önce tesisatı çizin.", "Uyarı");
+                    return;
+                }
+
+                // Ön hesaplamaları tetikleyelim
+                OnCalculateFlowCommand(sender, e);
+                var pressureService = new Afney.Cad.Mechanical.Services.PressureDropService(_mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
+                
+                string projectName = "Aktif_Proje";
+                var reportService = new Afney.Cad.Mechanical.Services.HydraulicReportService(pressureService);
+                string htmlContent = reportService.GenerateHtmlReport(pipes, projectName);
+
+                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "HydraulicReport_" + Guid.NewGuid().ToString() + ".html");
+                System.IO.File.WriteAllText(tempPath, htmlContent, System.Text.Encoding.UTF8);
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = tempPath,
+                    UseShellExecute = true
+                });
+
+                StatusText.Text = "Hidrolik analiz raporu oluşturuldu ve tarayıcıda açıldı.";
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Hidrolik Rapor Hatası: {ex.Message}", "Hata");
+            }
+        }
+
+        /*
            NE: Pompa ve Hidrofor Seçimi
            NEDEN: Kritik hattaki toplam basınç kaybını ve debiyi analiz ederek veritabanındaki uygun pompa modellerini önermek için.
         */

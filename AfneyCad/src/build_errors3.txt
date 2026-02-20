@@ -1,0 +1,7 @@
+c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(573,35): error CS0246: 'IfcExportService' türü veya ad alanı adı bulunamadı (bir using yönergeniz veya derleme başvurunuz mu eksik?) [c:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_jbrsihgi_wpftmp.csproj]
+
+Oluşturma BAŞARISIZ OLDU.
+    14 Uyarı
+    1 Hata
+
+Geçen Süre 00:00:06.77

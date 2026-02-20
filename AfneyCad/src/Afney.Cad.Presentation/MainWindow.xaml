@@ -50,6 +50,7 @@
                 <Separator/>
                 <MenuItem Header="Dinamik Lejant Oluştur" Click="OnGenerateLegend" ToolTip="Kullanılan sembolleri ve hat tiplerini içeren tabloyu çizime ekler."/>
                 <MenuItem Header="Metraj Listesi (BOQ)" Click="OnGenerateBOM"/>
+                <MenuItem Header="Tüm Sistem Hidrolik Hesap Raporu" Click="OnGenerateHydraulicReport" Foreground="Cyan"/>
                 <MenuItem Header="Pompa ve Hidrofor Seçimi" Click="OnPumpSelection"/>
                 <MenuItem Header="Kolon Şeması Oluştur (Riser)" Click="OnRiserGenerateCommand" />
                 <Separator/>

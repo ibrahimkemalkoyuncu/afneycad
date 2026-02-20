@@ -1,0 +1,2 @@
+cd AfneyCad
+dotnet run --project src/Afney.Cad.Presentation/Afney.Cad.Presentation.csproj

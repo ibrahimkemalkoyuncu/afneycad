@@ -56,4 +56,23 @@ public class HydraulicCalculationService
         
         return (totalLU, flow, diameter);
     }
+
+    /*
+       NE: Sirkülasyon Pompası Debi Hesabı
+       AMACI: Sıcak su dönüş (HotWaterReturn) hattındaki ısı kaybını karşılayacak sirkülasyon pompası debisini hesaplamak.
+       FORMÜL: P(Watt) = m(kg/s) * c * DeltaT 
+               Debi(m³/h) = (P / (c * DeltaT)) * 3.6
+    */
+    public double CalculateCirculationPumpFlow(double heatLossWatt, double deltaT = 5.0)
+    {
+        if (heatLossWatt <= 0 || deltaT <= 0) return 0;
+        
+        // Su için özgül ısı (c) = 4.18 kJ/kg.K = 4180 J/kg.K
+        double massFlowKgPerSec = heatLossWatt / (4180.0 * deltaT);
+        
+        // Yoğunluk 1 kg/L kabulü ile m³/h dönüşümü
+        double volumeFlowM3h = massFlowKgPerSec * 3.6;
+        
+        return volumeFlowM3h;
+    }
 }

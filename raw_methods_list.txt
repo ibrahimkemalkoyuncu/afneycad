@@ -1,0 +1,813 @@
+﻿Class Name | Method Name | Description
+CadEngine | ClearSelection | SeÃ§imi Temizle (ClearSelection)
+CadEngine | Select | Nesne SeÃ§ (Select)
+CadEngine | Deselect | SeÃ§imi KaldÄ±r (Deselect)
+CadEngine | ToggleSelection | SeÃ§imi Tersine Ã‡ev (ToggleSelection)
+CadEngine | Update | Sistem GÃƒÂ¼ncelleme (Update)
+CadEngine | Pick | Nesne SeÃ§imi Sorgusu (Pick)
+CadEngine | FindSnapPoint | Snap NoktasÄ± Bul (FindSnapPoint)
+CadEngine | Render | Sahneyi Ã‡iz (Render)
+CadEngine | DrawSnapMarker | Snap Ã„Â°Ã…Å¸aretÃƒÂ§isini Ãƒâ€¡iz (DrawSnapMarker)
+CadEngine | DrawGrid | Izgara Ãƒâ€¡iz (DrawGrid)
+CadEngine | DrawWCS | Orijinal Koordinat Sistemini Ãƒâ€¡iz (DrawWCS)
+Cad | ConvertEntities | Nesneleri DÃ¶nÃ¼ÅŸtÃ¼r (ConvertEntities)
+Cad | ConvertLine | Ã‡izgiyi DÃ¶nÃ¼ÅŸtÃ¼r (ConvertLine)
+Cad | ConvertCircle | Ã‡emberi DÃ¶nÃ¼ÅŸtÃ¼r (ConvertCircle)
+Cad | ConvertPolyline | Ã‡okluÃ§izgiyi DÃ¶nÃ¼ÅŸtÃ¼r (ConvertPolyline)
+CadSerializer | RegisterCadPolymorphism | Polimorfizm KaydÄ± (RegisterCadPolymorphism)
+CadSerializer | Serialize | SerileÅŸtir (Serialize)
+CadSerializer | Deserialize | Geri YÃ¼kle (Deserialize)
+LicenseManager | Validate | Mevcut lisans durumunu kontrol et
+LicenseManager | ValidateKey | Verilen anahtarÄ± doÄŸrula
+LicenseManager | SaveLicense | LisansÄ± kaydet
+LicenseManager | RemoveLicense | LisansÄ± sil (Deactivate)
+SelectionManager | OnEntityRemoved | Entity silindi event handler - cache'ten kaldÄ±r
+SelectionManager | SelectByCrossing | KesiÅŸimle SeÃ§ (SelectByCrossing)
+SelectionManager | SelectByWindow | Alanla SeÃ§ (SelectByWindow)
+SelectionManager | ToggleEntity | Tek Entity SeÃ§/SeÃ§imi KaldÄ±r (Toggle)
+SelectionManager | ClearSelection | TÃ¼m SeÃ§imi Temizle
+SelectionManager | GetSelectedEntities | SeÃ§ili Entityleri Al - PERFORMANS OPTÄ°MÄ°ZE
+SelectionManager | CopyToClipboard | Panoya Kopyala (CopyToClipboard)
+SelectionManager | PasteFromClipboard | Panodan YapÄ±ÅŸtÄ±r (PasteFromClipboard)
+SelectionManager | DeleteSelected | SeÃ§ili OlanlarÄ± Sil (DeleteSelected)
+SelectionManager | BoundingBoxContains | SeÃ§ili Entityleri Highlight Ã‡iz (SarÄ± Renk)
+SnapEngine | FindSnapPoint | Snap NoktasÄ± Bul (FindSnapPoint)
+SnapEngine | CalculatePerpendicularSnap | Diklik Snap'i Hesapla (CalculatePerpendicularSnap)
+SnapEngine | GetPerpendicularPoint | Dik NoktayÄ± Getir (GetPerpendicularPoint)
+BlockCommand | Start | Komutu BaÅŸlat (Start)
+BlockCommand | OnPointerPressed | TÃ„Â±klama OlayÃ„Â± (OnPointerPressed)
+BlockCommand | OnPointerMoved | Fare Hareket OlayÃ„Â± (OnPointerMoved)
+BlockCommand | OnKeyDown | Klavye GiriÃ…Å¸ OlayÃ„Â± (OnKeyDown)
+BlockCommand | FinalizeBlock | Blok TanÄ±mÄ±nÄ± Kapat (FinalizeBlock)
+BlockCommand | Cancel | Komutu Ã„Â°ptal Et (Cancel)
+BlockCommand | Draw | YardÃ„Â±mcÃ„Â± Ãƒâ€¡izim (Draw)
+CircleCommand | Start | Komutu BaÅŸlat (Start)
+CircleCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+CircleCommand | OnPointerMoved | AÃ§Ä±klama yok
+CircleCommand | OnKeyDown | AÃ§Ä±klama yok
+CircleCommand | Draw | AÃ§Ä±klama yok
+CircleCommand | Cancel | AÃ§Ä±klama yok
+CircleCommand | CalculateDistance | Mesafe Hesapla (CalculateDistance)
+CopyCommand | Start | Komutu BaÃ…Å¸lat (Start)
+CopyCommand | OnPointerPressed | TÃ„Â±klama OlayÃ„Â± (OnPointerPressed)
+CopyCommand | OnPointerMoved | Fare Hareket OlayÃ„Â± (OnPointerMoved)
+CopyCommand | OnKeyDown | Klavye GiriÃ…Å¸ OlayÃ„Â± (OnKeyDown)
+CopyCommand | Draw | YardÃ„Â±mcÃ„Â± Ãƒâ€¡izim (Draw)
+CopyCommand | Cancel | Komutu Ã„Â°ptal Et (Cancel)
+Unknown | new | Blok Ekleme Komutu (INSERT)
+Unknown | Start | Komutu BaÅŸlat (Start)
+Unknown | SetBlock | Blok Tipini SeÃ§ (SetBlock)
+Unknown | OnPointerPressed | AÃ§Ä±klama yok
+Unknown | OnPointerMoved | AÃ§Ä±klama yok
+Unknown | OnKeyDown | AÃ§Ä±klama yok
+Unknown | Draw | AÃ§Ä±klama yok
+LineCommand | Start | Komutu BaÅŸlat (Start)
+LineCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+LineCommand | OnPointerMoved | Fare Hareket OlayÄ± (OnPointerMoved)
+LineCommand | OnKeyDown | AÃ§Ä±klama yok
+LineCommand | Draw | Hayalet Ã‡izim (Draw)
+LineCommand | Cancel | Komutu Ä°ptal Et (Cancel)
+MoveCommand | Start | Komutu BaÅŸlat (Start)
+MoveCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+MoveCommand | OnPointerMoved | AÃ§Ä±klama yok
+MoveCommand | OnKeyDown | AÃ§Ä±klama yok
+MoveCommand | Draw | YardÄ±mcÄ± Ã‡izgileri Ã‡iz (Draw)
+MoveCommand | Cancel | AÃ§Ä±klama yok
+PickEntityCommand | Start | Komutu BaÃ…Å¸lat (Start)
+PickEntityCommand | OnPointerPressed | TÃ„Â±klama OlayÃ„Â± (OnPointerPressed)
+PickEntityCommand | OnPointerMoved | Fare Hareket OlayÃ„Â± (OnPointerMoved)
+PickEntityCommand | OnKeyDown | Klavye GiriÃ…Å¸ OlayÃ„Â± (OnKeyDown)
+PickEntityCommand | Draw | YardÃ„Â±mcÃ„Â± Ãƒâ€¡izim (Draw)
+PickEntityCommand | Cancel | Komutu Ã„Â°ptal Et (Cancel)
+PolylineCommand | Start | AÃ§Ä±klama yok
+PolylineCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+PolylineCommand | OnPointerMoved | AÃ§Ä±klama yok
+PolylineCommand | OnKeyDown | AÃ§Ä±klama yok
+PolylineCommand | UpdateGhost | AÃ§Ä±klama yok
+PolylineCommand | Draw | AÃ§Ä±klama yok
+PolylineCommand | Finish | Bitir (Finish)
+PolylineCommand | Cancel | AÃ§Ä±klama yok
+RectangleCommand | Start | AÃ§Ä±klama yok
+RectangleCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+RectangleCommand | OnPointerMoved | AÃ§Ä±klama yok
+RectangleCommand | OnKeyDown | AÃ§Ä±klama yok
+RectangleCommand | Draw | AÃ§Ä±klama yok
+RectangleCommand | Cancel | AÃ§Ä±klama yok
+RectangleCommand | CreateRectFromTwoPoints | DikdÃ¶rtgen Poligonu OluÅŸtur (CreateRectFromTwoPoints)
+RotateCommand | Start | Komutu BaÃ…Å¸lat (Start)
+RotateCommand | OnPointerPressed | TÃ„Â±klama OlayÃ„Â± (OnPointerPressed)
+RotateCommand | OnPointerMoved | Fare Hareket OlayÃ„Â± (OnPointerMoved)
+RotateCommand | OnKeyDown | Klavye GiriÃ…Å¸ OlayÃ„Â± (OnKeyDown)
+RotateCommand | Draw | YardÃ„Â±mcÃ„Â± Ãƒâ€¡izim (Draw)
+RotateCommand | Cancel | AÃ§Ä±klama yok
+RotateCommand | CalculateAngle | AÃƒÂ§Ã„Â± Hesapla (CalculateAngle)
+ScaleCommand | Start | Komutu BaÃ…Å¸lat (Start)
+ScaleCommand | OnPointerPressed | TÃ„Â±klama OlayÃ„Â± (OnPointerPressed)
+ScaleCommand | OnPointerMoved | Fare Hareket OlayÃ„Â± (OnPointerMoved)
+ScaleCommand | OnKeyDown | Klavye GiriÃ…Å¸ OlayÃ„Â± (OnKeyDown)
+ScaleCommand | Draw | YardÃ„Â±mcÃ„Â± Ãƒâ€¡izim (Draw)
+ScaleCommand | Cancel | AÃ§Ä±klama yok
+ScaleCommand | CalculateScale | Ãƒâ€“lÃƒÂ§ek FaktÃƒÂ¶rÃƒÂ¼ Hesapla (CalculateScale)
+CommandManager | StartCommand | Komutu BaÅŸlat (StartCommand)
+CommandManager | ProcessPointerPressed | TÄ±klama GiriÅŸini Ä°ÅŸle (ProcessPointerPressed)
+CommandManager | ProcessPointerMoved | Mouse Hareketini Ä°ÅŸle (ProcessPointerMoved)
+CommandManager | ProcessKeyDown | Klavye GiriÅŸini Ä°ÅŸle (ProcessKeyDown)
+CommandManager | DrawGhost | Hayalet Ã‡izimleri Yap (DrawGhost)
+CommandManager | CancelCommand | AÃ§Ä±klama yok
+CommandManager | HandleFeedback | AÃ§Ä±klama yok
+CommandManager | HandleCompletion | AÃ§Ä±klama yok
+CommandManager | Cleanup | AÃ§Ä±klama yok
+CommandHistory | Undo | Geri Al (Undo)
+CommandHistory | Redo | Yinele (Redo)
+EntityAddedAction | Undo | Nesneyi veritabanÄ±ndan ID ile kaldÄ±rarak Ã§izimi geri alÄ±r.
+EntityAddedAction | Redo | Daha Ã¶nce eklenmiÅŸ olan nesne referansÄ±nÄ± veritabanÄ±na geri koyar.
+EntityRemovedAction | Undo | AÃ§Ä±klama yok
+EntityRemovedAction | Redo | AÃ§Ä±klama yok
+ArchitecturalBlockCommand | Start | Komutu BaÅŸlat (Start)
+ArchitecturalBlockCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+ArchitecturalBlockCommand | OnPointerMoved | AÃ§Ä±klama yok
+ArchitecturalBlockCommand | OnKeyDown | AÃ§Ä±klama yok
+ArchitecturalBlockCommand | GoToStep | AÃ§Ä±klama yok
+ArchitecturalBlockCommand | SetSelectedEntities | AÃ§Ä±klama yok
+ArchitecturalBlockCommand | Draw | AÃ§Ä±klama yok
+ArchitecturalBlockCommand | FinalizeExport | DÄ±ÅŸa AktarÄ±mÄ± BaÅŸlat (FinalizeExport)
+CreateRoomCommand | Start | AÃ§Ä±klama yok
+CreateRoomCommand | OnPointerPressed | AÃ§Ä±klama yok
+CreateRoomCommand | OnPointerMoved | AÃ§Ä±klama yok
+CreateRoomCommand | UpdateGhost | AÃ§Ä±klama yok
+CreateRoomCommand | OnKeyDown | AÃ§Ä±klama yok
+CreateRoomCommand | Finish | AÃ§Ä±klama yok
+CreateRoomCommand | Cancel | AÃ§Ä±klama yok
+CreateRoomCommand | Draw | AÃ§Ä±klama yok
+DetectRoomCommand | Start | AÃ§Ä±klama yok
+DetectRoomCommand | OnPointerPressed | AÃ§Ä±klama yok
+DetectRoomCommand | OnPointerMoved | AÃ§Ä±klama yok
+DetectRoomCommand | OnKeyDown | AÃ§Ä±klama yok
+DetectRoomCommand | Draw | AÃ§Ä±klama yok
+DetectRoomCommand | Cancel | AÃ§Ä±klama yok
+Unknown | Start | Metraj Tablosu Ekleme Komutu (InsertBOMTableCommand)
+Unknown | OnPointerPressed | AÃ§Ä±klama yok
+Unknown | OnPointerMoved | AÃ§Ä±klama yok
+Unknown | OnKeyDown | AÃ§Ä±klama yok
+Unknown | Draw | AÃ§Ä±klama yok
+Unknown | Cancel | AÃ§Ä±klama yok
+Unknown | Start | Nokta SeÃ§me Komutu (InsertPointCommand)
+Unknown | OnPointerPressed | AÃ§Ä±klama yok
+Unknown | OnPointerMoved | AÃ§Ä±klama yok
+Unknown | OnKeyDown | AÃ§Ä±klama yok
+Unknown | Draw | AÃ§Ä±klama yok
+Unknown | Cancel | AÃ§Ä±klama yok
+LegendGenerateCommand | Start | AÃ§Ä±klama yok
+LegendGenerateCommand | OnPointerPressed | AÃ§Ä±klama yok
+LegendGenerateCommand | OnPointerMoved | AÃ§Ä±klama yok
+LegendGenerateCommand | OnKeyDown | AÃ§Ä±klama yok
+LegendGenerateCommand | Draw | AÃ§Ä±klama yok
+MahalDefineCommand | Start | Komutu BaÅŸlat (Start)
+MahalDefineCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+MahalDefineCommand | FinalizeMahal | AÃ§Ä±klama yok
+MahalDefineCommand | AnalyzeAndAddFixtures | AÃ§Ä±klama yok
+MahalDefineCommand | OnPointerMoved | AÃ§Ä±klama yok
+MahalDefineCommand | OnKeyDown | AÃ§Ä±klama yok
+MahalDefineCommand | Draw | AÃ§Ä±klama yok
+MahalDefineCommand | Cancel | AÃ§Ä±klama yok
+Mahal | Start | Komutu BaÅŸlat (Start)
+Mahal | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+Mahal | OnPointerMoved | AÃ§Ä±klama yok
+Mahal | OnKeyDown | AÃ§Ä±klama yok
+Mahal | Draw | AÃ§Ä±klama yok
+PlaceFixtureCommand | SetFixtureType | AÃ§Ä±klama yok
+PlaceFixtureCommand | Start | AÃ§Ä±klama yok
+PlaceFixtureCommand | OnPointerPressed | AÃ§Ä±klama yok
+PlaceFixtureCommand | OnPointerMoved | AÃ§Ä±klama yok
+PlaceFixtureCommand | OnKeyDown | AÃ§Ä±klama yok
+PlaceFixtureCommand | Draw | AÃ§Ä±klama yok
+PlaceFixtureCommand | Cancel | AÃ§Ä±klama yok
+PlaceFixtureOnWallCommand | Start | Komutu BaÅŸlat (Start)
+PlaceFixtureOnWallCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+PlaceFixtureOnWallCommand | OnPointerMoved | AÃ§Ä±klama yok
+PlaceFixtureOnWallCommand | OnKeyDown | AÃ§Ä±klama yok
+PlaceFixtureOnWallCommand | Draw | AÃ§Ä±klama yok
+PlaceFixtureOnWallCommand | PlaceFixtureAt | AÃ§Ä±klama yok
+RiserGenerateCommand | Start | Komutu BaÅŸlat (Start)
+RiserGenerateCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+RiserGenerateCommand | OnPointerMoved | AÃ§Ä±klama yok
+RiserGenerateCommand | OnKeyDown | AÃ§Ä±klama yok
+RiserGenerateCommand | Draw | AÃ§Ä±klama yok
+RiserGenerateCommand | Cancel | AÃ§Ä±klama yok
+RoutePipeCommand | SetSettings | Rota AyarlarÄ±nÄ± Yap (SetSettings)
+RoutePipeCommand | Start | Komutu BaÅŸlat (Start)
+RoutePipeCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+RoutePipeCommand | StartBranching | BranÅŸmanÄ± BaÅŸlat (StartBranching)
+RoutePipeCommand | RegisterNewEntity | Nesneyi Kaydet (RegisterNewEntity)
+RoutePipeCommand | FindPipeAtPoint | Boruyu Noktada Bul (FindPipeAtPoint)
+RoutePipeCommand | DistancePointToLine | Nokta-Ã‡izgi Mesafesi (DistancePointToLine)
+RoutePipeCommand | UpdateGhost | Ã–nizleme GÃ¼ncelle (UpdateGhost)
+RoutePipeCommand | OnKeyDown | AÃ§Ä±klama yok
+RoutePipeCommand | Draw | AÃ§Ä±klama yok
+SelectRoomCommand | Start | Komutu BaÅŸlat (Start)
+SelectRoomCommand | OnPointerMoved | AÃ§Ä±klama yok
+SelectRoomCommand | OnPointerPressed | TÄ±klama OlayÄ± (OnPointerPressed)
+SelectRoomCommand | ConvertToFixtureType | AÃ§Ä±klama yok
+SelectRoomCommand | OnKeyDown | AÃ§Ä±klama yok
+SelectRoomCommand | Cancel | AÃ§Ä±klama yok
+SelectRoomCommand | Draw | AÃ§Ä±klama yok
+SmartLabelCommand | Start | Komutu Ã‡alÄ±ÅŸtÄ±r (Start)
+SmartLabelCommand | OnPointerPressed | AÃ§Ä±klama yok
+SmartLabelCommand | OnPointerMoved | AÃ§Ä±klama yok
+SmartLabelCommand | OnKeyDown | AÃ§Ä±klama yok
+SmartLabelCommand | Draw | AÃ§Ä±klama yok
+CadDatabase | new | AÃ§Ä±klama yok
+CadDatabase | new | AÃ§Ä±klama yok
+CadDatabase | Clear | VeritabanÄ±nÄ± Temizle (Clear)
+CadDatabase | AddEntity | VarlÄ±k Ekle (AddEntity)
+CadDatabase | RemoveEntity | VarlÄ±k Sil (RemoveEntity)
+CadDatabase | UpdateEntity | Nesne GÃ¼ncelle (UpdateEntity)
+CadDatabase | QueryEntities | BÃ¶lgesel Sorgu (QueryEntities)
+CadDatabase | SelectByBox | Kutu ile Nesne SeÃ§imi (SelectByBox)
+CadDatabase | GetEntity | ID ile Nesne Getir (GetEntity)
+CadDatabase | AddLayer | Katman Ekle (AddLayer)
+CadDatabase | GetLayer | AÃ§Ä±klama yok
+CadDatabase | ClearSelection | SeÃ§imi Temizle (Clear Selection)
+CadDatabase | Select | AÃ§Ä±klama yok
+CadDatabase | Deselect | AÃ§Ä±klama yok
+CadDatabase | AddBlock | Blok KaydÄ± Ekle (AddBlock)
+CadDatabase | GetBlock | Blok TanÄ±mÄ± Getir (GetBlock)
+CadSerializer | Serialize | AÃ§Ä±klama yok
+CadSerializer | Serialize | AÃ§Ä±klama yok
+CadSerializer | Deserialize | AÃ§Ä±klama yok
+CompositeOperation | Add | AÃ§Ä±klama yok
+CompositeOperation | Do | AÃ§Ä±klama yok
+CompositeOperation | Undo | AÃ§Ä±klama yok
+TransactionManager | Submit | Ä°ÅŸlemi GÃ¶nder (Submit)
+TransactionManager | Undo | Geri Al (Undo)
+TransactionManager | Redo | Yinele (Redo)
+AddEntityOperation | Do | AÃ§Ä±klama yok
+AddEntityOperation | Undo | AÃ§Ä±klama yok
+MoveEntityOperation | Do | AÃ§Ä±klama yok
+MoveEntityOperation | Undo | AÃ§Ä±klama yok
+RemoveEntityOperation | Do | Ã„Â°Ã…Å¸lemi Yap (Do)
+RemoveEntityOperation | Undo | Ã„Â°Ã…Å¸lemi Geri Al (Undo)
+TransformEntityOperation | Do | Ã„Â°Ã…Å¸lemi Yap (Do)
+TransformEntityOperation | Undo | Ã„Â°Ã…Å¸lemi Geri Al (Undo)
+CadEntity | Katman | AÃ§Ä±klama yok
+CadEntity | Renk | AÃ§Ä±klama yok
+CadEntity | GetBoundingBox | SÄ±nÄ±rlayÄ±cÄ± Kutu Getir (GetBoundingBox)
+CadEntity | GetRenderWeight | Render KalÄ±nlÄ±ÄŸÄ±nÄ± Hesapla
+CadEntity | CopyBaseProperties | Temel Ã–zellikleri Kopyala
+Unknown | SnapPoint | Kenetlenme NoktasÄ± Tipi (SnapPointType)
+ComponentRegistry | AddComponent | AÃ§Ä±klama yok
+ArcEntity | Draw | Ay Ã‡iz (Draw)
+ArcEntity | CalculateBoundingBox | SÃ„Â±nÃ„Â±rlayÃ„Â±cÃ„Â± Kutu Hesapla (CalculateBoundingBox)
+ArcEntity | Move | YayÄ± TaÅŸÄ± (Move)
+ArcEntity | Transform | Matris DÃ¶nÃ¼ÅŸÃ¼mÃ¼ (Transform)
+ArcEntity | Clone | Nesneyi Kopyala (Clone)
+ArcEntity | GetSnapPoints | Kenetlenme NoktalarÄ± (GetSnapPoints)
+BlockReferenceEntity | Draw | Blok AdÄ±
+BlockReferenceEntity | Clone | AÃ§Ä±klama yok
+BlockReferenceEntity | Move | AÃ§Ä±klama yok
+BlockReferenceEntity | Transform | AÃ§Ä±klama yok
+BlockReferenceEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+BlockReferenceEntity | GetSnapPoints | AÃ§Ä±klama yok
+CircleEntity | Draw | Ã‡ember Ã‡iz (Draw)
+CircleEntity | CalculateBoundingBox | SÄ±nÄ±r Kutusu Hesapla (CalculateBoundingBox)
+CircleEntity | Move | Ã‡emberi TaÅŸÄ± (Move)
+CircleEntity | GetSnapPoints | Kenetlenme NoktalarÄ± (SnapPoints)
+CircleEntity | Transform | Matris DÃ¶nÃ¼ÅŸÃ¼mÃ¼ (Transform)
+CircleEntity | Clone | Nesneyi Klone Et (Clone)
+LineEntity | Draw | Ã‡iz (Draw)
+LineEntity | CalculateBoundingBox | SÄ±nÄ±r Kutusu Hesapla (CalculateBoundingBox)
+LineEntity | Move | Ã‡izgiyi TaÅŸÄ± (Move)
+LineEntity | GetSnapPoints | Kenetlenme NoktalarÄ± (SnapPoints)
+LineEntity | Transform | Matris DÃ¶nÃ¼ÅŸÃ¼mÃ¼ (Transform)
+LineEntity | Clone | Nesneyi Klone Et (Clone)
+LwPolylineEntity | Draw | Ã‡okluÃ§izgi Ã‡iz (Draw)
+LwPolylineEntity | CalculateBoundingBox | SÃ„Â±nÃ„Â±rlayÃ„Â±cÃ„Â± Kutu Hesapla (CalculateBoundingBox)
+LwPolylineEntity | Move | Ã‡okluÃ§izgiyi TaÅŸÄ± (Move)
+LwPolylineEntity | GetSnapPoints | Kenetlenme NoktalarÃ„Â± (GetSnapPoints)
+LwPolylineEntity | Transform | Matris DÃƒÂ¶nÃƒÂ¼Ã…Å¸tÃƒÂ¼rme (Transform)
+LwPolylineEntity | Clone | Nesneyi Klone Et (Clone)
+SplineEntity | GenerateDefaultKnots | VarsayÃ„Â±lan DÃƒÂ¼Ã„Å¸ÃƒÂ¼m VektÃƒÂ¶rÃƒÂ¼ ÃƒÅ“ret (GenerateDefaultKnots)
+SplineEntity | GenerateDefaultWeights | VarsayÃ„Â±lan AÃ„Å¸Ã„Â±rlÃ„Â±klarÃ„Â± ÃƒÅ“ret (GenerateDefaultWeights)
+SplineEntity | GetCurve | NURBS EÃ„Å¸ri Nesnesini Al (GetCurve)
+SplineEntity | Draw | Spline Ãƒâ€¡iz (Draw)
+SplineEntity | CalculateBoundingBox | SÃ„Â±nÃ„Â±rlayÃ„Â±cÃ„Â± Kutu Hesapla (CalculateBoundingBox)
+SplineEntity | Move | Spline'Ä± TaÅŸÄ± (Move)
+SplineEntity | Transform | Matris DÃ¶nÃ¼ÅŸÃ¼mÃ¼ (Transform)
+SplineEntity | Clone | Nesneyi Kopyala (Clone)
+SplineEntity | GetSnapPoints | Kenetlenme NoktalarÄ± (GetSnapPoints)
+TableEntity | SetCell | AÃ§Ä±klama yok
+TableEntity | Draw | AÃ§Ä±klama yok
+TableEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+TableEntity | Move | AÃ§Ä±klama yok
+TableEntity | GetSnapPoints | AÃ§Ä±klama yok
+TableEntity | Transform | AÃ§Ä±klama yok
+TableEntity | Clone | AÃ§Ä±klama yok
+TextEntity | Vector3D | AÃ§Ä±klama yok
+TextEntity | Draw | Metni Ãƒâ€¡iz (Draw)
+TextEntity | CalculateBoundingBox | SÃ„Â±nÃ„Â±rlayÃ„Â±cÃ„Â± Kutu Hesapla (CalculateBoundingBox)
+TextEntity | Move | Metni TaÃ…Å¸Ã„Â± (Move)
+TextEntity | Transform | Matris DÃƒÂ¶nÃƒÂ¼Ã…Å¸tÃƒÂ¼rme (Transform)
+TextEntity | Clone | Nesneyi Klone Et (Clone)
+TextEntity | GetSnapPoints | Kenetlenme NoktalarÃ„Â± (GetSnapPoints)
+NURBSCurve | Evaluate | AÃ§Ä±klama yok
+NURBSCurve | FindSpan | AÃ§Ä±klama yok
+NURBSCurve | ComputeBasisFunctions | AÃ§Ä±klama yok
+NURBSCurve | GetDerivative | AÃ§Ä±klama yok
+NURBSCurve | CreateLine | AÃ§Ä±klama yok
+NURBSCurve | CreateCircularArc | AÃ§Ä±klama yok
+GeomUtils | ArePointsConnected | AÃ§Ä±klama yok
+GeomUtils | FindNearbySegments | YakÄ±ndaki Ã‡izgileri Bul (FindNearbySegments)
+GeomUtils | CalculateClockwiseAngle | Saat YÃ¶nÃ¼nde AÃ§Ä± Hesapla (CalculateClockwiseAngle)
+GeomUtils | PointToSegmentDistance | NoktanÄ±n Ã‡izgiye UzaklÄ±ÄŸÄ± (PointToSegmentDistance)
+Unknown | Vector3D | AÃ§Ä±klama yok
+Unknown | Contains | Nokta Ä°Ã§eriyor Mu? (Contains)
+Unknown | Contains | Tam Kapsama KontrolÃ¼ (Deep Containment)
+Unknown | Expand | Kutu GeniÅŸletme (Expand)
+Unknown | GetCorners | AÃ§Ä±klama yok
+Unknown | DistanceToPoint | A simple geometric line segment defined by two 3D points. Used for pure geometric calculations without domain baggage. Checks if this segment intersects with another segment in 2D (XY plane). Returns the intersection point if found, null otherwise. Parallel lines are considered non-intersecting here for simplicity. Calculates the minimum distance from a point to this line segment in 2D.
+Unknown | TranslationMatrix | Ã–teleme Matrisi OluÅŸtur (TranslationMatrix)
+Unknown | Scaling | Ã–lÃ§ekleme Matrisi (Scaling)
+Unknown | Scaling | AÃ§Ä±klama yok
+Unknown | Transform | VektÃ¶rÃ¼ DÃ¶nÃ¼ÅŸtÃ¼r (Transform)
+Unknown | RotationX | AÃ§Ä±klama yok
+Unknown | RotationY | AÃ§Ä±klama yok
+Unknown | RotationZ | Z Ekseni EtrafÄ±nda DÃ¶ndÃ¼r (RotationZ)
+Unknown | Vector3D | 3D VektÃ¶r ve Nokta YapÄ±sÄ± (Vector3D)
+Unknown | this | 2D Koordinat OluÅŸturucu
+Unknown | DistanceTo | UzaklÄ±k HesabÄ± (DistanceTo)
+Unknown | Cross | VektÃ¶rel Ã‡arpÄ±m (Cross Product)
+Unknown | Normalize | Normalizasyon
+Unknown | Min | AÃ§Ä±klama yok
+Unknown | Max | AÃ§Ä±klama yok
+Face | GetOuterLoop | AÃ§Ä±klama yok
+Face | GetArea | AÃ§Ä±klama yok
+Solid | GetVertices | AÃ§Ä±klama yok
+Solid | GetEdges | AÃ§Ä±klama yok
+Solid | GetVolume | AÃ§Ä±klama yok
+Solid | GetBoundingBox | AÃ§Ä±klama yok
+TopologyEdge | GetNextEdge | AÃ§Ä±klama yok
+DwgBinaryReader | Read | AÃ§Ä±klama yok
+DwgBinaryReader | ParseMockEntities | AÃ§Ä±klama yok
+DwgBinaryStreamBuilder | WriteBit | AÃ§Ä±klama yok
+DwgBinaryStreamBuilder | WriteBits | AÃ§Ä±klama yok
+DwgBinaryStreamBuilder | WriteSentinel | AÃ§Ä±klama yok
+DwgBinaryStreamBuilder | FlushBits | AÃ§Ä±klama yok
+DwgBinaryStreamBuilder | ToArray | AÃ§Ä±klama yok
+DwgBinaryStreamBuilder | Dispose | AÃ§Ä±klama yok
+DwgDocument | AddObject | AÃ§Ä±klama yok
+DwgEntityMapper | MapToNative | Yerel Nesneye DÃ¶nÃ¼ÅŸtÃ¼r (MapToNative)
+DwgEntityMapper | MapLine | Ã‡izgiyi EÅŸleÅŸtir (MapLine)
+DwgEntityMapper | MapPolyline | AÃ§Ä±klama yok
+DwgWriter | Write | AÃ§Ä±klama yok
+DwgEntitySerializer | Serialize | AÃ§Ä±klama yok
+DwgEntitySerializer | WriteDouble | AÃ§Ä±klama yok
+DxfReader | Read | AÃ§Ä±klama yok
+DxfReader | Convert | AÃ§Ä±klama yok
+DxfReader | ResolveColorDyn | AÃ§Ä±klama yok
+DxfReader | GetColorDyn | AÃ§Ä±klama yok
+DxfReader | Transform | AÃ§Ä±klama yok
+DxfReader | T | AÃ§Ä±klama yok
+Dxf | ConvertEntity | ACadSharp Entity â†’ AfneyCAD Entity DÃ¶nÃ¼ÅŸÃ¼mÃ¼
+Dxf | ConvertLine | DXF LINE â†’ AfneyCAD LineEntity
+Dxf | ConvertCircle | DXF CIRCLE â†’ AfneyCAD CircleEntity
+Dxf | ConvertArc | DXF ARC â†’ AfneyCAD LineEntity (YaklaÅŸÄ±k - ileride ArcEntity eklenecek)
+Dxf | ConvertPolyline | DXF LWPOLYLINE â†’ AfneyCAD LineEntity (Segment bazlÄ±)
+Dxf | ConvertPolyline3D | DXF POLYLINE (3D) â†’ LineEntity
+Dxf | ConvertColor | DXF Renk â†’ AfneyCAD uint Color
+MechanicalKernel | SetDatabase | VeritabanÄ±nÄ± TanÄ±t (SetDatabase)
+MechanicalKernel | RegisterDefaultRules | VarsayÄ±lan KurallarÄ± Kaydet (RegisterDefaultRules)
+MechanicalKernel | GetRiserSchemas | Kolon ÅemasÄ± Verisi Ãœret (GetRiserSchemas)
+MechanicalKernel | ValidateEntity | MÃ¼hendislik Validasyonu (ValidateEntity)
+MechanicalKernel | OnEntityAddedToDatabase | VeritabanÄ± Ekleme Dinleyicisi (OnEntityAddedToDatabase)
+MechanicalKernel | OnEntityRemovedFromDatabase | VeritabanÄ± Silme Dinleyicisi (OnEntityRemovedFromDatabase)
+MechanicalKernel | SyncConnectedPipes | BaÄŸlÄ± Boru Senkronizasyonu (SyncConnectedPipes)
+MechanicalKernel | UpdateObstacleBoundary | AÃ§Ä±klama yok
+MechanicalKernel | AutoConnectPorts | Otomatik Port BaÄŸlantÄ± MantÄ±ÄŸÄ± (AutoConnectPorts)
+MechanicalKernel | SplitPipeAndConnect | Boruyu BÃ¶l ve BaÄŸla (SplitPipeAndConnect)
+MechanicalKernel | RecalculateProject | Projeyi BaÅŸtan Hesapla ve Ã‡aplandÄ±r
+MechanicalKernel | ResolveAllClashes | TÃ¼m Ã‡akÄ±ÅŸmalarÄ± Otomatik Ã‡Ã¶z (ResolveAllClashes)
+MechanicalKernel | TriggerHydraulicUpdate | Hidrolik GÃ¼ncelleme Tetikleyicisi (TriggerHydraulicUpdate)
+MechanicalKernel | SyncPipeLabels | AÃ§Ä±klama yok
+MechanicalPort | UpdateGeometry | AÃ§Ä±klama yok
+MechanicalTopologyGraph | Clear | AÃ§Ä±klama yok
+MechanicalTopologyGraph | AddEntity | Nesne Ekle (AddEntity)
+MechanicalTopologyGraph | RemoveEntity | Nesne Sil (RemoveEntity)
+MechanicalTopologyGraph | AddRoom | AÃ§Ä±klama yok
+MechanicalTopologyGraph | Connect | BaÄŸla (Connect)
+MechanicalTopologyGraph | Disconnect | BaÄŸlantÄ± Kopar (Disconnect)
+MechanicalTopologyGraph | GetNeighbors | AÃ§Ä±klama yok
+MechanicalTopologyGraph | GetNode | AÃ§Ä±klama yok
+MechanicalTopologyGraph | GetNodeByPort | AÃ§Ä±klama yok
+MechanicalTopologyGraph | GetVerticalNeighbors | Dikey BaÄŸlantÄ± Sorgusu (GetVerticalNeighbors)
+GraphNode | UpdatePorts | AÃ§Ä±klama yok
+GraphNode | DisconnectAll | AÃ§Ä±klama yok
+GraphNode | GetNeighbors | AÃ§Ä±klama yok
+PipeConnectionEngine | CanConnect | BaÄŸlanabilirlik KontrolÃ¼
+RiserEngine | GenerateSchemas | Åema Ã¼retim ana metodu
+RiserEngine | DetectRisers | AÃ§Ä±klama yok
+RiserSystemModel | AddSegment | AÃ§Ä±klama yok
+RiserSystemModel | RecalculateHydraulics | AÃ§Ä±klama yok
+RiserSystemModel | GetFloorBranchLoad | AÃ§Ä±klama yok
+RiserSystemModel | AnalyzeFloorConnections | AÃ§Ä±klama yok
+MechanicalA | SuggestMaterial | AÃ§Ä±klama yok
+MechanicalA | OptimizeProject | AÃ§Ä±klama yok
+ConstraintSolver | Solve | Nesneyi Ã‡Ã¶z (Solve)
+ConstraintSolver | SolveNetwork | TÃ¼m AÄŸÄ± Ã‡Ã¶z (SolveNetwork)
+HardyCrossSolver | hassasiyet | AÃ§Ä±klama yok
+HardyCrossSolver | Solve | AÃ§Ä±klama yok
+HardyCrossSolver | UpdateResults | AÃ§Ä±klama yok
+NetworkPipe | mm | AÃ§Ä±klama yok
+NetworkPipe | malzemesi | AÃ§Ä±klama yok
+NetworkPipe | mm | AÃ§Ä±klama yok
+HydraulicNetwork | AddPipe | AÃ§Ä±klama yok
+NetworkPropagationEngine | PropagateFlow | Debiyi GÃ¼ncelle (PropagateFlow)
+NetworkPropagationEngine | PropagateRecursive | AÃ§Ä±klama yok
+NetworkPropagationEngine | SolveConstraints | Ã‡ap KontrolÃ¼ (Constraint Solver)
+ElbowEntity | Draw | AÃ§Ä±klama yok
+ElbowEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+ElbowEntity | Clone | AÃ§Ä±klama yok
+ElbowEntity | GetSnapPoints | AÃ§Ä±klama yok
+ElbowEntity | GetPorts | AÃ§Ä±klama yok
+MahalEntity | FinalizeMahal | AÃ§Ä±klama yok
+MahalEntity | GetPorts | AÃ§Ä±klama yok
+MahalEntity | CalculateGeometry | AÃ§Ä±klama yok
+MahalEntity | Draw | AÃ§Ä±klama yok
+MahalEntity | Move | AÃ§Ä±klama yok
+MahalEntity | Transform | AÃ§Ä±klama yok
+MahalEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+MahalEntity | Clone | AÃ§Ä±klama yok
+MahalEntity | GetSnapPoints | AÃ§Ä±klama yok
+PipeEntity | ApplySystemColor | Hidrolik Hata Durumu (Step 5)Sistem tipine gÃ¶re boru rengini otomatik olarak ayarlar.
+PipeEntity | GetLength | PipeEntity YapÄ±cÄ± Metodu
+PipeEntity | GetVelocity | AkÄ±ÅŸ HÄ±zÄ±nÄ± Hesapla (GetVelocity)
+PipeEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+PipeEntity | Draw | AÃ§Ä±klama yok
+PipeEntity | DrawFlowArrow | AÃ§Ä±klama yok
+PipeEntity | Clone | AÃ§Ä±klama yok
+PipeEntity | Move | AÃ§Ä±klama yok
+PipeEntity | Transform | AÃ§Ä±klama yok
+PipeEntity | GetSnapPoints | AÃ§Ä±klama yok
+PipeEntity | GetPorts | BaÄŸlantÄ± PortlarÄ±nÄ± Getir (GetPorts)
+PipeLabelEntity | SyncWithPipe | AÃ§Ä±klama yok
+PipeLabelEntity | UpdatePosition | AÃ§Ä±klama yok
+PipeLabelEntity | Draw | AÃ§Ä±klama yok
+PipeLabelEntity | GetLabelText | AÃ§Ä±klama yok
+PipeLabelEntity | Clone | AÃ§Ä±klama yok
+PipeLabelEntity | Transform | AÃ§Ä±klama yok
+PipeLabelEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+PipeLabelEntity | GetSnapPoints | AÃ§Ä±klama yok
+ReducerEntity | SetDirection | AÃ§Ä±klama yok
+ReducerEntity | Draw | AÃ§Ä±klama yok
+ReducerEntity | GetSnapPoints | AÃ§Ä±klama yok
+ReducerEntity | Clone | AÃ§Ä±klama yok
+ReducerEntity | Transform | AÃ§Ä±klama yok
+ReducerEntity | Move | AÃ§Ä±klama yok
+ReducerEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+ReducerEntity | GetPorts | AÃ§Ä±klama yok
+RoomEntity | CalculateArea | Ã–nerilen Vitrifiyeler
+RoomEntity | GetSuggestions | AÃ§Ä±klama yok
+RoomEntity | Draw | AÃ§Ä±klama yok
+RoomEntity | GetCentroid | AÃ§Ä±klama yok
+RoomEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+RoomEntity | Clone | AÃ§Ä±klama yok
+RoomEntity | GetSnapPoints | AÃ§Ä±klama yok
+RoomEntity | Move | AÃ§Ä±klama yok
+RoomEntity | Transform | AÃ§Ä±klama yok
+RoomEntity | GetPorts | AÃ§Ä±klama yok
+SanitaryFixtureEntity | Vector3D | Mimari BaÄŸlantÄ± (Associative Geometry) - Phase 3
+SanitaryFixtureEntity | Vector3D | AÃ§Ä±klama yok
+SanitaryFixtureEntity | Vector3D | AÃ§Ä±klama yok
+SanitaryFixtureEntity | GetPorts | BaÄŸlantÄ± PortlarÄ±nÄ± Getir (GetPorts)
+SanitaryFixtureEntity | Draw | AÃ§Ä±klama yok
+SanitaryFixtureEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+SanitaryFixtureEntity | Transform | AÃ§Ä±klama yok
+SanitaryFixtureEntity | Clone | AÃ§Ä±klama yok
+SanitaryFixtureEntity | SetPortsByRule | AÃ§Ä±klama yok
+SanitaryFixtureEntity | GetSnapPoints | AÃ§Ä±klama yok
+TeeEntity | Draw | AÃ§Ä±klama yok
+TeeEntity | CalculateBoundingBox | AÃ§Ä±klama yok
+TeeEntity | Clone | AÃ§Ä±klama yok
+TeeEntity | GetSnapPoints | AÃ§Ä±klama yok
+TeeEntity | GetPorts | AÃ§Ä±klama yok
+Valve | GetPorts | BaÄŸlantÄ± PortlarÄ±nÄ± Getir (GetPorts)
+Valve | Draw | Vana SembolÃ¼ Ã‡iz (Draw)
+Valve | CalculateBoundingBox | AÃ§Ä±klama yok
+Valve | Move | AÃ§Ä±klama yok
+Valve | Transform | AÃ§Ä±klama yok
+Valve | Clone | AÃ§Ä±klama yok
+Valve | GetSnapPoints | AÃ§Ä±klama yok
+ArchitecturalObstacle | GetBoundingBox | AÃ§Ä±klama yok
+BuildingModel | GetLevelAt | AÃ§Ä±klama yok
+RiserSchema | debi | AÃ§Ä±klama yok
+RiserSchema | Birimi | AÃ§Ä±klama yok
+FloorSchema | Kotu | AÃ§Ä±klama yok
+ProjectManager | CreateProject | Yeni Proje OluÅŸtur (Step 1.1)
+ProjectManager | SanitizeProjectName | Mimari Ã‡izimi Ä°Ã§eri Al (Step 1.2)
+PipeDiameterRule | Check | AÃ§Ä±klama yok
+PipeDiameterRule | AutoFix | AÃ§Ä±klama yok
+ValidationResult | Success | AÃ§Ä±klama yok
+ValidationResult | Failure | AÃ§Ä±klama yok
+MaxVelocityRule | Check | AÃ§Ä±klama yok
+MaxVelocityRule | AutoFix | AÃ§Ä±klama yok
+FixtureLoadCapacityRule | Check | AÃ§Ä±klama yok
+FixtureLoadCapacityRule | AutoFix | AÃ§Ä±klama yok
+FixtureLoadCapacityRule | GetCapacityForDiameter | AÃ§Ä±klama yok
+WCDiameterRule | Check | AÃ§Ä±klama yok
+WCDiameterRule | AutoFix | AÃ§Ä±klama yok
+WCDiameterRule | Check | AÃ§Ä±klama yok
+WCDiameterRule | AutoFix | AÃ§Ä±klama yok
+ArchitecturalRecognitionService | RecognizeObstacles | Engelleri TanÄ± (RecognizeObstacles)
+ArchitecturalRecognitionService | FindEnclosedArea | KapalÄ± AlanÄ± Bul (FindEnclosedArea)
+ArchitecturalRecognitionService | PredictRoomType | Mahal Tipi Tahmin Et (PredictRoomType)
+ArchitecturalScaleService | DetectScale | AÃ§Ä±klama yok
+ArchitecturalScaleService | ScaleToMeters | Metreye DÃ¶nÃ¼ÅŸtÃ¼r
+ArchitecturalScaleService | AlignToOrigin | Referans NoktasÄ±na GÃ¶re Hizala (WBlock MantÄ±ÄŸÄ±)
+BranchResult | ConnectFixturesToPipe | CihazlarÄ± Boruya BaÄŸla (ConnectFixturesToPipe)
+BranchResult | CreateBranchConnection | BranÅŸman BaÄŸlantÄ±sÄ± OluÅŸtur (CreateBranchConnection)
+BranchResult | GetProjectionOnPipe | AÃ§Ä±klama yok
+BranchResult | GetProjectionOnLine | AÃ§Ä±klama yok
+BranchResult | CreateSmartCollector | AkÄ±llÄ± KollektÃ¶r OluÅŸtur (CreateSmartCollector)
+BranchResult | ConnectToRiser | Kolona BaÄŸla (ConnectToRiser)
+BranchResult | DistancePointToLine | AÃ§Ä±klama yok
+AutoFittingSelector | SelectElbow | Ä°ki boru arasÄ±ndaki baÄŸlantÄ± iÃ§in Dirsek (Elbow) seÃ§er.
+AutoFittingSelector | SelectTee | Ana borudan ayrÄ±lan hat iÃ§in T-ParÃ§asÄ± (Tee) seÃ§er.
+AutoFittingSelector | SelectReducer | FarklÄ± Ã§aplardaki iki boru arasÄ±na RedÃ¼ksiyon seÃ§er.
+AutoLayoutService | AutoFurnishRoom | AÃ§Ä±klama yok
+AutoLayoutService | GetRequiredFixtures | AÃ§Ä±klama yok
+WallSegment | GetWalls | AÃ§Ä±klama yok
+AutoPipeLabeler | LabelAllPipes | AÃ§Ä±klama yok
+AutoSpecService | GenerateBoMReport | KeÅŸif Ã–zeti Ãœret (GenerateBoMReport)
+AutoSpecService | GenerateSpecificationText | Teknik Åartname TaslaÄŸÄ± Ãœret (GenerateSpecificationText)
+AutoSpecService | GetPozNo | AÃ§Ä±klama yok
+AutoSpecService | GetFixturePozNo | AÃ§Ä±klama yok
+AutoSpecService | GetSystemName | AÃ§Ä±klama yok
+BillOfMaterialsService | GenerateTable | AÃ§Ä±klama yok
+BillOfMaterialsService | GetPipePoz | Resmi Poz No Sorgulama
+BillOfMaterialsService | GetPipeDescription | AÃ§Ä±klama yok
+BillOfMaterialsService | GetFixturePoz | AÃ§Ä±klama yok
+BuildingAssemblyService | AssembleBuilding | Bina Modelini OluÅŸtur (AssembleBuilding)
+BuildingAssemblyService | LoadAndTransformLevel | AÃ§Ä±klama yok
+BuildingAssemblyService | AutoConnectCrossLevelRisers | Otomatik Kolon Hizalama ve Koordinat DÃ¼zeltme (AutoConnectCrossLevelRisers)
+BuildingAssemblyService | TryConnectPipes | AÃ§Ä±klama yok
+ClashDetectionService | DetectClashes | AÃ§Ä±klama yok
+ClashDetectionService | ResolveClash | Otomatik Ã‡akÄ±ÅŸma Ã‡Ã¶zÃ¼mÃ¼ (Auto-Resolve / By-pass)
+ClashDetectionService | CreateSegment | AÃ§Ä±klama yok
+Node | FindClosedAreas | KapalÄ± AlanlarÄ± Tespit Et (FindClosedAreas)
+Node | BuildGraph | AÃ§Ä±klama yok
+Node | FindCycles | AÃ§Ä±klama yok
+Node | CalculatePolygonArea | Polygon Alan HesabÄ± (Shoelace Formula)
+FixtureTypes | Create | AÃ§Ä±klama yok
+FixtureTypes | CreateWashbasin | AÃ§Ä±klama yok
+FixtureTypes | CreateWC | AÃ§Ä±klama yok
+FixtureTypes | CreateShower | AÃ§Ä±klama yok
+FixtureTypes | CreateKitchenSink | AÃ§Ä±klama yok
+FixtureTypes | CreateWashingMachine | AÃ§Ä±klama yok
+FixtureDatabase | new | AÃ§Ä±klama yok
+FixtureDatabase | GetTypeFromBlockName | Blok AdÄ±ndan Tip Bul (GetTypeFromBlockName)
+FixtureDatabase | GetDefaultLoadUnit | VarsayÄ±lan YÃ¼k Birimi Getir (GetDefaultLoadUnit)
+FlowCalculationService | GetCoefficients | Bina KatsayÄ±larÄ±nÄ± Getir (GetCoefficients)
+FlowCalculationService | CalculateSystemFlow | TÃ¼m Sistemi Hesapla (CalculateSystemFlow)
+FlowCalculationService | FindPathToNearestSink | En YakÄ±n Gideri/Kolonu Bul (FindPathToNearestSink)
+FlowCalculationService | ApplyLoadToPath | YÃ¼kÃ¼ GÃ¼zergaha DaÄŸÄ±t (ApplyLoadToPath)
+FlowCalculationService | UpdatePipeFlowDirection | AkÄ±ÅŸ YÃ¶nÃ¼nÃ¼ GÃ¼ncelle (UpdatePipeFlowDirection)
+FlowCalculationService | AutoSizePipes | BorularÄ± Otomatik Ã‡aplandÄ±r (AutoSizePipes)
+FlowCalculationService | CalculateGeometricSlope | Geometrik EÄŸimi Hesapla (CalculateGeometricSlope)
+FlowCalculationService | CalculateOptimalDiameter | Optimum Ã‡apÄ± Hesapla (CalculateOptimalDiameter)
+FlowCalculationService | GetStandardDiameterForWasteWater | Pis Su Standart Ã‡apÄ± (GetStandardDiameterForWasteWater)
+HeatLossResult | CalculatePipeHeatLoss | Boru IsÄ± KaybÄ±nÄ± Hesapla (CalculatePipeHeatLoss)
+HydraulicCalculationService | CalculateDesignFlow | AÃ§Ä±klama yok
+HydraulicCalculationService | DeterminePipeDiameter | AÃ§Ä±klama yok
+HydraulicCalculationService | AnalyzeMahalHydraulics | Mahal BazlÄ± Ã‡ap Ã–nerisi
+HydraulicFlowService | RecalculateSystem | AÃ§Ä±klama yok
+HydraulicFlowService | AccumulateLoadUpstream | AÃ§Ä±klama yok
+HydraulicFlowService | UpdatePipeHydraulics | AÃ§Ä±klama yok
+HydraulicFlowService | CalculateRequiredDiameter | AÃ§Ä±klama yok
+HydraulicFlowService | CalculateVelocity | AÃ§Ä±klama yok
+Unknown | RequestSync | Ä°zo-Metrik Senkronizasyon Servisi (IsoSyncService)
+LegendService | GenerateLegend | AÃ§Ä±klama yok
+LegendService | DrawSimpleSymbol | AÃ§Ä±klama yok
+LegendService | DrawPoly | AÃ§Ä±klama yok
+LegendService | TranslateType | AÃ§Ä±klama yok
+LevelManager | GetLevels | Kat Listesini DÃ¶ndÃ¼rÃ¼r
+LevelManager | AddLevel | Yeni Kat Ekler
+LevelManager | RemoveLevel | Kat Siler
+LevelManager | UpdateLevel | Kat GÃ¼nceller
+LevelManager | GetLevelAtElevation | Belirli Bir Elevation DeÄŸerinin Hangi Kat AralÄ±ÄŸÄ±nda OlduÄŸunu Bulur
+LevelManager | Clear | TÃ¼m KatlarÄ± Temizler
+MahalScheduleService | GenerateRoomTable | Teknik Tablo OluÅŸtur (GenerateRoomTable)
+MechanicalCalculations | new | AÃ§Ä±klama yok
+MechanicalCalculations | CalculatePressureDrop | AÃ§Ä±klama yok
+MechanicalCalculations | OptimizePipeDiameter | AÃ§Ä±klama yok
+MechanicalCalculations | ValidateFlow | AÃ§Ä±klama yok
+PathfindingService | FindPath | AÃ§Ä±klama yok
+PathfindingService | CalculateSubPath | AÃ§Ä±klama yok
+PathfindingService | GetBlockingObstacle | AÃ§Ä±klama yok
+PipeRoutingEngine | StartRoute | Yeni bir boru rotasÄ± baÅŸlatÄ±r.
+PipeRoutingEngine | SetDiameter | Rotalama iÃ§in varsayÄ±lan Ã§apÄ± ayarlar.
+PipeRoutingEngine | SetSystemType | AÃ§Ä±klama yok
+PipeRoutingEngine | SetStandardDefinition | Rotalama iÃ§in standart fiziksel Ã¶zelliklerini ayarlar.
+PipeRoutingEngine | SetSlope | Rotalama iÃ§in eÄŸim (%) deÄŸerini ayarlar.
+PipeRoutingEngine | SetFittingSelector | Belirlenen noktaya yeni bir boru segmenti ve gerekiyorsa dirsek ekler. NASIL: EÄŸim (Slope) varsa, bitiÅŸ noktasÄ±nÄ±n Z koordinatÄ±nÄ± yatay mesafe Ã¼zerinden otomatik hesaplar. <returns>OluÅŸturulan yeni nesne listesi.</returns>
+PipeRoutingEngine | AddPoint | AÃ§Ä±klama yok
+PipeRoutingEngine | StartBranch | Mevcut bir boru hattÄ±ndan yeni bir branÅŸman (ayrÄ±m) baÅŸlatÄ±r. <param name="targetPipe">BÃ¶lÃ¼necek ana boru.</param> <param name="branchPoint">T-ParÃ§asÄ±nÄ±n yerleÅŸeceÄŸi nokta.</param> <returns>OluÅŸturulan (Yeni Borular, Tee) ve silinmesi gereken (Eski Boru) nesneler hakkÄ±nda bilgi iÃ§eren bir yapÄ± dÃ¶ndÃ¼rebilir. Åimdilik sadece yenileri dÃ¶ner.</returns>
+PipeRoutingEngine | GetLayerNameForSystem | Boru hattÄ± Ã¼zerine bir vana yerleÅŸtirir ve boruyu bÃ¶ler.
+PipeSizer | CalculateDesignFlow | Hesap Debisi Hesapla (CalculateDesignFlow)
+PipeSizer | GetStandardSize | Standart Ã‡apa Yuvarla (GetStandardSize)
+PipeTopologyService | AnalyzeAndSizeSystem | Sistemi Analiz Et ve BoyutlandÄ±r (AnalyzeAndSizeSystem)
+PipingPathfinderService | 100mm | AÃ§Ä±klama yok
+PipingPathfinderService | FindPath | Yol/Rota Bul (FindPath)
+PipingPathfinderService | RunAStar | A* AlgoritmasÄ±nÄ± Ã‡alÄ±ÅŸtÄ±r (RunAStar)
+PipingPathfinderService | Vector3D | AÃ§Ä±klama yok
+PipingPathfinderService | Vector3D | AÃ§Ä±klama yok
+PipingPathfinderService | Vector3D | AÃ§Ä±klama yok
+PipingPathfinderService | ReconstructPath | AÃ§Ä±klama yok
+PipingPathfinderService | SimplifyPath | GÃ¼zergahÄ± BasitleÅŸtir (SimplifyPath)
+PipingRoutingService | FindRoute | Rota Bul (FindRoute)
+PipingRoutingService | GetRelevantObstacles | Engel Analizi (AnalyzeObstacles)
+PlumbingEngineeringService | CalculateByMahal | Mahale GÃ¶re Hesapla (CalculateByMahal)
+PlumbingEngineeringService | AutoSizeAllSystem | TÃ¼m Sistemi Ã‡aplandÄ±r
+PressureDropService | Su | AÃ§Ä±klama yok
+PressureDropService | CalculatePipePressureDrop | Tekil Boru BasÄ±nÃ§ KaybÄ± (Darcy-Weisbach)
+PressureDropService | FindCriticalPath | Kritik HattÄ± Bul (FindCriticalPath)
+PressureDropService | GenerateReport | Kritik Hat Raporu Ãœret (GenerateReport)
+PressureDropService | CalculatePressureDrops | BasÄ±nÃ§ KayÄ±plarÄ±nÄ± Hesapla (CalculatePressureDrops)
+PumpModel | new | AÃ§Ä±klama yok
+PumpModel | RecommendPumps | AÃ§Ä±klama yok
+RiserDiagramService | GenerateRiserDiagram | Kolon ÅemasÄ± Ãœret (GenerateRiserDiagram)
+RiserDrawingService | Gri | AÃ§Ä±klama yok
+RiserDrawingService | Turuncu | AÃ§Ä±klama yok
+RiserDrawingService | Cyan | AÃ§Ä±klama yok
+RiserDrawingService | CreateDrawing | AÃ§Ä±klama yok
+RiserDrawingService | DrawValveSymbol | AÃ§Ä±klama yok
+RiserDrawingService | DrawFixtureSymbol | AÃ§Ä±klama yok
+RiserDrawingService | DrawRegularPolygon | AÃ§Ä±klama yok
+RoomDefinitionService | new | Mahal sÄ±nÄ±rlarÄ± iÃ§indeki armatÃ¼rleri tespit eder ve akÄ±llÄ± nesnelere dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r. <param name="boundaryPoints">Mahal sÄ±nÄ±rlarÄ±nÄ± oluÅŸturan kapalÄ± poligon noktalarÄ±.</param> <returns>Tespit edilen ve oluÅŸturulan SanitaryFixtureEntity listesi.</returns>
+RoomDefinitionService | MatchBlockToFixtureType | AÃ§Ä±klama yok
+RoomDefinitionService | GetPolygonBoundingBox | AÃ§Ä±klama yok
+CadGroupExtensions | GetBoundingBox | AÃ§Ä±klama yok
+SchemaLayoutEngine | ComputeLayout | Åematik Koordinat HesaplayÄ±cÄ±
+SmartBoundaryService | tolerans | AÃ§Ä±klama yok
+SmartBoundaryService | FindBoundary | Mahal SÄ±nÄ±rlarÄ±nÄ± Bul (FindBoundary)
+SmartBoundaryService | FindNearestHit | Mahal Ä°Ã§indeki CihazlarÄ± Tespit Et (GetFixturesInBoundary)
+SpaceDetector | 50mm | AÃ§Ä±klama yok
+SpaceDetector | DetectRoom | OdayÄ± Bul (DetectRoom)
+SpaceDetector | ConvertToSegments | Mahal Ä°Ã§indeki CihazlarÄ± Bul (FindFixturesInRoom)
+SpaceDetector | TraceBoundary | AÃ§Ä±klama yok
+FixtureLayoutStandards | new | AÃ§Ä±klama yok
+FixtureLayoutStandards | new | AÃ§Ä±klama yok
+FixtureLayoutStandards | GetSideClearance | AÃ§Ä±klama yok
+FixtureLayoutStandards | GetClearanceBetween | AÃ§Ä±klama yok
+PipeStandard | GetBySize | AÃ§Ä±klama yok
+PipeStandard | PipeDefinition | AÃ§Ä±klama yok
+StandardsLibrary | GetStandard | AÃ§Ä±klama yok
+App | OnStartup | Uygulama BaÅŸlatma (OnStartup)
+App | OnExit | AÃ§Ä±klama yok
+App | App_DispatcherUnhandledException | AÃ§Ä±klama yok
+App | CurrentDomain_UnhandledException | AÃ§Ä±klama yok
+MainWindow | CreateNewDocument | Yeni Belge OluÅŸturma (CreateNewDocument)
+MainWindow | CreateTabContent | Sekme Ä°Ã§eriÄŸi OluÅŸturma
+MainWindow | OnTabChanged | Sekme DeÄŸiÅŸimi Event Handler (OnTabChanged)
+MainWindow | OnCloseTab_Click | Sekme Kapatma Event Handler (OnCloseTab_Click)
+MainWindow | OnLineCommand | Ã‡izgi Komutu (OnLineCommand)
+MainWindow | OnCircleCommand | Daire Komutu (OnCircleCommand)
+MainWindow | OnDrawPipeCommand | Boru Ã‡izme Komutu (OnDrawPipeCommand)
+MainWindow | OnPlaceFixtureOnWall | Duvara Vitrifiye YerleÅŸtirme Komutu (OnPlaceFixtureOnWall)
+MainWindow | SyncMechanicalSettings | Mekanik AyarlarÄ± Senkronize Et
+MainWindow | OnMechanicalSettingsChanged | Mekanik Ayar DeÄŸiÅŸimi Event Handler
+MainWindow | OnWBlockCommand | Mimari Kat HazÄ±rlama (WBlock) Komutu
+MainWindow | OnBlockCommand | Blok TanÄ±mlama Komutu
+MainWindow | OnDefineMahalCommand | Mahal TanÄ±mlama Komutu (OnDefineMahalCommand)
+MainWindow | OnRecalculatePlumbing | Tesisat Yeniden Hesapla (RecalculatePlumbing)
+MainWindow | OnRiserGenerateCommand | Kolon ÅemasÄ± Ãœretme Komutu
+MainWindow | OnSmartLabelCommand | AkÄ±llÄ± Etiketleme (OnSmartLabelCommand)
+MainWindow | OnBOMCommand | Metraj (BOM) Listesi Komutu
+MainWindow | OnLegendCommand | Lejant Ãœretme Komutu
+MainWindow | OnDefineBuilding | Katman ve Bina Ã–zellikleri (OnDefineBuilding)
+MainWindow | ExecuteCommand | Komut Ã‡alÄ±ÅŸtÄ±r (ExecuteCommand)
+MainWindow | OnToggleProjectNavigator | Proje Gezgini GÃ¶rÃ¼nÃ¼rlÃ¼k KontrolÃ¼
+MainWindow | OnToggle2DView | 2D GÃ¶rÃ¼nÃ¼m Modu
+MainWindow | OnToggle3DView | 3D GÃ¶rÃ¼nÃ¼m Modu (Ä°zometrik)
+MainWindow | OnRecalculateSystem | Sistemi Yeniden Hesapla (MÃ¼hendislik Analizi)
+MainWindow | UpdateUndoLabels | AÃ§Ä±klama yok
+MainWindow | OnNewProject | Yeni Proje OluÅŸturma
+MainWindow | OnNewFile | AÃ§Ä±klama yok
+MainWindow | OnNewWindow | AÃ§Ä±klama yok
+MainWindow | OnOpenFile | Dosya AÃ§ (DWG/DXF)
+MainWindow | OnOpenFolder | DWG Ä°Ã§eriÄŸi YÃ¼kleme (Ä°Ã§ Metod)
+MainWindow | OnSave | AÃ§Ä±klama yok
+MainWindow | OnSaveAs | AÃ§Ä±klama yok
+MainWindow | OnAutoSave | AÃ§Ä±klama yok
+MainWindow | OnCloseEditor | AÃ§Ä±klama yok
+MainWindow | OnCloseFolder | AÃ§Ä±klama yok
+MainWindow | OnCloseWindow | UygulamayÄ± Kapat
+MainWindow | OnPressureDropCalc | Kritik Hat BasÄ±nÃ§ KaybÄ± Analizi
+MainWindow | OnAutoPipeSizing | AÃ§Ä±klama yok
+MainWindow | OnGenerateLegend | AÃ§Ä±klama yok
+MainWindow | OnCalculateFlowCommand | AÃ§Ä±klama yok
+MainWindow | Window_KeyDown | AÃ§Ä±klama yok
+MainWindow | OnLevelManager | Kat YÃ¶neticisi (Level Manager)
+MainWindow | OnBuildingProperties | AÃ§Ä±klama yok
+MainWindow | OnSelectRoom | Mahal TanÄ±mlama (Oda SeÃ§me)
+MainWindow | OnShowBOMReport | AÃ§Ä±klama yok
+MainWindow | OnSmartDetectRoomClick | AÃ§Ä±klama yok
+MainWindow | OnAutoBranchingClick | CihazlarÄ± Boruya BaÄŸla (Auto Branching)
+MainWindow | OnRiserConnection | Kolon BaÄŸlantÄ±sÄ± (Riser Connection)
+MainWindow | OnRecognizeArchitecture | Mimari TanÄ±ma (Architectural Recognition)
+MainWindow | OnGenerateBOM | Metraj Tablosu Ãœret (Generate BOM)
+MainWindow | OnGenerateRiserDiagram | Kolon ÅemasÄ± Ãœret (Generate Riser Diagram)
+MainWindow | OnPumpSelection | Pompa ve Hidrofor SeÃ§imi
+MainWindow | OnAnalyzeSpecClick | KeÅŸif ve Teknik Åartname Analizi (Auto-Spec)
+SplashWindow | OnLoaded | YÃ¼kleme TamamlandÄ±ÄŸÄ±nda (OnLoaded)
+SplashWindow | SimulateLoading | AÃ§Ä±klama yok
+Unknown | AddProperty | Ã–zellik Ekle (AddProperty)
+BlockNameDialog | Ok_Click | AÃ§Ä±klama yok
+BlockSelectionDialog | Ok_Click | AÃ§Ä±klama yok
+BlockSelectionDialog | BlockList_MouseDoubleClick | AÃ§Ä±klama yok
+BlockSelectionDialog | ConfirmSelection | AÃ§Ä±klama yok
+BOMDialog | CalculateBOM | Metraj Hesapla (CalculateBOM)
+BuildingPropertiesDialog | OkButton_Click | Tamam (OkButton_Click)
+BuildingPropertiesDialog | CancelButton_Click | Ä°ptal (CancelButton_Click)
+BuildingLevelViewModel | point | AÃ§Ä±klama yok
+DefineBuildingDialog | LoadDefinitions | TanÄ±mlarÄ± YÃ¼kle (LoadDefinitions)
+DefineBuildingDialog | SaveDefinitions | TanÄ±mlarÄ± Kaydet (SaveDefinitions)
+DefineBuildingDialog | AddFloor_Click | Kat Ekle (AddFloor_Click)
+DefineBuildingDialog | EditLevel_Click | Kat DosyasÄ± DÃ¼zenle (EditLevel_Click)
+DefineBuildingDialog | WBlock_Click | WBlock Normalizasyonu (WBlock_Click)
+DefineBuildingDialog | Stack_Click | KatlarÄ± Ãœst Ãœste Diz (Stack_Click)
+DefineBuildingDialog | Show3D_Click | 3D GÃ¶rÃ¼nÃ¼mÃ¼ AÃ§ (Show3D_Click)
+LevelManagerDialog | RefreshLevels | Kat Listesini Tazele (RefreshLevels)
+LevelManagerDialog | AddButton_Click | Kat Ekle (AddButton_Click)
+LevelManagerDialog | UpdateButton_Click | Kat GÃ¼ncelle (UpdateButton_Click)
+LevelManagerDialog | DeleteButton_Click | Kat Sil (DeleteButton_Click)
+LevelManagerDialog | LevelsGrid_SelectionChanged | Izgara SeÃ§imi DeÄŸiÅŸti (LevelsGrid_SelectionChanged)
+LevelManagerDialog | CloseButton_Click | AÃ§Ä±klama yok
+LicenseDialog | ActivateButton_Click | AÃ§Ä±klama yok
+LicenseDialog | TrialButton_Click | AÃ§Ä±klama yok
+LicenseDialog | ExitButton_Click | AÃ§Ä±klama yok
+Mahal | Ok_Click | AÃ§Ä±klama yok
+NewProjectDialog | Window_Loaded | Pencere YÃ¼klendi OlayÄ± (Window_Loaded)
+NewProjectDialog | LoadFiles | Projeleri YÃ¼kle (LoadFiles)
+NewProjectDialog | Save_Click | Proje Kaydet/OluÅŸtur (Save_Click)
+NewProjectDialog | Cancel_Click | AÃ§Ä±klama yok
+NewProjectDialog | ProjectListView_SelectionChanged | Proje SeÃ§imi DeÄŸiÅŸti (ProjectListView_SelectionChanged)
+PressureDropReportWindow | LoadReport | AÃ§Ä±klama yok
+PressureDropReportWindow | PumpSuggest_Click | AÃ§Ä±klama yok
+PressureDropReportWindow | Close_Click | AÃ§Ä±klama yok
+RoomTagDialog | RoomType_Changed | AÃ§Ä±klama yok
+RoomTagDialog | Create_Click | AÃ§Ä±klama yok
+RoomTagDialog | Cancel_Click | AÃ§Ä±klama yok
+WBlockDialog | SetBasePoint | Temel NoktayÄ± Ayarla (SetBasePoint)
+WBlockDialog | SetEntities | VarlÄ±klarÄ± Ayarla (SetEntities)
+WBlockDialog | SelectPoint_Click | Nokta SeÃ§ Butonu (SelectPoint_Click)
+WBlockDialog | SelectEntities_Click | Nesne SeÃ§ Butonu (SelectEntities_Click)
+WBlockDialog | Browse_Click | GÃ¶zat (Browse_Click)
+WBlockDialog | Save_Click | Tamam/Kaydet (Save_Click)
+LogManager | CloseAndFlush | Loglama Sistemini BaÅŸlat (Initialize)
+CadViewport | new | AÃ§Ä±klama yok
+CadViewport | new | AÃ§Ä±klama yok
+CadViewport | SetActiveCommand | Aktif Komutu Ayarla (SetActiveCommand)
+CadViewport | GetSelectedEntities | SeÃ§ili Nesneleri Al (GetSelectedEntities)
+CadViewport | GetCameraCenter | Kamera Merkezini Hesapla
+CadViewport | SetViewMode | GÃ¶rÃ¼nÃ¼m Modunu DeÄŸiÅŸtir (2D/3D)
+CadViewport | ZoomExtents | Ekrana SÄ±ÄŸdÄ±r (Zoom Extents)
+CadViewport | OnPaintSurface | Surface Boyama (Ana Ã‡izim Metodu)
+CadViewport | DrawFullScreenCrosshair | Tam Ekran ArtÄ± GÃ¶stergesi (Crosshair)
+CadViewport | ShowHighlight | GeÃ§ici Vurgulama GÃ¶ster (ShowHighlight)
+CadViewport | ClearHighlight | VurgulamayÄ± Temizle
+CadViewport | DrawHighlight | Vurgu AlanÄ±nÄ± Ã‡iz
+CadViewport | DrawSnapMarker | Snap Marker Ã‡izici (DrawSnapMarker)
+CadViewport | DrawSelectionBox | SeÃ§im Kutusu Ã‡izici (DrawSelectionBox)
+CadViewport | CadCanvas_MouseDown | Fare BasÄ±lma OlayÄ± (MouseDown)
+CadViewport | CadCanvas_MouseMove | Fare Hareket OlayÄ± (MouseMove)
+CadViewport | CadCanvas_MouseUp | Fare BÄ±rakÄ±lma OlayÄ± (MouseUp)
+CadViewport | CadCanvas_MouseWheel | Fare TekerleÄŸi OlayÄ± (MouseWheel)
+CadViewport | CadCanvas_KeyDown | Klavye Olay YÃ¶neticisi (KeyDown)
+CadViewport | ScreenToWorld | Ekrandan DÃ¼nyaya DÃ¶nÃ¼ÅŸÃ¼m (ScreenToWorld)
+CadViewport | WorldToScreen | DÃ¼nyadan Ekrana DÃ¶nÃ¼ÅŸÃ¼m (WorldToScreen)
+CadViewport | OnContextMenu_Pan | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - Pan Modu
+CadViewport | OnContextMenu_ZoomExtents | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - Ekrana SÄ±ÄŸdÄ±r
+CadViewport | OnContextMenu_SelectAll | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - TÃ¼mÃ¼nÃ¼ SeÃ§
+CadViewport | OnContextMenu_ClearSelection | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - SeÃ§imi Temizle
+CadViewport | OnContextMenu_Undo | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - Geri Al (Undo)
+CadViewport | OnContextMenu_Redo | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - Ä°leri Al (Redo)
+CadViewport | OnContextMenu_Properties | SaÄŸ TÄ±klama MenÃ¼sÃ¼ - Ã–zellikler
+SkiaRenderContext | GetPaint | NE: Boya Nesnesi Al (GetPaint) NEDEN: Her Ã§izim iÃ§in yeni SKPaint oluÅŸturmak maliyetlidir. Renk, kalÄ±nlÄ±k ve Ã§izgi tipine gÃ¶re Ã¶nbellekten dÃ¶ndÃ¼rÃ¼r. MÃœHENDÄ°SLÄ°K: AutoCAD renklerini (ACI) RGB'ye en parlak haliyle eÅŸler.
+SkiaRenderContext | SetCamera | NE: Kamera Ayarla (SetCamera) NEDEN: Viewport'taki Pan ve Zoom deÄŸerlerini Render motoruna iletmek iÃ§in.
+SkiaRenderContext | Project | Koordinat Ä°zdÃ¼ÅŸÃ¼mÃ¼ (Project)
+SkiaRenderContext | DrawLine | Ã‡izgi Ã‡iz (DrawLine)
+SkiaRenderContext | DrawLines | Ã‡oklu Ã‡izgi Ã‡iz (DrawLines)
+SkiaRenderContext | DrawCircle | Ã‡ember Ã‡iz (DrawCircle)
+SkiaRenderContext | DrawArc | Yay Ã‡iz (DrawArc)
+SkiaRenderContext | DrawRectangle | DikdÃ¶rtgen Ã‡iz (DrawRectangle)
+SkiaRenderContext | DrawText | Metin Yaz (DrawText)
+SkiaRenderContext | DrawSpline | Spline EÄŸrisi Ã‡iz (DrawSpline)
+SkiaRenderContext | DrawSolidLine | Tesisat Borusu Ã‡iz (DrawSolidLine)
+Camera | Pan | KaydÄ±r (Pan)
+Camera | ZoomToPoint | Belirli Noktaya Zoom Yap (ZoomToPoint)
+Camera | Reset | KamerayÄ± SÄ±fÄ±rla (Reset)
+Camera | WorldToScreen | DÃ¼nyadan Ekrana DÃ¶nÃ¼ÅŸtÃ¼r (WorldToScreen)
+Camera | ScreenToWorld | Ekrandan DÃ¼nyaya DÃ¶nÃ¼ÅŸtÃ¼r (ScreenToWorld)
+QuadTree | Remove | Silme (Remove)
+QuadTree | QueryRange | Belirli Alanda Ara (QueryRange)
+QuadTree | Subdivide | AlanÄ± BÃ¶l (Subdivide)
+QuadTree | Contains | Kapsama KontrolÃ¼ (Contains)
