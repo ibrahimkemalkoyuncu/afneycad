@@ -31,6 +31,15 @@ public class DwgImportService
     // ACI (AutoCAD Color Index) -> RGB Mapping Table (Standart 256 renk)
     // Performans için static cache
     private static readonly Dictionary<short, uint> _aciPalette = new();
+    
+    // Yüksek Performanslı Reflection Ön Belleği (14 saniyelik Hatch gecikmesini 0.1 saniyeye indirir)
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Reflection.PropertyInfo?> _propCache = new();
+
+    private static System.Reflection.PropertyInfo? GetCachedProperty(Type type, string propName)
+    {
+        string key = $"{type.FullName}::{propName}";
+        return _propCache.GetOrAdd(key, _ => type.GetProperty(propName));
+    }
 
     static DwgImportService()
     {
@@ -46,10 +55,14 @@ public class DwgImportService
 
         try
         {
+            Serilog.Log.Information("[DWG] DwgReader nesnesi oluşturuluyor... (Dosya: {filePath})", filePath);
             using (var reader = new DwgReader(filePath))
             {
+                Serilog.Log.Information("[DWG] reader.Read() metodu çağrılıyor. (Bu işlem uzun sürebilir veya ACadSharp kütüphanesi çökerse log burada kesilir).");
                 var cadDoc = reader.Read();
                 
+                Serilog.Log.Information("[DWG] DWG dokümanı başarıyla okundu. Table katmanları çıkarılıyor...");
+
                 // Layer tablosundan renkleri ve Linetype'ları oku ve cache'le
                 var layerColors = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
                 var layerLinetypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -59,19 +72,41 @@ public class DwgImportService
                     layerColors[layer.Name] = MapColor(layer.Color);
                     try 
                     { 
-                        dynamic l = layer;
-                        layerLinetypes[layer.Name] = l.Linetype.Name; 
+                        var lTypeProp = GetCachedProperty(layer.GetType(), "LineType") ?? GetCachedProperty(layer.GetType(), "Linetype");
+                        if (lTypeProp != null)
+                        {
+                            var lTypeObj = lTypeProp.GetValue(layer);
+                            if (lTypeObj != null)
+                            {
+                                var nameProp = GetCachedProperty(lTypeObj.GetType(), "Name");
+                                if (nameProp != null)
+                                {
+                                    var nameVal = nameProp.GetValue(lTypeObj);
+                                    layerLinetypes[layer.Name] = nameVal?.ToString() ?? "Continuous";
+                                    continue;
+                                }
+                            }
+                        }
+                        layerLinetypes[layer.Name] = "Continuous";
                     } 
                     catch { layerLinetypes[layer.Name] = "Continuous"; }
                 }
 
+                Serilog.Log.Information("[DWG] Layer verisi çekildi. Toplam {count} model objesi dönüştürülüyor...", cadDoc.Entities.Count);
+                
                 // Model Space
+                int convertedCount = 0;
                 foreach (var entity in cadDoc.Entities)
                 {
                     // Root entity'ler için Identity matrisi kullanılır
                     var convertedList = ConvertEntity(entity, Matrix4x4.Identity, layerColors, layerLinetypes);
                     entities.AddRange(convertedList);
+                    convertedCount++;
+                    if (convertedCount % 10000 == 0)
+                        Serilog.Log.Information("[DWG] Dönüştürülen ana obje sayısı: {Count}...", convertedCount);
                 }
+                
+                Serilog.Log.Information("[DWG] Dönüştürme tamamlandı. Toplam {count} sonuç objesi oluşturuldu.", entities.Count);
             }
         }
         catch (Exception ex)
@@ -82,7 +117,7 @@ public class DwgImportService
         return entities;
     }
 
-    private IEnumerable<CadEntity> ConvertEntity(Entity entity, Matrix4x4 transform, Dictionary<string, uint> layerColors, Dictionary<string, string> layerLinetypes, ACadSharp.Color? parentColor = null, string? parentLinetype = null)
+    private IEnumerable<CadEntity> ConvertEntity(Entity entity, Matrix4x4 transform, Dictionary<string, uint> layerColors, Dictionary<string, string> layerLinetypes, ACadSharp.Color? parentColor = null, string? parentLinetype = null, int depth = 0, HashSet<string>? visitedBlocks = null)
     {
         // Renk Çözümleme (ByBlock ise parent rengi al)
         uint resolvedColor = 0xFFFFFFFF; // Default
@@ -128,23 +163,37 @@ public class DwgImportService
         string resolvedLinetype = "Continuous";
         try
         {
-            dynamic entityDyn = entity;
-            string lTypeName = entityDyn.Linetype.Name;
-
-            if (lTypeName.Equals("ByBlock", StringComparison.OrdinalIgnoreCase))
+            var linetypeProp = GetCachedProperty(entity.GetType(), "LineType") ?? GetCachedProperty(entity.GetType(), "Linetype");
+            if (linetypeProp != null)
             {
-                resolvedLinetype = parentLinetype ?? "Continuous";
-            }
-            else if (lTypeName.Equals("ByLayer", StringComparison.OrdinalIgnoreCase))
-            {
-                 if (!string.IsNullOrEmpty(entity.Layer.Name) && layerLinetypes.TryGetValue(entity.Layer.Name, out var lType))
-                 {
-                     resolvedLinetype = lType;
-                 }
-            }
-            else
-            {
-                resolvedLinetype = lTypeName;
+                var linetypeObj = linetypeProp.GetValue(entity);
+                if (linetypeObj != null)
+                {
+                    var nameProp = GetCachedProperty(linetypeObj.GetType(), "Name");
+                    if (nameProp != null)
+                    {
+                        var nameVal = nameProp.GetValue(linetypeObj);
+                        if (nameVal != null)
+                        {
+                            string lTypeName = nameVal.ToString()!;
+                            if (lTypeName.Equals("ByBlock", StringComparison.OrdinalIgnoreCase))
+                            {
+                                resolvedLinetype = parentLinetype ?? "Continuous";
+                            }
+                            else if (lTypeName.Equals("ByLayer", StringComparison.OrdinalIgnoreCase))
+                            {
+                                 if (!string.IsNullOrEmpty(entity.Layer.Name) && layerLinetypes.TryGetValue(entity.Layer.Name, out var lType))
+                                 {
+                                     resolvedLinetype = lType;
+                                 }
+                            }
+                            else
+                            {
+                                resolvedLinetype = lTypeName;
+                            }
+                        }
+                    }
+                }
             }
         }
         catch { resolvedLinetype = "Continuous"; }
@@ -152,9 +201,21 @@ public class DwgImportService
         // --- Insert (Block Reference) Özel İşlemi (Recursion) ---
         if (entity is Insert insert)
         {
-            // 1. Insert Dönüşüm Matrisini Hesapla (T * R * S)
-            // Sıra: Scale -> Rotate -> Translate
+            if (depth > 50) yield break; // Recursive stack protection
             
+            var blocks = visitedBlocks ?? new HashSet<string>();
+            string blockName = insert.Block?.Name ?? "UNKNOWN";
+            if (blocks.Contains(blockName)) yield break; // Cyclic reference prevention
+            
+            blocks.Add(blockName);
+            // BasePoint Translation
+            var basePointTrans = Matrix4x4.Identity;
+            if (insert.Block != null && insert.Block.BlockEntity != null)
+            {
+                var bp = insert.Block.BlockEntity.BasePoint;
+                basePointTrans = Matrix4x4.CreateTranslation(-bp.X, -bp.Y, -bp.Z);
+            }
+
             // Scale
             var scaleMat = Matrix4x4.CreateScale(insert.XScale, insert.YScale, insert.ZScale);
             
@@ -164,8 +225,8 @@ public class DwgImportService
             // Translate
             var transMat = Matrix4x4.CreateTranslation(insert.InsertPoint.X, insert.InsertPoint.Y, insert.InsertPoint.Z);
             
-            // Local Transform = T * R * S
-            var localTransform = transMat * (rotMat * scaleMat);
+            // Local Transform = Translate * Rotate * Scale * (-BasePoint)
+            var localTransform = transMat * rotMat * scaleMat * basePointTrans;
             
             // Global Transform = Parent * Local
             var combinedTransform = transform * localTransform;
@@ -173,11 +234,12 @@ public class DwgImportService
             // 2. Blok İçeriğini Dönüştür
             if (insert.Block != null && insert.Block.Entities.Any())
             {
+                var newVisited = new HashSet<string>(blocks);
                 foreach (var child in insert.Block.Entities)
                 {
                     // Recursive call
                     // Insert rengini parentColor olarak geçiriyoruz
-                    foreach (var childConverted in ConvertEntity(child, combinedTransform, layerColors, layerLinetypes, insert.Color, resolvedLinetype))
+                    foreach (var childConverted in ConvertEntity(child, combinedTransform, layerColors, layerLinetypes, insert.Color, resolvedLinetype, depth + 1, newVisited))
                     {
                         yield return childConverted;
                     }
@@ -214,7 +276,7 @@ public class DwgImportService
              
               foreach (var child in dimension.Block.Entities)
               {
-                  foreach (var childConverted in ConvertEntity(child, transform, layerColors, layerLinetypes, dimension.Color, resolvedLinetype))
+                  foreach (var childConverted in ConvertEntity(child, transform, layerColors, layerLinetypes, dimension.Color, resolvedLinetype, depth + 1, visitedBlocks))
                   {
                       yield return childConverted;
                   }
@@ -226,73 +288,110 @@ public class DwgImportService
         if (result == null && entity is Hatch hatch)
         {
             // Hatch sınırlarını (Boundary) çizgiye dönüştür
-            // ACadSharp versiyon farklılıkları nedeniyle dynamic kullanıyoruz
-            foreach (dynamic path in hatch.Paths)
+            // ACadSharp versiyon farklılıkları nedeniyle reflection kullanıyoruz (Dynamic + Exception = 28 Dakika Gecikme!)
+            foreach (var path in hatch.Paths)
             {
                 var points = new List<Vector3D>();
-
-                // Hatch işleminden dönenleri burada toplayalım
                 var entitiesInLoop = new List<CadEntity>();
 
-                try
-                {
-                    // 1. Polyline Path (Vertices varsa)
-                    // Dynamic property check: Vertices
-                    bool handled = false;
-                    try 
-                    {
-                        var vertices = path.Vertices;
-                        if (vertices != null)
-                        {
-                            foreach (var v in vertices)
-                            {
-                                points.Add(new Vector3D(v.X, v.Y, 0));
-                            }
-                            if (points.Count > 0) points.Add(points[0]);
-                            handled = true;
-                        }
-                    }
-                    catch { /* Property yoksa veya erişilemezse */ }
+                if (path == null) continue;
+                Type pathType = path.GetType();
+                bool handled = false;
 
-                    if (!handled)
+                // 1. Polyline Path (Vertices / PolylineData varsa)
+                var verticesProp = GetCachedProperty(pathType, "Vertices") ?? GetCachedProperty(pathType, "PolylineData");
+                if (verticesProp != null)
+                {
+                    var verticesSource = verticesProp.GetValue(path);
+                    System.Collections.IEnumerable? vertices = verticesSource as System.Collections.IEnumerable;
+                    
+                    // Bazen PolylineData altinda Vertices olur
+                    if (vertices == null && verticesSource != null)
                     {
-                        // 2. Edge Path (Edges varsa)
-                        try 
+                         var vProp2 = GetCachedProperty(verticesSource.GetType(), "Vertices");
+                         if (vProp2 != null) vertices = vProp2.GetValue(verticesSource) as System.Collections.IEnumerable;
+                    }
+
+                    if (vertices != null)
+                    {
+                        foreach (var v in vertices)
                         {
-                            var edges = path.Edges;
-                            if (edges != null)
+                            var vType = v.GetType();
+                            var xProp = GetCachedProperty(vType, "X");
+                            var yProp = GetCachedProperty(vType, "Y");
+                            if (xProp != null && yProp != null)
                             {
-                                foreach (dynamic edge in edges)
-                                {
-                                     // LineEdge? -> Start, End
-                                     try 
-                                     {
-                                         var start = edge.Start;
-                                         var end = edge.End;
-                                         // Line
-                                         var p1 = new Vector3D(start.X, start.Y, 0);
-                                         var p2 = new Vector3D(end.X, end.Y, 0);
-                                         var lineEnt = new LineEntity(p1, p2);
-                                         
-                                         lineEnt.Layer = hatch.Layer.Name;
-                                         lineEnt.Color = resolvedColor;
-                                         lineEnt.Linetype = resolvedLinetype;
-                                         lineEnt.Transform(transform);
-                                         
-                                         // Yield yerine listeye ekle
-                                         entitiesInLoop.Add(lineEnt);
-                                     }
-                                     catch 
-                                     {
-                                         // ArcEdge vb. yoksay
-                                     }
-                                }
+                                double x = Convert.ToDouble(xProp.GetValue(v));
+                                double y = Convert.ToDouble(yProp.GetValue(v));
+                                points.Add(new Vector3D(x, y, 0));
                             }
                         }
-                        catch { /* Edges yoksa */ }
+                        if (points.Count > 0) points.Add(points[0]);
+                        handled = true;
                     }
                 }
-                catch { /* General Path error */ }
+
+                if (!handled)
+                {
+                    // 2. Edge Path (Edges varsa)
+                    var edgesProp = GetCachedProperty(pathType, "Edges");
+                    if (edgesProp != null)
+                    {
+                        var edges = edgesProp.GetValue(path) as System.Collections.IEnumerable;
+                        if (edges != null)
+                        {
+                            foreach (var edge in edges)
+                            {
+                                 if (edge == null) continue;
+                                 var edgeType = edge.GetType();
+                                 
+                                 var startProp = GetCachedProperty(edgeType, "Start") ?? GetCachedProperty(edgeType, "StartPoint");
+                                 var endProp = GetCachedProperty(edgeType, "End") ?? GetCachedProperty(edgeType, "EndPoint");
+                                 
+                                 if (startProp != null && endProp != null)
+                                 {
+                                     try
+                                     {
+                                         var start = startProp.GetValue(edge);
+                                         var end = endProp.GetValue(edge);
+                                         if (start == null || end == null) continue;
+                                         
+                                         var sType = start.GetType();
+                                         var eType = end.GetType();
+                                         
+                                         var sxP = GetCachedProperty(sType, "X");
+                                         var syP = GetCachedProperty(sType, "Y");
+                                         var exP = GetCachedProperty(eType, "X");
+                                         var eyP = GetCachedProperty(eType, "Y");
+
+                                         if (sxP != null && syP != null && exP != null && eyP != null)
+                                         {
+                                             double sx = Convert.ToDouble(sxP.GetValue(start));
+                                             double sy = Convert.ToDouble(syP.GetValue(start));
+                                             double ex = Convert.ToDouble(exP.GetValue(end));
+                                             double ey = Convert.ToDouble(eyP.GetValue(end));
+                                             
+                                             var p1 = new Vector3D(sx, sy, 0);
+                                             var p2 = new Vector3D(ex, ey, 0);
+                                             var lineEnt = new LineEntity(p1, p2)
+                                             {
+                                                 Layer = hatch.Layer.Name,
+                                                 Color = resolvedColor,
+                                                 Linetype = resolvedLinetype
+                                             };
+                                             lineEnt.Transform(transform);
+                                             entitiesInLoop.Add(lineEnt);
+                                         }
+                                     }
+                                     catch
+                                     {
+                                         // Olası dönüşüm hatalarını veya eksik özellikleri yoksay
+                                     }
+                                 }
+                            }
+                        }
+                    }
+                }
 
                 // Toplanan entity'leri döndür
                 foreach (var e in entitiesInLoop)

@@ -6,6 +6,7 @@
         xmlns:views="clr-namespace:Afney.Cad.Presentation.Views"
         xmlns:controls="clr-namespace:Afney.Cad.Presentation.Controls"
         mc:Ignorable="d"
+        Icon="Resources/afneycad_icon.png"
         Title="AfneyCAD Mechanical Kernel" Height="800" Width="1200"
         WindowState="Maximized"
         Background="#1E1E1E" Foreground="White">
@@ -66,6 +67,8 @@
                 <MenuItem Header="Mimariyi Tara (Recognize)" Click="OnRecognizeArchitecture" ToolTip="Mimari layerları analiz ederek duvar ve kapıları tespit eder."/>
                 <Separator/>
                 <MenuItem Header="Mimariyi Ölçekle ve Blokla (WBlock)..." Click="OnWBlockCommand" Foreground="Cyan" FontWeight="Bold"/>
+                <Separator/>
+                <MenuItem Header="Mahal Analizi Export (JSON)..." Click="OnExportMahalData" Foreground="LimeGreen" FontWeight="Bold"/>
             </MenuItem>
             
             <MenuItem Header="AutoBLD" Foreground="#FFE64D">

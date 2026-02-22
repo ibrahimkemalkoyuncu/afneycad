@@ -82,8 +82,22 @@ public class MahalEntity : MechanicalEntity
         }
 
         var center = GetBoundingBox().Center;
-        context.DrawText($"{MahalName.ToUpper()} [{MahalType}]", center + new Vector3D(0, 30, 0), 0, 15, 0xFFFFFFFF, true);
-        context.DrawText($"{Area:F2} m2", center + new Vector3D(0, 5, 0), 0, 10, 0xFFAAAAAA, true);
+        
+        // --- 1. Şeffaf UI Arka Plan Çerçevesi (Render Overlay) ---
+        // Yazıların okunabilirliğini artırmak için odanın ortasına çerçeve (kutu) çizer
+        double boxHWidth = 60.0;
+        double boxHHeight = (Fixtures.Count > 0) ? 40.0 : 25.0;
+        
+        var min = new Vector3D(center.X - boxHWidth, center.Y - boxHHeight, 0);
+        var max = new Vector3D(center.X + boxHWidth, center.Y + boxHHeight, 0);
+        
+        // Çerçeve (Opaklık ayarlı arka plan rengi: 0x88202020 -> Yarı saydam koyu gri)
+        context.DrawRectangle(min, max, 0x88202020, 1.5);
+        context.DrawRectangle(new Vector3D(min.X-2, min.Y-2, 0), new Vector3D(max.X+2, max.Y+2, 0), 0xFFFFAA00, 0.5); // İnce Turuncu Vurgu Sınırı
+
+        // --- 2. Metin İçerikleri ---
+        context.DrawText($"{MahalName.ToUpper()} [{MahalType}]", center + new Vector3D(0, 15, 0), 0, 15, 0xFFFFFFFF, true);
+        context.DrawText($"{Area:F2} m²", center + new Vector3D(0, -5, 0), 0, 12, 0xFFAAAAAA, true);
 
         if (Fixtures.Count > 0)
         {

@@ -45,10 +45,10 @@ public class CadDatabase
         // Standart "0" katmanını oluştur
         _layers.TryAdd("0", new CadLayer("0") { Color = 0xFFFFFFFF });
         
-        // QuadTree Init (Devasa bir çalışma alanı: ±100km)
+        // QuadTree Init (Devasa bir çalışma alanı: ±1 Trilyon Birim - UTM ve Global Koordinat Desteği)
         _spatialIndex = new QuadTree(new CadBoundingBox(
-            new Vector3D(-100000000, -100000000, -1000), 
-            new Vector3D(100000000, 100000000, 1000)
+            new Vector3D(-1000000000000, -1000000000000, -100000000), 
+            new Vector3D(1000000000000, 1000000000000, 100000000)
         ));
     }
 
@@ -66,8 +66,8 @@ public class CadDatabase
         lock (_indexLock)
         {
             _spatialIndex = new QuadTree(new CadBoundingBox(
-                new Vector3D(-100000000, -100000000, -1000), 
-                new Vector3D(100000000, 100000000, 1000)
+                new Vector3D(-1000000000000, -1000000000000, -100000000), 
+                new Vector3D(1000000000000, 1000000000000, 100000000)
             ));
         }
     }

@@ -44,6 +44,9 @@ public partial class CadViewport : UserControl
     public event Action<string>? OnFeedback;
     public event Action<System.Collections.Generic.IEnumerable<CadEntity>>? SelectionChanged;
 
+    // --- Katman Yönetimi (Layer Management) ---
+    public System.Collections.Generic.HashSet<string> HiddenLayers { get; } = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
     private readonly SKPaint _gridPaint = new() { Color = new SKColor(60, 60, 60, 50), Style = SKPaintStyle.Stroke, IsAntialias = true }; // Daha yumuşak grid
     private readonly SKPaint _axisPaint = new() { Color = new SKColor(100, 100, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
     private readonly SKPaint _crosshairPaint = new() { Color = SKColors.White.WithAlpha(180), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true }; // Yumuşak imleç
@@ -164,8 +167,10 @@ public partial class CadViewport : UserControl
         if (!centers.Any()) return;
 
         // 2. Ortalama merkezi bul (Centroid)
-        double avgX = centers.Average(c => c.X);
-        double avgY = centers.Average(c => c.Y);
+        double avgX = centers.Any() ? centers.Average(c => c.X) : 0;
+        double avgY = centers.Any() ? centers.Average(c => c.Y) : 0;
+        
+        if (double.IsNaN(avgX) || double.IsNaN(avgY)) { avgX = 0; avgY = 0; }
 
         // 3. Standart Sapma veya Basit Eşikleme ile Aykırıları At (Outlier Removal)
         // Basitleştirilmiş Yöntem: Merkezden çok uzak (ör: 100km) olanları yoksay
@@ -183,8 +188,8 @@ public partial class CadViewport : UserControl
         {
             var b = ent.GetBoundingBox();
             
-            // Sıfır boyutlu veya geçersiz kutuları atla
-            if (Math.Abs(b.Max.X - b.Min.X) < 0.001 && Math.Abs(b.Max.Y - b.Min.Y) < 0.001) continue;
+            // NaN/Infinity koruması
+            if (double.IsNaN(b.Min.X) || double.IsInfinity(b.Min.X)) continue;
 
             minX = Math.Min(minX, b.Min.X); minY = Math.Min(minY, b.Min.Y);
             maxX = Math.Max(maxX, b.Max.X); maxY = Math.Max(maxY, b.Max.Y);
@@ -203,10 +208,18 @@ public partial class CadViewport : UserControl
         _zoom = Math.Min(screenW / width, screenH / height);
         // Zoom sınırlarını genişlet (Çok küçük detaylar için daha fazla zoom gerekebilir)
         _zoom = Math.Clamp(_zoom, 1e-6, 100.0); 
+        if (double.IsNaN(_zoom) || double.IsInfinity(_zoom)) _zoom = 1.0;
 
         double cx = (minX + maxX) / 2.0;
         double cy = (minY + maxY) / 2.0;
-        _offset = new Vector3D(screenW / 2.0 - (cx * _zoom), screenH / 2.0 - (cy * _zoom), 0);
+
+        double offX = screenW / 2.0 - (cx * _zoom);
+        double offY = screenH / 2.0 - (cy * _zoom);
+
+        if (double.IsNaN(offX) || double.IsInfinity(offX)) offX = 0;
+        if (double.IsNaN(offY) || double.IsInfinity(offY)) offY = 0;
+
+        _offset = new Vector3D(offX, offY, 0);
 
         InvalidateViewport();
     }
@@ -232,15 +245,44 @@ public partial class CadViewport : UserControl
         // Grid
         DrawInfiniteGrid(canvas, e.Info);
 
+        // --- B Çözümü: Otomatik Hizalama Kılavuzu (Auto-Align Origin Guide) ---
+        // Kullanıcının mimariyi üst üste dizebilmesi için 0,0 noktasına devasa lazerler çiz
+        var originProjected = renderContext.GetType().GetMethod("Project", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(renderContext, new object[] { new Vector3D(0, 0, 0) }) as SKPoint? ?? new SKPoint(0,0);
+        
+        using (var penX = new SKPaint { Color = new SKColor(255, 50, 50, 150), StrokeWidth = 2, IsAntialias = true })
+        using (var penY = new SKPaint { Color = new SKColor(50, 255, 50, 150), StrokeWidth = 2, IsAntialias = true })
+        using (var textPaint = new SKPaint { Color = SKColors.White, TextSize = 14, IsAntialias = true })
+        {
+            float w = e.Info.Width;
+            float h = e.Info.Height;
+            // X Ekseni (Kırmızı)
+            canvas.DrawLine(0, originProjected.Y, w, originProjected.Y, penX);
+            // Y Ekseni (Yeşil)
+            canvas.DrawLine(originProjected.X, 0, originProjected.X, h, penY);
+            // Kılavuz Etiketi
+            canvas.DrawText("ORIGIN (0,0,0) - AUTO ALIGN GUIDE", originProjected.X + 10, originProjected.Y - 10, textPaint);
+            canvas.DrawCircle(originProjected.X, originProjected.Y, 5, penX);
+        }
+
         // Entities
         var left = (float)(-_offset.X / _zoom);
         var top = (float)(-_offset.Y / _zoom);
         var right = left + (float)(CadCanvas.ActualWidth / _zoom);
         var bottom = top + (float)(CadCanvas.ActualHeight / _zoom);
-        var visibleBox = new CadBoundingBox(new Vector3D(left, top, -500), new Vector3D(right, bottom, 500));
+        
+        // BoundingBox her zaman Min -> Max (Sol Alt -> Sağ Üst) şeklinde tanımlanmalı
+        var minX = Math.Min(left, right);
+        var maxX = Math.Max(left, right);
+        var minY = Math.Min(top, bottom);
+        var maxY = Math.Max(top, bottom);
+
+        var visibleBox = new CadBoundingBox(new Vector3D(minX, minY, -5000), new Vector3D(maxX, maxY, 5000));
 
         foreach (var entity in _database.QueryEntities(visibleBox))
         {
+            // Katman Görünürlük Kontrolü (Layer Filter)
+            if (HiddenLayers.Contains(entity.Layer)) continue;
+            
             entity.Draw(renderContext);
         }
 

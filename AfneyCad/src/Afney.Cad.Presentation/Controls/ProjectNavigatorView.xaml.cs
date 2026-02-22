@@ -16,5 +16,23 @@ namespace Afney.Cad.Presentation.Controls
         {
             InitializeComponent();
         }
+
+        public event System.Action<string, bool>? LayerVisibilityChanged;
+
+        private void Layer_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is CheckBox chk && chk.Tag is string layerName)
+            {
+                LayerVisibilityChanged?.Invoke(layerName, true);
+            }
+        }
+
+        private void Layer_Unchecked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is CheckBox chk && chk.Tag is string layerName)
+            {
+                LayerVisibilityChanged?.Invoke(layerName, false);
+            }
+        }
     }
 }

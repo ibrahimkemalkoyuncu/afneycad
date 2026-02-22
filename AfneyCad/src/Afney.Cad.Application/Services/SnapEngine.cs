@@ -55,6 +55,15 @@ public class SnapEngine
         SnapPoint? bestSnap = null;
         double minDistance = double.MaxValue;
 
+        // 0. AUTO-ALIGN ORIGIN SNAP (Kalıcı Kenetlenme)
+        // Kullanıcı 0,0 noktasına yaklaştığında herzaman merkeze (Origin) oturtmak için
+        double originDist = cursorPosition.DistanceTo(Vector3D.Zero);
+        if (originDist <= searchRadius)
+        {
+            minDistance = originDist;
+            bestSnap = new SnapPoint(Vector3D.Zero, SnapPointType.Insertion); // Origin bir Blok Yerleştirme noktası gibi davranır
+        }
+
         foreach (var entity in _database.QueryEntities(searchBox))
         {
             // 1. STATİK NOKTALARI KONTROL ET (Endpoint, Midpoint, Center vb.)

@@ -129,10 +129,10 @@ namespace Afney.Cad.Presentation.Dialogs
 
     public class ProjectFileItem
     {
-        public string Name { get; set; }
-        public string Size { get; set; }
-        public string Type { get; set; }
-        public string Date { get; set; }
-        public string FullPath { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Size { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Date { get; set; } = string.Empty;
+        public string FullPath { get; set; } = string.Empty;
     }
 }

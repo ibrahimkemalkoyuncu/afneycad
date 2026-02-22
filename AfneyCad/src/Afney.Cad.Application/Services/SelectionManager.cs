@@ -137,7 +137,7 @@ public class SelectionManager
         {
             _selectedEntityIds.Add(entityId);
             // Cache'e ekle - ancak önce entity'yi bul
-            var entity = _database.GetAllEntities().FirstOrDefault(e => e.Id == entityId);
+            var entity = _database.GetEntity(entityId);
             if (entity != null)
                 _selectedEntityCache[entityId] = entity;
         }
@@ -168,7 +168,6 @@ public class SelectionManager
         
         // Cache eksikse, sadece eksik olanları bul
         var result = new List<CadEntity>();
-        var allEntities = _database.GetAllEntities().ToList();
         
         foreach (var id in _selectedEntityIds)
         {
@@ -178,7 +177,7 @@ public class SelectionManager
             }
             else
             {
-                var entity = allEntities.FirstOrDefault(e => e.Id == id);
+                var entity = _database.GetEntity(id);
                 if (entity != null)
                 {
                     result.Add(entity);
@@ -283,14 +282,13 @@ public class SelectionManager
             IsAntialias = true
         };
 
-        var allEntities = _database.GetAllEntities();
-
         foreach (var id in _selectedEntityIds)
         {
-            // Cache'ten veya listeden bul
+            // Cache'ten veya veritabanından bul
             if (!_selectedEntityCache.TryGetValue(id, out var entity))
             {
-                 entity = allEntities.FirstOrDefault(e => e.Id == id);
+                 entity = _database.GetEntity(id);
+                 if (entity != null) _selectedEntityCache[id] = entity;
             }
             
             if (entity == null) continue;

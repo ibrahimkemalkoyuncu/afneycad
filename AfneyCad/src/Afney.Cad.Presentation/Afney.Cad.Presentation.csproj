@@ -5,7 +5,13 @@
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>Resources\afneycad_icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\afneycad_icon.ico" />
+    <Resource Include="Resources\afneycad_icon.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp.Views.WPF" Version="2.88.7" />

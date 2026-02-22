@@ -9,25 +9,22 @@ using Afney.Cad.Mechanical.Models;
 using Afney.Cad.Mechanical.Engine;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Commands.MechanicalCommands;
-using Afney.Cad.Commands.BasicCommands; // EKLENDİ
-using Afney.Cad.Presentation.Dialogs; // EKLENDİ
-using Afney.Cad.Domain.Blocks; // EKLENDİ
-using Afney.Cad.Mechanical.Entities; // EKLENDİ
+using Afney.Cad.Commands.BasicCommands;
+using Afney.Cad.Presentation.Dialogs;
+using Afney.Cad.Domain.Blocks;
 using System;
 using System.Linq;
-using System.Windows; // GERİ EKLENDİ
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Serilog;
-using System.Diagnostics; // Process.Start için
-using Afney.Cad.Infrastructure.Import; // CadImporter için
+using System.Diagnostics;
+using Afney.Cad.Infrastructure.Import;
 using System.IO;
-using Afney.Cad.Infrastructure.Import; // CadImporter için
-using System.IO;
-using ACadSharp.IO; // DxfReader için EKLENDİ
-using Afney.Cad.Mechanical.Services; // BOMExportService için
-using Afney.Cad.Infrastructure.Export; // IfcExportService için
+using ACadSharp.IO;
+using Afney.Cad.Mechanical.Services;
+using Afney.Cad.Infrastructure.Export;
 
 namespace Afney.Cad.Presentation
 {
@@ -66,6 +63,12 @@ namespace Afney.Cad.Presentation
         public MainWindow()
         {
             InitializeComponent();
+
+            // IntelligencePanel üzerinden gelen canlı özellikleri Database'e kaydet ve sistemi yeniden hesapla
+            RightPanel.EntityModified += OnEntityModifiedFromRightPanel;
+
+            // Katman Görünürlük (Layer Visibility) Tuşlarına basıldıkça Viewport Engine'e haber ver
+            ProjectNavigatorPanel.LayerVisibilityChanged += OnLayerVisibilityChanged;
 
             // İlk sekmeyi (Boş Proje) oluştur
             CreateNewDocument("Boş Proje");
@@ -133,6 +136,51 @@ namespace Afney.Cad.Presentation
         {
             // Viewport'u çerçevele (Border vs eklenebilir)
             return viewport;
+        }
+
+        private void OnEntityModifiedFromRightPanel(object? sender, Afney.Cad.Domain.Abstractions.CadEntity e)
+        {
+            try 
+            {
+                if (_activeContext == null) return;
+                
+                // 1. Veritabanını Güncelle
+                _database.UpdateEntity(e);
+
+                // 2. İş Akışını (IsoSync, Debi ve Çap) Yeniden Tetikle
+                // Not: Olay sahte (RoutedEventArgs) olarak gönderilip menü butonuna basılmış gibi davranılıyor
+                OnCalculateFlowCommand(sender, new RoutedEventArgs());
+                
+                // 3. Panelin kendisini yeni verilerle donat
+                RightPanel.UpdateEntityInfo(e);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Değişiklik uygulanırken hata: {ex.Message}");
+            }
+        }
+
+        /*
+           NE: Katman Görünürlük Yöneticisi (OnLayerVisibilityChanged)
+           NEDEN: Sol paneldeki katman checkboxlarına basıldıkça (örn: Mimariyi gizle) bunu ilgili (geçerli) Viewport'un render mekanizmasına bildirmek için.
+        */
+        private void OnLayerVisibilityChanged(string layerName, bool isVisible)
+        {
+            if (_activeContext?.Viewport == null) return;
+
+            if (isVisible)
+            {
+                // Katman Görünür Dedi (Gizli Listeden Çıkart)
+                _activeContext.Viewport.HiddenLayers.Remove(layerName);
+            }
+            else
+            {
+                // Katmanı Gizle Dedi (Gizli Listeye Ekle)
+                _activeContext.Viewport.HiddenLayers.Add(layerName);
+            }
+
+            // Çizim motoruna kendini yeniden çizmesini söyle
+            _activeContext.Viewport.InvalidateViewport();
         }
 
         /*
@@ -289,62 +337,53 @@ namespace Afney.Cad.Presentation
 
             if (!System.IO.Directory.Exists(projectPath)) System.IO.Directory.CreateDirectory(projectPath);
 
-            // 1. Komutu oluştur (Ama henüz Viewport'a set etme, koordinasyon ile yapacağız)
-            var cmd = new ArchitecturalBlockCommand(_database, null); // Action callback artık event ile yönetilecek
+            // 1. Yeni Mimarileri Bloklama (WBlock) SihirbazÄ±nÄ± (Wizard) baÅŸlat
+            // Dosya Dialog'u default aÃ§mak yerine kullanÄ±cÄ±nÄ±n adÄ±m 1'de kendi girmesini isteyelim
+            var tempDefPath = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop), "YeniPlan.afney");
+            var wizard = new Afney.Cad.Presentation.Dialogs.WBlockWizard(Viewport, tempDefPath);
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.ArchitecturalBlockCommand(_database, null!);
+            wizard.Owner = this;
 
-            // 2. Diyaloğu oluştur (Modeless gibi davranacak ama kontrollü)
-            var dialog = new Afney.Cad.Presentation.Dialogs.WBlockDialog(Viewport, projectPath);
-            dialog.Owner = this;
+            // --- Event BaÄŸlantÄ±larÄ± ---
 
-            // --- Event Bağlantıları ---
-
-            // A) Diyalog -> Komut (Kullanıcı butona bastı)
-            dialog.RequestPickPoint += () =>
+            // A) Diyalog -> Komut (KullanÄ±cÄ± butona bastÄ±)
+            wizard.RequestPickPoint += () =>
             {
-                Viewport.SetActiveCommand(cmd); // Komutu aktifleştir (Mouse dinlesin)
+                Viewport.SetActiveCommand(cmd); // Komutu aktifleÅŸtir (Mouse dinlesin)
                 Viewport.Focus(); // Ensure functionality
                 Serilog.Log.Information("MAINWINDOW: RequestPickPoint. Viewport focused.");
                 cmd.StartPickPoint();
             };
 
-            dialog.RequestSelectObjects += () =>
+            wizard.RequestSelectObjects += () =>
             {
                 Viewport.SetActiveCommand(cmd);
                 cmd.StartSelection();
             };
 
-            // B) Komut -> Diyalog (İşlem bitti, diyaloğu geri getir)
-            // B) Komut -> Diyalog (İşlem bitti, diyaloğu geri getir)
+            // B) Komut -> Diyalog (Ä°ÅŸlem bitti, diyaloÄŸu geri getir)
             cmd.OnPointPicked += () =>
             {
                 Serilog.Log.Information("MAINWINDOW: OnPointPicked received from WBlockCommand.");
-                // UI Thread check (WPF events are on UI thread usually, but good to be safe)
+                // UI Thread check
                 Dispatcher.Invoke(() =>
                 {
-                    dialog.SetBasePoint(cmd.BasePoint);
-                    dialog.Show();
-                    Serilog.Log.Information("MAINWINDOW: Dialog shown after point pick.");
+                    wizard.SetBasePoint(cmd.BasePoint);
+                    wizard.Show(); // Sihirbaz tekrar ekranda belirir
+                    Serilog.Log.Information("MAINWINDOW: Wizard shown after point pick.");
                 });
-                // Not: Komut hala aktif kalmalı mı? Hayır, Idle moda geçti zaten.
-                // Ama Viewport.SetActiveCommand(null) yaparsak çizim durabilir.
-                // WBlock komutu "Idle" modunda bekleyebilir.
             };
 
             cmd.OnEntitiesSelected += () =>
             {
-                // Seçimi komuttan alıp diyaloğa ver (Komut selection manager'dan almıştı)
-                // Ancak WBlockCommand içinde _selectedEntities var, onu güncelleyelim
                 cmd.SetSelectedEntities(Viewport.GetSelectedEntities());
-
-                dialog.SetEntities(cmd.SelectedEntities);
-                dialog.Show();
+                wizard.SetEntities(cmd.SelectedEntities);
+                wizard.Show(); // Sihirbaz tekrar ekranda belirir
             };
 
-            // Selection Changed (Global seçim değişirse komut güncellensin)
+            // Selection Changed (Global seÃ§im deÄŸiÅŸirse komut gÃ¼ncellensin)
             Viewport.SelectionChanged += (selection) =>
             {
-                // Sadece WBlock komutu aktifse ve seçim modundaysa güncelle
-                // (ArchitecturalBlockCommand zaten SetSelectedEntities public metoduna sahip)
                 if (Viewport.ActiveCommand == cmd)
                 {
                     cmd.SetSelectedEntities(selection);
@@ -356,34 +395,23 @@ namespace Afney.Cad.Presentation
             cmd.OnCompleted += () =>
             {
                 Viewport.SetActiveCommand(null);
-                StatusText.Text = "WBlock Hazır.";
+                StatusText.Text = "WBlock HazÄ±r.";
             };
 
-            // 3. Başlangıç Durumu
-            // Diyaloğu göster. Henüz komut aktif değil (veya pasif arka planda).
-            // Eğer en başta nesne seçiliyse onları al
+            // 3. BaÅŸlangÄ±Ã§ Durumu
             cmd.SetSelectedEntities(Viewport.GetSelectedEntities());
-            // Diyaloğa ver
-            dialog.SetEntities(cmd.SelectedEntities);
+            wizard.SetEntities(cmd.SelectedEntities); // Sihirbaz ilk aÃ§Ä±ldÄ±ÄŸÄ±nda varsa Ã¶nceki seÃ§imleri de alsÄ±n
 
-            // Komutun kendisine Viewport'a verelim ki cancel vb. çalışsın?
-            // Hayır, diyaloğu açtığımızda viewport komutu boş olabilir. 
-            // Ancak kullanıcı "Nokta Seç" derse komut devreye girecek.
-
-            // Kullanıcı "Tamam" dediğinde (Dialog.ShowDialog() == true değil, Click event based)
-            // Diyaloğun "Save" butonu çalışınca DialogResult true döner ve kapanır mı?
-            // WPF Window.Show() ile açtıysak DialogResult set edince kapanır.
-
-            if (dialog.ShowDialog() == true)
+            // Sihirbaz Modeline geÃ§iyoruz
+            if (wizard.ShowDialog() == true)
             {
-                string finalPath = dialog.FinalPath;
-                string floorName = dialog.FloorName;
+                string finalPath = wizard.FinalPath;
+                string floorName = wizard.FloorName;
 
-                // Verileri diyalogdan al (Komuttaki veriler güncel olmayabilir eğer elle set edilmediyse)
-                var entitiesToSave = dialog.SelectedEntities;
-                var basePoint = dialog.BasePoint;
+                var entitiesToSave = wizard.SelectedEntities;
+                var basePoint = wizard.BasePoint;
 
-                // Kayıt İşlemi (Logic ArchitecturalBlockCommand.FinalizeExport içinde)
+                // KayÄ±t Ä°ÅŸlemi (Logic ArchitecturalBlockCommand.FinalizeExport iÃ§inde)
                 var cloned = entitiesToSave.Select(x => x.Clone()).ToList();
                 var scaleService = new Afney.Cad.Mechanical.Services.ArchitecturalScaleService();
                 var (_, factor) = scaleService.DetectScale(cloned);
@@ -832,14 +860,14 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private bool _isIsometric = false;
+
         /*
            NE: 2D Görünüm Modu
            NEDEN: Çizimi üst bakış (Plan) moduna getirir ve görsel stilleri 2D'ye uygun ayarlar.
         */
         private void OnToggle2DView(object sender, RoutedEventArgs e)
         {
-            _isIsometric = false;
+
             Viewport.SetViewMode(false);
 
             var view2DBtn = this.FindName("View2DBtn") as Button;
@@ -864,7 +892,7 @@ namespace Afney.Cad.Presentation
         */
         private void OnToggle3DView(object sender, RoutedEventArgs e)
         {
-            _isIsometric = true;
+
             Viewport.SetViewMode(true);
 
             var view2DBtn = this.FindName("View2DBtn") as Button;
@@ -991,18 +1019,20 @@ namespace Afney.Cad.Presentation
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                Log.Information("Dosya yükleniyor: {Path}", filePath);
+                Log.Information("[MAIN] Dosya yükleniyor: {Path}", filePath);
 
                 // 1. IMPORT (CadImporter Kullan)
                 var importer = new Afney.Cad.Infrastructure.Import.CadImporter();
+                Log.Information("[MAIN] importer.Import({Path}) çağrılıyor...", filePath);
                 var entities = importer.Import(filePath);
+                Log.Information("[MAIN] importer.Import(...) başarıyla tamamlandı.");
 
                 stopwatch.Stop();
-                Log.Information("Dosya yüklendi. Nesne: {Count}, Süre: {Duration}ms", entities.Count, stopwatch.ElapsedMilliseconds);
+                Log.Information("[MAIN] Dosya yüklendi. Nesne: {Count}, Süre: {Duration}ms", entities.Count, stopwatch.ElapsedMilliseconds);
 
                 if (entities.Count == 0)
                 {
-                    Log.Warning("Dosya boş veya nesne okunamadı: {Path}", filePath);
+                    Log.Warning("[MAIN] Dosya boş veya nesne okunamadı: {Path}", filePath);
                     MessageBox.Show("Dosyada okunabilir nesne bulunamadı.");
                     return;
                 }
@@ -1097,6 +1127,11 @@ namespace Afney.Cad.Presentation
                     _database.AddEntity(ent);
                 }
 
+                // --- FAZ 11: Otomatik Mahal Analizi (Import Sonrası) ---
+                var mahalService = new Afney.Cad.Application.Services.MahalExportService(_database);
+                string mahalPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mahal.txt");
+                try { mahalService.ExportMahalDataToJson(mahalPath); } catch (Exception ex) { Log.Warning("Otomatik Mahal Analizi tamamlanamadı: " + ex.Message); }
+
                 Viewport.ZoomExtents();
 
                 string statusMsg = $"Proje yüklendi: {activeEntities.Count} nesne.";
@@ -1115,6 +1150,29 @@ namespace Afney.Cad.Presentation
         {
             // Çalışma klasörünü aç (Şimdilik executable path)
             Process.Start("explorer.exe", AppDomain.CurrentDomain.BaseDirectory);
+        }
+
+        /*
+           NE: Mahal Analizi Dışa Aktar (Faz 11)
+           NEDEN: DWG içindeki text'leri parçalayıp JSON formatında Mahal verisi üretmek.
+        */
+        private void OnExportMahalData(object sender, RoutedEventArgs e)
+        {
+            if (_database == null) return;
+            try
+            {
+                var service = new Afney.Cad.Application.Services.MahalExportService(_database);
+                string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mahal.txt");
+                string result = service.ExportMahalDataToJson(path);
+                MessageBox.Show(result, "Mahal Analizi (JSON)", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Klasörü otomatik aç
+                Process.Start("explorer.exe", $"/select,\"{path}\"");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Mahal analizi çıkarılırken hata oluştu: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void OnSave(object sender, RoutedEventArgs e)

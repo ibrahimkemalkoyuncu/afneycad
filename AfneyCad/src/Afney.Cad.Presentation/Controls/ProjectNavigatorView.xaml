@@ -17,6 +17,29 @@
                 </Style>
             </TreeView.Resources>
             
+            <TreeViewItem Header="📂 Layers" IsExpanded="True">
+                <TreeViewItem>
+                    <TreeViewItem.Header>
+                        <CheckBox Content="ARCHITECTURAL" Tag="0" IsChecked="True" Checked="Layer_Checked" Unchecked="Layer_Unchecked" Foreground="White"/>
+                    </TreeViewItem.Header>
+                </TreeViewItem>
+                <TreeViewItem>
+                    <TreeViewItem.Header>
+                        <CheckBox Content="SANITARY_WASTE" Tag="WasteWater" IsChecked="True" Checked="Layer_Checked" Unchecked="Layer_Unchecked" Foreground="White"/>
+                    </TreeViewItem.Header>
+                </TreeViewItem>
+                <TreeViewItem>
+                    <TreeViewItem.Header>
+                        <CheckBox Content="SANITARY_COLD" Tag="DomesticColdWater" IsChecked="True" Checked="Layer_Checked" Unchecked="Layer_Unchecked" Foreground="White"/>
+                    </TreeViewItem.Header>
+                </TreeViewItem>
+                <TreeViewItem>
+                    <TreeViewItem.Header>
+                        <CheckBox Content="SANITARY_HOT" Tag="DomesticHotWater" IsChecked="True" Checked="Layer_Checked" Unchecked="Layer_Unchecked" Foreground="White"/>
+                    </TreeViewItem.Header>
+                </TreeViewItem>
+            </TreeViewItem>
+
             <TreeViewItem Header="🏢 Building" IsExpanded="True">
                 <TreeViewItem Header="Floor 0 (Z=0.00)"/>
                 <TreeViewItem Header="Floor 1 (Z=3.00)"/>
@@ -24,7 +47,6 @@
             </TreeViewItem>
             
             <TreeViewItem Header="💧 Systems" IsExpanded="True">
-                <TreeViewItem Header="Domestic Cold Water"/>
                 <TreeViewItem Header="Domestic Hot Water"/>
                 <TreeViewItem Header="Waste Water"/>
             </TreeViewItem>
