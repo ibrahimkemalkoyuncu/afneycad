@@ -848,10 +848,6 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        /*
-           NE: Özellik/Zeka Paneli Görünürlük Kontrolü
-           NEDEN: Sağ taraftaki nesne özellik ve analiz panelinin gösterilip gizlenmesini yönetmek için.
-        */
         private void OnToggleIntelligencePanel(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem item && RightPanel != null)
@@ -1055,44 +1051,49 @@ namespace Afney.Cad.Presentation
                 }
                 Log.Information("{Count} adet layer çıkarıldı ve eklendi.", distinctLayers.Count);
 
-                // 2. Yoğunluk Analizi (Outlier Removal)
+                // 2. Yoğunluk Analizi (Outlier Removal) - Multi-threaded
                 var activeEntities = entities;
 
-                var centers = entities.Select(e => e.GetBoundingBox().Center).ToList();
+                // PLINQ for performance
+                var centers = entities.AsParallel().Select(e => e.GetBoundingBox().Center).ToList();
                 if (centers.Count > 0)
                 {
-                    double avgX = centers.Average(c => c.X);
-                    double avgY = centers.Average(c => c.Y);
+                    double avgX = centers.AsParallel().Average(c => c.X);
+                    double avgY = centers.AsParallel().Average(c => c.Y);
 
-                    // Basit mesafe kontrolü
-                    // (Karmaşık LINQ hatalarından kaçınmak için döngü ile yapalım)
-                    var filtered = new System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity>();
+                    var filtered = new System.Collections.Concurrent.ConcurrentBag<Afney.Cad.Domain.Abstractions.CadEntity>();
                     int removedCount = 0;
                     double thresholdSq = 500000.0 * 500000.0; // 500km kare
 
-                    foreach (var ent in entities)
+                    System.Threading.Tasks.Parallel.ForEach(entities, ent => 
                     {
                         var c = ent.GetBoundingBox().Center;
                         double distSq = Math.Pow(c.X - avgX, 2) + Math.Pow(c.Y - avgY, 2);
                         if (distSq < thresholdSq)
+                        {
                             filtered.Add(ent);
+                        }
                         else
-                            removedCount++;
-                    }
+                        {
+                            System.Threading.Interlocked.Increment(ref removedCount);
+                        }
+                    });
 
                     if (removedCount > 0)
                     {
-                        activeEntities = filtered;
+                        activeEntities = filtered.ToList();
                         Log.Information("Otomatik Temizleme: {Count} adet uzak nesne silindi.", removedCount);
                     }
                 }
 
-                // 3. İstatistik ve Temizleme
-                var finalEntities = new System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity>();
+                // 3. İstatistik ve Temizleme - Multi-threaded
+                var finalEntities = new System.Collections.Concurrent.ConcurrentBag<Afney.Cad.Domain.Abstractions.CadEntity>();
                 double totalLen = 0;
                 int lineCount = 0;
+                
+                object lenLock = new object();
 
-                foreach (var ent in activeEntities)
+                System.Threading.Tasks.Parallel.ForEach(activeEntities, ent =>
                 {
                     if (ent is Afney.Cad.Domain.Entities.Basic.LineEntity l)
                     {
@@ -1106,8 +1107,11 @@ namespace Afney.Cad.Presentation
 
                         if (len > 0.01) // Çok kısa çizgileri at
                         {
-                            totalLen += len;
-                            lineCount++;
+                            lock (lenLock)
+                            {
+                                totalLen += len;
+                            }
+                            System.Threading.Interlocked.Increment(ref lineCount);
                             finalEntities.Add(l);
                         }
                     }
@@ -1115,9 +1119,9 @@ namespace Afney.Cad.Presentation
                     {
                         finalEntities.Add(ent);
                     }
-                }
+                });
 
-                activeEntities = finalEntities;
+                activeEntities = finalEntities.ToList();
                 double avgLen = lineCount > 0 ? totalLen / lineCount : 0;
                 Log.Information("Yüklenen temiz nesne sayısı: {Count}. Ort çizgi uz.: {AvgLen:F2}", activeEntities.Count, avgLen);
 
@@ -1911,7 +1915,7 @@ namespace Afney.Cad.Presentation
 
                     foreach (var p in recommendations)
                     {
-                        msg += $"> {p.Brand} {p.ModelName} (Güç: {p.Power}, Verim: %{p.Efficiency * 100:F0})\n";
+                        msg += $"> {p.Brand} {p.ModelName} (Güç: {p.PowerKW:F2} kW, Verim: %{p.Efficiency * 100:F0})\n";
                     }
 
                     MessageBox.Show(msg, "Pompa ve Hidrofor Seçim Modülü", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1980,6 +1984,237 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"İzometrik şema hatası: {ex.Message}");
+            }
+        }
+
+        // ========== FAZ 16: YENİ ÖZELLİK HANDLER'LARI ==========
+
+        private void OnAutoAnnotate(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var annotationService = new Afney.Cad.Mechanical.Services.AutoAnnotationService(_database);
+                var annotations = annotationService.AnnotateAllPipes();
+                foreach (var ann in annotations)
+                {
+                    _database.AddEntity(ann);
+                }
+                Viewport.InvalidateVisual();
+                MessageBox.Show(
+                    $"{annotations.Count} adet etiket başarıyla yerleştirildi.\n\nGösterilen bilgiler:\n• Boru çapı (Ø)\n• Debi (Q l/s)\n• Akış hızı (v m/s)\n• Akış yön oku",
+                    "Otomatik Etiketleme", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Etiketleme hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnClearAnnotations(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var annotationService = new Afney.Cad.Mechanical.Services.AutoAnnotationService(_database);
+                int count = annotationService.ClearAnnotations();
+                Viewport.InvalidateVisual();
+                MessageBox.Show($"{count} adet etiket silindi.", "Etiketler Temizlendi");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Hata: {ex.Message}");
+            }
+        }
+
+        private void OnCalculationTable(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var pressureService = new Afney.Cad.Mechanical.Services.PressureDropService(
+                    _mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
+                var dialog = new Dialogs.CalculationTableWindow(_database, pressureService);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Hesaplama tablosu hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPipeWizard(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.PipeWizardDialog(_database);
+                dialog.Owner = this;
+                if (dialog.ShowDialog() == true)
+                {
+                    Viewport.InvalidateVisual();
+                    MessageBox.Show("Tesisat şablonu başarıyla yerleştirildi.", "Boru Sihirbazı");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Boru Sihirbazı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnFixtureLibrary(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.FixtureLibraryDialog();
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Reseptör kütüphanesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnWasteWaterDesign(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.WasteWaterDesignDialog(_database);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Pis su hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPipe3DView(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.Pipe3DViewWindow(_database);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"3D görünüm hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnMultiStoryManager(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.MultiStoryManagerDialog(_database);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Çok katlı bina hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        // ========== FAZ 17: YENİ ÖZELLİK HANDLER'LARI ==========
+
+        private void OnStandardSelection(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.StandardSelectionDialog(_mechanicalKernel);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Standart seçimi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnWallParallelRoute(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.WallParallelRouteDialog(_database);
+                dialog.Owner = this;
+                if (dialog.ShowDialog() == true)
+                {
+                    Viewport.InvalidateVisual();
+                    MessageBox.Show("Duvara paralel boru rotalama tamamlandı.", "AfneyCAD");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Rotalama hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnSepticTankDesign(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.SepticTankDialog();
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Fosseptik hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnFireFightingDesign(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.FireFightingDialog();
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Yangın söndürme hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnReportExport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.ReportExportDialog(_database);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Rapor hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnSpecificationExport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.SpecificationExportDialog(_database);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Şartname hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnRiserDiagramExport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.RiserDiagramExportDialog(_database);
+                dialog.Owner = this;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Kolon şeması hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

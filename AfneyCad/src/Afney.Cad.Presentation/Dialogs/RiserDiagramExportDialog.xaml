@@ -1,0 +1,25 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.RiserDiagramExportDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📐 Kolon Şeması (Riser Diagram) — AfneyCAD" Height="500" Width="650"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="KOLON ŞEMASI OLUŞTURMA" FontSize="18" FontWeight="Bold" Foreground="#AADDFF" Margin="0,0,0,15"/>
+        <StackPanel Grid.Row="1">
+            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Kat Sayısı:" Width="120"/><TextBox x:Name="FloorCountInput" Width="60" Text="5" Background="#333" Foreground="White"/></StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Kat Yüks. (mm):" Width="120"/><TextBox x:Name="FloorHeightInput" Width="60" Text="3000" Background="#333" Foreground="White"/></StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Branş DN:" Width="120"/><TextBox x:Name="BranchDNInput" Width="60" Text="32" Background="#333" Foreground="White"/></StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,10">
+                <Button Content="🖼️ SVG Oluştur ve Aç" Click="ExportSvg_Click" Width="180" Height="32" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+            </StackPanel>
+        </StackPanel>
+        <TextBlock Grid.Row="2" x:Name="StatusText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,10"/>
+        <Button Grid.Row="3" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+    </Grid>
+</Window>

@@ -1,0 +1,32 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.SepticTankDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🧯 Fosseptik/Rögar Boyutlandırma — AfneyCAD" Height="500" Width="600"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="FOSSEPTİK BOYUTLANDIRMA (TS 2873)" FontSize="18" FontWeight="Bold" Foreground="#CC7722" Margin="0,0,0,15"/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Kişi Sayısı:" Width="120"/><TextBox x:Name="PersonInput" Width="80" Text="50" Background="#333" Foreground="White"/></StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Su Tüketimi (lt/kişi/gün):" Width="160"/><TextBox x:Name="ConsumptionInput" Width="80" Text="150" Background="#333" Foreground="White"/></StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Bekletme Süresi (gün):" Width="160"/><TextBox x:Name="RetentionInput" Width="80" Text="2" Background="#333" Foreground="White"/></StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Tank Tipi:" Margin="0,5"/>
+                <ComboBox x:Name="TankTypeCombo" Width="200" Background="#333" Foreground="Black" SelectedIndex="1">
+                    <ComboBoxItem Content="Tek Hazne"/><ComboBoxItem Content="Çift Hazne"/><ComboBoxItem Content="Üç Hazne"/>
+                </ComboBox>
+                <Button Content="🔄 Hesapla" Click="Calculate_Click" Width="150" Height="32" Margin="0,15" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+            </StackPanel>
+        </Grid>
+        <TextBlock Grid.Row="2" x:Name="ResultText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,10"/>
+        <Button Grid.Row="3" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+    </Grid>
+</Window>

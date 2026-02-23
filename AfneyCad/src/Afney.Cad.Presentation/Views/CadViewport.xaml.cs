@@ -153,7 +153,11 @@ public partial class CadViewport : UserControl
     */
     public void ZoomExtents()
     {
-        if (_database == null || !_database.GetAllEntities().Any())
+        if (_database == null) { _zoom = 1.0; _offset = new Vector3D(0, 0, 0); InvalidateViewport(); return; }
+
+        // Tek seferde tüm entity'leri cache'le (GetAllEntities'i sadece 1 kez çağır!)
+        var allEntities = _database.GetAllEntities().ToList();
+        if (allEntities.Count == 0)
         {
              _zoom = 1.0;
              _offset = new Vector3D(0, 0, 0);
@@ -161,44 +165,51 @@ public partial class CadViewport : UserControl
              return;
         }
 
-        // AKILLI ZOOM (Smart Zoom Extents)
-        // 1. Tüm nesnelerin merkez noktalarını al
-        var centers = _database.GetAllEntities().Select(e => e.GetBoundingBox().Center).ToList();
-        if (!centers.Any()) return;
+        // 1. Centroid (Merkez) hesapla
+        double sumX = 0, sumY = 0;
+        int count = 0;
+        foreach (var e in allEntities)
+        {
+            var c = e.GetBoundingBox().Center;
+            if (double.IsNaN(c.X) || double.IsInfinity(c.X)) continue;
+            sumX += c.X; sumY += c.Y; count++;
+        }
+        if (count == 0) return;
+        double avgX = sumX / count;
+        double avgY = sumY / count;
 
-        // 2. Ortalama merkezi bul (Centroid)
-        double avgX = centers.Any() ? centers.Average(c => c.X) : 0;
-        double avgY = centers.Any() ? centers.Average(c => c.Y) : 0;
-        
-        if (double.IsNaN(avgX) || double.IsNaN(avgY)) { avgX = 0; avgY = 0; }
-
-        // 3. Standart Sapma veya Basit Eşikleme ile Aykırıları At (Outlier Removal)
-        // Basitleştirilmiş Yöntem: Merkezden çok uzak (ör: 100km) olanları yoksay
-        double threshold = 500000.0; // 500km yarıçap (Mimari için yeterli)
-        var validEntities = _database.GetAllEntities()
-            .Where(e => Math.Abs(e.GetBoundingBox().Center.X - avgX) < threshold && 
-                        Math.Abs(e.GetBoundingBox().Center.Y - avgY) < threshold)
-            .ToList();
-
-        if (!validEntities.Any()) validEntities = _database.GetAllEntities().ToList(); // Hepsi aykırıysa mecburen hepsini al
-
-        // 4. Geçerli nesneler için Bounding Box hesapla
+        // 2. Outlier Removal + BoundingBox tek döngüde
+        double threshold = 500000.0;
         double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
-        foreach (var ent in validEntities)
+        int validCount = 0;
+
+        foreach (var ent in allEntities)
         {
             var b = ent.GetBoundingBox();
-            
-            // NaN/Infinity koruması
             if (double.IsNaN(b.Min.X) || double.IsInfinity(b.Min.X)) continue;
+            var cx2 = b.Center;
+            if (Math.Abs(cx2.X - avgX) > threshold || Math.Abs(cx2.Y - avgY) > threshold) continue;
 
             minX = Math.Min(minX, b.Min.X); minY = Math.Min(minY, b.Min.Y);
             maxX = Math.Max(maxX, b.Max.X); maxY = Math.Max(maxY, b.Max.Y);
+            validCount++;
         }
 
-        // Eğer hala mantıklı bir kutu yoksa (veya tek nokta varsa) varsayılan değerler
+        // Hiç geçerli nesne yoksa tüm listeyi kullan
+        if (validCount == 0)
+        {
+            foreach (var ent in allEntities)
+            {
+                var b = ent.GetBoundingBox();
+                if (double.IsNaN(b.Min.X) || double.IsInfinity(b.Min.X)) continue;
+                minX = Math.Min(minX, b.Min.X); minY = Math.Min(minY, b.Min.Y);
+                maxX = Math.Max(maxX, b.Max.X); maxY = Math.Max(maxY, b.Max.Y);
+            }
+        }
+
         if (minX == double.MaxValue) { minX = 0; maxX = 1000; minY = 0; maxY = 1000; }
 
-        double width = (maxX - minX) * 1.1; // %10 boşluk
+        double width = (maxX - minX) * 1.1;
         double height = (maxY - minY) * 1.1;
         if (width <= 0) width = 1000; if (height <= 0) height = 1000;
 
@@ -206,7 +217,6 @@ public partial class CadViewport : UserControl
         double screenH = CadCanvas.ActualHeight > 0 ? CadCanvas.ActualHeight : 600;
 
         _zoom = Math.Min(screenW / width, screenH / height);
-        // Zoom sınırlarını genişlet (Çok küçük detaylar için daha fazla zoom gerekebilir)
         _zoom = Math.Clamp(_zoom, 1e-6, 100.0); 
         if (double.IsNaN(_zoom) || double.IsInfinity(_zoom)) _zoom = 1.0;
 
@@ -234,7 +244,7 @@ public partial class CadViewport : UserControl
         var canvas = e.Surface.Canvas;
         canvas.Clear(SKColors.Black); // Tam Siyah Arka Plan (AutoCAD Klasik)
 
-        float density = (float)(e.Info.Width / CadCanvas.ActualWidth);
+        float density = (float)(e.Info.Width / (CadCanvas.ActualWidth > 0 ? CadCanvas.ActualWidth : 1.0));
         canvas.Scale(density);
 
         var pixelSize = _zoom > 0 ? 1.0 / _zoom : 1.0;
@@ -243,11 +253,12 @@ public partial class CadViewport : UserControl
         renderContext.SetCamera(_offset, _zoom);
 
         // Grid
-        DrawInfiniteGrid(canvas, e.Info);
+        DrawInfiniteGrid(canvas, e.Info.Width, e.Info.Height);
 
         // --- B Çözümü: Otomatik Hizalama Kılavuzu (Auto-Align Origin Guide) ---
         // Kullanıcının mimariyi üst üste dizebilmesi için 0,0 noktasına devasa lazerler çiz
-        var originProjected = renderContext.GetType().GetMethod("Project", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(renderContext, new object[] { new Vector3D(0, 0, 0) }) as SKPoint? ?? new SKPoint(0,0);
+        var originScreen = WorldToScreen(new Vector3D(0, 0, 0));
+        var originProjected = new SKPoint((float)originScreen.X, (float)originScreen.Y);
         
         using (var penX = new SKPaint { Color = new SKColor(255, 50, 50, 150), StrokeWidth = 2, IsAntialias = true })
         using (var penY = new SKPaint { Color = new SKColor(50, 255, 50, 150), StrokeWidth = 2, IsAntialias = true })
@@ -295,7 +306,7 @@ public partial class CadViewport : UserControl
             return new SKPoint((float)p.X, (float)p.Y);
         });
         
-        if (_lastMouseWorldPos.HasValue) DrawFullScreenCrosshair(canvas, e.Info);
+        if (_lastMouseWorldPos.HasValue) DrawFullScreenCrosshair(canvas, e.Info.Width, e.Info.Height);
         if (_activeSnap.HasValue) DrawSnapMarker(canvas, _activeSnap.Value);
         _activeCommand?.Draw(renderContext);
 
@@ -306,10 +317,10 @@ public partial class CadViewport : UserControl
        NE: Sonsuz Grid Çizme
        NEDEN: Kullanıcının derinlik ve mesafe algısını kolaylaştıran, zoom seviyesine göre dinamik olarak ölçeklenen bir ızgara yapısı çizer.
     */
-    private void DrawInfiniteGrid(SKCanvas canvas, SKImageInfo info)
+    private void DrawInfiniteGrid(SKCanvas canvas, float width, float height)
     {
         var tl = ScreenToWorld(new Point(0, 0));
-        var br = ScreenToWorld(new Point(info.Width, info.Height));
+        var br = ScreenToWorld(new Point(width, height));
 
         double step = 100.0; // 100 birimlik ana ızgara
         if (_zoom < 0.1) step = 1000.0;
@@ -342,12 +353,12 @@ public partial class CadViewport : UserControl
        NE: Tam Ekran Artı Göstergesi (Crosshair)
        NEDEN: AutoCAD benzeri bir deneyim için fare imlecinin hizasını ekran boyunca dikey ve yatay çizgilerle göstermek için.
     */
-    private void DrawFullScreenCrosshair(SKCanvas canvas, SKImageInfo info)
+    private void DrawFullScreenCrosshair(SKCanvas canvas, float width, float height)
     {
         if (!_lastMouseWorldPos.HasValue) return;
         var p = WorldToScreen(_lastMouseWorldPos.Value);
-        canvas.DrawLine(0, (float)p.Y, info.Width, (float)p.Y, _crosshairPaint);
-        canvas.DrawLine((float)p.X, 0, (float)p.X, info.Height, _crosshairPaint);
+        canvas.DrawLine(0, (float)p.Y, width, (float)p.Y, _crosshairPaint);
+        canvas.DrawLine((float)p.X, 0, (float)p.X, height, _crosshairPaint);
         float pb = 8.0f;
         canvas.DrawRect((float)p.X - pb, (float)p.Y - pb, pb * 2, pb * 2, _crosshairPaint);
     }
@@ -655,7 +666,8 @@ public partial class CadViewport : UserControl
     {
         var mousePos = e.GetPosition(CadCanvas);
         var worldPosBefore = ScreenToWorld(mousePos);
-        _zoom *= (e.Delta > 0 ? 1.25 : 1.0 / 1.25);
+        double zoomFactor = 1.15; // AutoCAD standard is smoother (1.15 instead of 1.25)
+        _zoom *= (e.Delta > 0 ? zoomFactor : 1.0 / zoomFactor);
         _zoom = Math.Clamp(_zoom, 1e-6, 1e6);
         _offset = new Vector3D(mousePos.X - (worldPosBefore.X * _zoom), mousePos.Y - (worldPosBefore.Y * _zoom), 0);
         

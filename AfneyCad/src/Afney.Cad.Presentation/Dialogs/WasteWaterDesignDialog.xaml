@@ -1,0 +1,67 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.WasteWaterDesignDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🚿 Pis Su / Yağmur Suyu Tasarımı — AfneyCAD" Height="650" Width="800"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White">
+    <TabControl Background="#252535" Foreground="White" Margin="10">
+        <TabItem Header="💧 Pis Su Hesabı" Foreground="Black">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="PİS SU HESABI (TS EN 12056-2)" FontSize="16" FontWeight="Bold" Foreground="#87CEEB"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10">
+                        <TextBlock Text="Hesap Yöntemi:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="MethodCombo" Width="250" Background="#333" Foreground="Black" SelectedIndex="1">
+                            <ComboBoxItem Content="System I — Tam Kapasite (Hastane)"/>
+                            <ComboBoxItem Content="System II — Konut (K=0.5)"/>
+                            <ComboBoxItem Content="System III — Ticari (K=0.7)"/>
+                            <ComboBoxItem Content="System IV — Özel (K=1.0)"/>
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+                <DataGrid Grid.Row="1" x:Name="DrainageGrid" AutoGenerateColumns="False" CanUserAddRows="True"
+                          Background="#2A2A3A" Foreground="White" RowBackground="#2A2A3A" BorderBrush="#555">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cihaz Adı" Binding="{Binding FixtureName}" Width="180"/>
+                        <DataGridTextColumn Header="DU" Binding="{Binding DU}" Width="60"/>
+                        <DataGridTextColumn Header="Adet" Binding="{Binding Count}" Width="60"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Button Grid.Row="2" Content="🔄 Hesapla" Click="CalcWaste_Click" Width="150" Height="35" HorizontalAlignment="Left" Margin="0,10" Background="#005A9C" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+                <TextBlock Grid.Row="3" x:Name="WasteResultText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap"/>
+            </Grid>
+        </TabItem>
+        <TabItem Header="🌧️ Yağmur Suyu Hesabı" Foreground="Black">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="YAĞMUR SUYU HESABI (TS EN 12056-3)" FontSize="16" FontWeight="Bold" Foreground="#87CEEB"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10">
+                        <TextBlock Text="Yağış Yoğunluğu (lt/s·ha):" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBox x:Name="RainfallInput" Width="80" Text="300" Background="#333" Foreground="White"/>
+                    </StackPanel>
+                </StackPanel>
+                <DataGrid Grid.Row="1" x:Name="CatchmentGrid" AutoGenerateColumns="False" CanUserAddRows="True"
+                          Background="#2A2A3A" Foreground="White" RowBackground="#2A2A3A" BorderBrush="#555">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Alan Adı" Binding="{Binding Name}" Width="180"/>
+                        <DataGridTextColumn Header="Alan (m²)" Binding="{Binding AreaM2}" Width="90"/>
+                        <DataGridTextColumn Header="Akış Katsayısı" Binding="{Binding RunoffCoefficient}" Width="110"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Button Grid.Row="2" Content="🔄 Hesapla" Click="CalcRain_Click" Width="150" Height="35" HorizontalAlignment="Left" Margin="0,10" Background="#005A9C" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+                <TextBlock Grid.Row="3" x:Name="RainResultText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap"/>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</Window>

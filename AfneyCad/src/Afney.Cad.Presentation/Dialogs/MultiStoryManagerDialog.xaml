@@ -1,0 +1,44 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.MultiStoryManagerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🏢 Çok Katlı Bina Yönetimi — AfneyCAD" Height="550" Width="700"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="ÇOK KATLI BİNA YÖNETİMİ" FontSize="18" FontWeight="Bold" Foreground="#7CFC00" Margin="0,0,0,10"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Hızlı Oluştur:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Kat Sayısı:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <TextBox x:Name="FloorCountInput" Width="50" Text="5" Background="#333" Foreground="White" VerticalContentAlignment="Center"/>
+            <TextBlock Text="Kat Yüks. (mm):" VerticalAlignment="Center" Margin="15,0,5,0"/>
+            <TextBox x:Name="FloorHeightInput" Width="60" Text="3000" Background="#333" Foreground="White" VerticalContentAlignment="Center"/>
+            <CheckBox x:Name="BasementCheck" Content="Bodrum" IsChecked="True" Foreground="White" VerticalAlignment="Center" Margin="15,0,0,0"/>
+            <Button Content="🏗️ Standart Bina Oluştur" Click="CreateBuilding_Click" Width="170" Height="28" Margin="15,0,0,0" Background="#2E8B57" Foreground="White" BorderThickness="0"/>
+        </StackPanel>
+        <DataGrid Grid.Row="2" x:Name="FloorGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                  Background="#252535" Foreground="White" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
+                  BorderBrush="#555" GridLinesVisibility="All" CanUserSortColumns="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Sıra" Binding="{Binding Order}" Width="45"/>
+                <DataGridTextColumn Header="Kat Adı" Binding="{Binding Name}" Width="150"/>
+                <DataGridTextColumn Header="Kot (mm)" Binding="{Binding Elevation, StringFormat=F0}" Width="90"/>
+                <DataGridTextColumn Header="Yükseklik (mm)" Binding="{Binding Height, StringFormat=F0}" Width="110"/>
+                <DataGridCheckBoxColumn Header="Aktif" Binding="{Binding IsActive}" Width="50"/>
+                <DataGridTextColumn Header="Entity" Binding="{Binding EntityIds.Count}" Width="55"/>
+                <DataGridTextColumn Header="Kolon" Binding="{Binding RiserIds.Count}" Width="55"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10">
+            <Button Content="📋 Kat Kopyala" Click="CopyFloor_Click" Width="120" Height="30" Background="#005A9C" Foreground="White" BorderThickness="0" Margin="0,0,5,0"/>
+            <Button Content="🔗 Kolon Oluştur" Click="CreateRiser_Click" Width="120" Height="30" Background="#005A9C" Foreground="White" BorderThickness="0" Margin="5,0"/>
+            <TextBlock x:Name="InfoText" Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0"/>
+        </StackPanel>
+        <Button Grid.Row="4" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+    </Grid>
+</Window>

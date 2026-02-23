@@ -46,21 +46,36 @@
                 <MenuItem Header="Intelligence Panel" IsCheckable="True" IsChecked="False" Click="OnToggleIntelligencePanel"/>
             </MenuItem>
             <MenuItem Header="_Mühendislik">
+                <MenuItem Header="⚙️ Hesap Standardı Seçimi..." Click="OnStandardSelection" Foreground="#FFFF9800" FontWeight="Bold" ToolTip="EN806/DIN1988/TS1258 norm seçimi"/>
+                <Separator/>
                 <MenuItem Header="Tam Sistem Analizi ve Çap Seçimi" Click="OnAutoPipeSizing"/>
                 <MenuItem Header="Vitrifiyeleri Otomatik Bağla (Auto Branch)" Click="OnAutoBranchingClick" ToolTip="Seçilen odadaki tüm cihazları ana kolona bağlar."/>
+                <Separator/>
+                <MenuItem Header="📐 Boru Sihirbazı (Pipe Wizard)..." Click="OnPipeWizard" Foreground="#FF7CFC00" FontWeight="Bold" ToolTip="Şablonla otomatik tesisat üretimi"/>
+                <MenuItem Header="🔧 Reseptör Kütüphanesi..." Click="OnFixtureLibrary" ToolTip="Vitrifiye kataloğu - sürükle bırak"/>
+                <MenuItem Header="🧱 Duvara Paralel Boru Çiz..." Click="OnWallParallelRoute" Foreground="#FF7CFC00" ToolTip="Duvar kenarından ofsetli otomatik boru rotalama"/>
                 <Separator/>
                 <MenuItem Header="Dinamik Lejant Oluştur" Click="OnGenerateLegend" ToolTip="Kullanılan sembolleri ve hat tiplerini içeren tabloyu çizime ekler."/>
                 <MenuItem Header="Metraj Listesi (BOQ)" Click="OnGenerateBOM"/>
                 <MenuItem Header="Tüm Sistem Hidrolik Hesap Raporu" Click="OnGenerateHydraulicReport" Foreground="Cyan"/>
+                <MenuItem Header="📊 Hesaplama Tablosu (Calculation Sheet)" Click="OnCalculationTable" Foreground="#FFFFCC00" FontWeight="Bold" ToolTip="Boru segmenti bazlı profesyonel hesap föyü"/>
                 <MenuItem Header="Pompa ve Hidrofor Seçimi" Click="OnPumpSelection"/>
                 <MenuItem Header="Kolon Şeması Oluştur (Riser)" Click="OnRiserGenerateCommand" />
                 <Separator/>
                 <MenuItem Header="Basınç Kaybı Hesabı" Click="OnPressureDropCalc"/>
+                <MenuItem Header="🚿 Pis Su / Yağmur Suyu Hesabı..." Click="OnWasteWaterDesign" Foreground="#FF87CEEB" ToolTip="TS EN 12056 pis su ve yağmur suyu tasarımı"/>
+                <MenuItem Header="🧯 Fosseptik/Rögar Boyutlandırma..." Click="OnSepticTankDesign" Foreground="#FFCC7722" ToolTip="TS 2873 fosseptik hacim ve rögar hesabı"/>
+                <MenuItem Header="🔥 Yangın Söndürme (Sprinkler)..." Click="OnFireFightingDesign" Foreground="#FFFF4444" FontWeight="Bold" ToolTip="NFPA 13 / EN 12845 sprinkler sistemi tasarımı"/>
+                <Separator/>
+                <MenuItem Header="✏️ Otomatik Etiketleme (DN/Debi/Hız)" Click="OnAutoAnnotate" ToolTip="Tüm borulara çap, debi ve hız etiketlerini yazar"/>
+                <MenuItem Header="🗑️ Etiketleri Temizle" Click="OnClearAnnotations"/>
+                <MenuItem Header="🧊 3D Boru Görünümü..." Click="OnPipe3DView" ToolTip="Tesisat sisteminin 3D katı model görünümü"/>
             </MenuItem>
             <MenuItem Header="Bina">
                 <MenuItem Header="Bina Özellikleri..." Click="OnBuildingProperties"/>
                 <Separator/>
                 <MenuItem Header="Kat Yöneticisi..." Click="OnLevelManager"/>
+                <MenuItem Header="🏢 Çok Katlı Bina Yönetimi..." Click="OnMultiStoryManager" Foreground="#FF7CFC00" FontWeight="Bold" ToolTip="Kat tasarımı, kolon üretimi, kat kopyalama"/>
                 <Separator/>
                 <MenuItem Header="Birim Ayarları..." IsEnabled="False" ToolTip="Yakında"/>
                 <Separator/>
@@ -69,6 +84,11 @@
                 <MenuItem Header="Mimariyi Ölçekle ve Blokla (WBlock)..." Click="OnWBlockCommand" Foreground="Cyan" FontWeight="Bold"/>
                 <Separator/>
                 <MenuItem Header="Mahal Analizi Export (JSON)..." Click="OnExportMahalData" Foreground="LimeGreen" FontWeight="Bold"/>
+            </MenuItem>
+            <MenuItem Header="_Raporlar" Foreground="#FFAADDFF">
+                <MenuItem Header="📄 Sistem Raporu (HTML/CSV/RTF)..." Click="OnReportExport" FontWeight="Bold" ToolTip="Profesyonel mühendislik raporu dışa aktarma"/>
+                <MenuItem Header="📋 Teknik Şartname Oluştur..." Click="OnSpecificationExport" ToolTip="TMMOB formatında 5 bölümlü teknik şartname"/>
+                <MenuItem Header="📐 Kolon Şeması (SVG)..." Click="OnRiserDiagramExport" ToolTip="Kat bazlı dikey tesisat şeması — vektörel çıktı"/>
             </MenuItem>
             
             <MenuItem Header="AutoBLD" Foreground="#FFE64D">

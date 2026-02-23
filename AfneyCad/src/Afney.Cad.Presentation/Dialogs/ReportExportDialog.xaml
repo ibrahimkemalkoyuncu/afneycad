@@ -1,0 +1,26 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.ReportExportDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📄 Sistem Raporu Dışa Aktar — AfneyCAD" Height="400" Width="550"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="MÜHENDİSLİK RAPORU DIŞA AKTARMA" FontSize="18" FontWeight="Bold" Foreground="#AADDFF" Margin="0,0,0,15"/>
+        <StackPanel Grid.Row="1">
+            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Proje Adı:" Width="120"/><TextBox x:Name="ProjectNameInput" Width="300" Text="AfneyCAD Projesi" Background="#333" Foreground="White"/></StackPanel>
+            <TextBlock Text="Format:" Margin="0,10,0,5"/>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Width="130" Height="32" Background="#005A9C" Foreground="White" BorderThickness="0" Margin="0,0,10,0"/>
+                <Button Content="📊 CSV (Excel)" Click="ExportCsv_Click" Width="130" Height="32" Background="#2E8B57" Foreground="White" BorderThickness="0" Margin="0,0,10,0"/>
+                <Button Content="📝 RTF (Word)" Click="ExportRtf_Click" Width="130" Height="32" Background="#8B5A2B" Foreground="White" BorderThickness="0"/>
+            </StackPanel>
+        </StackPanel>
+        <TextBlock Grid.Row="2" x:Name="StatusText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,15"/>
+        <Button Grid.Row="3" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+    </Grid>
+</Window>

@@ -44,11 +44,30 @@ namespace Afney.Cad.Presentation.Controls
             {
                 PropertiesList.Children.Clear();
                 
-                // Sisteme ve Cinsine Göre
-                AddProperty("System Type", pipe.SystemType.ToString());
+                // Sisteme (System Type) Göre Düzenleme
+                var systemTypes = System.Enum.GetNames(typeof(Afney.Cad.Mechanical.Enums.MechanicalSystemType));
+                AddComboProperty("System Type", systemTypes, pipe.SystemType.ToString(), val => 
+                {
+                    if (System.Enum.TryParse(val, out Afney.Cad.Mechanical.Enums.MechanicalSystemType newSys)) {
+                        pipe.SystemType = newSys;
+                        // Renk gibi özellikleri varsayılanlara çekmek için:
+                        // pipe.ColorIndex = MechanicalColorService.GetColorForSystem(newSys); (İleride eklenebilir)
+                        EntityModified?.Invoke(this, pipe);
+                    }
+                });
+
+                // Malzeme (Material)
+                var materials = System.Enum.GetNames(typeof(Afney.Cad.Mechanical.Enums.PipeMaterial));
+                AddComboProperty("Material", materials, pipe.PipeMaterialType.ToString(), val => 
+                {
+                    if (System.Enum.TryParse(val, out Afney.Cad.Mechanical.Enums.PipeMaterial newMat)) {
+                        pipe.PipeMaterialType = newMat;
+                        EntityModified?.Invoke(this, pipe);
+                    }
+                });
                 
-                // Çap (Düzenlenebilir Kombobox Örneği - Temsili)
-                AddComboProperty("Diameter (DN)", new[]{"50", "75", "110", "160"}, pipe.InnerDiameter.ToString("F0"), val => 
+                // Çap (Düzenlenebilir Kombobox)
+                AddComboProperty("Diameter (DN)", new[]{"15", "20", "25", "32", "40", "50", "65", "80", "100", "125", "150", "200"}, pipe.InnerDiameter.ToString("F0"), val => 
                 {
                     if(double.TryParse(val, out double newD)) {
                         pipe.InnerDiameter = newD;

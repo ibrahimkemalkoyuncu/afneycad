@@ -8,18 +8,22 @@ namespace Afney.Cad.Mechanical.Services;
 
 /*
     NE: Akıllı Yol Bulma Servisi (PathfindingService)
-    NEDEN: Boru rotalaması sırasında duvar, kapı ve diğer mimari engellerden (Obstacles) kaçınan en kısa ve mühendislik açısından uygun yolu hesaplamak için.
+    NEDEN: Boru rotalaması sırasında duvar, kapı ve diğer mimari engellerden (Obstacles) kaçınan en kısa
+           ve mühendislik açısından uygun yolu hesaplamak için.
     
-    NASIL (Mühendislik Modu - A* Algoritması):
-    1. Gridsiz/Seyrek Izgara (Sparse Grid) yaklaşımı kullanılır.
-    2. Engellerin etrafında bir "Emniyet Şeridi" (Clearance) bırakılır.
-    3. Mümkün olduğunda dik açılı (Orthogonal) dönüşleri tercih eder.
+    NASIL (Mühendislik Modu — Segment-Segment Intersection + Recursive Bypassing):
+    1. Kaynak ve hedef arasında doğrudan bir yol test edilir.
+    2. Engel varsa, engelin 4 köşesine (Clearance eklenmiş) bypass noktaları hesaplanır.
+    3. En düşük toplam mesafeyi veren bypass rotası seçilir.
+    4. Rekürsif olarak yeni segmentlerdeki engeller de kontrol edilir.
+    5. Tüm çarpışma testleri gerçek Segment-Segment kesişim algoritmasıyla yapılır (SAT/Parametrik).
 */
 public class PathfindingService
 {
     private readonly List<ArchitecturalObstacle> _obstacles;
-    private const double GridSize = 250.0; // 25cm çözünürlük (MEP için yeterli)
-    private const double PipeClearance = 100.0; // Boru dış çeperi ve duvar arası pay
+    private const double GridSize = 250.0;       // 25cm çözünürlük
+    private const double PipeClearance = 100.0;   // Boru dış çeperi ve duvar arası pay (mm)
+    private const int MaxRecursionDepth = 8;      // Sonsuz döngü koruması
 
     public PathfindingService(List<ArchitecturalObstacle> obstacles)
     {
@@ -28,73 +32,211 @@ public class PathfindingService
 
     public List<Vector3D> FindPath(Vector3D start, Vector3D end)
     {
-        var path = new List<Vector3D>();
-        path.Add(start);
-
-        // Rekürsif yol bulma (Basitleştirilmiş)
-        CalculateSubPath(start, end, path, 0);
-
+        var path = new List<Vector3D> { start };
+        FindSubPath(start, end, path, 0, new HashSet<int>());
         if (!path.Contains(end)) path.Add(end);
-        return path.Distinct().ToList();
+        return CleanPath(path);
     }
 
-    private void CalculateSubPath(Vector3D current, Vector3D target, List<Vector3D> path, int depth)
+    /*
+       NE: Rekürsif Alt-Yol Bulma
+       NEDEN: Doğrudan gidilemeyen segmentlerde engelleri tespit edip en kısa bypass rotasını hesaplamak.
+    */
+    private void FindSubPath(Vector3D current, Vector3D target, List<Vector3D> path, int depth, HashSet<int> avoidedObstacles)
     {
-        if (depth > 5) return; // Sonsuz döngü koruması
+        if (depth > MaxRecursionDepth) return;
 
-        var obstacle = GetBlockingObstacle(current, target);
+        // Segment-Segment kesişim ile engel bul
+        var (obstacle, obstacleIndex) = FindFirstBlockingObstacle(current, target, avoidedObstacles);
+
         if (obstacle == null)
         {
-            return; // Engel yok, doğrudan bağlanabilir
+            // Engel yok — doğrudan hedefe gidilebilir
+            return;
         }
 
-        // Engel var, etrafından dolaşacak noktayı bul
+        // Engelin genişletilmiş BoundingBox'ından bypass noktaları hesapla
         var box = obstacle.GetBoundingBox();
-        
-        // 4 Köşe + Clearance
-        var bypassPoints = new List<Vector3D>
+        double cx = PipeClearance;
+
+        var bypassCandidates = new List<Vector3D>
         {
-            new Vector3D(box.Min.X - PipeClearance, box.Min.Y - PipeClearance, 0),
-            new Vector3D(box.Max.X + PipeClearance, box.Min.Y - PipeClearance, 0),
-            new Vector3D(box.Max.X + PipeClearance, box.Max.Y + PipeClearance, 0),
-            new Vector3D(box.Min.X - PipeClearance, box.Max.Y + PipeClearance, 0)
+            new(box.Min.X - cx, box.Min.Y - cx, 0), // Sol-Alt
+            new(box.Max.X + cx, box.Min.Y - cx, 0), // Sağ-Alt
+            new(box.Max.X + cx, box.Max.Y + cx, 0), // Sağ-Üst
+            new(box.Min.X - cx, box.Max.Y + cx, 0), // Sol-Üst
         };
 
-        // Mevcut noktaya en yakın ve hedefe en yakın bileşimini seç
-        var bestPoint = bypassPoints
-            .OrderBy(p => p.DistanceTo(current) + p.DistanceTo(target))
-            .First();
+        // Her bypass noktası için maliyet hesapla ve en iyisini seç
+        double bestCost = double.MaxValue;
+        Vector3D? bestBypass = null;
+        int bestRoute = -1;
 
-        path.Add(bestPoint);
-        
-        // Ara noktadan hedefe tekrar denetle (Rekürsif)
-        CalculateSubPath(bestPoint, target, path, depth + 1);
+        for (int i = 0; i < bypassCandidates.Count; i++)
+        {
+            var bp = bypassCandidates[i];
+            double cost = current.DistanceTo(bp) + bp.DistanceTo(target);
+
+            // Bypass noktası başka bir engelin içinde mi?
+            if (IsPointInsideAnyObstacle(bp))
+            {
+                cost += 100000; // Çok yüksek ceza
+            }
+
+            if (cost < bestCost)
+            {
+                bestCost = cost;
+                bestBypass = bp;
+                bestRoute = i;
+            }
+        }
+
+        if (bestBypass == null) return;
+
+        // İki bypass noktası üzerinden L-şekli rota (90° dönüşler tercih)
+        // Engelin 2 kenarından geçen rota daha gerçekçi
+        var secondBypass = bypassCandidates[(bestRoute + 1) % 4];
+        double costWith2 = current.DistanceTo(bestBypass.Value) + bestBypass.Value.DistanceTo(secondBypass) + secondBypass.DistanceTo(target);
+        double costWith1 = current.DistanceTo(bestBypass.Value) + bestBypass.Value.DistanceTo(target);
+
+        var newAvoided = new HashSet<int>(avoidedObstacles) { obstacleIndex };
+
+        if (costWith2 < costWith1 * 1.3) // 2-noktalı rota çok daha pahalı değilse tercih et
+        {
+            path.Add(bestBypass.Value);
+            FindSubPath(bestBypass.Value, secondBypass, path, depth + 1, newAvoided);
+            path.Add(secondBypass);
+            FindSubPath(secondBypass, target, path, depth + 1, newAvoided);
+        }
+        else
+        {
+            path.Add(bestBypass.Value);
+            FindSubPath(bestBypass.Value, target, path, depth + 1, newAvoided);
+        }
     }
 
-    private bool IsColliding(Vector3D p1, Vector3D p2)
+    /*
+       NE: İlk Engelleyen Engeli Bul (Segment-Segment Intersection)
+       NEDEN: Gerçek çizgi-kutu çarpışma testleri ile doğru engel tespiti yapmak.
+    */
+    private (ArchitecturalObstacle? obstacle, int index) FindFirstBlockingObstacle(Vector3D p1, Vector3D p2, HashSet<int> avoidedObstacles)
+    {
+        double minDist = double.MaxValue;
+        ArchitecturalObstacle? closest = null;
+        int closestIdx = -1;
+
+        for (int i = 0; i < _obstacles.Count; i++)
+        {
+            if (avoidedObstacles.Contains(i)) continue;
+
+            var box = _obstacles[i].GetBoundingBox();
+            // Clearance eklenmiş kutu
+            var expandedBox = new CadBoundingBox(
+                new Vector3D(box.Min.X - PipeClearance, box.Min.Y - PipeClearance, 0),
+                new Vector3D(box.Max.X + PipeClearance, box.Max.Y + PipeClearance, 0));
+
+            if (SegmentIntersectsAABB(p1, p2, expandedBox))
+            {
+                double dist = p1.DistanceTo(new Vector3D(
+                    (box.Min.X + box.Max.X) / 2, (box.Min.Y + box.Max.Y) / 2, 0));
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    closest = _obstacles[i];
+                    closestIdx = i;
+                }
+            }
+        }
+
+        return (closest, closestIdx);
+    }
+
+    /*
+       NE: Segment-AABB Çarpışma Testi (Cohen-Sutherland / Liang-Barsky Parametrik)
+       NEDEN: Orta-nokta kontrolü yerine, çizginin Axis-Aligned Bounding Box ile gerçek kesişimini test eder.
+       
+       ALGORİTMA: Liang-Barsky parametrik çizgi kırpma
+       - t parametresi [0, 1] aralığında: p1 + t*(p2-p1)
+       - Kutunun 4 kenarı için t değerleri hesaplanır
+       - tEnter ve tExit aralığı [0,1] ile kesişiyorsa çarpışma vardır
+    */
+    private bool SegmentIntersectsAABB(Vector3D p1, Vector3D p2, CadBoundingBox box)
+    {
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
+
+        double tMin = 0.0;
+        double tMax = 1.0;
+
+        // X ekseni (Sol ve Sağ kenarlar)
+        if (Math.Abs(dx) < 1e-9)
+        {
+            // Çizgi dikeyse, X range'de olmalı
+            if (p1.X < box.Min.X || p1.X > box.Max.X) return false;
+        }
+        else
+        {
+            double t1 = (box.Min.X - p1.X) / dx;
+            double t2 = (box.Max.X - p1.X) / dx;
+            if (t1 > t2) (t1, t2) = (t2, t1);
+            tMin = Math.Max(tMin, t1);
+            tMax = Math.Min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        // Y ekseni (Alt ve Üst kenarlar)
+        if (Math.Abs(dy) < 1e-9)
+        {
+            if (p1.Y < box.Min.Y || p1.Y > box.Max.Y) return false;
+        }
+        else
+        {
+            double t1 = (box.Min.Y - p1.Y) / dy;
+            double t2 = (box.Max.Y - p1.Y) / dy;
+            if (t1 > t2) (t1, t2) = (t2, t1);
+            tMin = Math.Max(tMin, t1);
+            tMax = Math.Min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        return true; // Kesişim var
+    }
+
+    /*
+       NE: Nokta Engel İçinde Mi?
+       NEDEN: Bypass noktalarının başka bir engelin içinde kalmamasını garanti etmek.
+    */
+    private bool IsPointInsideAnyObstacle(Vector3D point)
     {
         foreach (var obs in _obstacles)
         {
-            // Basit BBox kesişim kontrolü (Daha sonra Segment-Polyline kesişimine evrilecek)
             var box = obs.GetBoundingBox();
-            if (LineIntersectsBox(p1, p2, box))
+            if (point.X >= box.Min.X - PipeClearance && point.X <= box.Max.X + PipeClearance &&
+                point.Y >= box.Min.Y - PipeClearance && point.Y <= box.Max.Y + PipeClearance)
                 return true;
         }
         return false;
     }
 
-    private ArchitecturalObstacle? GetBlockingObstacle(Vector3D p1, Vector3D p2)
+    /*
+       NE: Yol Temizleme
+       NEDEN: Çok yakın noktaları birleştirmek ve tekrarları silmek.
+    */
+    private List<Vector3D> CleanPath(List<Vector3D> path)
     {
-        return _obstacles.FirstOrDefault(obs => LineIntersectsBox(p1, p2, obs.GetBoundingBox()));
-    }
+        if (path.Count <= 2) return path;
 
-    private bool LineIntersectsBox(Vector3D p1, Vector3D p2, CadBoundingBox box)
-    {
-        // Teğet geçme veya dik kesme kontrolü
-        // Mühendislik Notu: Basitleştirilmiş Cohen-Sutherland veya SAT algoritması kullanılabilir.
-        
-        // Şimdilik: Çizginin orta noktası kutunun içindeyse çarpışma kabul et (Hızlı ama kaba)
-        var mid = new Vector3D((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2, 0);
-        return mid.X >= box.Min.X && mid.X <= box.Max.X && mid.Y >= box.Min.Y && mid.Y <= box.Max.Y;
+        var cleaned = new List<Vector3D> { path[0] };
+        for (int i = 1; i < path.Count; i++)
+        {
+            if (path[i].DistanceTo(cleaned.Last()) > GridSize * 0.25)
+                cleaned.Add(path[i]);
+        }
+
+        // Son nokta her zaman dahil olsun
+        if (cleaned.Last().DistanceTo(path.Last()) > 1.0)
+            cleaned.Add(path.Last());
+
+        return cleaned;
     }
 }

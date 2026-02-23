@@ -71,7 +71,7 @@ namespace Afney.Cad.Presentation.Dialogs
                 message += "ÖNERİLEN POMPA MODELLERİ:\n";
                 foreach (var p in recommendations)
                 {
-                    message += $"• {p.Brand} {p.ModelName} ({p.Power}, {p.Connection})\n";
+                    message += $"• {p.Brand} {p.ModelName} ({p.PowerKW:F2} kW, {p.Connection}, Verim: %{p.Efficiency * 100:F0})\n";
                 }
                 MessageBox.Show(message, "Profesyonel Pompa Seçimi (Mühendislik Modu)");
             }
