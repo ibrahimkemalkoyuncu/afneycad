@@ -137,6 +137,34 @@ public class PipeEntity : MechanicalEntity
     public double Length => GetLength();
 
     /*
+       NE: Noktanın Boruya Olan En Kısa Mesafesi (Line Segment Distance)
+       NEDEN: Farenin (Hit-Testing) silindirik borunun üzerinde olup olmadığını anlamak için. (Fare koordinatı boru çizgisine dik olarak ne kadar uzakta?)
+    */
+    public override double DistanceTo(Vector3D p)
+    {
+        var v = StartPoint;
+        var w = EndPoint;
+        
+        // Borunun karesel uzunluğu
+        double l2 = Math.Pow(v.X - w.X, 2) + Math.Pow(v.Y - w.Y, 2) + Math.Pow(v.Z - w.Z, 2);
+        
+        if (l2 == 0.0) return p.DistanceTo(v); // Boru tek bir noktaysa
+        
+        // T parametresini bul (noktanın boru üzerindeki izdüşümü: t=0 -> Start, t=1 -> End)
+        double t = Math.Max(0, Math.Min(1, ((p.X - v.X) * (w.X - v.X) + (p.Y - v.Y) * (w.Y - v.Y) + (p.Z - v.Z) * (w.Z - v.Z)) / l2));
+        
+        // İzdüşüm noktası (Projection)
+        var projection = new Vector3D(
+            v.X + t * (w.X - v.X),
+            v.Y + t * (w.Y - v.Y),
+            v.Z + t * (w.Z - v.Z)
+        );
+        
+        // Gerçek dik mesafe
+        return p.DistanceTo(projection);
+    }
+
+    /*
     METOD ADI:
     GetVelocity
 
@@ -200,8 +228,20 @@ public class PipeEntity : MechanicalEntity
     public override void Draw(IRenderContext ctx)
     {
         // 1. Boru gövdesini çiz
-        // Mühendislik Modu: Hata durumunda KIRMIZI, normalde sistem rengi.
-        uint drawColor = HasHydraulicViolation ? 0xFFFF0000 : Color;
+        // Mühendislik Modu: 
+        // - Hesaplama geçersizse (Dirty) SARI
+        // - Hata durumunda KIRMIZI
+        // - Normalde sistem rengi.
+        uint drawColor = Color;
+        
+        if (!IsCalculationUpToDate)
+        {
+            drawColor = 0xFFFFFF00; // Sarı (Uyarı - Tekrar hesaplanmalı)
+        }
+        else if (HasHydraulicViolation)
+        {
+            drawColor = 0xFFFF0000; // Kırmızı (Validasyon Hatası - Örn: Hızaşıldı)
+        }
 
         if (InnerDiameter > 0)
         {
@@ -239,7 +279,7 @@ public class PipeEntity : MechanicalEntity
         ctx.DrawText(text, textPos, angleDeg, 12.0, drawColor);
 
         // --- Step 2: Akış Yönü Oklarını Çiz ---
-        if (FlowDirection != 0 && FlowRate > 0.001)
+        if (FlowDirection != 0)
         {
             DrawFlowArrow(ctx, center, dir * FlowDirection, drawColor);
         }
@@ -329,5 +369,24 @@ public class PipeEntity : MechanicalEntity
             new MechanicalPort(this.Id, "Start", StartPoint, dir * -1),
             new MechanicalPort(this.Id, "End", EndPoint, dir)
         };
+    }
+
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return StartPoint;
+        yield return EndPoint;
+        yield return new Vector3D((StartPoint.X + EndPoint.X) / 2.0, (StartPoint.Y + EndPoint.Y) / 2.0, (StartPoint.Z + EndPoint.Z) / 2.0);
+    }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0) StartPoint = newPosition;
+        else if (index == 1) EndPoint = newPosition;
+        else if (index == 2)
+        {
+            var delta = newPosition - new Vector3D((StartPoint.X + EndPoint.X) / 2.0, (StartPoint.Y + EndPoint.Y) / 2.0, (StartPoint.Z + EndPoint.Z) / 2.0);
+            Move(delta);
+        }
+        base.MoveGripPointAt(index, newPosition);
     }
 }

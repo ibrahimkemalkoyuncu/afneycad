@@ -1,0 +1,25 @@
+AFNEYCAD GELECEK VİZYONU VE YENİ MODÜLLER (İLERİDE YAPILACAKLAR)
+
+Aşağıdaki özellikler mevcut versiyonun (FINE SANI Parity) tamamen stabil hale gelmesinden sonra, ileride değerlendirilmek üzere planlanmıştır.
+
+1. HVAC (Isıtma, Soğutma ve Havalandırma) Modülü
+- Hava Kanalları (Ducts): Dikdörtgen, yuvarlak ve oval hava kanalı çizimi, otomatik dirsek/redüksiyon atamaları.
+- Havalandırma Hesabı: ASHRAE/CIBSE standartlarında sürtünme kaybı, eş-sürtünme yöntemiyle kanal çaplandırma (Duct Sizer).
+- Isıtma/Soğutma: Radyatör yerleşimi, Fan-Coil hatları çizimi ve panel seçimi.
+- Ekipman Kütüphanesi: Menfezler, difüzörler, VAV kutuları ve AHU (Klima Santrali) kütüphanesi.
+
+2. Gelişmiş 3D BIM Görüntüleyici (Navisworks Tarzı)
+- Walk & Fly Kamera: Projenin içinde klavye/fare ile (First-Person) gezebilme imkanı.
+- Section Box (Kesit Kutusu): 3D modelin bir kısmını kesip içini gerçek zamanlı inceleyebilme.
+- Gelişmiş Gölgelendirme (Shading): Ekipmanların materyallerine göre (metalik, şeffaf vb.) renderlanması.
+
+3. Elektrik Tesisat Modülü
+- Kablo Tavaları ve Boruları: Elektrik taşıyıcı hatlarının 3D çizimi ve çakışma kontrolüne dahil edilmesi.
+- Pano ve Devreler: Aydınlatma, priz sortileri ve buatların yerleşimi.
+- Hesaplamalar: Gerilim düşümü hesabı, akım taşıma kapasitesi ve aydınlatma analizleri.
+
+4. Parametrik Ekipman Tasarımcısı (Family Editor)
+- Revit'teki (.rfa) mantığıyla kullanıcıların kendi ekipmanlarını (kombi, kazan, pompa vb.) oluşturabilmesi, 3D hacim ve su bağlantı noktaları tanımlayabilmesi.
+
+5. Yapay Zeka & Otomatik Rotalama (Auto-Routing) İyileştirmeleri
+- Akıllı Kat Bağlantısı: Katlar arası şaft boşluklarını bulup, Zemin Kattan Bodrum Kata en uygun tesisat güzergahını algoritmanın yapay zeka desteğiyle otomatik çizmesi.

@@ -11,22 +11,24 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <TextBlock Grid.Row="0" Text="HİDROLİK HESAPLAMA TABLOSU (TS 1258 / DIN 1988)" FontSize="18" FontWeight="Bold" Foreground="#00BFFF" Margin="0,0,0,10"/>
-        <DataGrid Grid.Row="1" x:Name="CalcGrid" AutoGenerateColumns="False" IsReadOnly="True"
+        <DataGrid Grid.Row="1" x:Name="CalcGrid" AutoGenerateColumns="False" IsReadOnly="False"
+                  CellEditEnding="CalcGrid_CellEditEnding"
                   Background="#252535" Foreground="White" HeadersVisibility="Column" GridLinesVisibility="All"
                   RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E" BorderBrush="#555" CanUserSortColumns="True">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Hat No" Binding="{Binding LineNo}" Width="55"/>
-                <DataGridTextColumn Header="Boru ID" Binding="{Binding PipeId}" Width="70"/>
-                <DataGridTextColumn Header="Sistem" Binding="{Binding SystemType}" Width="75"/>
-                <DataGridTextColumn Header="Uzunluk (m)" Binding="{Binding LengthM, StringFormat=F2}" Width="85"/>
-                <DataGridTextColumn Header="LU" Binding="{Binding TotalLU, StringFormat=F1}" Width="50"/>
-                <DataGridTextColumn Header="Q (l/s)" Binding="{Binding DesignFlowLps, StringFormat=F3}" Width="70"/>
-                <DataGridTextColumn Header="DN" Binding="{Binding DiameterDN, StringFormat=F0}" Width="50"/>
-                <DataGridTextColumn Header="v (m/s)" Binding="{Binding VelocityMs, StringFormat=F2}" Width="70"/>
-                <DataGridTextColumn Header="R (mbar/m)" Binding="{Binding FrictionLossMbar, StringFormat=F2}" Width="85"/>
-                <DataGridTextColumn Header="hf (mSS)" Binding="{Binding TotalLossMSS, StringFormat=F3}" Width="75"/>
-                <DataGridTextColumn Header="Küm. (mSS)" Binding="{Binding CumulativeLossMSS, StringFormat=F3}" Width="90"/>
-                <DataGridTextColumn Header="Malzeme" Binding="{Binding Material}" Width="80"/>
+                <DataGridTextColumn Header="Hat No" Binding="{Binding LineNo}" Width="55" IsReadOnly="True" />
+                <DataGridTextColumn Header="Boru ID" Binding="{Binding PipeId}" Width="70" IsReadOnly="True" />
+                <DataGridTextColumn Header="Sistem" Binding="{Binding SystemType}" Width="75" IsReadOnly="True" />
+                <DataGridTextColumn Header="Uzunluk (m)" Binding="{Binding LengthM, StringFormat=F2}" Width="85" IsReadOnly="True" />
+                <DataGridTextColumn Header="LU" Binding="{Binding TotalLU, StringFormat=F1}" Width="50" IsReadOnly="True" />
+                <DataGridTextColumn Header="Q (l/s)" Binding="{Binding DesignFlowLps, StringFormat=F3}" Width="70" IsReadOnly="True" />
+                <!-- SADECE DN (ÇAP) SÜTUNU DÜZENLENEBİLİR OLACAK -->
+                <DataGridTextColumn Header="DN" Binding="{Binding DiameterDN, UpdateSourceTrigger=LostFocus}" Width="55" />
+                <DataGridTextColumn Header="v (m/s)" Binding="{Binding VelocityMs, StringFormat=F2}" Width="70" IsReadOnly="True" />
+                <DataGridTextColumn Header="R (mbar/m)" Binding="{Binding FrictionLossMbar, StringFormat=F2}" Width="85" IsReadOnly="True" />
+                <DataGridTextColumn Header="hf (mSS)" Binding="{Binding TotalLossMSS, StringFormat=F3}" Width="75" IsReadOnly="True" />
+                <DataGridTextColumn Header="Küm. (mSS)" Binding="{Binding CumulativeLossMSS, StringFormat=F3}" Width="90" IsReadOnly="True" />
+                <DataGridTextColumn Header="Malzeme" Binding="{Binding Material}" Width="80" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10">

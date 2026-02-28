@@ -83,4 +83,17 @@ public class CircleEntity : CadEntity
         CopyBaseProperties(clone);
         return clone;
     }
+
+    /*
+       NE: Grip Noktaları
+       NEDEN: Merkez ve kuadrant noktalarında mavi kontroller çıkarmak için.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return Center;
+        yield return new Vector3D(Center.X + Radius, Center.Y, Center.Z);
+        yield return new Vector3D(Center.X - Radius, Center.Y, Center.Z);
+        yield return new Vector3D(Center.X, Center.Y + Radius, Center.Z);
+        yield return new Vector3D(Center.X, Center.Y - Radius, Center.Z);
+    }
 }

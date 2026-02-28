@@ -74,7 +74,7 @@
                     <TextBox x:Name="TxtFilePath" Grid.Column="0" Background="#2D2D2D" Foreground="White" BorderBrush="#007ACC" BorderThickness="1" Padding="8" FontSize="14"/>
                     <Button Grid.Column="1" Content="..." Width="40" Margin="5,0,0,0" Click="Browse_Click"/>
                 </Grid>
-                <TextBlock Text="Örn: C:\Projeler\Kule\BodrumKat.afney" FontSize="11" Foreground="#888888" Margin="0,5,0,0"/>
+                <TextBlock Text="Örn: C:\Projeler\Kule\BodrumKat.dwg" FontSize="11" Foreground="#888888" Margin="0,5,0,0"/>
             </StackPanel>
 
             <!-- ADIM 2: REFERANS NOKTASI -->

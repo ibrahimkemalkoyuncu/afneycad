@@ -19,6 +19,14 @@ public class SnapEngine
     private readonly CadDatabase _database;
     private const double ApertureSize = 15.0; // Pixel cinsinden yakalama alanı
 
+    // OSNAP (Object Snap) Aç/Kapa Bayrakları
+    public bool EnableEndpoint { get; set; } = true;
+    public bool EnableMidpoint { get; set; } = true;
+    public bool EnableCenter { get; set; } = true;
+    public bool EnablePerpendicular { get; set; } = true;
+    // Tüm Snap motorunu komple kapatmak için Ana Şalter
+    public bool IsOsnapEnabled { get; set; } = true;
+
     public SnapEngine(CadDatabase database)
     {
         _database = database;
@@ -55,10 +63,13 @@ public class SnapEngine
         SnapPoint? bestSnap = null;
         double minDistance = double.MaxValue;
 
-        // 0. AUTO-ALIGN ORIGIN SNAP (Kalıcı Kenetlenme)
+        // Osnap tamamen kapalıysa hiç arama yapma
+        if (!IsOsnapEnabled) return null;
+
+        // 0. AUTO-ALIGN ORIGIN SNAP (Kalıcı Kenetlenme - Genellikle Center/Insertion sayılır)
         // Kullanıcı 0,0 noktasına yaklaştığında herzaman merkeze (Origin) oturtmak için
         double originDist = cursorPosition.DistanceTo(Vector3D.Zero);
-        if (originDist <= searchRadius)
+        if (EnableCenter && originDist <= searchRadius)
         {
             minDistance = originDist;
             bestSnap = new SnapPoint(Vector3D.Zero, SnapPointType.Insertion); // Origin bir Blok Yerleştirme noktası gibi davranır
@@ -69,6 +80,18 @@ public class SnapEngine
             // 1. STATİK NOKTALARI KONTROL ET (Endpoint, Midpoint, Center vb.)
             foreach (var snap in entity.GetSnapPoints())
             {
+                // UI'dan gelen filtrelere (Endpoint, Midpoint vb.) göre yakalama noktasını ele
+                bool isSnapAllowed = false;
+                switch (snap.Type)
+                {
+                    case SnapPointType.Endpoint: isSnapAllowed = EnableEndpoint; break;
+                    case SnapPointType.Midpoint: isSnapAllowed = EnableMidpoint; break;
+                    case SnapPointType.Center: case SnapPointType.Insertion: isSnapAllowed = EnableCenter; break;
+                    default: isSnapAllowed = true; break; // Diğer (veya Node) snapler açık kabul ediliyor
+                }
+
+                if (!isSnapAllowed) continue;
+
                 double distance = cursorPosition.DistanceTo(snap.Position);
                 if (distance <= searchRadius && distance < minDistance)
                 {
@@ -77,8 +100,8 @@ public class SnapEngine
                 }
             }
 
-            // 2. DİNAMİK NOKTALAR (PERPENDICULAR) - Sadece çizim devam ediyorsa
-            if (lastPoint.HasValue)
+            // 2. DİNAMİK NOKTALAR (PERPENDICULAR) - Sadece çizim devam ediyorsa ve Perpendicular açıksa
+            if (EnablePerpendicular && lastPoint.HasValue)
             {
                 SnapPoint? perpSnap = CalculatePerpendicularSnap(entity, cursorPosition, lastPoint.Value);
                 if (perpSnap.HasValue)

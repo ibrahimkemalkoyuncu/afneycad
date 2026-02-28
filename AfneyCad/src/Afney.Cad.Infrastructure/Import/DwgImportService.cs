@@ -484,11 +484,6 @@ public class DwgImportService
     // --- Renk Yönetimi (ACI -> RGBA) ---
     public static uint MapColor(ACadSharp.Color color)
     {
-        // ByLayer (256) -> Layer rengini almalı (bağlam gerekli)
-        // Şimdilik ByLayer ise Beyaz (veya varsayılan) kabul edelim.
-        if (color.IsByLayer) return 0xFFFFFFFF; // White
-        if (color.IsByBlock) return 0xFFFFFFFF; 
-
         if (color.IsTrueColor)
         {
             // R, G, B pack
@@ -500,44 +495,75 @@ public class DwgImportService
             return rgba;
         }
 
-        return 0xFFAAAAAA; // Default Gray
+        return 0xFFFFFFFF; // Default/Fallback White if index is 256 (ByLayer) or missing
     }
 
     private static void InitializeAciPalette()
     {
-        // Standart AutoCAD 7 Renk
+        // Standart AutoCAD 9 Temel Renk
         _aciPalette[1] = 0xFFFF0000; // Red
         _aciPalette[2] = 0xFFFFFF00; // Yellow
         _aciPalette[3] = 0xFF00FF00; // Green
         _aciPalette[4] = 0xFF00FFFF; // Cyan
         _aciPalette[5] = 0xFF0000FF; // Blue
         _aciPalette[6] = 0xFFFF00FF; // Magenta
-        _aciPalette[7] = 0xFFFFFFFF; // White
-        
-        // Gri Tonlar (8, 9)
-        _aciPalette[8] = 0xFF888888;
-        _aciPalette[9] = 0xFFC0C0C0;
+        _aciPalette[7] = 0xFFFFFFFF; // White/Black
+        _aciPalette[8] = 0xFF808080; // Dark Gray
+        _aciPalette[9] = 0xFFC0C0C0; // Light Gray
 
-        // Diğer renkler için algoritmik üretim veya tam tablo (256 satır) gerekir.
-        // Şimdilik yaygın mimari renkleri (gri tonlar, koyu renkler) için basit bir algoritma:
-        // (Gerçek ACI tablosu çok uzundur, burada basitleştiriyoruz)
-        
-        for (short i = 10; i < 250; i++)
+        // AutoCAD ACI 10-249 (24 Renk Tonu * 10 Varyasyon)
+        // Çift indeksler: Tam doygunluk (%100 S)
+        // Tek indeksler: Yarım doygunluk (%50 S)
+        // Parlaklık seviyeleri L = { 0.5, 0.65, 0.8, 0.9, 0.95 }
+        for (int hueIdx = 0; hueIdx < 24; hueIdx++)
         {
-             // Rastgele değil ama deterministik renkler atayalım ki ayırt edilebilsin
-             // ACI index'e göre renk üretimi (Basit hashing)
-             byte r = (byte)((i * 37) % 255);
-             byte g = (byte)((i * 101) % 255);
-             byte b = (byte)((i * 211) % 255);
-             _aciPalette[i] = (uint)((0xFF << 24) | (r << 16) | (g << 8) | b);
+            double h = hueIdx * 15.0; // 0 ile 345 derece arası
+            int baseIndex = 10 + (hueIdx * 10);
+            
+            for (int v = 0; v < 5; v++)
+            {
+                double l = 0.5 - (v * 0.1); // En parlaktan en koyuya doğru
+                if (l < 0.1) l = 0.1;
+                
+                _aciPalette[(short)(baseIndex + v * 2)]     = HslToRgb(h, 1.0, l); // Even: %100 Saturation
+                _aciPalette[(short)(baseIndex + v * 2 + 1)] = HslToRgb(h, 0.3, l); // Odd: %30 Saturation
+            }
         }
-        
-        // 250-255 arası Gri tonlardır
-        _aciPalette[250] = 0xFF333333;
-        _aciPalette[251] = 0xFF474747;
-        _aciPalette[252] = 0xFF5B5B5B;
-        _aciPalette[253] = 0xFF6F6F6F;
-        _aciPalette[254] = 0xFF838383;
-        _aciPalette[255] = 0xFF979797;
+
+        // 250-255 (Gri Tonlar)
+        _aciPalette[250] = 0xFF333333; // Çok Koyu Gri
+        _aciPalette[251] = 0xFF555555;
+        _aciPalette[252] = 0xFF777777;
+        _aciPalette[253] = 0xFF999999;
+        _aciPalette[254] = 0xFFBBBBBB;
+        _aciPalette[255] = 0xFFDDDDDD; // Çok Açık Gri
+    }
+
+    private static uint HslToRgb(double h, double s, double l)
+    {
+        byte r, g, b;
+        if (s == 0)
+        {
+            r = g = b = (byte)(l * 255);
+        }
+        else
+        {
+            double q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+            double p = 2.0 * l - q;
+            r = HueToRgb(p, q, h / 360.0 + 1.0 / 3.0);
+            g = HueToRgb(p, q, h / 360.0);
+            b = HueToRgb(p, q, h / 360.0 - 1.0 / 3.0);
+        }
+        return (uint)((0xFF << 24) | (r << 16) | (g << 8) | b);
+    }
+
+    private static byte HueToRgb(double p, double q, double t)
+    {
+        if (t < 0) t += 1.0;
+        if (t > 1) t -= 1.0;
+        if (t < 1.0 / 6.0) return (byte)((p + (q - p) * 6.0 * t) * 255.0);
+        if (t < 1.0 / 2.0) return (byte)(q * 255.0);
+        if (t < 2.0 / 3.0) return (byte)((p + (q - p) * (2.0 / 3.0 - t) * 6.0) * 255.0);
+        return (byte)(p * 255.0);
     }
 }

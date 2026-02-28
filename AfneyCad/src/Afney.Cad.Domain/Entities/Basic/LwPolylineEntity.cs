@@ -122,4 +122,17 @@ public class LwPolylineEntity : CadEntity
         clone.Color = this.Color;
         return clone;
     }
+
+    /*
+       NE: Grip Noktaları
+       NEDEN: Çokluçizginin her bir köşesinde mavi kontrolcü çıkarmak için.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        if (Vertices == null) yield break;
+        foreach (var v in Vertices)
+        {
+            yield return v;
+        }
+    }
 }

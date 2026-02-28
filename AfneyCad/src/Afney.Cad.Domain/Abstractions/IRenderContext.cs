@@ -16,6 +16,7 @@ public interface IRenderContext
 {
     // View Context Info
     double PixelSize { get; }
+    bool IsHighlightMode { get; set; }
 
     void DrawLine(Vector3D p1, Vector3D p2, uint color, double thickness = 1.0, string linetype = "Continuous", bool isDashed = false);
     

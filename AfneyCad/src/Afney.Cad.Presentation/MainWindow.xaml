@@ -9,136 +9,408 @@
         Icon="Resources/afneycad_icon.png"
         Title="AfneyCAD Mechanical Kernel" Height="800" Width="1200"
         WindowState="Maximized"
-        Background="#1E1E1E" Foreground="White">
+        Background="#1E1E1E" Foreground="White"
+        KeyDown="Window_KeyDown">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Menu -->
-            <RowDefinition Height="Auto"/> <!-- Top Toolbar -->
-            <RowDefinition Height="*"/>    <!-- Content + Left Toolbar -->
+            <RowDefinition Height="Auto"/> <!-- Ribbon -->
+            <RowDefinition Height="Auto"/> <!-- Ribbon Panel -->
+            <RowDefinition Height="*"/>    <!-- Content -->
             <RowDefinition Height="Auto"/> <!-- StatusBar -->
         </Grid.RowDefinitions>
 
-        <!-- Menu Bar -->
-        <Menu Grid.Row="0" Background="#2D2D30" Foreground="White">
-            <MenuItem Header="_Dosya">
-                <MenuItem Header="Yeni Proje..." Click="OnNewProject" FontWeight="Bold" Foreground="Orange"/>
-                <Separator/>
-                <MenuItem Header="Yeni Dosya" InputGestureText="Ctrl+N" Click="OnNewFile"/>
-                <MenuItem Header="Yeni Pencere" InputGestureText="Ctrl+Shift+N" Click="OnNewWindow"/>
-                <Separator/>
-                <MenuItem Header="Dosya Aç..." InputGestureText="Ctrl+O" Click="OnOpenFile"/>
-                <MenuItem Header="Klasör Aç..." InputGestureText="Ctrl+K Ctrl+O" Click="OnOpenFolder"/>
-                <Separator/>
-                <MenuItem Header="Kaydet" InputGestureText="Ctrl+S" Click="OnSave"/>
-                <MenuItem Header="Farklı Kaydet..." InputGestureText="Ctrl+Shift+S" Click="OnSaveAs"/>
-                <Separator/>
-                <MenuItem Header="Otomatik Kaydet" IsCheckable="True" IsChecked="True" Click="OnAutoSave"/>
-                <Separator/>
-                <MenuItem Header="Editörü Kapat" InputGestureText="Ctrl+F4" Click="OnCloseEditor"/>
-                <MenuItem Header="Klasörü Kapat" InputGestureText="Ctrl+K F" Click="OnCloseFolder"/>
-                <MenuItem Header="Pencereyi Kapat" InputGestureText="Alt+F4" Click="OnCloseWindow"/>
-            </MenuItem>
-            <!-- Diğer Menüler -->
-            <MenuItem Header="_Görünüm">
-                <MenuItem Header="Zoom Extents" Click="OnZoomExtents"/>
-                <Separator/>
-                <MenuItem Header="Project Navigator" IsCheckable="True" IsChecked="False" Click="OnToggleProjectNavigator"/>
-                <MenuItem Header="Intelligence Panel" IsCheckable="True" IsChecked="False" Click="OnToggleIntelligencePanel"/>
-            </MenuItem>
-            <MenuItem Header="_Mühendislik">
-                <MenuItem Header="⚙️ Hesap Standardı Seçimi..." Click="OnStandardSelection" Foreground="#FFFF9800" FontWeight="Bold" ToolTip="EN806/DIN1988/TS1258 norm seçimi"/>
-                <Separator/>
-                <MenuItem Header="Tam Sistem Analizi ve Çap Seçimi" Click="OnAutoPipeSizing"/>
-                <MenuItem Header="Vitrifiyeleri Otomatik Bağla (Auto Branch)" Click="OnAutoBranchingClick" ToolTip="Seçilen odadaki tüm cihazları ana kolona bağlar."/>
-                <Separator/>
-                <MenuItem Header="📐 Boru Sihirbazı (Pipe Wizard)..." Click="OnPipeWizard" Foreground="#FF7CFC00" FontWeight="Bold" ToolTip="Şablonla otomatik tesisat üretimi"/>
-                <MenuItem Header="🔧 Reseptör Kütüphanesi..." Click="OnFixtureLibrary" ToolTip="Vitrifiye kataloğu - sürükle bırak"/>
-                <MenuItem Header="🧱 Duvara Paralel Boru Çiz..." Click="OnWallParallelRoute" Foreground="#FF7CFC00" ToolTip="Duvar kenarından ofsetli otomatik boru rotalama"/>
-                <Separator/>
-                <MenuItem Header="Dinamik Lejant Oluştur" Click="OnGenerateLegend" ToolTip="Kullanılan sembolleri ve hat tiplerini içeren tabloyu çizime ekler."/>
-                <MenuItem Header="Metraj Listesi (BOQ)" Click="OnGenerateBOM"/>
-                <MenuItem Header="Tüm Sistem Hidrolik Hesap Raporu" Click="OnGenerateHydraulicReport" Foreground="Cyan"/>
-                <MenuItem Header="📊 Hesaplama Tablosu (Calculation Sheet)" Click="OnCalculationTable" Foreground="#FFFFCC00" FontWeight="Bold" ToolTip="Boru segmenti bazlı profesyonel hesap föyü"/>
-                <MenuItem Header="Pompa ve Hidrofor Seçimi" Click="OnPumpSelection"/>
-                <MenuItem Header="Kolon Şeması Oluştur (Riser)" Click="OnRiserGenerateCommand" />
-                <Separator/>
-                <MenuItem Header="Basınç Kaybı Hesabı" Click="OnPressureDropCalc"/>
-                <MenuItem Header="🚿 Pis Su / Yağmur Suyu Hesabı..." Click="OnWasteWaterDesign" Foreground="#FF87CEEB" ToolTip="TS EN 12056 pis su ve yağmur suyu tasarımı"/>
-                <MenuItem Header="🧯 Fosseptik/Rögar Boyutlandırma..." Click="OnSepticTankDesign" Foreground="#FFCC7722" ToolTip="TS 2873 fosseptik hacim ve rögar hesabı"/>
-                <MenuItem Header="🔥 Yangın Söndürme (Sprinkler)..." Click="OnFireFightingDesign" Foreground="#FFFF4444" FontWeight="Bold" ToolTip="NFPA 13 / EN 12845 sprinkler sistemi tasarımı"/>
-                <Separator/>
-                <MenuItem Header="✏️ Otomatik Etiketleme (DN/Debi/Hız)" Click="OnAutoAnnotate" ToolTip="Tüm borulara çap, debi ve hız etiketlerini yazar"/>
-                <MenuItem Header="🗑️ Etiketleri Temizle" Click="OnClearAnnotations"/>
-                <MenuItem Header="🧊 3D Boru Görünümü..." Click="OnPipe3DView" ToolTip="Tesisat sisteminin 3D katı model görünümü"/>
-            </MenuItem>
-            <MenuItem Header="Bina">
-                <MenuItem Header="Bina Özellikleri..." Click="OnBuildingProperties"/>
-                <Separator/>
-                <MenuItem Header="Kat Yöneticisi..." Click="OnLevelManager"/>
-                <MenuItem Header="🏢 Çok Katlı Bina Yönetimi..." Click="OnMultiStoryManager" Foreground="#FF7CFC00" FontWeight="Bold" ToolTip="Kat tasarımı, kolon üretimi, kat kopyalama"/>
-                <Separator/>
-                <MenuItem Header="Birim Ayarları..." IsEnabled="False" ToolTip="Yakında"/>
-                <Separator/>
-                <MenuItem Header="Mimariyi Tara (Recognize)" Click="OnRecognizeArchitecture" ToolTip="Mimari layerları analiz ederek duvar ve kapıları tespit eder."/>
-                <Separator/>
-                <MenuItem Header="Mimariyi Ölçekle ve Blokla (WBlock)..." Click="OnWBlockCommand" Foreground="Cyan" FontWeight="Bold"/>
-                <Separator/>
-                <MenuItem Header="Mahal Analizi Export (JSON)..." Click="OnExportMahalData" Foreground="LimeGreen" FontWeight="Bold"/>
-            </MenuItem>
-            <MenuItem Header="_Raporlar" Foreground="#FFAADDFF">
-                <MenuItem Header="📄 Sistem Raporu (HTML/CSV/RTF)..." Click="OnReportExport" FontWeight="Bold" ToolTip="Profesyonel mühendislik raporu dışa aktarma"/>
-                <MenuItem Header="📋 Teknik Şartname Oluştur..." Click="OnSpecificationExport" ToolTip="TMMOB formatında 5 bölümlü teknik şartname"/>
-                <MenuItem Header="📐 Kolon Şeması (SVG)..." Click="OnRiserDiagramExport" ToolTip="Kat bazlı dikey tesisat şeması — vektörel çıktı"/>
-            </MenuItem>
-            
-            <MenuItem Header="AutoBLD" Foreground="#FFE64D">
-                <MenuItem Header="Mimari Belirle (Define Building)..." Click="OnDefineBuilding"/>
-             </MenuItem>
-        </Menu>
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- CUSTOM DARK RIBBON — AfneyCAD Professional                    -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="0" Grid.RowSpan="2" Background="#252526" BorderBrush="#3E3E42" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <!-- Top Mechanical Toolbar -->
-        <ToolBarTray Grid.Row="1" Background="#2D2D30">
-            <ToolBar Background="#2D2D30" Foreground="White">
-                <TextBlock Text="MEKANİK HAT:" VerticalAlignment="Center" Margin="5,0,5,0" FontWeight="Bold" Foreground="Orange"/>
-                
-                <TextBlock Text="Tip:" VerticalAlignment="Center" Margin="5,0,2,0"/>
-                <ComboBox x:Name="SystemTypeCombo" Width="100" SelectedIndex="0" SelectionChanged="OnMechanicalSettingsChanged">
-                    <ComboBoxItem Content="Pis Su (Sanitary)" Tag="WasteWater"/>
-                    <ComboBoxItem Content="Temiz Su (DomesticCold)" Tag="DomesticColdWater"/>
-                    <ComboBoxItem Content="Sıcak Su (DomesticHot)" Tag="DomesticHotWater"/>
-                </ComboBox>
-        
-                <TextBlock Text="Ø" VerticalAlignment="Center" Margin="5,0,2,0"/>
-                <ComboBox x:Name="PipeSizeCombo" Width="60" SelectedIndex="2" SelectionChanged="OnMechanicalSettingsChanged">
-                    <ComboBoxItem Content="50" Tag="50"/>
-                    <ComboBoxItem Content="75" Tag="75"/>
-                    <ComboBoxItem Content="110" Tag="110"/>
-                    <ComboBoxItem Content="160" Tag="160"/>
-                </ComboBox>
+                <!-- TOP BAR: Logo + Quick Access -->
+                <Border Grid.Row="0" Background="#1B1B1C" Padding="4,2">
+                    <DockPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                            <Image Source="Resources/afneycad_icon.png" Width="20" Height="20" Margin="4,0"/>
+                            <TextBlock Text="AfneyCAD" FontWeight="Bold" Foreground="#00AAFF" FontSize="13" VerticalAlignment="Center" Margin="4,0,12,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                            <Button Content="📁" Click="OnOpenFile" ToolTip="Dosya Aç (Ctrl+O)" Width="26" Height="22" Background="Transparent" Foreground="White" BorderThickness="0" FontSize="13"/>
+                            <Button Content="💾" Click="OnSave" ToolTip="Kaydet (Ctrl+S)" Width="26" Height="22" Background="Transparent" Foreground="White" BorderThickness="0" FontSize="13"/>
+                            <Button Content="📄" Click="OnNewFile" ToolTip="Yeni Dosya" Width="26" Height="22" Background="Transparent" Foreground="White" BorderThickness="0" FontSize="13"/>
+                            <Rectangle Width="1" Fill="#555" Margin="6,3"/>
+                            <Button Content="📂" Click="OnNewProject" ToolTip="Yeni Proje" Width="26" Height="22" Background="Transparent" Foreground="White" BorderThickness="0" FontSize="13"/>
+                        </StackPanel>
+                        <TextBlock Text="" Foreground="#666" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                    </DockPanel>
+                </Border>
 
-                <TextBlock Text="Mat:" VerticalAlignment="Center" Margin="5,0,2,0"/>
-                <ComboBox x:Name="MaterialCombo" Width="70" SelectedIndex="0" SelectionChanged="OnMechanicalSettingsChanged">
-                    <ComboBoxItem Content="PVC" Tag="PVC"/>
-                    <ComboBoxItem Content="PP-R" Tag="PPR"/>
-                </ComboBox>
-                
-                <Separator/>
-                <!-- Mühendislik Araçları -->
-                <Button Content="🏢 Kat Yöneticisi" Click="OnLevelManager" Padding="5" Background="#333" Foreground="Yellow" Margin="2,0"/>
-                <Button Content="🔍 Mimari Tara" Click="OnRecognizeArchitecture" Padding="5" Background="#333" Foreground="Orange" Margin="2,0" ToolTip="Layer isimlerinden duvar/kapı/pencere tespiti yapar"/>
-                <Button Content="🏠 Akıllı Mahal" Click="OnSmartDetectRoomClick" Padding="5" Background="#333" Foreground="Cyan" Margin="2,0" ToolTip="Tek tıklama ile otomatik oda tanıma"/>
-                <Button Content="🚿 Mahal Tanımla" Click="OnSelectRoom" Padding="5" Background="#333" Foreground="LimeGreen" Margin="2,0" ToolTip="Nokta tıklayarak manuel oda tanıma"/>
-                <Separator/>
-                <Button Content="🔗 Otomatik Bağla" Click="OnAutoBranchingClick" Padding="5" Background="#222" Foreground="#00FF7F" Margin="2,0" ToolTip="Cihazları kolona otomatik bağlar"/>
-                <Button Content="🏗️ Kolon Bağlantısı" Click="OnRiserConnection" Padding="5" Background="#222" Foreground="#FF4500" Margin="2,0" ToolTip="Yatay hattı dikey kolona bağlar"/>
-                <Separator/>
-                <Button x:Name="View2DBtn" Content="2D" Click="OnToggle2DView" Padding="8,2" Background="Cyan" Foreground="Black" FontWeight="Bold" Margin="2,0"/>
-                <Button x:Name="View3DBtn" Content="3D" Click="OnToggle3DView" Padding="8,2" Background="#444" Foreground="White" Margin="2,0"/>
-                <Separator/>
-                <Button Content="📊 HESAPLA" Click="OnRecalculateSystem" Padding="5" Background="OrangeRed" Foreground="White" FontWeight="Bold" Margin="2,0"/>
-                <Button Content="📝 METRAJ (BOM)" Click="OnGenerateBOM" Padding="5" Background="#4CAF50" Foreground="White" Margin="2,0"/>
-            </ToolBar>
-        </ToolBarTray>
+                <!-- RIBBON TABS AREA -->
+                <TabControl Grid.Row="1" Background="#2D2D30" BorderThickness="0" Padding="0" Margin="0">
+                    <TabControl.Resources>
+                        <Style TargetType="TabItem">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TabItem">
+                                        <Border x:Name="TabBorder" Padding="14,5" Margin="1,0" CornerRadius="3,3,0,0" Background="Transparent" Cursor="Hand">
+                                            <TextBlock x:Name="TabText" Text="{TemplateBinding Header}" Foreground="#AAAAAA" FontSize="12" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="TabBorder" Property="Background" Value="#333337"/>
+                                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#007ACC"/>
+                                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="0,2,0,0"/>
+                                                <Setter TargetName="TabText" Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="TabText" Property="Foreground" Value="#00AAFF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style x:Key="RbnBtn" TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="#DDDDDD"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="8,4"/>
+                            <Setter Property="Margin" Value="1"/>
+                            <Setter Property="FontSize" Value="11"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#3E3E42"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#007ACC"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style x:Key="RbnAccent" TargetType="Button" BasedOn="{StaticResource RbnBtn}">
+                            <Setter Property="Foreground" Value="#00DDFF"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                        <Style x:Key="RbnWarn" TargetType="Button" BasedOn="{StaticResource RbnBtn}">
+                            <Setter Property="Foreground" Value="#FF6644"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                        <Style x:Key="RbnOk" TargetType="Button" BasedOn="{StaticResource RbnBtn}">
+                            <Setter Property="Foreground" Value="#44DD88"/>
+                        </Style>
+                    </TabControl.Resources>
+
+                    <!-- ═══════ TAB 1: SİSTEM ═══════ -->
+                    <TabItem Header="1. Sistem" x:Name="TabSystem">
+                        <Border Background="#333337" Padding="6,4">
+                            <WrapPanel>
+                                <Border BorderBrush="#FF9800" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="⚙️ Norm Seçimi" Click="OnStandardSelection" Style="{StaticResource RbnAccent}" ToolTip="Hesap standardı"/>
+                                        <TextBlock Text="Standart" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#FFD700" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🏠 Özellikler" Click="OnBuildingProperties" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="📶 Kat Yönetici" Click="OnLevelManager" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="🏢 Çok Katlı" Click="OnMultiStoryManager" Style="{StaticResource RbnAccent}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Bina Ayarları" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#007ACC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="✅ Ayarları Onayla" Click="OnConfirmSystemSettings" Style="{StaticResource RbnOk}" ToolTip="Sonraki adımların kilidini açar"/>
+                                        <TextBlock Text="Süreç" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- ═══════ TAB 2: UÇ NOKTALAR ═══════ -->
+                    <TabItem Header="2. Uç Noktalar" x:Name="TabTerminals" IsEnabled="False">
+                        <Border Background="#333337" Padding="6,4">
+                            <WrapPanel>
+                                <Border BorderBrush="#00CC88" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🏠 Akıllı" Click="OnSmartDetectRoomClick" Style="{StaticResource RbnOk}" ToolTip="Otomatik oda tanıma"/>
+                                            <Button Content="📍 Manuel" Click="OnSelectRoom" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="🏷️ Tanımla" Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Mahal Tanımı" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Height="40">
+                                            <Button Click="OnFixtureLibrary" Style="{StaticResource RbnBtn}" ToolTip="Reseptör Kütüphanesi" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 4 4 H 20 V 20 H 4 Z M 4 8 H 20 M 12 8 V 20" Stroke="#DDD" StrokeThickness="1" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Library" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnPlaceFixtureOnWall" Style="{StaticResource RbnBtn}" ToolTip="Duvara Cihaz Yerleştir" Margin="2,0" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 12 2 A 4 4 0 0 0 8 6 V 12 H 16 V 6 A 4 4 0 0 0 12 2 Z M 6 12 H 18 V 16 H 6 Z M 12 16 V 22" Stroke="#DDD" StrokeThickness="1" Fill="#555" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Fixture" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <TextBlock Text="Kütüphane" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#007ACC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="✅ Yükleri Onayla" Click="OnConfirmTerminals" Style="{StaticResource RbnOk}" ToolTip="Tesisat çiziminin kilidini açar"/>
+                                        <TextBlock Text="Süreç" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- ═══════ TAB 3: TESİSAT ═══════ -->
+                    <TabItem Header="3. Tesisat" x:Name="TabRouting" IsEnabled="False">
+                        <Border Background="#333337" Padding="4,4,4,2">
+                            <WrapPanel>
+                                <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Height="40">
+                                            <Button Click="OnDrawPipeCommand" Style="{StaticResource RbnAccent}" ToolTip="Boru Çiz (P)" Margin="2,0" Width="40">
+                                                <StackPanel>
+                                                    <Path Data="M 2 8 L 22 8 M 2 16 L 22 16 M 2 8 V 16 M 22 8 V 16" Stroke="#00DDFF" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Pipe" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnWallParallelRoute" Style="{StaticResource RbnBtn}" ToolTip="Duvara Paralel Boru" Margin="2,0" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 4 2 V 22 M 10 2 V 22 M 4 6 H 10 M 4 12 H 10 M 4 18 H 10 M 16 6 V 18 M 14 6 H 18 M 14 18 H 18" Stroke="#DDD" StrokeThickness="1" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Parallel" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <TextBlock Text="Boru Çizimi" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Height="40">
+                                            <StackPanel Orientation="Vertical" Margin="4,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Eğim (%):" Foreground="#AAA" FontSize="9"/>
+                                                <ComboBox x:Name="SlopeComboBox" Width="50" Height="20" SelectedIndex="0" Background="#3E3E42" Foreground="White" BorderThickness="0" SelectionChanged="OnMechanicalSettingsChanged">
+                                                    <ComboBoxItem Content="0" />
+                                                    <ComboBoxItem Content="1" />
+                                                    <ComboBoxItem Content="1.5" />
+                                                    <ComboBoxItem Content="2" />
+                                                    <ComboBoxItem Content="3" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <TextBlock Text="Tesisat Ayarları" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Height="40">
+                                            <Button Click="OnPipeWizard" Style="{StaticResource RbnBtn}" ToolTip="Boru Makrosu/Sihirbazı" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 4 20 L 16 8 L 20 12 L 8 24 Z M 16 8 L 20 4 M 18 2 L 22 6" Stroke="#FFF" StrokeThickness="1" Fill="#44DD88" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Wizard" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnAutoBranchingClick" Style="{StaticResource RbnBtn}" ToolTip="Otomatik Şube Bağlantısı" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 8 12 A 4 4 0 1 1 8 4 A 4 4 0 1 1 8 12 M 16 20 A 4 4 0 1 1 16 12 A 4 4 0 1 1 16 20 M 10 9 L 14 15" Stroke="#AA66FF" StrokeThickness="1" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Auto-Con" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnRiserConnection" Style="{StaticResource RbnBtn}" ToolTip="Kolon Bağlantısı" Width="40">
+                                                <StackPanel>
+                                                    <Path Data="M 8 22 V 2 M 16 22 V 2 M 4 18 H 20 M 4 12 H 20 M 4 6 H 20" Stroke="#DDD" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Riser" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <TextBlock Text="Akıllı Bağlantı" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#87CEEB" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🚿 Pis Su" Click="OnWasteWaterDesign" Style="{StaticResource RbnBtn}" ToolTip="Pis Su / Yağmur"/>
+                                            <Button Content="🧯 Fosseptik" Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Pis Su Modülleri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#FF4444" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="🔥 Sprinkler" Click="OnFireFightingDesign" Style="{StaticResource RbnWarn}"/>
+                                        <TextBlock Text="Yangın" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Height="40">
+                                            <Button Click="OnLineCommand" Style="{StaticResource RbnBtn}" ToolTip="Çizgi (L)" Width="40">
+                                                <StackPanel>
+                                                    <Path Data="M 4,20 L 20,4" Stroke="#00AAFF" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Line" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnCircleCommand" Style="{StaticResource RbnBtn}" ToolTip="Daire (C)" Width="40">
+                                                <StackPanel>
+                                                    <Path Data="M 12 4 A 8 8 0 1 1 12 20 A 8 8 0 1 1 12 4 Z" Stroke="#00AAFF" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Circle" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <TextBlock Text="Yardımcı Çizim" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#007ACC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="✅ Boruyu Onayla" Click="OnConfirmRouting" Style="{StaticResource RbnOk}" ToolTip="Hesaplamanın kilidini açar"/>
+                                        <TextBlock Text="Süreç" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- ═══════ TAB 4: HESAP ═══════ -->
+                    <TabItem Header="4. Hesap" x:Name="TabCalculation" IsEnabled="False">
+                        <Border Background="#333337" Padding="6,4">
+                            <WrapPanel>
+                                <Border BorderBrush="#FF4444" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🛡️ Check System" Click="OnAuditSystem" Style="{StaticResource RbnWarn}" ToolTip="Açık uçları ve ters debileri bulur"/>
+                                            <Button Content="💥 Çakışma Analizi" Click="OnClashDetectionClick" Style="{StaticResource RbnWarn}" ToolTip="3D Mimar-Tesisat BoundingBox çakışma analizi" Margin="4,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Validasyon &amp; Çakışma" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#0088FF" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📊 Sistem Analizi" Click="OnAutoPipeSizing" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="⚡ HESAPLA" Click="OnRecalculateSystem" Style="{StaticResource RbnOk}" ToolTip="Tüm sistemi hesapla"/>
+                                            <Button Content="🔄 Tesisat (Sadece)" Click="OnRecalculatePlumbing" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Sizing Motoru" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#FFFF00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📉 Basınç Kaybı" Click="OnPressureDropCalc" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="💧 Pompa" Click="OnPumpSelection" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Kritik Hat &amp; Cihaz" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- ═══════ TAB 5: RAPOR & ÇIKTI ═══════ -->
+                    <TabItem Header="5. Raporlar" x:Name="TabOutputs" IsEnabled="False">
+                        <Border Background="#333337" Padding="6,4">
+                            <WrapPanel>
+                                <Border BorderBrush="#44DD88" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="✏️ Çapları Yazdır" Click="OnAutoAnnotate" Style="{StaticResource RbnOk}"/>
+                                            <Button Content="🗑️ Temizle" Click="OnClearAnnotations" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="UI Anotasyon" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#FFCC00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📊 Hesaplama Tab." Click="OnCalculationTable" Style="{StaticResource RbnAccent}"/>
+                                            <Button Content="📈 Hidrolik Rapor" Click="OnGenerateHydraulicReport" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="📄 Sistem Raporu" Click="OnReportExport" Style="{StaticResource RbnBtn}" ToolTip="HTML/CSV/RTF"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Föyler" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#AA66FF" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📐 Dikey (Kolon) Şema" Click="OnRiserDiagramExport" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="📊 İzo-Şema" Click="OnShowIsometricScheme" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Şemalar" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#007ACC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📜 Lejant" Click="OnGenerateLegend" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="📝 Metraj (BOQ)" Click="OnGenerateBOQ_Click" Style="{StaticResource RbnOk}"/>
+                                            <Button Content="📋 Şartname" Click="OnSpecificationExport" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Listeler" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- ═══════ TAB 6: GÖRÜNÜM ═══════ -->
+                    <TabItem Header="👁️ Görünüm" x:Name="TabView">
+                        <Border Background="#333337" Padding="6,4">
+                            <WrapPanel>
+                                <Border BorderBrush="#007ACC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="🔎 Zoom Extents" Click="OnZoomExtents" Style="{StaticResource RbnBtn}"/>
+                                        <TextBlock Text="Navigasyon" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#00DDFF" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="View2DBtn" Content="2D" Click="OnToggle2DView" Style="{StaticResource RbnAccent}" Width="36"/>
+                                            <Button x:Name="View3DBtn" Content="3D" Click="OnToggle3DView" Style="{StaticResource RbnBtn}" Width="36"/>
+                                            <Button Content="🧊 3D Boru" Click="OnPipe3DView" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Mod" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#555" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📁 Navigator" Click="OnToggleProjectNavigator" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="🧠 Intelligence" Click="OnToggleIntelligencePanel" Style="{StaticResource RbnBtn}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Paneller" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </Border>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
 
         <!-- Main Content Area (Navigator + Viewport + Intelligence) -->
         <Grid Grid.Row="2">
@@ -229,7 +501,7 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Border" Property="Background" Value="#15191C"/> <!-- Aktif Tab Rengi, Viewport ile aynı -->
+                                                <Setter TargetName="Border" Property="Background" Value="#15191C"/>
                                                 <Setter TargetName="TitleText" Property="Foreground" Value="White"/>
                                                 <Setter TargetName="TitleText" Property="FontWeight" Value="Bold"/>
                                             </Trigger>
@@ -270,6 +542,22 @@
                 <TextBlock x:Name="CoordinateText" Text="0.0, 0.0, 0.0" FontFamily="Consolas"/>
             </StatusBarItem>
             <Separator/>
+            <StatusBarItem>
+                <ProgressBar x:Name="MainProgressBar" Width="100" Height="15" IsIndeterminate="True" Visibility="Collapsed" Margin="5,0"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <!-- OSNAP KONTROLLERİ -->
+                <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+                    <TextBlock Text="OSNAP:" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold" ToolTip="Kenetleme Araçları"/>
+                    <ToggleButton x:Name="BtnOsnapMaster" Content="Açık" IsChecked="True" Width="40" Margin="2,0" Click="OnOsnapMasterToggle" Background="#333337" Foreground="#00DDFF" BorderThickness="0"/>
+                    <Rectangle Width="1" Fill="#555" Margin="4,2"/>
+                    <ToggleButton x:Name="BtnOsnapEnd" Content="Uç Nokta" IsChecked="True" Width="60" Margin="2,0" Click="OnOsnapFlagToggle" Background="#333337" Foreground="White" BorderThickness="0" ToolTip="Endpoint"/>
+                    <ToggleButton x:Name="BtnOsnapMid" Content="Orta" IsChecked="True" Width="40" Margin="2,0" Click="OnOsnapFlagToggle" Background="#333337" Foreground="White" BorderThickness="0" ToolTip="Midpoint"/>
+                    <ToggleButton x:Name="BtnOsnapCen" Content="Merkez" IsChecked="True" Width="55" Margin="2,0" Click="OnOsnapFlagToggle" Background="#333337" Foreground="White" BorderThickness="0" ToolTip="Center"/>
+                    <ToggleButton x:Name="BtnOsnapPerp" Content="Dik" IsChecked="True" Width="35" Margin="2,0" Click="OnOsnapFlagToggle" Background="#333337" Foreground="White" BorderThickness="0" ToolTip="Perpendicular"/>
+                </StackPanel>
+            </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
                 <TextBlock x:Name="ZoomText" Text="Zoom: 100%"/>
             </StatusBarItem>

@@ -18,8 +18,84 @@ public static class PipeCatalog
 {
     // Malzeme -> (Dış Çap -> İç Çap)
     private static readonly Dictionary<PipeMaterial, Dictionary<double, double>> _catalog = new();
+    private static readonly string _catalogFilePath;
 
     static PipeCatalog()
+    {
+        string dir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Catalogs");
+        if (!System.IO.Directory.Exists(dir))
+            System.IO.Directory.CreateDirectory(dir);
+
+        _catalogFilePath = System.IO.Path.Combine(dir, "PipeCatalog.json");
+        LoadCatalog();
+    }
+
+    private static void LoadCatalog()
+    {
+        if (System.IO.File.Exists(_catalogFilePath))
+        {
+            try
+            {
+                string json = System.IO.File.ReadAllText(_catalogFilePath);
+                var loaded = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(json);
+                if (loaded != null && loaded.Count > 0)
+                {
+                    _catalog.Clear();
+                    foreach (var matKvp in loaded)
+                    {
+                        if (Enum.TryParse(matKvp.Key, out PipeMaterial mat))
+                        {
+                            var sizes = new Dictionary<double, double>();
+                            foreach (var sizeKvp in matKvp.Value)
+                            {
+                                if (double.TryParse(sizeKvp.Key, out double od))
+                                {
+                                    sizes[od] = sizeKvp.Value;
+                                }
+                            }
+                            _catalog[mat] = sizes;
+                        }
+                    }
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Boru kataloğu JSON okuma hatası. Varsayılanlar yüklenecek.");
+            }
+        }
+
+        // Dosya yoksa veya okunamadıysa
+        LoadDefaults();
+        SaveCatalog();
+    }
+
+    private static void SaveCatalog()
+    {
+        try
+        {
+            var exportData = new Dictionary<string, Dictionary<string, double>>();
+            foreach (var matKvp in _catalog)
+            {
+                var sizes = new Dictionary<string, double>();
+                foreach (var sizeKvp in matKvp.Value)
+                {
+                    sizes[sizeKvp.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)] = sizeKvp.Value;
+                }
+                exportData[matKvp.Key.ToString()] = sizes;
+            }
+
+            var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+            string json = System.Text.Json.JsonSerializer.Serialize(exportData, options);
+            System.IO.File.WriteAllText(_catalogFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Boru kataloğu JSON yazma hatası.");
+        }
+    }
+
+    private static void LoadDefaults()
     {
         InitializePPRC_PN20(); // SDR 11 (Soğuk Su)
         InitializePPRC_PN25(); // SDR 6 (Sıcak Su / Kompozit)
@@ -35,14 +111,10 @@ public static class PipeCatalog
             if (sizes.TryGetValue(outerDiameter, out double id))
                 return id;
 
-            // Tam eşleşme yoksa en yakın alt/üst değeri mi interpolasyon mu? 
-            // Mühendislikte "seçilen boru" kullanılır, interpolasyon olmaz.
-            // Fakat listede olmayan bir OD gelirse (örn: kullanıcı manuel girdi),
-            // Standart SDR oranına göre tahmini ID verelim.
+            // Tam eşleşme yoksa standart formülle tahmini ID
             return EstimateInnerDiameter(material, outerDiameter);
         }
 
-        // Generic: Et kalınlığı yok sayılır (veya %10 düşülür)
         return outerDiameter * 0.9;
     }
     
@@ -57,9 +129,6 @@ public static class PipeCatalog
 
     private static double EstimateInnerDiameter(PipeMaterial material, double od)
     {
-        // Basit SDR (Standard Dimension Ratio) Hesabı: OD / WallThickness
-        // ID = OD - 2*WT = OD - 2*(OD/SDR) = OD * (1 - 2/SDR)
-        
         return material switch
         {
             PipeMaterial.PPRC_PN20 => od * (1.0 - 2.0/11.0), // SDR 11
@@ -71,68 +140,39 @@ public static class PipeCatalog
 
     private static void InitializePPRC_PN20() // SDR 11
     {
-        // DN 20 -> 1.9mm et -> 16.2mm ID
         var map = new Dictionary<double, double>
         {
-            { 20, 16.2 },
-            { 25, 20.4 },
-            { 32, 26.0 },
-            { 40, 32.6 },
-            { 50, 40.8 },
-            { 63, 51.4 },
-            { 75, 61.2 },
-            { 90, 73.6 },
-            { 110, 90.0 }
+            { 20, 16.2 }, { 25, 20.4 }, { 32, 26.0 }, { 40, 32.6 },
+            { 50, 40.8 }, { 63, 51.4 }, { 75, 61.2 }, { 90, 73.6 }, { 110, 90.0 }
         };
         _catalog[PipeMaterial.PPRC_PN20] = map;
     }
 
     private static void InitializePPRC_PN25() // SDR 6 (Kalın Etli)
     {
-        // DN 20 -> 3.4mm et -> 13.2mm ID
         var map = new Dictionary<double, double>
         {
-            { 20, 13.2 },
-            { 25, 16.6 },
-            { 32, 21.2 },
-            { 40, 26.6 },
-            { 50, 33.2 },
-            { 63, 42.0 },
-            { 75, 50.0 },
-            { 90, 60.0 },
-            { 110, 73.2 }
+            { 20, 13.2 }, { 25, 16.6 }, { 32, 21.2 }, { 40, 26.6 },
+            { 50, 33.2 }, { 63, 42.0 }, { 75, 50.0 }, { 90, 60.0 }, { 110, 73.2 }
         };
         _catalog[PipeMaterial.PPRC_PN25] = map;
     }
 
     private static void InitializePVC() // Pis Su (SN4 / Tip 1)
     {
-        // DN 50 -> 3.0mm -> 44mm (Yaklaşık)
-        // Piyasada: 50, 70, 100, 125, 150, 200...
         var map = new Dictionary<double, double>
         {
-            { 50, 46.4 }, // 1.8mm et
-            { 75, 71.2 }, // 1.9mm et (Q70 olarak geçer ama OD75'tir genelde, Q70 pimaş standardı farklı olabilir, burada ISO OD baz alıyoruz)
-            { 110, 103.6 }, // 3.2mm
-            { 125, 118.6 }, // 3.2mm
-            { 160, 152.0 }, // 4.0mm
-            { 200, 190.2 }  // 4.9mm
+            { 50, 46.4 }, { 75, 71.2 }, { 110, 103.6 },
+            { 125, 118.6 }, { 160, 152.0 }, { 200, 190.2 }
         };
-        // Not: Türkiye piyasasında "70'lik pimaş" aslında 75mm OD olabilir veya eski standart 70mm olabilir. 
-        // Modern PVC-U standartlarında 75mm yaygındır. Biz 75 ekledik.
-        
         _catalog[PipeMaterial.PVC_SN4] = map;
     }
     
     private static void InitializePEX()
     {
-        // PEX-b (Kılıflı) - Genelde 16x2.0, 16x2.2
         var map = new Dictionary<double, double>
         {
-            { 16, 12.0 }, // 16x2.0
-            { 20, 16.0 }, // 20x2.0
-            { 25, 20.4 }, // 25x2.3
-            { 32, 26.2 }  // 32x2.9
+            { 16, 12.0 }, { 20, 16.0 }, { 25, 20.4 }, { 32, 26.2 }
         };
         _catalog[PipeMaterial.PEX_b] = map;
     }

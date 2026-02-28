@@ -15,37 +15,20 @@
             
             <!-- GLOBAL STYLES -->
 
-            <!-- Menu Style -->
-            <Style TargetType="Menu">
-                <Setter Property="Background" Value="{StaticResource MediumDark}"/>
-                <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="12"/>
-            </Style>
-            
-            <!-- MenuItem Style (Basit versiyon, koyu tema uyumlu) -->
-            <!-- Not: Tam ControlTemplate olmadan Hover renklerini değiştirmek zordur.
-                 Ancak Background/Foreground burada set edilirse en azından okunur olur. -->
+            <!-- MenuItem Style — Dark Theme -->
             <Style TargetType="MenuItem">
-                <Setter Property="Foreground" Value="Black"/> <!-- Varsayılan Windows Menü Arkaplanı Beyazdır, yazı Siyah olmalı -->
-                <Style.Triggers>
-                     <!-- Eğer Parent Menu ise (Top Level) -->
-                     <Trigger Property="Role" Value="TopLevelHeader">
-                         <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-                     </Trigger>
-                     <Trigger Property="Role" Value="TopLevelItem">
-                         <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-                     </Trigger>
-                     <!-- Submenu Item (Açılır Menü) -->
-                     <Trigger Property="Role" Value="SubmenuItem">
-                         <Setter Property="Foreground" Value="Black"/> <!-- Standart Windows Popup Beyazdır -->
-                     </Trigger>
-                </Style.Triggers>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="Transparent"/>
             </Style>
 
-            <!-- ContextMenu Style -->
+            <!-- ContextMenu Style — Dark Theme -->
             <Style TargetType="ContextMenu">
-                <Setter Property="Background" Value="White"/> 
+                <Setter Property="Background" Value="#2B2B2C"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="#555"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="2"/>
+                <Setter Property="HasDropShadow" Value="True"/>
             </Style>
 
         </ResourceDictionary>

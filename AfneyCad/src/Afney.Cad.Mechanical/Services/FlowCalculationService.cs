@@ -54,9 +54,46 @@ public class FlowCalculationService
     }
 
     /*
-       NE: Tüm Sistemi Hesapla (CalculateSystemFlow)
-       NEDEN: Proje genelindeki tüm boruların yüklerini (FU) uçtan kolona doğru (Dikey/Yatay ağ taraması ile) güncelleyerek debi, hız ve basınç kaybı (Darcy/Manning) hesaplarına temel oluşturmak için.
+       NE: Yalnızca Akış Yönlerini Sapta (InferFlowDirections)
+       NEDEN: Sistem çizilirken veya parçalar eklendiğinde tam hesap (çap/debi) yapılmadan önce boruların üzerindeki okların anında belirmesi için (Domain Requirement).
     */
+    public void InferFlowDirections(IEnumerable<MechanicalEntity> entities)
+    {
+        var mechanicalEntities = entities.ToList();
+        var entityMap = mechanicalEntities.ToDictionary(e => e.Id);
+
+        // Önce yönleri sıfırla
+        foreach (var pipe in mechanicalEntities.OfType<PipeEntity>())
+        {
+            pipe.FlowDirection = 0;
+        }
+
+        var sinks = mechanicalEntities.OfType<PipeEntity>()
+            .Where(p => IsRiser(p))
+            .Select(p => p.Id)
+            .ToHashSet();
+
+        var fixtures = mechanicalEntities.OfType<SanitaryFixtureEntity>().ToList();
+        foreach (var fixture in fixtures)
+        {
+            var path = FindPathToNearestSink(fixture.Id, sinks, entityMap);
+            if (path != null)
+            {
+                // Sadece yolu boyu boru yönlerini ata (FU veya hesap yapma)
+                for (int i = 0; i < path.Count - 1; i++)
+                {
+                    var currentId = path[i];
+                    var nextId = path[i + 1];
+
+                    if (entityMap.TryGetValue(nextId, out var entity) && entity is PipeEntity pipe)
+                    {
+                        UpdatePipeFlowDirection(pipe, currentId, nextId);
+                    }
+                }
+            }
+        }
+    }
+
     /*
        NE: Tüm Sistemi Hesapla (CalculateSystemFlow)
        NEDEN: Proje genelindeki tüm boruların yüklerini (FU) uçtan kolona doğru (Dikey/Yatay ağ taraması ile) güncelleyerek debi, hız ve basınç kaybı (Darcy/Manning) hesaplarına temel oluşturmak için.

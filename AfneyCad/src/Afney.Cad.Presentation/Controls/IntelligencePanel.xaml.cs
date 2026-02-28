@@ -19,6 +19,25 @@ namespace Afney.Cad.Presentation.Controls
         }
 
         /*
+           NE: Özellik Değişikliği Gönderim Aracı (SubmitPropertyChange)
+           NEDEN: Özellik değerindeki değişikliği Geri Al (Undo/Redo) yapısına aktarabilmek için.
+        */
+        private void SubmitPropertyChange(string propName, System.Action doAction, System.Action undoAction)
+        {
+            var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+            if (mainWindow != null)
+            {
+                var history = mainWindow.ActiveContext.History;
+                var op = new Afney.Cad.Database.Transactions.Operations.ModifyEntityPropertyOperation(propName, doAction, undoAction);
+                history.TransactionManager.Submit(op);
+            }
+            else
+            {
+                doAction?.Invoke();
+            }
+        }
+
+        /*
            NE: Varlık Bilgisini Güncelle (UpdateEntityInfo)
            NEDEN: Viewport'ta bir nesne seçildiğinde, o nesnenin tipine özel mühendislik verilerini (Debi, Çap, Hız vb.) sağ panelde listelemek için.
         */
@@ -45,33 +64,43 @@ namespace Afney.Cad.Presentation.Controls
                 PropertiesList.Children.Clear();
                 
                 // Sisteme (System Type) Göre Düzenleme
+                var oldSys = pipe.SystemType;
                 var systemTypes = System.Enum.GetNames(typeof(Afney.Cad.Mechanical.Enums.MechanicalSystemType));
-                AddComboProperty("System Type", systemTypes, pipe.SystemType.ToString(), val => 
+                AddComboProperty("System Type", systemTypes, oldSys.ToString(), val => 
                 {
-                    if (System.Enum.TryParse(val, out Afney.Cad.Mechanical.Enums.MechanicalSystemType newSys)) {
-                        pipe.SystemType = newSys;
-                        // Renk gibi özellikleri varsayılanlara çekmek için:
-                        // pipe.ColorIndex = MechanicalColorService.GetColorForSystem(newSys); (İleride eklenebilir)
-                        EntityModified?.Invoke(this, pipe);
+                    if (System.Enum.TryParse(val, out Afney.Cad.Mechanical.Enums.MechanicalSystemType newSys) && newSys != oldSys) {
+                        var capturedOldSys = oldSys;
+                        SubmitPropertyChange("System Type",
+                            () => { pipe.SystemType = newSys; EntityModified?.Invoke(this, pipe); },
+                            () => { pipe.SystemType = capturedOldSys; EntityModified?.Invoke(this, pipe); });
+                        oldSys = newSys;
                     }
                 });
 
                 // Malzeme (Material)
+                var oldMat = pipe.PipeMaterialType;
                 var materials = System.Enum.GetNames(typeof(Afney.Cad.Mechanical.Enums.PipeMaterial));
-                AddComboProperty("Material", materials, pipe.PipeMaterialType.ToString(), val => 
+                AddComboProperty("Material", materials, oldMat.ToString(), val => 
                 {
-                    if (System.Enum.TryParse(val, out Afney.Cad.Mechanical.Enums.PipeMaterial newMat)) {
-                        pipe.PipeMaterialType = newMat;
-                        EntityModified?.Invoke(this, pipe);
+                    if (System.Enum.TryParse(val, out Afney.Cad.Mechanical.Enums.PipeMaterial newMat) && newMat != oldMat) {
+                        var capturedOldMat = oldMat;
+                        SubmitPropertyChange("Material",
+                            () => { pipe.PipeMaterialType = newMat; EntityModified?.Invoke(this, pipe); },
+                            () => { pipe.PipeMaterialType = capturedOldMat; EntityModified?.Invoke(this, pipe); });
+                        oldMat = newMat;
                     }
                 });
                 
                 // Çap (Düzenlenebilir Kombobox)
-                AddComboProperty("Diameter (DN)", new[]{"15", "20", "25", "32", "40", "50", "65", "80", "100", "125", "150", "200"}, pipe.InnerDiameter.ToString("F0"), val => 
+                var oldDiam = pipe.InnerDiameter;
+                AddComboProperty("Diameter (DN)", new[]{"15", "20", "25", "32", "40", "50", "65", "80", "100", "125", "150", "200"}, oldDiam.ToString("F0"), val => 
                 {
-                    if(double.TryParse(val, out double newD)) {
-                        pipe.InnerDiameter = newD;
-                        EntityModified?.Invoke(this, pipe);
+                    if(double.TryParse(val, out double newD) && newD != oldDiam) {
+                        var capturedOldDiam = oldDiam;
+                        SubmitPropertyChange("Diameter (DN)",
+                            () => { pipe.InnerDiameter = newD; EntityModified?.Invoke(this, pipe); },
+                            () => { pipe.InnerDiameter = capturedOldDiam; EntityModified?.Invoke(this, pipe); });
+                        oldDiam = newD;
                     }
                 });
                 
@@ -85,11 +114,15 @@ namespace Afney.Cad.Presentation.Controls
             {
                 PropertiesList.Children.Clear();
                 AddProperty("Type", fix.FixtureType.ToString());
-                AddEditableProperty("Load Units (LU)", fix.LoadUnits.ToString("F2"), val => 
+                var oldLU = fix.LoadUnits;
+                AddEditableProperty("Load Units (LU)", oldLU.ToString("F2"), val => 
                 {
-                    if (double.TryParse(val, out double newLU)) {
-                        fix.LoadUnits = newLU;
-                        EntityModified?.Invoke(this, fix);
+                    if (double.TryParse(val, out double newLU) && newLU != oldLU) {
+                        var capturedOldLU = oldLU;
+                        SubmitPropertyChange("Load Units (LU)",
+                            () => { fix.LoadUnits = newLU; EntityModified?.Invoke(this, fix); },
+                            () => { fix.LoadUnits = capturedOldLU; EntityModified?.Invoke(this, fix); });
+                        oldLU = newLU;
                     }
                 });
                 AddProperty("Elevation", $"{fix.Position.Z:F2} m");
@@ -97,10 +130,16 @@ namespace Afney.Cad.Presentation.Controls
             else if (entity is Afney.Cad.Mechanical.Entities.MahalEntity mahal)
             {
                 PropertiesList.Children.Clear();
-                AddEditableProperty("Mahal Name", mahal.Name, val => 
+                var oldName = mahal.Name;
+                AddEditableProperty("Mahal Name", oldName, val => 
                 {
-                    mahal.Name = val;
-                    EntityModified?.Invoke(this, mahal);
+                    if(val != oldName) {
+                        var capturedOldName = oldName;
+                        SubmitPropertyChange("Mahal Name",
+                            () => { mahal.Name = val; EntityModified?.Invoke(this, mahal); },
+                            () => { mahal.Name = capturedOldName; EntityModified?.Invoke(this, mahal); });
+                        oldName = val;
+                    }
                 });
                 AddProperty("Area", $"{mahal.Area:F2} m²");
                 AddProperty("Fixtures", mahal.Fixtures.Count.ToString());

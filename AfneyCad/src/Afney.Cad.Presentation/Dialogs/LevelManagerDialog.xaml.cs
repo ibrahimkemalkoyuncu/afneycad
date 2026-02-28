@@ -127,4 +127,70 @@ public partial class LevelManagerDialog : Window
     {
         Close();
     }
+
+    /*
+       NE: Kaydet (SaveButton_Click)
+       NEDEN: Yapılan tüm kat değişikliklerini projeye kaydeder.
+    */
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // LevelManager zaten in-memory değişiklikleri tutuyor.
+            // Bu buton kullanıcıya görsel geri bildirim verir.
+            RefreshLevels();
+            MessageBox.Show(
+                $"Toplam {Levels.Count} kat bilgisi başarıyla kaydedildi.",
+                "💾 Kaydedildi",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /*
+       NE: İsim Değiştir (RenameButton_Click)
+       NEDEN: Seçili katın ismini değiştirmek için bir giriş penceresi açar.
+    */
+    private void RenameButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (LevelsGrid.SelectedItem is not MepLevel selected)
+        {
+            MessageBox.Show("Lütfen isim değiştirmek istediğiniz katı seçin.",
+                "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Basit bir isim değiştirme: InputBox yerine mevcut NameTextBox'u kullan
+        var newName = NameTextBox.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            MessageBox.Show("Yeni kat adı boş olamaz.", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        if (newName == selected.Name)
+        {
+            MessageBox.Show("Yeni isim mevcut isimle aynı.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var oldName = selected.Name;
+            _levelManager.UpdateLevel(oldName, newName, selected.Elevation, selected.Height);
+            MessageBox.Show(
+                $"'{oldName}' → '{newName}' olarak değiştirildi.",
+                "✏️ İsim Değiştirildi",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 }

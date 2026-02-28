@@ -6,7 +6,7 @@
              xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid Background="#15191C">
+    <Grid Background="#212830">
         <skia:SKElement x:Name="CadCanvas" 
                         PaintSurface="OnPaintSurface" 
                         MouseMove="CadCanvas_MouseMove" 
@@ -14,22 +14,46 @@
                         MouseUp="CadCanvas_MouseUp"
                         MouseWheel="CadCanvas_MouseWheel"
                         KeyDown="CadCanvas_KeyDown"
+                        ContextMenuOpening="CadCanvas_ContextMenuOpening"
                         Focusable="True"
                         SnapsToDevicePixels="True"
-                        UseLayoutRounding="True">
+                        UseLayoutRounding="True"
+                        Cursor="Cross"
+                        ToolTipService.InitialShowDelay="400"
+                        ToolTipService.ShowDuration="5000">
+            <!-- Dinamik ToolTip -->
+            <skia:SKElement.ToolTip>
+                <ToolTip x:Name="EntityToolTip" Background="#333" Foreground="White" BorderBrush="#555" BorderThickness="1" Visibility="Collapsed">
+                    <StackPanel x:Name="EntityToolTipContent" />
+                </ToolTip>
+            </skia:SKElement.ToolTip>
             <!-- AutoCAD Tarzı Sağ Tıklama Menüsü -->
             <skia:SKElement.ContextMenu>
-                <ContextMenu Background="#2D2D30" Foreground="White">
-                    <MenuItem Header="🔄 Pan" Click="OnContextMenu_Pan" />
-                    <MenuItem Header="🔍 Zoom Extents" Click="OnContextMenu_ZoomExtents" />
-                    <Separator Background="#555"/>
-                    <MenuItem Header="✅ Select All" Click="OnContextMenu_SelectAll" />
-                    <MenuItem Header="🧹 Clear Selection" Click="OnContextMenu_ClearSelection" />
-                    <Separator Background="#555"/>
-                    <MenuItem Header="↩️ Undo" Click="OnContextMenu_Undo" InputGestureText="Ctrl+Z"/>
-                    <MenuItem Header="↪️ Redo" Click="OnContextMenu_Redo" InputGestureText="Ctrl+Y"/>
-                    <Separator Background="#555"/>
-                    <MenuItem Header="📐 Properties" Click="OnContextMenu_Properties" />
+                <ContextMenu Background="#2B2B2C" BorderBrush="#555" BorderThickness="1" Padding="4" Foreground="White">
+                    <ContextMenu.Resources>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Padding" Value="6,4"/>
+                            <Setter Property="FontSize" Value="12"/>
+                            <Setter Property="FontFamily" Value="Segoe UI"/>
+                        </Style>
+                        <Style TargetType="Separator">
+                            <Setter Property="Background" Value="#444"/>
+                            <Setter Property="Margin" Value="4,2"/>
+                        </Style>
+                    </ContextMenu.Resources>
+                    <MenuItem x:Name="CtxMenu_Pan" Header="🔄  Pan (Kaydır)" Click="OnContextMenu_Pan"/>
+                    <MenuItem x:Name="CtxMenu_ZoomExtents" Header="🔎  Zoom Extents" Click="OnContextMenu_ZoomExtents"/>
+                    <Separator/>
+                    <MenuItem x:Name="CtxMenu_SelectAll" Header="✅  Tümünü Seç" Click="OnContextMenu_SelectAll" InputGestureText="Ctrl+A"/>
+                    <MenuItem x:Name="CtxMenu_ClearSelection" Header="🧹  Seçimi Temizle" Click="OnContextMenu_ClearSelection"/>
+                    <Separator/>
+                    <MenuItem x:Name="CtxMenu_Undo" Header="↩️  Geri Al" Click="OnContextMenu_Undo" InputGestureText="Ctrl+Z"/>
+                    <MenuItem x:Name="CtxMenu_Redo" Header="↪️  Yinele" Click="OnContextMenu_Redo" InputGestureText="Ctrl+Y"/>
+                    <Separator/>
+                    <MenuItem x:Name="CtxMenu_Properties" Header="📐  Özellikler" Click="OnContextMenu_Properties" FontWeight="SemiBold"/>
+                    <MenuItem x:Name="CtxMenu_Delete" Header="❌  Sil" Click="OnContextMenu_Delete" Foreground="#FF5555"/>
                 </ContextMenu>
             </skia:SKElement.ContextMenu>
         </skia:SKElement>

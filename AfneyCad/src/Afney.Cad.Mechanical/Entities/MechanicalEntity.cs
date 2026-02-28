@@ -36,6 +36,14 @@ public abstract class MechanicalEntity : CadEntity
     // NE: Mekanik Nesne Tipi
     public MechanicalEntityType EntityType { get; set; } = MechanicalEntityType.Undefined;
 
+    // NE: Hesap Geçerlilik Durumu (Dirty Flag)
+    // NEDEN: Bu parça veya bağlı olduğu ağ değiştiğinde, üzerinde yazan hesap değerlerinin (Hız, Çap vb.) geçersiz/eski (Dirty) olduğunu UI'a bildirmek için.
+    public bool IsCalculationUpToDate { get; set; } = true;
+
+    // NE: Çap Kilidi (Size Override Lock)
+    // NEDEN: Kullanıcı otomatik hesaplanan çapı (örn. Ø50) manuel olarak (örn. Ø75) değiştirdiğinde, motorun sonraki hesaplamalarda bu çapa dokunmamasını sağlamak için.
+    public bool IsSizeLocked { get; set; } = false;
+
     // NE: Bağlantı Portları
     public abstract List<MechanicalPort> GetPorts();
 }

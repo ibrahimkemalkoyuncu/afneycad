@@ -28,6 +28,7 @@ public class ArchitecturalObstacle
     public ObstacleType Type { get; set; }
     public List<Vector3D> Boundary { get; set; } = new();
     public string OriginalLayer { get; set; } = string.Empty;
+    public double Height { get; set; } = 3000.0; // Varsayılan kat yüksekliği 3m
 
     public CadBoundingBox GetBoundingBox()
     {
@@ -35,9 +36,12 @@ public class ArchitecturalObstacle
         
         double minX = Boundary.Min(p => p.X);
         double minY = Boundary.Min(p => p.Y);
+        double minZ = Boundary.Min(p => p.Z);
+        
         double maxX = Boundary.Max(p => p.X);
         double maxY = Boundary.Max(p => p.Y);
+        double maxZ = Boundary.Max(p => p.Z) + Height; // Z ekseninde yükseklik eklendi
         
-        return new CadBoundingBox(new Vector3D(minX, minY, 0), new Vector3D(maxX, maxY, 0));
+        return new CadBoundingBox(new Vector3D(minX, minY, minZ), new Vector3D(maxX, maxY, maxZ));
     }
 }

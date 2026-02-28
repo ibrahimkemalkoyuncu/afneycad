@@ -25,6 +25,34 @@ public class LineEntity : CadEntity
     public double GetLength() => (EndPoint - StartPoint).Length();
 
     /*
+       NE: Noktanın Çizgiye Olan En Kısa Mesafesi (Line Segment Distance)
+       NEDEN: Farenin (Hit-Testing) çizginin üzerinde olup olmadığını hesaplamak için (Dik uzaklık).
+    */
+    public override double DistanceTo(Vector3D p)
+    {
+        var v = StartPoint;
+        var w = EndPoint;
+        
+        // Çizginin karesel uzunluğu
+        double l2 = Math.Pow(v.X - w.X, 2) + Math.Pow(v.Y - w.Y, 2) + Math.Pow(v.Z - w.Z, 2);
+        
+        if (l2 == 0.0) return p.DistanceTo(v); // Çizgi tek bir noktaysa
+        
+        // T parametresini bul (noktanın çizgi üzerindeki izdüşümü: t=0 -> Start, t=1 -> End)
+        double t = Math.Max(0, Math.Min(1, ((p.X - v.X) * (w.X - v.X) + (p.Y - v.Y) * (w.Y - v.Y) + (p.Z - v.Z) * (w.Z - v.Z)) / l2));
+        
+        // İzdüşüm noktası (Projection)
+        var projection = new Vector3D(
+            v.X + t * (w.X - v.X),
+            v.Y + t * (w.Y - v.Y),
+            v.Z + t * (w.Z - v.Z)
+        );
+        
+        // Gerçek dik mesafe
+        return p.DistanceTo(projection);
+    }
+
+    /*
        NE: Çiz (Draw)
        NEDEN: Çizginin dünya koordinatlarını render motoruna ileterek ekranda temsil edilmesini sağlamak için.
     */
@@ -96,5 +124,28 @@ public class LineEntity : CadEntity
         var clone = new LineEntity(StartPoint, EndPoint);
         CopyBaseProperties(clone);
         return clone;
+    }
+
+    /*
+       NE: Grip Noktaları
+       NEDEN: Uçlar ve orta noktada mavi kontrolcü çıkarmak için.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return StartPoint;
+        yield return EndPoint;
+        yield return new Vector3D((StartPoint.X + EndPoint.X) / 2, (StartPoint.Y + EndPoint.Y) / 2, (StartPoint.Z + EndPoint.Z) / 2);
+    }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0) StartPoint = newPosition;
+        else if (index == 1) EndPoint = newPosition;
+        else if (index == 2)
+        {
+            var delta = newPosition - new Vector3D((StartPoint.X + EndPoint.X) / 2, (StartPoint.Y + EndPoint.Y) / 2, (StartPoint.Z + EndPoint.Z) / 2);
+            Move(delta);
+        }
+        base.MoveGripPointAt(index, newPosition);
     }
 }

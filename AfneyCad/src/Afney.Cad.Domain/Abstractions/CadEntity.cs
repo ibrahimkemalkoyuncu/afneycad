@@ -62,6 +62,17 @@ public abstract class CadEntity
         return _cachedBoundingBox.Value;
     }
 
+    /*
+       NE: Noktaya Olan Mesafe (DistanceTo)
+       NEDEN: Fare imlecinin (Hit-Testing) veya başka bir objenin bu çizgeye (Entity) ne kadar yakın olduğunu bulmak için.
+       VARSAYILAN: Çizginin merkezine (Center of BoundingBox) olan mesafe alınır, alt sınıflar (Line, Arc) kendi hassas formüllerini yazabilir.
+    */
+    public virtual double DistanceTo(Vector3D point)
+    {
+        var center = GetBoundingBox().Center;
+        return center.DistanceTo(point);
+    }
+
     // Alt sınıflar bunu implemente etmeli (Eski GetBoundingBox -> CalculateBoundingBox)
     /*
        NE: Sınırlayıcı Kutu Hesapla (CalculateBoundingBox)
@@ -144,4 +155,22 @@ public abstract class CadEntity
        NEDEN: Fare ile hassas çizim yaparken nesnenin uç noktası, merkez noktası gibi özel noktaların yakalanmasını sağlamak için.
     */
     public abstract IEnumerable<SnapPoint> GetSnapPoints();
+
+    /*
+       NE: Grip Noktalarını Getir (GetGripPoints)
+       NEDEN: Seçili nesnenin düzenleme/kontrol amaçlı mavi kutucuklarının (Grip Points) çizileceği koordinatları döner.
+    */
+    public virtual IEnumerable<Vector3D> GetGripPoints()
+    {
+        return Array.Empty<Vector3D>();
+    }
+
+    /*
+       NE: Grip Noktasını Taşı (MoveGripPointAt)
+       NEDEN: Farenin sürüklediği mavi kontrol kutucuklarının indeksiyle nesnenin şeklini (stretch) değiştirmek için.
+    */
+    public virtual void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        InvalidateCache();
+    }
 }

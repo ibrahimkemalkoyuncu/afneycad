@@ -139,7 +139,7 @@ public class Pipe3DModelService
 
     /*
        NE: Dirsek → 3D Model
-       NEDEN: Dirsek fitting'ini toroidal (halka) geometri ile üretir.
+       NEDEN: Dirsek fitting'ini kavisli bir boru (Quadratic Bezier Sweep) olarak 3D mesh'e dönüştürür.
     */
     public Solid3DModel GenerateElbow3D(ElbowEntity elbow, LevelOfDetail lod = LevelOfDetail.LOD200)
     {
@@ -148,29 +148,75 @@ public class Pipe3DModelService
         model.Type = "Elbow";
         model.SystemType = elbow.SystemType.ToString();
 
-        double size = elbow.InnerDiameter * 1.5;
-        var center = elbow.Center;
+        double radius = elbow.InnerDiameter / 2.0;
+        double outerRadius = radius + GetWallThickness(elbow.InnerDiameter);
+        
+        int pathSegments = lod == LevelOfDetail.LOD100 ? 3 : (lod == LevelOfDetail.LOD200 ? 6 : 12);
+        int profileSegments = lod == LevelOfDetail.LOD100 ? 6 : (lod == LevelOfDetail.LOD200 ? 12 : 24);
 
-        model.Vertices.Add(center + new Vector3D(-size / 2, -size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(size / 2, -size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(size / 2, size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(-size / 2, size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(-size / 2, -size / 2, size / 2));
-        model.Vertices.Add(center + new Vector3D(size / 2, -size / 2, size / 2));
-        model.Vertices.Add(center + new Vector3D(size / 2, size / 2, size / 2));
-        model.Vertices.Add(center + new Vector3D(-size / 2, size / 2, size / 2));
+        var pStart = elbow.Center - elbow.IncomingVector * elbow.Radius;
+        var pMid = elbow.Center;
+        var pEnd = elbow.Center + elbow.OutgoingVector * elbow.Radius;
 
-        model.Faces.AddRange(new (int, int, int)[]
+        for (int i = 0; i <= pathSegments; i++)
         {
-            (0, 1, 2), (0, 2, 3), (4, 6, 5), (4, 7, 6),
-            (0, 4, 5), (0, 5, 1), (2, 6, 7), (2, 7, 3),
-            (0, 3, 7), (0, 7, 4), (1, 5, 6), (1, 6, 2)
-        });
+            double t = (double)i / pathSegments;
+            double u = 1.0 - t;
+            
+            // Bezier Point
+            var pt = new Vector3D(
+                u * u * pStart.X + 2 * u * t * pMid.X + t * t * pEnd.X,
+                u * u * pStart.Y + 2 * u * t * pMid.Y + t * t * pEnd.Y,
+                u * u * pStart.Z + 2 * u * t * pMid.Z + t * t * pEnd.Z);
 
-        // Açıyı vektörlerden hesapla
-        double dot = elbow.IncomingVector.X * elbow.OutgoingVector.X + elbow.IncomingVector.Y * elbow.OutgoingVector.Y;
-        double angle = Math.Acos(Math.Clamp(dot, -1, 1)) * 180.0 / Math.PI;
-        model.Properties["Angle"] = angle;
+            // Derivative (Tangent)
+            var tangent = new Vector3D(
+                2 * u * (pMid.X - pStart.X) + 2 * t * (pEnd.X - pMid.X),
+                2 * u * (pMid.Y - pStart.Y) + 2 * t * (pEnd.Y - pMid.Y),
+                2 * u * (pMid.Z - pStart.Z) + 2 * t * (pEnd.Z - pMid.Z));
+                
+            double len = Math.Sqrt(tangent.X * tangent.X + tangent.Y * tangent.Y + tangent.Z * tangent.Z);
+            if (len > 0.0001) tangent = new Vector3D(tangent.X / len, tangent.Y / len, tangent.Z / len);
+            else tangent = elbow.IncomingVector;
+
+            var (localX, localY) = ComputeLocalAxes(tangent);
+
+            // Profile Vertices
+            for (int j = 0; j < profileSegments; j++)
+            {
+                double angle = 2.0 * Math.PI * j / profileSegments;
+                double cos = Math.Cos(angle);
+                double sin = Math.Sin(angle);
+
+                model.Vertices.Add(new Vector3D(
+                    pt.X + outerRadius * (cos * localX.X + sin * localY.X),
+                    pt.Y + outerRadius * (cos * localX.Y + sin * localY.Y),
+                    pt.Z + outerRadius * (cos * localX.Z + sin * localY.Z)));
+            }
+
+            // Faces
+            if (i > 0)
+            {
+                int prevRingOffset = (i - 1) * profileSegments;
+                int currentRingOffset = i * profileSegments;
+
+                for (int j = 0; j < profileSegments; j++)
+                {
+                    int nextJ = (j + 1) % profileSegments;
+                    int i0 = prevRingOffset + j;
+                    int i1 = prevRingOffset + nextJ;
+                    int i2 = currentRingOffset + j;
+                    int i3 = currentRingOffset + nextJ;
+
+                    model.Faces.Add((i0, i2, i1));
+                    model.Faces.Add((i1, i2, i3));
+                }
+            }
+        }
+
+        double dot = elbow.IncomingVector.X * elbow.OutgoingVector.X + elbow.IncomingVector.Y * elbow.OutgoingVector.Y + elbow.IncomingVector.Z * elbow.OutgoingVector.Z;
+        double bendAngle = Math.Acos(Math.Clamp(dot, -1, 1)) * 180.0 / Math.PI;
+        model.Properties["Angle"] = bendAngle;
         model.Properties["Diameter"] = elbow.InnerDiameter;
 
         return model;
@@ -178,7 +224,7 @@ public class Pipe3DModelService
 
     /*
        NE: Te → 3D Model
-       NEDEN: T-parçası fitting'ini 3D geometri ile üretir.
+       NEDEN: T-parçası fitting'ini birbirini kesen iki silindir olarak üretir.
     */
     public Solid3DModel GenerateTee3D(TeeEntity tee, LevelOfDetail lod = LevelOfDetail.LOD200)
     {
@@ -187,29 +233,66 @@ public class Pipe3DModelService
         model.Type = "Tee";
         model.SystemType = tee.SystemType.ToString();
 
-        double size = tee.InnerDiameter * 2.0;
-        var center = tee.Center;
+        // 1. Ana Gövde Silindiri (Main Run)
+        double length = tee.InnerDiameter * 2.5;
+        var pMainStart = tee.Center - tee.MainDirection * (length / 2);
+        var pMainEnd = tee.Center + tee.MainDirection * (length / 2);
+        
+        GenerateCylinderToModel(model, pMainStart, pMainEnd, tee.InnerDiameter, lod);
 
-        // T-şekli: Ana gövde + Branşman çıkış kutusu
-        model.Vertices.Add(center + new Vector3D(-size, -size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(size, -size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(size, size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(-size, size / 2, -size / 2));
-        model.Vertices.Add(center + new Vector3D(-size, -size / 2, size / 2));
-        model.Vertices.Add(center + new Vector3D(size, -size / 2, size / 2));
-        model.Vertices.Add(center + new Vector3D(size, size / 2, size / 2));
-        model.Vertices.Add(center + new Vector3D(-size, size / 2, size / 2));
-
-        model.Faces.AddRange(new (int, int, int)[]
-        {
-            (0, 1, 2), (0, 2, 3), (4, 6, 5), (4, 7, 6),
-            (0, 4, 5), (0, 5, 1), (2, 6, 7), (2, 7, 3),
-            (0, 3, 7), (0, 7, 4), (1, 5, 6), (1, 6, 2)
-        });
+        // 2. Branşman Silindiri (Branch)
+        // Kesişimde temiz görünmesi için merkezden biraz daha içeriden başlatılabilir ama görselleştirme için merkez yeterli.
+        var pBranchStart = tee.Center;
+        var pBranchEnd = tee.Center + tee.BranchDirection * (length / 2);
+        
+        GenerateCylinderToModel(model, pBranchStart, pBranchEnd, tee.InnerDiameter, lod);
 
         model.Properties["MainDiameter"] = tee.InnerDiameter;
-
         return model;
+    }
+
+    private void GenerateCylinderToModel(Solid3DModel model, Vector3D start, Vector3D end, double diameter, LevelOfDetail lod)
+    {
+        int segments = lod switch { LevelOfDetail.LOD100 => 6, LevelOfDetail.LOD200 => 12, _ => 24 };
+        double radius = diameter / 2.0;
+        double outerRadius = radius + GetWallThickness(diameter);
+
+        var direction = end - start;
+        double len = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z);
+        if (len < 0.001) return;
+
+        var dirNorm = new Vector3D(direction.X / len, direction.Y / len, direction.Z / len);
+        var (localX, localY) = ComputeLocalAxes(dirNorm);
+
+        int baseVertexIndex = model.Vertices.Count;
+
+        for (int ring = 0; ring <= 1; ring++)
+        {
+            var center = ring == 0 ? start : end;
+            for (int i = 0; i < segments; i++)
+            {
+                double angle = 2.0 * Math.PI * i / segments;
+                double cos = Math.Cos(angle);
+                double sin = Math.Sin(angle);
+
+                model.Vertices.Add(new Vector3D(
+                    center.X + outerRadius * (cos * localX.X + sin * localY.X),
+                    center.Y + outerRadius * (cos * localX.Y + sin * localY.Y),
+                    center.Z + outerRadius * (cos * localX.Z + sin * localY.Z)));
+            }
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+            int i0 = baseVertexIndex + i;
+            int i1 = baseVertexIndex + next;
+            int i2 = baseVertexIndex + segments + i;
+            int i3 = baseVertexIndex + segments + next;
+
+            model.Faces.Add((i0, i2, i1));
+            model.Faces.Add((i1, i2, i3));
+        }
     }
 
     // --- YARDIMCI METODLAR ---

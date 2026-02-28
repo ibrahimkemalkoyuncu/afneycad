@@ -338,7 +338,45 @@ public class MechanicalKernel
                             newEntity.SystemType == MechanicalSystemType.Undefined ||
                             existingNode.SystemType == MechanicalSystemType.Undefined)
                         {
-                            TopologyGraph.Connect(newPort, existingPort);
+                            bool isElbowInserted = false;
+                            
+                            // MÜHENDİSLİK DETAYI: İki boru açılı birleşiyorsa araya otomatik Dirsek (Elbow) koy
+                            if (newEntity is PipeEntity newPipe && existingNode.Entity is PipeEntity targetPipe)
+                            {
+                                double dot = newPort.Direction.Dot(existingPort.Direction);
+                                // Normal vektörler zıt yöne bakmıyorsa (dot != -1) demek ki doğrusal değiller.
+                                if (dot > -0.99 && dot < 0.99)
+                                {
+                                    var intersection = newPort.Position;
+                                    var outVec = newPort.Direction * -1;
+                                    var elbow = new ElbowEntity(intersection, newPipe.InnerDiameter, existingPort.Direction, outVec)
+                                    {
+                                        Color = newPipe.Color,
+                                        SystemType = newPipe.SystemType,
+                                        PipeMaterialType = newPipe.PipeMaterialType
+                                    };
+
+                                    // Boru boylarını dirsek yarıçapı kadar geri çek (Trim)
+                                    if (existingPort.Name == "Start") targetPipe.StartPoint -= existingPort.Direction * elbow.Radius;
+                                    else targetPipe.EndPoint -= existingPort.Direction * elbow.Radius;
+
+                                    if (newPort.Name == "Start") newPipe.StartPoint -= newPort.Direction * elbow.Radius;
+                                    else newPipe.EndPoint -= newPort.Direction * elbow.Radius;
+
+                                    existingNode.UpdatePorts(targetPipe);
+                                    var newNode = TopologyGraph.GetNode(newPipe.Id);
+                                    if (newNode != null) newNode.UpdatePorts(newPipe);
+
+                                    Serilog.Log.Information(">>> AKILLI TOPOLOJİ: Dönüş algılandı. Dirsek eklendi ve borular trimlendi.");
+                                    OnRequestAddEntity?.Invoke(elbow);
+                                    isElbowInserted = true;
+                                }
+                            }
+
+                            if (!isElbowInserted)
+                            {
+                                TopologyGraph.Connect(newPort, existingPort);
+                            }
                         }
                     }
                 }
@@ -436,10 +474,16 @@ public class MechanicalKernel
             Serilog.Log.Warning(">>> ANALİZ UYARISI: {Count} adet mimari çakışma tespit edildi!", clashes.Count);
         }
         
-        // 5. ETİKET SENKRONİZASYONU (Associative Labels)
-        foreach (var pipe in mechanicalEntities.OfType<PipeEntity>())
+        // 5. ETİKET SENKRONİZASYONU (Associative Labels) Ve VALIDASYON ONAYI
+        foreach (var entity in mechanicalEntities)
         {
-            SyncPipeLabels(pipe);
+            if (entity is PipeEntity pipe)
+            {
+                SyncPipeLabels(pipe);
+            }
+            
+            // Hesaplanan objeyi "Geçerli" (Up-to-Date) olarak işaretle
+            entity.IsCalculationUpToDate = true;
         }
         
         Serilog.Log.Information(">>> HİDROLİK SİSTEM ANALİZİ: Tamamlandı.");
@@ -479,25 +523,24 @@ public class MechanicalKernel
     }
 
     /*
-       NE: Hidrolik Güncelleme Tetikleyicisi (TriggerHydraulicUpdate)
-       NEDEN: Herhangi bir nesne değişikliğinde (Ekleme/Silme/Taşıma) tüm tesisatın akış, debi ve çap değerlerini TS standartlarına göre (arka planda) yeniden hesaplamak için.
+       NE: Sistem Hesaplarını Geçersiz Kıl (InvalidateHydraulicSystem)
+       NEDEN: Herhangi bir nesne değişikliğinde (Ekleme/Silme/Taşıma) tüm tesisatın akış, debi ve çap değerlerini TS standartlarına göre (arka planda) hesaplamak yerine, verilerin "geçersiz" (Dirty) olduğunu işaretleriz. Kullanıcı UI üzerinde bu geçersizliği görüp "Yeniden Hesapla" butonuna basmaya zorlanır.
     */
     private void TriggerHydraulicUpdate()
     {
-        // NOT: Büyük projelerde bu işlem bir 'Task' veya throttling ile yapılmalıdır.
-        // Şimdilik her değişimde tüm topolojiyi analiz ediyoruz.
         var allMechanicalEntities = TopologyGraph.Nodes.Select(n => n.Entity).ToList();
         
-        var flowService = new FlowCalculationService(TopologyGraph)
+        foreach (var entity in allMechanicalEntities)
         {
-            FrequencyFactor = ProjectSettings.FrequencyFactor // Step 3: Ayarları uygula
-        };
-        
-        // 1. Akışları hesapla (Yükleme birimi toplama)
-        flowService.CalculateSystemFlow(allMechanicalEntities);
-        
-        // 2. Çapları kontrol et ve gerekirse otomatik büyüt (Auto-Sizing)
-        flowService.AutoSizePipes(allMechanicalEntities);
+            entity.IsCalculationUpToDate = false;
+        }
+
+        // YENİ UYGULAMA (Domain Guard): Akış yönlerini anında saptayıp Ok'ları çizim ekranında belirginleştir
+        var flowService = new FlowCalculationService(TopologyGraph);
+        flowService.InferFlowDirections(allMechanicalEntities);
+
+        // TODO: UI tarafında ekranın (Viewport) yeniden çizilmesi sağlanabilir.
+        // Hatalı (geçersiz) objeler örn. sarı renk alacak.
     }
 
     private void SyncPipeLabels(PipeEntity pipe)

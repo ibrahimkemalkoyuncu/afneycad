@@ -28,6 +28,7 @@ public class SkiaRenderContext : IRenderContext
 
     public double PixelSize { get; }
     public bool IsIsometric { get; set; } = false;
+    public bool IsHighlightMode { get; set; } = false;
 
     public SkiaRenderContext(SKCanvas canvas, double pixelSize)
     {
@@ -42,6 +43,22 @@ public class SkiaRenderContext : IRenderContext
     /// </summary>
     private SKPaint GetPaint(uint color, double thickness, bool isDashed = false, string linetype = "Continuous")
     {
+        if (IsHighlightMode)
+        {
+            // Vurgu (Selection Glow) Efekti
+            // AutoCAD standardı: Seçili nesneler parlak, kalın ve yarı-şeffaf mavi/sarı çizilir.
+            return new SKPaint
+            {
+                Color = new SKColor(255, 255, 0).WithAlpha(200), // Parlak Sarı Glow
+                StrokeWidth = 3f, // Kalın sınır
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                FilterQuality = SKFilterQuality.High,
+                StrokeCap = SKStrokeCap.Round,
+                StrokeJoin = SKStrokeJoin.Round
+            };
+        }
+
         string key = $"{color}_{thickness:F3}_{isDashed}_{linetype}";
         uint hKey = (uint)key.GetHashCode();
 
@@ -56,9 +73,9 @@ public class SkiaRenderContext : IRenderContext
             {
                 Color = new SKColor(color),
                 StrokeWidth = isThick ? (float)thickness : 0f, 
-                IsAntialias = true, // Yumuşatma şart
+                IsAntialias = isThick, // Kıl çizgiler (hairline) için antialias KAPALI (AutoCAD netliği/crisp)
                 Style = SKPaintStyle.Stroke,
-                FilterQuality = SKFilterQuality.High, // En yüksek kalite filtreleme
+                FilterQuality = SKFilterQuality.None, // En net (keskin) piksel görünümü için
                 SubpixelText = true // Metin kenarlarını süper netleştirir
             };
 
@@ -209,11 +226,16 @@ public class SkiaRenderContext : IRenderContext
     */
     public void DrawText(string text, Vector3D position, double angleDegrees, double fontSize, uint color, bool centerAlign = true)
     {
-        // FONT AYARI: AutoCAD standardına en uygun "Arial" veya "ISOCPEUR" (yoksa Arial döner)
-        // Consolas yerine teknik çizim fontu kullanıldı.
-        string key = $"{color}_{fontSize}_{centerAlign}_Arial";
+        // FONT AYARI: AutoCAD SHX (Simplex/Txt) hissiyatı için teknik font fallback yapısı.
+        // Sırasıyla ISOCPEUR (Mühendislik standardı), Consolas, Courier New ve son çare Arial denenir.
+        string key = $"{color}_{fontSize}_{centerAlign}_CADFont";
         if (!_textPaintCache.TryGetValue(key, out var paint))
         {
+            var typeface = SKTypeface.FromFamilyName("ISOCPEUR", SKFontStyle.Normal) 
+                        ?? SKTypeface.FromFamilyName("Consolas", SKFontStyle.Normal) 
+                        ?? SKTypeface.FromFamilyName("Courier New", SKFontStyle.Normal) 
+                        ?? SKTypeface.FromFamilyName("Arial", SKFontStyle.Normal);
+
             paint = new SKPaint
             {
                 Color = new SKColor(color),
@@ -221,7 +243,7 @@ public class SkiaRenderContext : IRenderContext
                 Style = SKPaintStyle.Fill,
                 TextSize = (float)(fontSize * _zoomFactor), // Font, zoom ile büyümeli
                 TextAlign = centerAlign ? SKTextAlign.Center : SKTextAlign.Left,
-                Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Normal), 
+                Typeface = typeface, 
                 SubpixelText = true,
                 LcdRenderText = true // LCD ekranlarda daha net yazı
             };

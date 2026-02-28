@@ -11,7 +11,7 @@ namespace Afney.Cad.Presentation
         NASIL: AutoCAD'deki her DWG dosyasının kendi bellek alanına sahip olması gibi, 
                burada da her sekme kendi "Dünyasını" barındırır.
     */
-    public class CadDocumentContext
+    public class CadDocumentContext : System.IDisposable
     {
         public CadDatabase Database { get; set; } = null!;
         public MechanicalKernel MechanicalKernel { get; set; } = null!;
@@ -30,6 +30,26 @@ namespace Afney.Cad.Presentation
         */
         public CadDocumentContext()
         {
+        }
+
+        /*
+           NE: Kaynakları Serbest Bırak (Dispose)
+           NEDEN: Sekme tamamen kapandığında içerisindeki rendering (SKPaint) ve database işlemlerinin GC tarafından silinmesini zorlamak.
+        */
+        public void Dispose()
+        {
+            if (Viewport != null)
+            {
+                Viewport.Dispose();
+            }
+            
+            if (Database is System.IDisposable dbDisposable)
+            {
+                dbDisposable.Dispose();
+            }
+            
+            // Olası event handler koparmalarını vb. yapabiliriz.
+            Serilog.Log.Information($"🧹 CadDocumentContext temizlendi: {ProjectName}");
         }
     }
 }

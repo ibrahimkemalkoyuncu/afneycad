@@ -30,30 +30,38 @@ public class ClashDetectionService
     {
         var results = new List<ClashResult>();
         var mechanicalEntities = entities.ToList();
-        var pipes = mechanicalEntities.OfType<PipeEntity>().ToList();
+        
+        // Sadece fiziksel tesisat elemanlarını al (Oda vb. hariç)
+        var physicalEntities = mechanicalEntities.Where(e => e is PipeEntity || e is ElbowEntity || e is TeeEntity).ToList();
 
-        // 1. Boru vs Mimari Engel (Örn: Duvar, Kolon)
-        foreach (var pipe in pipes)
+        // 1. Tesisat vs Mimari Engel (Örn: Duvar, Kolon)
+        foreach (var entity in physicalEntities)
         {
             foreach (var obs in _obstacles)
             {
-                if (Intersects(pipe, obs))
+                var entityBox = entity.GetBoundingBox();
+                var obsBox = obs.GetBoundingBox();
+
+                if (entityBox.Intersects(obsBox))
                 {
                     results.Add(new ClashResult
                     {
                         Type = ClashType.MechanicalVsArchitectural,
-                        EntityA_Id = pipe.Id,
+                        EntityA_Id = entity.Id,
                         ObstacleId = obs.Id,
-                        Position = CalculateIntersectionPoint(pipe, obs),
+                        Position = entityBox.Center,
                         Severity = obs.Type == ObstacleType.Column ? ClashSeverity.Critical : ClashSeverity.Warning,
-                        Message = $"{obs.Type} ile boru çakışması tespit edildi."
+                        Message = $"{obs.Type} ile {entity.EntityType} çakışması tespit edildi."
                     });
-                    pipe.HasHydraulicViolation = true;
+                    
+                    if (entity is PipeEntity p) p.HasHydraulicViolation = true;
+                    // Not: Diğer varlıklar için de görsel bir hata bayrağı eklenebilir.
                 }
             }
         }
 
         // 2. Boru vs Boru (FineSANI Professional Özelliği)
+        var pipes = physicalEntities.OfType<PipeEntity>().ToList();
         for (int i = 0; i < pipes.Count; i++)
         {
             for (int j = i + 1; j < pipes.Count; j++)
@@ -142,10 +150,17 @@ public class ClashDetectionService
 
     private bool Intersects(PipeEntity pipe, ArchitecturalObstacle obs)
     {
-        if (obs.Boundary.Count == 2)
-            return LineIntersectsLine(pipe.StartPoint, pipe.EndPoint, obs.Boundary[0], obs.Boundary[1]);
+        // 3D BoundingBox Çakışma Kontrolü (Phase 23)
+        var pipeBox = pipe.GetBoundingBox();
+        var obsBox = obs.GetBoundingBox();
+
+        if (pipeBox.Intersects(obsBox))
+        {
+            // Detaylı geometri kontrolü (Opsiyonel ama şimdilik BoundingBox yeterli görülebilir)
+            return true;
+        }
         
-        return LineIntersectsPolygon(pipe.StartPoint, pipe.EndPoint, obs.Boundary);
+        return false;
     }
 
     private bool LineIntersectsLine(Vector3D a, Vector3D b, Vector3D c, Vector3D d)
@@ -199,6 +214,7 @@ public enum ClashType
 
 public class ClashResult
 {
+    public Guid Id { get; set; } = Guid.NewGuid(); // Çakışmanın tekil kimliği
     public ClashType Type { get; set; }
     public Guid EntityA_Id { get; set; }
     public Guid? EntityB_Id { get; set; }
@@ -206,6 +222,7 @@ public class ClashResult
     public Vector3D Position { get; set; }
     public ClashSeverity Severity { get; set; }
     public string Message { get; set; } = string.Empty;
+    public bool IsApproved { get; set; } = false; // Kullanıcı bu çakışmayı onayladı/yoksaydı mı?
 }
 
 public enum ClashSeverity

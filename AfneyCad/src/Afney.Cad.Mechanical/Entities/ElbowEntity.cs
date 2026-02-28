@@ -83,5 +83,16 @@ public class ElbowEntity : MechanicalEntity
             new MechanicalPort(Id, "P2", Center + OutgoingVector * Radius, OutgoingVector)
         };
     }
+
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return Center;
+    }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0) Center = newPosition;
+        base.MoveGripPointAt(index, newPosition);
+    }
 }
 

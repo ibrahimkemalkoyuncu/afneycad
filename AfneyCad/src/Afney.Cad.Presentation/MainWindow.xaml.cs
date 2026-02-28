@@ -54,7 +54,7 @@ namespace Afney.Cad.Presentation
         private Afney.Cad.Commands.History.CommandHistory _history => ActiveContext.History;
         private MechanicalKernel _mechanicalKernel => ActiveContext.MechanicalKernel;
         private Afney.Cad.Application.Services.SnapEngine _snapEngine => ActiveContext.SnapEngine;
-        private Afney.Cad.Presentation.Views.CadViewport Viewport => ActiveContext.Viewport;
+        public Afney.Cad.Presentation.Views.CadViewport Viewport => ActiveContext.Viewport;
 
         /*
            NE: MainWindow Yapıcı Metodu
@@ -184,6 +184,43 @@ namespace Afney.Cad.Presentation
         }
 
         /*
+           NE: Global Klavye Olay Yöneticisi (Window_KeyDown)
+           NEDEN: Ctrl+Z (Undo) ve Ctrl+Y (Redo) kısayollarını, canvas odakta olmasa bile (Global Application Level) yakalayabilmek için.
+        */
+        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (_activeContext == null) return;
+
+            // Kontrol (Ctrl) tuşuna basılı mı?
+            bool isCtrlDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control);
+
+            if (isCtrlDown && e.Key == System.Windows.Input.Key.Z)
+            {
+                // Ctrl + Z = Undo
+                Serilog.Log.Information("⌨️ Kısayol: Ctrl+Z (Undo)");
+                _history.Undo();
+                _activeContext.Viewport.InvalidateViewport();
+                e.Handled = true;
+            }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.Y)
+            {
+                // Ctrl + Y = Redo
+                Serilog.Log.Information("⌨️ Kısayol: Ctrl+Y (Redo)");
+                _history.Redo();
+                _activeContext.Viewport.InvalidateViewport();
+                e.Handled = true;
+            }
+            // Ctrl + Shift + Z kombinasyonu Mac/bazı standartlar için Redo yerine de geçerli
+            else if (isCtrlDown && System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) && e.Key == System.Windows.Input.Key.Z)
+            {
+                Serilog.Log.Information("⌨️ Kısayol: Ctrl+Shift+Z (Redo)");
+                _history.Redo();
+                _activeContext.Viewport.InvalidateViewport();
+                e.Handled = true;
+            }
+        }
+
+        /*
            NE: Sekme Değişimi Event Handler (OnTabChanged)
            NEDEN: Kullanıcı başka bir projeye tıkladığında _activeContext'i ve UI başlığını (Title) güncellemek için.
         */
@@ -220,7 +257,11 @@ namespace Afney.Cad.Presentation
                 // ...
 
                 DocumentTabs.Items.Remove(tab);
-                if (ctx != null) _documents.Remove(ctx);
+                if (ctx != null) 
+                {
+                    _documents.Remove(ctx);
+                    ctx.Dispose(); // Memory Leak Çözüm: GC bekleme, Viewport ve RenderContext dahil hemen belleği boşalt!
+                }
 
                 if (DocumentTabs.Items.Count == 0)
                 {
@@ -229,6 +270,28 @@ namespace Afney.Cad.Presentation
                     CreateNewDocument("Boş Proje");
                 }
             }
+        }
+
+        /*
+           NE: Uygulama Kapanma (OnClosed) Olayını Ezme
+           NEDEN: Programdan çıkılırken açık kalan tüm _documents sekmelerinin Skia ve Database kaynaklarını güvenli şekilde boşaltmak.
+        */
+        protected override void OnClosed(EventArgs e)
+        {
+            try
+            {
+                foreach (var ctx in _documents)
+                {
+                    ctx.Dispose();
+                }
+                _documents.Clear();
+                Serilog.Log.Information("👋 Uygulama kapanıyor, tüm sekmeler temizlendi.");
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Uygulama kapanırken hata oluştu.");
+            }
+            base.OnClosed(e);
         }
 
         // private void LoadInitialTestData() { ... } Removed
@@ -300,12 +363,24 @@ namespace Afney.Cad.Presentation
 
             if (target is RoutePipeCommand pipeCmd)
             {
-                string material = (MaterialCombo?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "PVC";
-                double size = double.Parse((PipeSizeCombo?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "100");
+                // UI'dan kaldırılan ComboBox'lar yerine varsayılan değerler atanıyor. 
+                // Faz 20: Bu ayarlar daha sonra Proje Ayarları veya Intelligence Panel'den çekilecek.
+                string material = "PVC";
+                double size = 100.0;
+                MechanicalSystemType sys = MechanicalSystemType.WasteWater;
+                double slope = 0.0;
+                
+                if (SlopeComboBox != null && SlopeComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+                {
+                    string content = item.Content?.ToString() ?? "0";
+                    content = content.Replace("%", "").Trim();
+                    if (double.TryParse(content, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedSlope))
+                    {
+                        slope = parsedSlope; // Örn: 1.5 -> %1.5
+                    }
+                }
 
-                var systemTypeStr = (SystemTypeCombo?.SelectedItem as ComboBoxItem)?.Tag?.ToString();
-                Enum.TryParse<MechanicalSystemType>(systemTypeStr, out var sys);
-                pipeCmd.SetSettings(size, sys);
+                pipeCmd.SetSettings(size, sys, material, slope);
             }
         }
 
@@ -339,7 +414,7 @@ namespace Afney.Cad.Presentation
 
             // 1. Yeni Mimarileri Bloklama (WBlock) SihirbazÄ±nÄ± (Wizard) baÅŸlat
             // Dosya Dialog'u default aÃ§mak yerine kullanÄ±cÄ±nÄ±n adÄ±m 1'de kendi girmesini isteyelim
-            var tempDefPath = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop), "YeniPlan.afney");
+            var tempDefPath = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop), "YeniPlan.dwg");
             var wizard = new Afney.Cad.Presentation.Dialogs.WBlockWizard(Viewport, tempDefPath);
             var cmd = new Afney.Cad.Commands.MechanicalCommands.ArchitecturalBlockCommand(_database, null!);
             wizard.Owner = this;
@@ -563,32 +638,24 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
-        /*
-           NE: Metraj (BOM) Listesi Komutu
-           NEDEN: Projedeki tüm mekanik öğelerin (boru, fitting, vana vb.) malzeme listesini çıkarmak için.
-        */
-        private void OnBOMCommand(object sender, RoutedEventArgs e)
+    /*
+       NE: Metraj (BOQ) Listesi Komutu
+       NEDEN: Projedeki tüm mekanik öğelerin (boru, fitting, vana vb.) malzeme listesini çıkarmak için.
+    */
+    private void OnGenerateBOQ_Click(object sender, RoutedEventArgs e)
+    {
+        Serilog.Log.Information("UI Komut: Metraj (BOM) Raporu Oluştur.");
+        try
         {
-            var result = MessageBox.Show("Metraj listesini dışa aktarmak ister misiniz?\nEvet: HTML Raporu Al\nHayır: Ekranda Göster", "Metraj Raporu", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            
-            if (result == MessageBoxResult.Yes)
-            {
-                var bomService = new BOMExportService();
-                string html = bomService.GenerateHtmlReport(_database.GetAllEntities(), _activeContext?.ProjectName ?? "AfneyProject");
-                
-                string path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"BOM_{DateTime.Now:yyyyMMdd_HHmm}.html");
-                System.IO.File.WriteAllText(path, html);
-                
-                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-                StatusText.Text = $"Metraj raporu masaüstüne kaydedildi: {path}";
-            }
-            else if (result == MessageBoxResult.No)
-            {
-                var dialog = new BOMDialog(_database.GetAllEntities());
-                dialog.Owner = this;
-                dialog.ShowDialog();
-            }
+            var bomReportWin = new Afney.Cad.Presentation.Dialogs.BomReportWindow(_database);
+            bomReportWin.Owner = this;
+            bomReportWin.ShowDialog();
         }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show($"Metraj raporu oluşturulurken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 
         /*
            NE: IFC Export Komutu
@@ -777,7 +844,7 @@ namespace Afney.Cad.Presentation
                         break;
                     case "metraj":
                     case "bom":
-                        OnBOMCommand(this, new RoutedEventArgs());
+                        OnGenerateBOQ_Click(this, new RoutedEventArgs());
                         break;
                     case "lejant":
                     case "legana": // Alias
@@ -791,7 +858,7 @@ namespace Afney.Cad.Presentation
                         OnIfcExportCommand(this, new RoutedEventArgs());
                         break;
                     default:
-                        StatusText.Text = $"Geçersiz Komut: {cmdText}";
+                        StatusText.Text = $"Bilinmeyen komut: {cmdText}";
                         break;
                 }
             }
@@ -866,8 +933,8 @@ namespace Afney.Cad.Presentation
 
             Viewport.SetViewMode(false);
 
-            var view2DBtn = this.FindName("View2DBtn") as Button;
-            var view3DBtn = this.FindName("View3DBtn") as Button;
+            var view2DBtn = this.FindName("View2DBtn") as Control;
+            var view3DBtn = this.FindName("View3DBtn") as Control;
 
             if (view2DBtn != null)
             {
@@ -891,8 +958,8 @@ namespace Afney.Cad.Presentation
 
             Viewport.SetViewMode(true);
 
-            var view2DBtn = this.FindName("View2DBtn") as Button;
-            var view3DBtn = this.FindName("View3DBtn") as Button;
+            var view2DBtn = this.FindName("View2DBtn") as Control;
+            var view3DBtn = this.FindName("View3DBtn") as Control;
 
             if (view3DBtn != null)
             {
@@ -915,17 +982,27 @@ namespace Afney.Cad.Presentation
            NE: Sistemi Yeniden Hesapla (Mühendislik Analizi)
            NEDEN: Projedeki tüm boru hatlarını analiz ederek debi, hız ve çap optimizasyonunu TS 1258 standartlarında gerçekleştirmek için.
         */
-        private void OnRecalculateSystem(object sender, RoutedEventArgs e)
+        private async void OnRecalculateSystem(object sender, RoutedEventArgs e)
         {
             try
             {
                 StatusText.Text = "Hidrolik analiz yapılıyor (TS 1258)...";
-                _mechanicalKernel.RecalculateProject(_database.GetAllEntities());
+                MainProgressBar.Visibility = Visibility.Visible;
+                TabCalculation.IsEnabled = false;
+
+                // Cache entities so we don't access database on background thread if it's thread-unsafe
+                var entities = _database.GetAllEntities().ToList();
+
+                await System.Threading.Tasks.Task.Run(() => 
+                {
+                    _mechanicalKernel.RecalculateProject(entities);
+                });
 
                 // Viewport'u yenile (Çaplar değişmiş olabilir)
                 Viewport.InvalidateVisual();
 
-                MessageBox.Show("Tüm sistem analizi tamamlandı.\n" +
+                StatusText.Text = "Analiz Tamamlandı.";
+                MessageBox.Show("Tüm sistem analizi asenkron olarak tamamlandı.\n" +
                                 "- Akış yükleri (FU) hesaplandı.\n" +
                                 "- Boru çapları otomatik optimize edildi.\n" +
                                 "- Kritik hat basınç kayıpları güncellendi.",
@@ -934,6 +1011,64 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"Analiz hatası: {ex.Message}");
+                StatusText.Text = "Analiz Başarısız.";
+            }
+            finally
+            {
+                MainProgressBar.Visibility = Visibility.Collapsed;
+                TabCalculation.IsEnabled = true;
+            }
+        }
+
+        #endregion
+
+        #region -- OSNAP (YAKALAMA) KONTROLLERİ --
+
+        /*
+           NE: OSNAP Ana Şalter (Aç/Kapa)
+           NEDEN: Kullanıcı, F3 tuşuna veya ana butona bastığında tüm yakalama motorunu devreden çıkarmak için.
+        */
+        private void OnOsnapMasterToggle(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext?.SnapEngine == null) return;
+            
+            // ToggleButton geliyorsa
+            if (sender is System.Windows.Controls.Primitives.ToggleButton masterBtn)
+            {
+                bool isEnabled = masterBtn.IsChecked == true;
+                _activeContext.SnapEngine.IsOsnapEnabled = isEnabled;
+                
+                masterBtn.Foreground = isEnabled ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 221, 255)) : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(150, 150, 150));
+                masterBtn.Content = isEnabled ? "Açık" : "Kapalı";
+                
+                Serilog.Log.Information($"OSNAP Ana Şalter: {(isEnabled ? "Açık" : "Kapalı")}");
+                _activeContext.Viewport.InvalidateViewport();
+            }
+        }
+
+        /*
+           NE: Bireysel OSNAP Kontrolleri (Endpoint, Midpoint vb.)
+           NEDEN: Kullanıcının sadece istediği noktalara (örn. merkezler) kenetlenmek için gereksiz noktaları kapatması için.
+        */
+        private void OnOsnapFlagToggle(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext?.SnapEngine == null) return;
+
+            // Hangi butona basıldı?
+            if (sender is System.Windows.Controls.Primitives.ToggleButton btn)
+            {
+                bool isEnabled = btn.IsChecked == true;
+                btn.Foreground = isEnabled ? System.Windows.Media.Brushes.White : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(150, 150, 150));
+
+                switch (btn.Name)
+                {
+                    case "BtnOsnapEnd": _activeContext.SnapEngine.EnableEndpoint = isEnabled; break;
+                    case "BtnOsnapMid": _activeContext.SnapEngine.EnableMidpoint = isEnabled; break;
+                    case "BtnOsnapCen": _activeContext.SnapEngine.EnableCenter = isEnabled; break;
+                    case "BtnOsnapPerp": _activeContext.SnapEngine.EnablePerpendicular = isEnabled; break;
+                }
+
+                Serilog.Log.Information($"OSNAP Bayrağı ({btn.Name}): {(isEnabled ? "Açık" : "Kapalı")}");
             }
         }
 
@@ -1321,15 +1456,6 @@ namespace Afney.Cad.Presentation
         private void OnCalculateFlowCommand(object sender, RoutedEventArgs e)
         {
             OnAutoPipeSizing(sender, e);
-        }
-
-        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == System.Windows.Input.Key.Escape)
-            {
-                Viewport.SetActiveCommand(null);
-                StatusText.Text = "Ready";
-            }
         }
 
         // -- YENİ ÖZELLİKLER --
@@ -1829,6 +1955,31 @@ namespace Afney.Cad.Presentation
            NE: Detaylı Hidrolik Hesap Raporu Üret
            NEDEN: Sistemdeki tüm boru segmentlerinin hız, debi, yük birimi ve sürtünme kaybı bilgilerini içeren HTML tablosu oluşturup mühendise sunmak için. (Faz 7)
         */
+        private void OnClashDetectionClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var clashService = new Afney.Cad.Mechanical.Services.ClashDetectionService(_mechanicalKernel.ArchitecturalObstacles);
+                var mechanicals = _mechanicalKernel.TopologyGraph.Nodes.Select(n => n.Entity).ToList();
+                var clashes = clashService.DetectClashes(mechanicals);
+
+                var reportDialog = new Afney.Cad.Presentation.Dialogs.ClashReportDialog(clashes);
+                reportDialog.Owner = this;
+                reportDialog.ShowDialog();
+
+                Viewport.InvalidateViewport(); // Çakışan kırmızı nesneleri çizmek için
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Clash Detection Hatası");
+                MessageBox.Show($"Çakışma Analizi sırasında hata oluştu: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /*
+           NE: Detaylı Hidrolik Hesap Raporu Üret
+           NEDEN: Sistemdeki tüm boru segmentlerinin hız, debi, yük birimi ve sürtünme kaybı bilgilerini içeren HTML tablosu oluşturup mühendise sunmak için. (Faz 7)
+        */
         private void OnGenerateHydraulicReport(object sender, RoutedEventArgs e)
         {
             try
@@ -2215,6 +2366,91 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"Kolon şeması hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ========== FAZ 20: FLOW LOCK VE DOMAIN GUARD HANDLER'LARI ==========
+
+        private void OnConfirmSystemSettings(object sender, RoutedEventArgs e)
+        {
+            // İleride daha kompleks null kontrolleri (Domain Engine'den) konabilir
+            MessageBox.Show("Bina ve Sistem ayarları onaylandı.\nUç Noktalar sekmesinin kilidi açıldı.", "Süreç Onayı", MessageBoxButton.OK, MessageBoxImage.Information);
+            
+            // Flow Lock: Uç Noktalar kilidi açılır
+            if (TabTerminals != null) 
+            {
+                TabTerminals.IsEnabled = true;
+                TabTerminals.IsSelected = true;
+            }
+        }
+
+        private void OnConfirmTerminals(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Mahal yükleri (Debi/Yük) tanımlamaları onaylandı.\nTesisat (Boru Çizimi) sekmesinin kilidi açıldı.", "Süreç Onayı", MessageBoxButton.OK, MessageBoxImage.Information);
+            
+            // Flow Lock: Tesisat Çizimi kilidi açılır
+            if (TabRouting != null) 
+            {
+                TabRouting.IsEnabled = true;
+                TabRouting.IsSelected = true;
+            }
+        }
+
+        private void OnConfirmRouting(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Rotalama onaylandı.\nHesap (Validasyon) sekmesinin kilidi açıldı.", "Süreç Onayı", MessageBoxButton.OK, MessageBoxImage.Information);
+            
+            // Flow Lock: Hesap (Validasyon) kilidi açılır
+            if (TabCalculation != null) 
+            {
+                TabCalculation.IsEnabled = true;
+                TabCalculation.IsSelected = true;
+            }
+        }
+
+        private void OnAuditSystem(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var guard = new Afney.Cad.Mechanical.Services.DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
+                var result = guard.ValidateSystem();
+
+                if (result.IsValid)
+                {
+                    MessageBox.Show("Sistem topolojisi Doğrulandı.\nTers eğim ve açık uçlar bulunamadı.", "Mühendislik Validasyonu", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    // Flow Lock: Rapor ve Çıktı kilidi açılır
+                    if (TabOutputs != null) 
+                    {
+                        TabOutputs.IsEnabled = true;
+                    }
+                }
+                else
+                {
+                    var errorMsg = "Aşağıdaki hatalar tespit edildi:\n" + string.Join("\n", result.Errors);
+                    MessageBox.Show(errorMsg, "Validasyon Hatası", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                    // Hatalı nesneleri ekranda vurgula (Seç)
+                    foreach (var ent in _database.GetAllEntities()) 
+                    {
+                        ent.IsSelected = false;
+                    }
+
+                    foreach (var id in result.ProblematicEntityIds)
+                    {
+                        var problemEnt = _database.GetAllEntities().FirstOrDefault(x => x.Id == id);
+                        if (problemEnt != null)
+                        {
+                            problemEnt.IsSelected = true;
+                        }
+                    }
+                    
+                    Viewport.InvalidateVisual();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Sistem kontrol hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

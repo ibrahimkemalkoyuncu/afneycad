@@ -62,6 +62,27 @@ public class SelectionManager
     public int SelectedCount => _selectedEntityIds.Count;
 
     /*
+       NE: Seçili mi? (IsSelected)
+       NEDEN: Verilen nesne ID'sinin (Guid) halihazırda seçilen nesneler listesinde olup olmadığını hızlıca öğrenmek için. (Örn: Hover glow çalışmadan önce)
+    */
+    public bool IsSelected(Guid entityId)
+    {
+        return _selectedEntityIds.Contains(entityId);
+    }
+
+    /*
+        NE: Tekil Seçime Ekle (AddToSelection)
+    */
+    public void AddToSelection(CadEntity entity)
+    {
+        if (!_selectedEntityIds.Contains(entity.Id))
+        {
+            _selectedEntityIds.Add(entity.Id);
+            _selectedEntityCache[entity.Id] = entity;
+        }
+    }
+
+    /*
         NE: Crossing Selection (Sağdan Sola - Değen Herşey)
         AMACI: Seçim kutusuna değen TÜM entityleri seçmek.
     */
@@ -269,18 +290,11 @@ public class SelectionManager
         NEDEN: Kullanıcı seçili entityleri görebilmeli
         PERFORMANS: Reflection kaldırıldı, SKPoint kullanılıyor.
     */
-    public void DrawSelection(SKCanvas canvas, Func<Vector3D, SKPoint> worldToScreen)
+    public void DrawSelection(IRenderContext renderContext)
     {
         if (_selectedEntityIds.Count == 0) return;
 
-        // Sarı highlight için paint
-        using var highlightPaint = new SKPaint
-        {
-            Color = new SKColor(255, 255, 0, 120), // Yarı şeffaf Sarı
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 3,
-            IsAntialias = true
-        };
+        renderContext.IsHighlightMode = true;
 
         foreach (var id in _selectedEntityIds)
         {
@@ -291,25 +305,41 @@ public class SelectionManager
                  if (entity != null) _selectedEntityCache[id] = entity;
             }
             
-            if (entity == null) continue;
+            if (entity != null)
+            {
+                entity.Draw(renderContext);
+            }
+        }
+        
+        renderContext.IsHighlightMode = false;
+    }
 
-            var bbox = entity.GetBoundingBox();
-            
-            var p1 = worldToScreen(bbox.Min);
-            var p2 = worldToScreen(bbox.Max);
+    /*
+       NE: Grip Noktalarını Çiz (DrawGrips)
+       NEDEN: Seçili nesnelerin önemli noktalarında AutoCAD standartlarındaki mavi kontrol uçlarını oluşturmak için.
+    */
+    public void DrawGrips(SKCanvas canvas, Func<Vector3D, SKPoint> worldToScreen)
+    {
+        if (_selectedEntityIds.Count == 0) return;
 
-            var absWidth = Math.Abs(p2.X - p1.X);
-            var absHeight = Math.Abs(p2.Y - p1.Y);
-            
-            // Sıfır boyutluları en azından küçük bir kare gibi çiz
-            if (absWidth < 1) absWidth = 5; 
-            if (absHeight < 1) absHeight = 5;
+        using var gripPaintBorder = new SKPaint { Color = SKColors.Navy, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+        using var gripPaintFill = new SKPaint { Color = new SKColor(0, 100, 255), Style = SKPaintStyle.Fill, IsAntialias = true }; // Mavi dolgu
 
-            var left = Math.Min(p1.X, p2.X);
-            var top = Math.Min(p1.Y, p2.Y);
+        float gripSize = 6f; // 6x6 pixel kare
+        float halfSize = gripSize / 2f;
 
-            var rect = SKRect.Create(left, top, absWidth, absHeight);
-            canvas.DrawRect(rect, highlightPaint);
+        foreach (var id in _selectedEntityIds)
+        {
+            if (_selectedEntityCache.TryGetValue(id, out var entity))
+            {
+                foreach (var gripPos in entity.GetGripPoints())
+                {
+                    var p = worldToScreen(gripPos);
+                    var rect = SKRect.Create(p.X - halfSize, p.Y - halfSize, gripSize, gripSize);
+                    canvas.DrawRect(rect, gripPaintFill);
+                    canvas.DrawRect(rect, gripPaintBorder);
+                }
+            }
         }
     }
 

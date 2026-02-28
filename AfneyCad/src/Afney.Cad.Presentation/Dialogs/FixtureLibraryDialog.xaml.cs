@@ -27,14 +27,16 @@ namespace Afney.Cad.Presentation.Dialogs
 
         private void LoadFixtures(string? category = null, string? search = null)
         {
+            if (FixtureGrid == null) return; // XAML henüz yüklenmemiş olabilir
+            
             var items = _library.GetAll();
             if (!string.IsNullOrEmpty(category) && category != "Tümü")
                 items = items.Where(f => f.Category == category).ToList();
             if (!string.IsNullOrEmpty(search))
-                items = items.Where(f => f.NameTR.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                        f.NameEN.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+                items = items.Where(f => (f.NameTR ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                                        (f.NameEN ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
             FixtureGrid.ItemsSource = items;
-            CountText.Text = $"{items.Count} cihaz";
+            if (CountText != null) CountText.Text = $"{items.Count} cihaz";
         }
 
         private void CategoryFilter_Changed(object sender, SelectionChangedEventArgs e)

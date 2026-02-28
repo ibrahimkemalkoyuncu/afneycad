@@ -39,8 +39,8 @@ namespace Afney.Cad.Presentation.Dialogs
         {
             var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
-                Filter = "Afney CAD Planı (*.afney)|*.afney|Autocad DXF (*.dxf)|*.dxf",
-                Title = "Mimari Planı Kaydet",
+                Filter = "AutoCAD DWG (*.dwg)|*.dwg|AutoCAD DXF (*.dxf)|*.dxf",
+                Title = "Mimari Planı DWG Olarak Kaydet",
                 FileName = "BodrumKat"
             };
 

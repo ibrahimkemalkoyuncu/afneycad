@@ -63,5 +63,42 @@ namespace Afney.Cad.Presentation.Dialogs
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void CalcGrid_CellEditEnding(object sender, System.Windows.Controls.DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction == System.Windows.Controls.DataGridEditAction.Commit)
+            {
+                if (e.Column.Header.ToString() == "DN")
+                {
+                    if (e.Row.Item is CalculationRow row)
+                    {
+                        var textBox = e.EditingElement as System.Windows.Controls.TextBox;
+                        if (textBox != null && double.TryParse(textBox.Text, out double newDiameter))
+                        {
+                            // Veritabanındaki boruyu bul
+                            var allPipes = _database.GetAllEntities();
+                            foreach (var entity in allPipes)
+                            {
+                                if (entity is Afney.Cad.Mechanical.Entities.PipeEntity pipe && pipe.Id.ToString().StartsWith(row.PipeId))
+                                {
+                                    // Eğer çap gerçekten değiştiyse
+                                    if (Math.Abs(pipe.InnerDiameter - newDiameter) > 0.001)
+                                    {
+                                        pipe.InnerDiameter = newDiameter;
+                                        pipe.IsSizeLocked = true; // Mühendis çapı kilitledi
+                                        pipe.IsCalculationUpToDate = false; // Sistem dengesi bozuldu, invalid işaretle
+                                        
+                                        // TODO: İdeal dünyada _mechanicalKernel referansı olsaydı
+                                        // "InvalidateSystemCalculations" veya SyncLabel yapabilirdik.
+                                        // Viewport'un tekrar çizilmesi MainWindow'da halledilecek.
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

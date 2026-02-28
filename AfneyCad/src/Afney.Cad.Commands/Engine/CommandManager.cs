@@ -22,19 +22,19 @@ Her zaman aktiftir. Bir komut yoksa "Idle" durumdadır.
 AMAÇ:
 Stateless Architecture. UI, hangi komutun çalıştığını bilmez, sadece Input gönderir.
 */
-public class CommandManager
-{
-    private ICadCommand? _activeCommand;
+    public class CommandManager
+    {
+        private ICadCommand? _activeCommand;
 
-    public bool IsCommandActive => _activeCommand != null;
-    
-    public event Action<string>? CommandFeedback;
+        public bool IsCommandActive => _activeCommand != null;
+        
+        public event Action<string>? CommandFeedback;
 
-    /*
-       NE: Komutu Başlat (StartCommand)
-       NEDEN: Yeni bir çizim veya düzenleme komutunu (Çizgi, Taşı vb.) aktif hale getirip, önceki komutu temizleyerek yaşam döngüsünü başlatmak için.
-    */
-    public void StartCommand(ICadCommand command)
+        /*
+           NE: Komutu Başlat (StartCommand)
+           NEDEN: Yeni bir çizim veya düzenleme komutunu (Çizgi, Taşı vb.) aktif hale getirip, önceki komutu temizleyerek yaşam döngüsünü başlatmak için.
+        */
+        public void StartCommand(ICadCommand command)
     {
         if (_activeCommand != null)
         {
