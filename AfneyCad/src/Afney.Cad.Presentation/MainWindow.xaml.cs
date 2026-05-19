@@ -3078,6 +3078,102 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        // ========== SESSION 22: YENİ HANDLER'LAR ==========
+
+        private void OnHotWaterCirculation(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.HotWaterCirculationDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Resirkülasyon hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPressureZoneDesign(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.PressureZoneDialog() { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Basınç bölgesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPipeCostAnalysis(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.PipeCostDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Maliyet analizi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPrintViewport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Services.PrintViewportService();
+                var options = new Services.PrintViewportService.PrintOptions
+                {
+                    ProjectName  = "AfneyCAD Projesi",
+                    DrawingTitle = "Tesisat Planı",
+                    DrawnBy      = ""
+                };
+
+                if (!svc.PrintViewport(Viewport, options))
+                    StatusText.Text = "Yazdırma iptal edildi.";
+                else
+                    StatusText.Text = "Çizim yazıcıya gönderildi.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Yazdırma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnExportPng(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title      = "PNG Olarak Kaydet",
+                    Filter     = "PNG Dosyası (*.png)|*.png",
+                    FileName   = $"AfneyCAD_{DateTime.Now:yyyyMMdd_HHmm}.png",
+                    DefaultExt = ".png"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    var svc = new Services.PrintViewportService();
+                    var options = new Services.PrintViewportService.PrintOptions
+                    {
+                        Format       = Services.PrintViewportService.PageFormat.A3_Landscape,
+                        DpiResolution = 200
+                    };
+                    svc.ExportToPng(Viewport, dlg.FileName, options);
+                    StatusText.Text = $"PNG kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+                    MessageBox.Show($"PNG başarıyla kaydedildi:\n{dlg.FileName}", "PNG Export",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"PNG export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnAuditSystem(object sender, RoutedEventArgs e)
         {
             try

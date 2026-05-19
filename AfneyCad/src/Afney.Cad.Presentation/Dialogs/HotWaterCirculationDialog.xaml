@@ -1,0 +1,123 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.HotWaterCirculationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Sıcak Su Resirkülasyon Tasarımı — AfneyCAD"
+        Height="680" Width="900" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#005A9C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#444"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+            <Setter Property="ColumnHeaderHeight" Value="28"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık -->
+        <TextBlock Grid.Row="0" Text="SICAK SU RESİRKÜLASYON DEVRE TASARIMI"
+                   FontSize="15" FontWeight="Bold" Foreground="#FFDDAA" Margin="0,0,0,12"/>
+
+        <!-- Sistem Parametreleri -->
+        <GroupBox Grid.Row="1" Header="Sistem Parametreleri" BorderBrush="#445" Foreground="White" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Margin="8,6">
+                <TextBlock Text="Besleme (°C):" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBox x:Name="TxtSupply" Text="60" Width="50"/>
+                <TextBlock Text="Dönüş (°C):" Margin="16,0,6,0" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtReturn" Text="55" Width="50"/>
+                <TextBlock Text="Ortam (°C):" Margin="16,0,6,0" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtAmbient" Text="20" Width="50"/>
+                <Button Content="📂 Projeden Yükle" Click="LoadFromDb_Click" Margin="20,0,0,0"/>
+                <Button Content="➕ Hat Ekle" Click="AddSegment_Click" Margin="8,0,0,0" Background="#2E8B57"/>
+                <Button Content="🗑️ Sil" Click="DeleteSegment_Click" Margin="4,0,0,0" Background="#6B2020"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Hat Tablosu (giriş) -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="200"/>
+            </Grid.RowDefinitions>
+
+            <DataGrid Grid.Row="0" x:Name="SegmentGrid" AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False"
+                      HeadersVisibility="Column" CanUserResizeRows="False" Margin="0,0,0,8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Hat Adı"       Binding="{Binding Description}"    Width="*"  IsReadOnly="False"/>
+                    <DataGridTextColumn Header="Uzunluk (m)"   Binding="{Binding LengthMStr}"     Width="85" IsReadOnly="False"/>
+                    <DataGridTextColumn Header="İç Çap (mm)"   Binding="{Binding DiameterStr}"    Width="85" IsReadOnly="False"/>
+                    <DataGridTextColumn Header="Et (mm)"       Binding="{Binding WallStr}"        Width="65" IsReadOnly="False"/>
+                    <DataGridTextColumn Header="İzolasyon (mm)" Binding="{Binding InsulationStr}" Width="90" IsReadOnly="False"/>
+                    <DataGridTextColumn Header="Malzeme"       Binding="{Binding Material}"       Width="70" IsReadOnly="False"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Sonuç Tablosu -->
+            <DataGrid Grid.Row="1" x:Name="ResultGrid" AutoGenerateColumns="False"
+                      IsReadOnly="True" HeadersVisibility="Column" CanUserResizeRows="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Hat"           Binding="{Binding Description}"      Width="*"/>
+                    <DataGridTextColumn Header="Isı K. (W)"    Binding="{Binding HeatLossStr}"       Width="80"/>
+                    <DataGridTextColumn Header="Res. Debi (lt/h)" Binding="{Binding FlowStr}"        Width="105"/>
+                    <DataGridTextColumn Header="Dönüş DN"      Binding="{Binding ReturnDNStr}"       Width="75"/>
+                    <DataGridTextColumn Header="ΔP (Pa)"       Binding="{Binding PressureStr}"       Width="70"/>
+                    <DataGridTextColumn Header="Hız (m/s)"     Binding="{Binding VelocityStr}"       Width="72"/>
+                    <DataGridTextColumn Header="Vana (%)"      Binding="{Binding ValveStr}"          Width="68"/>
+                </DataGrid.Columns>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsVelocityWarning}" Value="True">
+                                <Setter Property="Foreground" Value="#FFB347"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Grid>
+
+        <!-- Özet -->
+        <Border Grid.Row="3" Background="#1A2233" BorderBrush="#445" BorderThickness="1"
+                Padding="10,6" Margin="0,8,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="SummaryText"
+                           Text="Hesap için 'Hesapla' butonuna basın."
+                           Foreground="#AADDFF" FontFamily="Consolas" FontSize="12"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Butonlar -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="⚙️ Hesapla" Click="Calculate_Click" Width="100" FontWeight="Bold" Height="32"/>
+            <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57"/>
+            <Button Content="Kapat" Click="Close_Click" Width="70" Margin="8,0,0,0" Height="32" Background="#444"/>
+        </StackPanel>
+    </Grid>
+</Window>

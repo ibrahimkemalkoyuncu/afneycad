@@ -1,6 +1,6 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.3.0 — 19 Mayıs 2026  
-**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği
+**Sürüm:** v2.4.0 — 19 Mayıs 2026  
+**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
 > Her bölüm: "OtoNET'te nasıl yapılır?" → "AfneyCAD'de nasıl yapılır?" formatındadır.
@@ -531,14 +531,28 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 | 8 | MainWindow — IFC Import + DXF Export komutları | ✅ | `OnIfcImportCommand`, `OnExportDxfCommand` |
 | 9 | Ribbon — IFC İçeri / DXF Dışarı butonları | ✅ | Raporlar sekmesi → Dışa/İçeri grubu |
 
+### Tamamlanan (Session #22 — 2026-05-19)
+
+| # | Özellik | Durum | Ana Dosya |
+|---|---|---|---|
+| 1 | Sıcak Su Resirkülasyon Dialog | ✅ | `HotWaterCirculationDialog.xaml/.cs` — segment tablosu, HTML rapor, hız uyarısı |
+| 2 | Basınç Bölgesi Servisi | ✅ | `PressureZoneService.cs` — TS EN 806-3, PRV zon hesabı, ExportToHtml |
+| 3 | Basınç Bölgesi Dialog | ✅ | `PressureZoneDialog.xaml/.cs` — zon tablosu, özet, HTML rapor |
+| 4 | Yangın Hidrant Hesabı | ✅ | `FireFightingService` +3 metot: `DesignHydrantSystem`, `DesignHoseReels`, `AnalyzeWaterSupply` |
+| 5 | Boru Maliyet Analizi | ✅ | `PipeCostService.cs` — 35 malzeme fiyatı, proje maliyet özeti, HTML export |
+| 6 | Boru Maliyet Dialog | ✅ | `PipeCostDialog.xaml/.cs` — giriş tablosu, sonuç, projeden yükle |
+| 7 | Viewport Baskı / PNG Export | ✅ | `PrintViewportService.cs` — PrintDialog A3/A4, SkiaSharp PNG, başlık bloğu |
+| 8 | MainWindow — yeni handler'lar | ✅ | `OnHotWaterCirculation`, `OnPressureZoneDesign`, `OnPipeCostAnalysis`, `OnPrintViewport`, `OnExportPng` |
+| 9 | Ribbon — İleri Analiz grubu | ✅ | Resirkülasyon · Basınç Bölgesi · Maliyet · Yazdır · PNG |
+
 ### Bir Sonraki Session Öncelikleri
 
-1. **Sıcak Su Resirkülasyon Dialog** — `HotWaterCirculationService` için WPF arayüzü (devre tablosu + HTML rapor)
-2. **Basınç Bölgesi Yönetimi** — Yüksek binalarda basınç kırma vanaları ve bölge sınırları
-3. **Yangın Hattı Hesabı** — `FireFightingService`'e NFPA 13 / TS EN 12845 uyumu
-4. **Boru Maliyeti Analizi** — BOM'a birim fiyat tablosu ve proje toplam maliyeti
-5. **PDF Baskı** — `PrintDialog` + SkiaSharp tabanlı viewport → PDF dışa aktarma
+1. **BOM Maliyet Kolonları** — Mevcut `BOMDialog`'a Birim Fiyat ve Toplam TL kolonları ekleme
+2. **Yangın Söndürme Dialog** — `FireFightingDialog`'a Hidrant + Hortum Makarası sekmeleri
+3. **Basınç Düşümü 3D** — Boru hattında renk gradyanı ile basınç haritası
+4. **Pompaj Grubu Seçimi** — Paralel/seri pompa kombinasyonu Q-H grafiği
+5. **Otomatik Boyutlandırma** — Tüm boru ağını tek komutla TS 1258'e göre boyutlandır
 
 ---
 
-*Son güncelleme: 2026-05-19 | AfneyCAD v2.3.0 — Session #21: Pompa Grafiği + IFC Dialog + Resirkülasyon + DXF Export + Norm*
+*Son güncelleme: 2026-05-19 | AfneyCAD v2.4.0 — Session #22: Resirkülasyon Dialog + Basınç Bölgesi + Hidrant + Maliyet + Baskı/PNG*

@@ -154,4 +154,220 @@ public class FireFightingService
 
         return positions;
     }
+
+    // ── HİDRANT SİSTEMİ ────────────────────────────────────────────────────────
+
+    public enum HydrantType { Indoor, Outdoor }
+
+    public class HydrantSystemInput
+    {
+        public double BuildingAreaM2     { get; set; } = 1000;
+        public int    NumberOfFloors     { get; set; } = 5;
+        public double FloorHeightM       { get; set; } = 3.5;
+        public HazardClass Hazard        { get; set; } = HazardClass.OrdinaryHazard_1;
+        public HydrantType HydrantType   { get; set; } = HydrantType.Indoor;
+        public double AvailablePressureBar { get; set; } = 3.5;
+    }
+
+    public class HydrantDesignResult
+    {
+        public int    HydrantCount         { get; set; }
+        public double HydrantFlowLpm       { get; set; }   // lt/dk (tek hidrant)
+        public double TotalFlowLpm         { get; set; }   // lt/dk (eş zamanlı)
+        public double SimultaneousCount    { get; set; }   // eş zamanlı çalışan
+        public double HoseDiameterMm       { get; set; }
+        public double HoseReelFlowLpm      { get; set; }
+        public double RequiredPressureBar  { get; set; }
+        public double RisserPipeDn         { get; set; }
+        public double PumpCapacityLpm      { get; set; }
+        public double PumpHeadMss          { get; set; }
+        public double WaterTankM3          { get; set; }   // 45 dk yedek
+        public string Standard             { get; set; } = "";
+        public List<string> Notes          { get; set; } = [];
+    }
+
+    /*
+       NE: İç/dış hidrant sistemi tasarımı
+       NEDEN: TS EN 671-1/2, NFPA 14, Binaların Yangından Korunması Yönetmeliği
+       Eş zamanlı hidrant sayısı: <5 kat → 1 hidrant; 5-10 kat → 2; >10 kat → 3
+    */
+    public HydrantDesignResult DesignHydrantSystem(HydrantSystemInput input)
+    {
+        var result = new HydrantDesignResult
+        {
+            Standard = "TS EN 671-1/2 / NFPA 14 / BKY"
+        };
+
+        // Eş zamanlı hidrant sayısı (BKY Tablo)
+        int simultaneous = input.NumberOfFloors switch
+        {
+            <= 4  => 1,
+            <= 10 => 2,
+            _     => 3
+        };
+        result.SimultaneousCount = simultaneous;
+
+        // Her hidrant debisi (TS EN 671-1: DN52 hortum → 400 lt/dk; DN25 makara → 100 lt/dk)
+        if (input.HydrantType == HydrantType.Indoor)
+        {
+            result.HoseDiameterMm     = 52;
+            result.HydrantFlowLpm     = 400;
+            result.HoseReelFlowLpm    = 100;
+        }
+        else
+        {
+            result.HoseDiameterMm     = 100;
+            result.HydrantFlowLpm     = 1500;  // dış hidrant NFPA
+            result.HoseReelFlowLpm    = 0;
+        }
+
+        // Toplam hidrant sayısı (bina katı başına 1, min 2)
+        result.HydrantCount = Math.Max(2, input.NumberOfFloors);
+
+        result.TotalFlowLpm = simultaneous * result.HydrantFlowLpm;
+
+        // Boru çapı (Darcy-Weisbach basit yaklaşım)
+        result.RisserPipeDn = result.TotalFlowLpm switch
+        {
+            <= 800  => 80,
+            <= 1600 => 100,
+            <= 3000 => 150,
+            _       => 200
+        };
+
+        // Gerekli basınç (tavan + sürtünme + hidrant min. basıncı)
+        double heightLoss = (input.NumberOfFloors * input.FloorHeightM) / 10.2;
+        double frictionLoss = 0.5;  // bar (riser + dağıtım)
+        double minHydrantPressure = input.HydrantType == HydrantType.Indoor ? 2.5 : 3.5;
+        result.RequiredPressureBar = minHydrantPressure + heightLoss + frictionLoss;
+
+        // Pompa
+        result.PumpCapacityLpm = result.TotalFlowLpm * 1.15;
+        result.PumpHeadMss     = result.RequiredPressureBar * 10.2;
+
+        // Su deposu (45 dakika operasyon, TS EN 671)
+        result.WaterTankM3 = result.TotalFlowLpm * 45.0 / 1000.0;
+
+        if (input.AvailablePressureBar >= result.RequiredPressureBar)
+            result.Notes.Add($"✓ Şebeke basıncı ({input.AvailablePressureBar:F1} bar) yeterli — pompa gerekmeyebilir.");
+        else
+            result.Notes.Add($"⚠ Şebeke basıncı yetersiz. Pompa gerekli: Hm ≥ {result.PumpHeadMss:F1} mSS");
+
+        result.Notes.Add($"Eş zamanlı {simultaneous} hidrant çalışması varsayıldı.");
+        result.Notes.Add($"Su deposu: min {result.WaterTankM3:F0} m³ (45 dk. işletme)");
+
+        return result;
+    }
+
+    // ── YANGIN HORTUM MAKARASI ─────────────────────────────────────────────────
+
+    public class HoseReelDesignResult
+    {
+        public int    ReelCount           { get; set; }
+        public double HoseLength          { get; set; } = 30;  // m (standart)
+        public double FlowPerReelLpm      { get; set; }
+        public double WorkingPressureBar  { get; set; }
+        public double CoverageRadiusM     { get; set; }
+        public double PipeDn              { get; set; }
+        public string Standard            { get; set; } = "";
+        public List<string> Notes         { get; set; } = [];
+    }
+
+    /*
+       NE: Yangın hortum makarası (First-Aid Hose Reel) tasarımı
+       NEDEN: TS EN 671-1, her makaranın 100 lt/dk @ 2.5 bar min. sağlaması gerekir
+              Yerleşim: 30m hortum + 5m jettle 35m çap, tam örtme için ≤35m aralık
+    */
+    public HoseReelDesignResult DesignHoseReels(double buildingFloorAreaM2, int floors)
+    {
+        var result = new HoseReelDesignResult
+        {
+            Standard          = "TS EN 671-1",
+            FlowPerReelLpm    = 100,
+            WorkingPressureBar = 2.5,
+            HoseLength        = 30,
+            CoverageRadiusM   = 35  // 30m hortum + 5m jet
+        };
+
+        // Her 500 m² için 1 makara, kat başına min. 1
+        int perFloor   = (int)Math.Ceiling(buildingFloorAreaM2 / 500.0);
+        result.ReelCount = Math.Max(floors, floors * perFloor);
+
+        // Çekiş borusu çapı (her katta max 2 eş zamanlı makara)
+        double totalFlowLpm = 2 * result.FlowPerReelLpm;
+        result.PipeDn = totalFlowLpm <= 200 ? 32 : 50;
+
+        result.Notes.Add($"Kat başına {perFloor} adet makara — toplam {result.ReelCount} adet.");
+        result.Notes.Add($"Kapsama yarıçapı: {result.CoverageRadiusM} m (30m hortum + 5m jet).");
+        result.Notes.Add("Her makarada otomatik yeniden sarım ve cam kırma aparatı önerilir.");
+
+        return result;
+    }
+
+    // ── SU TEMİNİ ANALİZİ ─────────────────────────────────────────────────────
+
+    public class WaterSupplyAnalysisInput
+    {
+        public double AvailableFlowLpm     { get; set; }   // şebeke kapasitesi
+        public double AvailablePressureBar { get; set; }   // şebeke basıncı
+        public double SprinklerFlowLpm     { get; set; }
+        public double HydrantFlowLpm       { get; set; }
+        public double HoseReelFlowLpm      { get; set; }
+        public bool   HasBoosterPump       { get; set; }
+        public double BoosterPumpCapLpm    { get; set; }
+        public double BoosterPumpHeadBar   { get; set; }
+    }
+
+    public class WaterSupplyAnalysisResult
+    {
+        public double TotalDemandLpm       { get; set; }
+        public double TotalSupplyLpm       { get; set; }
+        public double FlowMarginLpm        { get; set; }
+        public double FlowMarginPct        { get; set; }
+        public bool   IsAdequate           { get; set; }
+        public double ReservoirVolumeM3    { get; set; }  // 60 dk toplam depo
+        public List<string> Recommendations { get; set; } = [];
+    }
+
+    /*
+       NE: Yangın tesisat su talebi vs. arz analizi
+       NEDEN: NFPA 1, TS 9811 — tüm sistemlerin eş zamanlı su ihtiyacının karşılanıp karşılanmadığını doğrular
+    */
+    public WaterSupplyAnalysisResult AnalyzeWaterSupply(WaterSupplyAnalysisInput input)
+    {
+        var result = new WaterSupplyAnalysisResult();
+
+        result.TotalDemandLpm = input.SprinklerFlowLpm + input.HydrantFlowLpm + input.HoseReelFlowLpm;
+
+        double supplyFlow = input.AvailableFlowLpm;
+        if (input.HasBoosterPump)
+            supplyFlow = Math.Max(supplyFlow, input.BoosterPumpCapLpm);
+
+        result.TotalSupplyLpm  = supplyFlow;
+        result.FlowMarginLpm   = supplyFlow - result.TotalDemandLpm;
+        result.FlowMarginPct   = result.TotalDemandLpm > 0
+            ? result.FlowMarginLpm / result.TotalDemandLpm * 100
+            : 0;
+        result.IsAdequate = result.FlowMarginLpm >= 0;
+
+        // Depo hesabı: 60 dakika yedek (NFPA 13 / TS EN 12845)
+        result.ReservoirVolumeM3 = result.TotalDemandLpm * 60.0 / 1000.0;
+
+        if (!result.IsAdequate)
+        {
+            double deficit = -result.FlowMarginLpm;
+            result.Recommendations.Add($"⚠ Su arzı {deficit:F0} lt/dk yetersiz. Ek pompa veya depo bağlantısı gerekli.");
+        }
+        else
+        {
+            result.Recommendations.Add($"✓ Su arzı yeterli: {result.FlowMarginPct:F0}% marj mevcut.");
+        }
+
+        result.Recommendations.Add($"Yangın suyu deposu: min {result.ReservoirVolumeM3:F0} m³ (60 dk. operasyon).");
+
+        if (input.AvailablePressureBar < 3.5)
+            result.Recommendations.Add($"⚠ Şebeke basıncı ({input.AvailablePressureBar:F1} bar) < 3.5 bar — güçlendirme pompası şart.");
+
+        return result;
+    }
 }

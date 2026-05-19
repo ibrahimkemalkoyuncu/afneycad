@@ -1,0 +1,60 @@
+﻿  Geri y├╝klenecek projeler belirleniyor...
+  Geri y├╝kleme i├ğin t├╝m projeler g├╝ncel.
+  Afney.Cad.Common -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Common\bin\Debug\net10.0\Afney.Cad.Common.dll
+  Afney.Cad.Geometry -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Geometry\bin\Debug\net10.0\Afney.Cad.Geometry.dll
+  Afney.Cad.Domain -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Domain\bin\Debug\net10.0\Afney.Cad.Domain.dll
+  Afney.Cad.SpatialIndex -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.SpatialIndex\bin\Debug\net10.0\Afney.Cad.SpatialIndex.dll
+  Afney.Cad.Database -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Database\bin\Debug\net10.0\Afney.Cad.Database.dll
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\RiserDiagramService.cs(7,7): warning CS0105: 'Afney.Cad.Database.Core' i├ğin using y├Ânergesi bu ad alan─▒nda daha ├Ânce g├Âr├╝nd├╝ [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\RiserDiagramService.cs(8,7): warning CS0105: 'Afney.Cad.Domain.Abstractions' i├ğin using y├Ânergesi bu ad alan─▒nda daha ├Ânce g├Âr├╝nd├╝ [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Services\RiserDiagramService.cs(9,7): warning CS0105: 'Afney.Cad.Geometry.Primitives' i├ğin using y├Ânergesi bu ad alan─▒nda daha ├Ânce g├Âr├╝nd├╝ [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\MechanicalKernel.cs(242,36): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\MechanicalKernel.cs(538,58): warning CS8604: 'FlowCalculationService.FlowCalculationService(MechanicalTopologyGraph graph)' i├ğindeki 'graph' parametresi i├ğin olas─▒ null ba┼şvuru ba─ş─▒ms─▒z de─şi┼şkeni. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj]
+  Afney.Cad.Mechanical -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\bin\Debug\net10.0\Afney.Cad.Mechanical.dll
+  Afney.Cad.Tests -> C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\bin\Debug\net10.0\Afney.Cad.Tests.dll
+C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\bin\Debug\net10.0\Afney.Cad.Tests.dll (.NETCoreApp,Version=v10.0) i├ğin test ├ğal─▒┼şt─▒rmas─▒
+VSTest s├╝r├╝m├╝ 18.0.1 (x64)
+
+Test y├╝r├╝tmesi ba┼şlat─▒l─▒yor, l├╝tfen bekleyin...
+Toplam 1 test dosyas─▒ belirtilen desenle e┼şle┼şti.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.3)
+[xUnit.net 00:00:00.19]   Discovering: Afney.Cad.Tests
+[xUnit.net 00:00:00.28]   Discovered:  Afney.Cad.Tests
+[xUnit.net 00:00:00.35]   Starting:    Afney.Cad.Tests
+>>> AutoConnect: 1 nodes found. Checking 774b051c-8570-47b7-ba2d-d92b3fd9ba92
+>>> AutoConnect: 2 nodes found. Checking ff31e5ac-f190-46ca-b70d-365b0fe22778
+>>> AutoConnect SUCCESS: ff31e5ac-f190-46ca-b70d-365b0fe22778[Start] <-> 774b051c-8570-47b7-ba2d-d92b3fd9ba92[LoadInlet] dist=0,0000
+>>> TopologyGraph.Connect executed.
+>>> AutoConnect: 3 nodes found. Checking 05e7216c-8df7-4076-9f2d-190979fba528
+>>> AutoConnect SUCCESS: 05e7216c-8df7-4076-9f2d-190979fba528[Start] <-> ff31e5ac-f190-46ca-b70d-365b0fe22778[End] dist=0,0000
+dotnet : [xUnit.net 00:00:01.49]     Afney.Cad.Tests.Me
+chanical.PortEngineeringTests.ReactiveCalculation_After
+DiameterChange_ShouldAutoRecalculate [FAIL]
+At line:1 char:1
++ dotnet test tests\Afney.Cad.Tests\Afney.Cad.Tests.csp
+roj --filter "Re ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.ne 
+   t 00:0...alculate [FAIL]:String) [], RemoteExcepti  
+  on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[xUnit.net 00:00:01.49]       Boru otomatik olarak ba─şlanm─▒┼ş olmal─▒.
+[xUnit.net 00:00:01.49]       Stack Trace:
+[xUnit.net 00:00:01.49]         C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\Mechanical\PortEngineeringTests.cs(187,0): at Afney.Cad.Tests.Mechanical.PortEngineeringTests.ReactiveCalculation_AfterDiameterChange_ShouldAutoRecalculate()
+[xUnit.net 00:00:01.50]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:01.50]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.51]   Finished:    Afney.Cad.Tests
+  Ba┼şar─▒s─▒z Afney.Cad.Tests.Mechanical.PortEngineeringTests.ReactiveCalculation_AfterDiameterChange_ShouldAutoRecalculate [1 s]
+  Hata ─░letisi:
+   Boru otomatik olarak ba─şlanm─▒┼ş olmal─▒.
+  Y─▒─ş─▒n ─░zleme:
+     at Afney.Cad.Tests.Mechanical.PortEngineeringTests.ReactiveCalculation_AfterDiameterChange_ShouldAutoRecalculate() in C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\Mechanical\PortEngineeringTests.cs:line 187
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Test ├çal─▒┼şt─▒rmas─▒ Ba┼şar─▒s─▒z.
+Toplam test say─▒s─▒: 1
+     Ba┼şar─▒s─▒z: 1
+ Toplam s├╝re: 2,3993 Saniye

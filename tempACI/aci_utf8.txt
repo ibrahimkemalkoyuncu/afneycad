@@ -1,0 +1,3 @@
+﻿C:\Users\afney\Desktop\afneycad\tempACI\Program.cs(3,1): error CS1529: Using yan t├╝mcesi extern di─şer ad bildirimleri d─▒┼ş─▒nda ad uzay─▒nda tan─▒mlanan di─şer t├╝m ├Â─şelerden ├Ânce gelmelidir [C:\Users\afney\Desktop\afneycad\tempACI\tempACI.csproj]
+C:\Users\afney\Desktop\afneycad\tempACI\Program.cs(3,15): error CS1529: Using yan t├╝mcesi extern di─şer ad bildirimleri d─▒┼ş─▒nda ad uzay─▒nda tan─▒mlanan di─şer t├╝m ├Â─şelerden ├Ânce gelmelidir [C:\Users\afney\Desktop\afneycad\tempACI\tempACI.csproj]
+C:\Users\afney\Desktop\afneycad\tempACI\Program.cs(3,38): error CS1529: Using yan t├╝mcesi extern di─şer ad bildirimleri d─▒┼ş─▒nda ad uzay─▒nda tan─▒mlanan di─şer t├╝m ├Â─şelerden ├Ânce gelmelidir [C:\Users\afney\Desktop\afneycad\tempACI\tempACI.csproj]

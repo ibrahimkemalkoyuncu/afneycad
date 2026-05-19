@@ -1,0 +1,8 @@
+﻿C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1144,68): error CS1061: 'CadViewport' bir 'SelectionManager' tan─▒m─▒ i├ğermiyor ve 'CadViewport' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'SelectionManager' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_viaayuke_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1148,48): error CS0070: 'CadViewport.OnFeedback' olay─▒ += veya -= i┼şaretlerinin yaln─▒zca sol taraf─▒nda g├Âr├╝nebilir ('CadViewport' t├╝r├╝ i├ğinden kullan─▒lmas─▒ durumu d─▒┼ş─▒nda) [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_viaayuke_wpftmp.csproj]
+
+Olu┼şturma BA┼ŞARISIZ OLDU.
+    8 Uyar─▒
+    2 Hata
+
+Ge├ğen S├╝re 00:00:06.04

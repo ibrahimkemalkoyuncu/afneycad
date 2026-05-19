@@ -1,0 +1,37 @@
+﻿  Geri y├╝klenecek projeler belirleniyor...
+  Geri y├╝kleme i├ğin t├╝m projeler g├╝ncel.
+  Afney.Cad.Common -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Common\bin\Debug\net10.0\Afney.Cad.Common.dll
+  Afney.Cad.Geometry -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Geometry\bin\Debug\net10.0\Afney.Cad.Geometry.dll
+  Afney.Cad.Domain -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Domain\bin\Debug\net10.0\Afney.Cad.Domain.dll
+  Afney.Cad.Render -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Render\bin\Debug\net10.0\Afney.Cad.Render.dll
+  Afney.Cad.SpatialIndex -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.SpatialIndex\bin\Debug\net10.0\Afney.Cad.SpatialIndex.dll
+  Afney.Cad.Database -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Database\bin\Debug\net10.0\Afney.Cad.Database.dll
+  Afney.Cad.Mechanical -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\bin\Debug\net10.0\Afney.Cad.Mechanical.dll
+  Afney.Cad.Infrastructure -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Infrastructure\bin\Debug\net10.0\Afney.Cad.Infrastructure.dll
+  Afney.Cad.Commands -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Commands\bin\Debug\net10.0\Afney.Cad.Commands.dll
+  Afney.Cad.Application -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Application\bin\Debug\net10.0\Afney.Cad.Application.dll
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(15,7): warning CS0105: 'System.Windows.Input' i├ğin using y├Ânergesi bu ad alan─▒nda daha ├Ânce g├Âr├╝nd├╝ [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(207,40): warning CS8604: 'void MainWindow.OnCalculateFlowCommand(object sender, RoutedEventArgs e)' i├ğindeki 'sender' parametresi i├ğin olas─▒ null ba┼şvuru ba─ş─▒ms─▒z de─şi┼şkeni. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(1184,25): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1331,41): error CS1061: 'CadViewport' bir 'ToggleOrthoMode' tan─▒m─▒ i├ğermiyor ve 'CadViewport' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'ToggleOrthoMode' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(1364,33): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1696,21): warning CS0219: 'progress' de─şi┼şkeni atan─▒r ancak de─şeri hi├ğbir zaman kullan─▒lmaz [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1807,37): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(79,59): warning CS0649: 'CadViewport._zoomTimer' alan─▒ hi├ğbir zaman atanmaz ve her zaman varsay─▒lan null de─şerine sahip olur [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Dialogs\DefineBuildingDialog.xaml.cs(34,38): warning CS0067: 'DefineBuildingDialog.OnLevelActivated' olay─▒ hi├ğbir zaman kullan─▒lmaz [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+
+Olu┼şturma BA┼ŞARISIZ OLDU.
+
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(15,7): warning CS0105: 'System.Windows.Input' i├ğin using y├Ânergesi bu ad alan─▒nda daha ├Ânce g├Âr├╝nd├╝ [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(207,40): warning CS8604: 'void MainWindow.OnCalculateFlowCommand(object sender, RoutedEventArgs e)' i├ğindeki 'sender' parametresi i├ğin olas─▒ null ba┼şvuru ba─ş─▒ms─▒z de─şi┼şkeni. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(1184,25): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(1364,33): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1696,21): warning CS0219: 'progress' de─şi┼şkeni atan─▒r ancak de─şeri hi├ğbir zaman kullan─▒lmaz [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1807,37): warning CS8602: Olas─▒ bir null ba┼şvurunun ba┼şvurma i┼şlemi. [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Views\CadViewport.xaml.cs(79,59): warning CS0649: 'CadViewport._zoomTimer' alan─▒ hi├ğbir zaman atanmaz ve her zaman varsay─▒lan null de─şerine sahip olur [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Dialogs\DefineBuildingDialog.xaml.cs(34,38): warning CS0067: 'DefineBuildingDialog.OnLevelActivated' olay─▒ hi├ğbir zaman kullan─▒lmaz [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\MainWindow.xaml.cs(1331,41): error CS1061: 'CadViewport' bir 'ToggleOrthoMode' tan─▒m─▒ i├ğermiyor ve 'CadViewport' t├╝r├╝nde bir ilk ba─ş─▒ms─▒z de─şi┼şken kabul eden hi├ğbir eri┼şilebilir 'ToggleOrthoMode' geni┼şletme y├Ântemi bulunamad─▒ (bir kullanma y├Ânergeniz veya derleme ba┼şvurunuz eksik olabilir mi?) [C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Presentation\Afney.Cad.Presentation_1tng1y0z_wpftmp.csproj]
+    8 Uyar─▒
+    1 Hata
+
+Ge├ğen S├╝re 00:00:04.61

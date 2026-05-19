@@ -608,8 +608,27 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="📥 IFC İçeri" Click="OnIfcImportCommand" Style="{StaticResource RbnBtn}" ToolTip="Mimari IFC dosyasını altlık olarak aktar"/>
                                             <Button Content="📤 DXF Dışarı" Click="OnExportDxfCommand" Style="{StaticResource RbnAccent}" ToolTip="Çizimi DXF R12 formatında dışa aktar"/>
+                                            <Button Content="🖼️ PNG Kaydet" Click="OnExportPng" Style="{StaticResource RbnBtn}" ToolTip="Viewport'u yüksek çözünürlüklü PNG olarak kaydet"/>
                                         </StackPanel>
                                         <TextBlock Text="Dışa/İçeri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#CC44AA" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🖨️ Yazdır" Click="OnPrintViewport" Style="{StaticResource RbnOk}" ToolTip="Çizimi A3/A4 yazıcıya gönder"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Baskı" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#22BBCC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="♻️ Resirkülasyon" Click="OnHotWaterCirculation" Style="{StaticResource RbnBtn}" ToolTip="Sıcak su resirkülasyon devre tasarımı"/>
+                                            <Button Content="🔵 Basınç Bölgesi" Click="OnPressureZoneDesign"  Style="{StaticResource RbnBtn}" ToolTip="PRV basınç bölgesi tasarımı"/>
+                                            <Button Content="💰 Maliyet"        Click="OnPipeCostAnalysis"    Style="{StaticResource RbnBtn}" ToolTip="Boru maliyeti ve keşif analizi"/>
+                                        </StackPanel>
+                                        <TextBlock Text="İleri Analiz" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </WrapPanel>

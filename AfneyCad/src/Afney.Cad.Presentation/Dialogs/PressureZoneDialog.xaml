@@ -1,0 +1,147 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.PressureZoneDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Basınç Bölgesi Tasarımı — AfneyCAD"
+        Height="640" Width="860" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#005A9C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#444"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+            <Setter Property="ColumnHeaderHeight" Value="28"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık -->
+        <TextBlock Grid.Row="0" Text="BASINÇ BÖLGESİ TASARIM (PRV ZON ANALİZİ)"
+                   FontSize="15" FontWeight="Bold" Foreground="#FFDDAA" Margin="0,0,0,12"/>
+
+        <!-- Giriş Parametreleri -->
+        <GroupBox Grid.Row="1" Header="Bina Parametreleri" BorderBrush="#445" Foreground="White" Margin="0,0,0,10">
+            <Grid Margin="8,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="80"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Toplam Yükseklik (m):" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtHeight" Text="90"/>
+
+                <TextBlock Grid.Column="3" Text="Şebeke Basıncı (kPa):" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="4" x:Name="TxtSupplyPressure" Text="350"/>
+
+                <TextBlock Grid.Column="6" Text="Kat Sayısı:" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="7" x:Name="TxtFloors" Text="30"/>
+
+                <TextBlock Grid.Column="9" Text="Kat Yüksekliği (m):" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="10" x:Name="TxtFloorHeight" Text="3.0"/>
+
+                <TextBlock Grid.Column="12" Text="PRV Set (kPa):" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="13" x:Name="TxtPrvSet" Text="300"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Sonuç Tablosu + Açıklamalar -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <DataGrid Grid.Row="0" x:Name="ZoneGrid" AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False"
+                      HeadersVisibility="Column" CanUserResizeRows="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Bölge"          Binding="{Binding ZoneNumStr}"        Width="55"/>
+                    <DataGridTextColumn Header="Katlar"         Binding="{Binding FloorsStr}"         Width="100"/>
+                    <DataGridTextColumn Header="Yükseklik (m)"  Binding="{Binding HeightStr}"         Width="110"/>
+                    <DataGridTextColumn Header="P_alt (kPa)"    Binding="{Binding PBottomStr}"        Width="90"/>
+                    <DataGridTextColumn Header="P_üst (kPa)"    Binding="{Binding PTopStr}"           Width="90"/>
+                    <DataGridTextColumn Header="PRV"            Binding="{Binding PrvStr}"            Width="55"/>
+                    <DataGridTextColumn Header="PRV Giriş (kPa)" Binding="{Binding PrvInStr}"  Width="110"/>
+                    <DataGridTextColumn Header="PRV Çıkış (kPa)" Binding="{Binding PrvOutStr}" Width="110"/>
+                </DataGrid.Columns>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasPrv}" Value="True">
+                                <Setter Property="Foreground" Value="#FFB347"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+
+            <!-- Notlar -->
+            <Border Grid.Row="1" Background="#1A2233" BorderBrush="#445" BorderThickness="1"
+                    Padding="10,6" Margin="0,8,0,0">
+                <TextBlock x:Name="NotesText"
+                           Text="Hesap için 'Hesapla' butonuna basın."
+                           Foreground="#AADDFF" FontFamily="Consolas" FontSize="11"
+                           TextWrapping="Wrap"/>
+            </Border>
+        </Grid>
+
+        <!-- Özet -->
+        <Border Grid.Row="3" Background="#1A2A1A" BorderBrush="#3A5A3A" BorderThickness="1"
+                Padding="10,6" Margin="0,8,0,4">
+            <TextBlock x:Name="SummaryText"
+                       Text="—"
+                       Foreground="#88FF88" FontFamily="Consolas" FontSize="12"/>
+        </Border>
+
+        <!-- Standart Bilgisi -->
+        <TextBlock Grid.Row="4" x:Name="StandardText"
+                   Text="Standart: TS EN 806-3 / DIN 1988-300  |  Maks. statik basınç: 500 kPa  |  PRV set: 300 kPa"
+                   Foreground="#888" FontSize="11" Margin="0,0,0,8"/>
+
+        <!-- Butonlar -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="⚙️ Hesapla" Click="Calculate_Click" Width="100" FontWeight="Bold" Height="32"/>
+            <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57"/>
+            <Button Content="Kapat" Click="Close_Click" Width="70" Margin="8,0,0,0" Height="32" Background="#444"/>
+        </StackPanel>
+    </Grid>
+</Window>

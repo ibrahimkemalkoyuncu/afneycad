@@ -1,0 +1,59 @@
+﻿  Geri y├╝klenecek projeler belirleniyor...
+  Geri y├╝kleme i├ğin t├╝m projeler g├╝ncel.
+  Afney.Cad.Common -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Common\bin\Debug\net10.0\Afney.Cad.Common.dll
+  Afney.Cad.Geometry -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Geometry\bin\Debug\net10.0\Afney.Cad.Geometry.dll
+  Afney.Cad.Domain -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Domain\bin\Debug\net10.0\Afney.Cad.Domain.dll
+  Afney.Cad.SpatialIndex -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.SpatialIndex\bin\Debug\net10.0\Afney.Cad.SpatialIndex.dll
+  Afney.Cad.Database -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Database\bin\Debug\net10.0\Afney.Cad.Database.dll
+  Afney.Cad.Mechanical -> C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\bin\Debug\net10.0\Afney.Cad.Mechanical.dll
+  Afney.Cad.Tests -> C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\bin\Debug\net10.0\Afney.Cad.Tests.dll
+C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\bin\Debug\net10.0\Afney.Cad.Tests.dll (.NETCoreApp,Version=v10.0) i├ğin test ├ğal─▒┼şt─▒rmas─▒
+VSTest s├╝r├╝m├╝ 18.0.1 (x64)
+
+Test y├╝r├╝tmesi ba┼şlat─▒l─▒yor, l├╝tfen bekleyin...
+Toplam 1 test dosyas─▒ belirtilen desenle e┼şle┼şti.
+C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\bin\Debug\net10.0\Afney.Cad.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.3)
+[xUnit.net 00:00:00.19]   Discovering: Afney.Cad.Tests
+[xUnit.net 00:00:00.31]   Discovered:  Afney.Cad.Tests
+[xUnit.net 00:00:00.37]   Starting:    Afney.Cad.Tests
+>>> AutoConnect: 1 nodes found. Checking 577043bd-17d8-44d2-ab09-104560e36150
+>>> AutoConnect: 2 nodes found. Checking e32d8e59-712b-482a-9f1f-b338426a3a82
+>>> AutoConnect: 3 nodes found. Checking a5eb2e19-ac66-47e4-b9d2-14240c591a73
+dotnet : [xUnit.net 00:00:00.56]     Afney.Cad.Tests.Me
+chanical.PortEngineeringTests.ReactiveCalculation_After
+DiameterChange_ShouldAutoRecalculate [FAIL]
+At line:1 char:1
++ dotnet test tests\Afney.Cad.Tests\Afney.Cad.Tests.csp
+roj --filter "Re ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.ne 
+   t 00:0...alculate [FAIL]:String) [], RemoteExcepti  
+  on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[xUnit.net 00:00:00.56]       System.InvalidOperationException : Collection was modified; enumeration operation may not execute.
+[xUnit.net 00:00:00.56]       Stack Trace:
+[xUnit.net 00:00:00.57]            at System.Collections.Generic.List`1.Enumerator.MoveNext()
+[xUnit.net 00:00:00.57]         C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\MechanicalKernel.cs(349,0): at Afney.Cad.Mechanical.MechanicalKernel.AutoConnectPorts(MechanicalEntity newEntity)
+[xUnit.net 00:00:00.57]         C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\MechanicalKernel.cs(164,0): at Afney.Cad.Mechanical.MechanicalKernel.OnEntityAddedToDatabase(CadEntity entity)
+[xUnit.net 00:00:00.57]         C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\Mechanical\PortEngineeringTests.cs(180,0): at Afney.Cad.Tests.Mechanical.PortEngineeringTests.ReactiveCalculation_AfterDiameterChange_ShouldAutoRecalculate()
+[xUnit.net 00:00:00.57]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.57]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.59]   Finished:    Afney.Cad.Tests
+  Ba┼şar─▒s─▒z Afney.Cad.Tests.Mechanical.PortEngineeringTests.ReactiveCalculation_AfterDiameterChange_ShouldAutoRecalculate [97 ms]
+  Hata ─░letisi:
+   System.InvalidOperationException : Collection was modified; enumeration operation may not execute.
+  Y─▒─ş─▒n ─░zleme:
+     at System.Collections.Generic.List`1.Enumerator.MoveNext()
+   at Afney.Cad.Mechanical.MechanicalKernel.AutoConnectPorts(MechanicalEntity newEntity) in C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\MechanicalKernel.cs:line 349
+   at Afney.Cad.Mechanical.MechanicalKernel.OnEntityAddedToDatabase(CadEntity entity) in C:\Users\afney\Desktop\afneycad\AfneyCad\src\Afney.Cad.Mechanical\MechanicalKernel.cs:line 164
+   at Afney.Cad.Tests.Mechanical.PortEngineeringTests.ReactiveCalculation_AfterDiameterChange_ShouldAutoRecalculate() in C:\Users\afney\Desktop\afneycad\AfneyCad\tests\Afney.Cad.Tests\Mechanical\PortEngineeringTests.cs:line 180
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Test ├çal─▒┼şt─▒rmas─▒ Ba┼şar─▒s─▒z.
+Toplam test say─▒s─▒: 1
+     Ba┼şar─▒s─▒z: 1
+ Toplam s├╝re: 2,1863 Saniye
