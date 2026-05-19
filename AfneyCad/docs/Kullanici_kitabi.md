@@ -1,6 +1,6 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.2.0 — 19 Mayıs 2026  
-**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma
+**Sürüm:** v2.3.0 — 19 Mayıs 2026  
+**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
 > Her bölüm: "OtoNET'te nasıl yapılır?" → "AfneyCAD'de nasıl yapılır?" formatındadır.
@@ -498,7 +498,7 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 
 ---
 
-## Bölüm 7 — Session #20 Tamamlanan Özellikler
+## Bölüm 7 — Geliştirme Tarihçesi
 
 ### Tamamlanan (Session #20 — 2026-05-19)
 
@@ -517,14 +517,28 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 | 11 | RainfallCatchmentEntity derleme hataları | ✅ | Abstract üyeler tamamlandı |
 | 12 | WasteWaterLayerService API güncellemesi | ✅ | `LayerTable` → `GetLayers()`/`AddLayer()` |
 
+### Tamamlanan (Session #21 — 2026-05-19)
+
+| # | Özellik | Durum | Ana Dosya |
+|---|---|---|---|
+| 1 | Pompa Q-H Grafiği UI (SkiaSharp) | ✅ | `PumpSelectionDialog.xaml` — BEP/OP/Tasarım noktaları |
+| 2 | IFC Import Dialog | ✅ | `IfcImportDialog.xaml` — dosya seçimi + katman önizleme |
+| 3 | IfcImportService — AnalyzeFile + ScaleFactor | ✅ | `IfcImportService.AnalyzeFile()` — preview desteği |
+| 4 | Sıcak Su Resirkülasyon Servisi | ✅ | `HotWaterCirculationService` — ısı kaybı + vana dengeleme |
+| 5 | ASPE / BS 6700 / ASHRAE / IPC 2021 Normu | ✅ | `PipeSizer` + `StandardSelectionService` — 4 yeni norm |
+| 6 | DXF R12 Dışa Aktarma | ✅ | `DxfWriterService` — LINE/TEXT/CIRCLE/ARC/katmanlar |
+| 7 | MainWindow — PumpSelectionDialog wire-up | ✅ | `OnPumpSelection` → dialog ile (MessageBox kaldırıldı) |
+| 8 | MainWindow — IFC Import + DXF Export komutları | ✅ | `OnIfcImportCommand`, `OnExportDxfCommand` |
+| 9 | Ribbon — IFC İçeri / DXF Dışarı butonları | ✅ | Raporlar sekmesi → Dışa/İçeri grubu |
+
 ### Bir Sonraki Session Öncelikleri
 
-1. **Pompa Q-H Grafiği UI** — `PumpSelectionDialog`'a OxyPlot veya SkiaSharp ile eğri çizimi
-2. **IFC Import Dialog** — Kullanıcı arayüzünden `.ifc` dosya seçimi ve katman önizlemesi
-3. **ASPE / BS / ASHRAE Normu** — `PipeSizer`'a uluslararası norm desteği
-4. **Sıcak Su Resirkülasyon** — `HotWaterCirculationService` ve devre dengeleme
-5. **Çizim Çıktısı (PDF/DXF)** — Viewport'tan doğrudan DXF/PDF dışa aktarma
+1. **Sıcak Su Resirkülasyon Dialog** — `HotWaterCirculationService` için WPF arayüzü (devre tablosu + HTML rapor)
+2. **Basınç Bölgesi Yönetimi** — Yüksek binalarda basınç kırma vanaları ve bölge sınırları
+3. **Yangın Hattı Hesabı** — `FireFightingService`'e NFPA 13 / TS EN 12845 uyumu
+4. **Boru Maliyeti Analizi** — BOM'a birim fiyat tablosu ve proje toplam maliyeti
+5. **PDF Baskı** — `PrintDialog` + SkiaSharp tabanlı viewport → PDF dışa aktarma
 
 ---
 
-*Son güncelleme: 2026-05-19 | AfneyCAD v2.2.0 — Session #20: Hesap Tablosu + IFC + Pompa Eğrisi*
+*Son güncelleme: 2026-05-19 | AfneyCAD v2.3.0 — Session #21: Pompa Grafiği + IFC Dialog + Resirkülasyon + DXF Export + Norm*

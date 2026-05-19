@@ -603,6 +603,15 @@
                                         <TextBlock Text="Listeler" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
+                                <Border BorderBrush="#FF8C00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📥 IFC İçeri" Click="OnIfcImportCommand" Style="{StaticResource RbnBtn}" ToolTip="Mimari IFC dosyasını altlık olarak aktar"/>
+                                            <Button Content="📤 DXF Dışarı" Click="OnExportDxfCommand" Style="{StaticResource RbnAccent}" ToolTip="Çizimi DXF R12 formatında dışa aktar"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Dışa/İçeri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                             </WrapPanel>
                         </Border>
                     </TabItem>

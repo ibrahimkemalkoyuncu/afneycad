@@ -50,6 +50,60 @@ public class IfcImportService
     }
 
     /*
+       NE: IFC Dosyasını Analiz Et (önizleme — database'e yazmaz)
+       NEDEN: Dialog'da import öncesi içerik bilgisi göstermek için.
+    */
+    public IfcImportResult AnalyzeFile(string filePath, IfcImportOptions? options = null)
+    {
+        options ??= new IfcImportOptions();
+        var result = new IfcImportResult { FilePath = filePath };
+
+        if (!File.Exists(filePath))
+        {
+            result.Errors.Add($"Dosya bulunamadı: {filePath}");
+            return result;
+        }
+
+        try
+        {
+            var lines    = File.ReadAllLines(filePath);
+            var entities = ParseIfcEntities(lines);
+
+            double unitScale = options.ScaleFactor > 0 ? options.ScaleFactor : DetectUnitScale(entities);
+            var placements   = ParsePlacements(entities);
+            var products     = ParseProducts(entities, placements, unitScale);
+
+            foreach (var product in products)
+            {
+                switch (product.IfcType)
+                {
+                    case "IFCWALL":
+                    case "IFCWALLSTANDARDCASE": if (options.ImportWalls)   result.WallCount++;   break;
+                    case "IFCSLAB":             if (options.ImportSlabs)   result.SlabCount++;   break;
+                    case "IFCWINDOW":           if (options.ImportWindows) result.WindowCount++; break;
+                    case "IFCDOOR":             if (options.ImportDoors)   result.DoorCount++;   break;
+                    case "IFCSPACE":            if (options.ImportSpaces)  result.SpaceCount++;  break;
+                }
+            }
+
+            if (options.ImportWalls)   result.Layers.Add(LayerWall);
+            if (options.ImportSlabs)   result.Layers.Add(LayerSlab);
+            if (options.ImportWindows) result.Layers.Add(LayerWindow);
+            if (options.ImportDoors)   result.Layers.Add(LayerDoor);
+            if (options.ImportSpaces)  result.Layers.Add(LayerSpace);
+
+            result.Success = true;
+            result.Warnings.Add($"Birim ölçek: ×{unitScale} (mm cinsinden)");
+        }
+        catch (Exception ex)
+        {
+            result.Errors.Add($"Analiz hatası: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    /*
        NE: IFC Dosyasını İçeri Aktar
        NEDEN: Mimari modeli AfneyCAD veritabanına eklemek.
        DÖNÜŞ: İçeri aktarılan eleman sayıları ve uyarı mesajları
@@ -67,28 +121,31 @@ public class IfcImportService
 
         try
         {
-            var lines = File.ReadAllLines(filePath);
+            var lines    = File.ReadAllLines(filePath);
             var entities = ParseIfcEntities(lines);
 
-            double unitScale = DetectUnitScale(entities); // mm=1.0, m=1000.0
-            var placements = ParsePlacements(entities);
-            var products   = ParseProducts(entities, placements, unitScale);
+            double unitScale = options.ScaleFactor > 0 ? options.ScaleFactor : DetectUnitScale(entities);
+            var placements   = ParsePlacements(entities);
+            var products     = ParseProducts(entities, placements, unitScale);
 
             EnsureLayers();
 
             foreach (var product in products)
             {
-                if (!options.ImportWalls    && product.IfcType.Contains("WALL"))   continue;
-                if (!options.ImportSlabs    && product.IfcType == "IFCSLAB")       continue;
-                if (!options.ImportWindows  && product.IfcType == "IFCWINDOW")     continue;
-                if (!options.ImportDoors    && product.IfcType == "IFCDOOR")       continue;
-                if (!options.ImportSpaces   && product.IfcType == "IFCSPACE")      continue;
-
-                var cadEntities = BuildCadEntities(product);
-                foreach (var e in cadEntities)
+                bool skip = product.IfcType switch
                 {
+                    "IFCWALL" or "IFCWALLSTANDARDCASE" => !options.ImportWalls,
+                    "IFCSLAB"                          => !options.ImportSlabs,
+                    "IFCWINDOW"                        => !options.ImportWindows,
+                    "IFCDOOR"                          => !options.ImportDoors,
+                    "IFCSPACE"                         => !options.ImportSpaces,
+                    _                                  => true
+                };
+
+                if (skip) { result.SkippedCount++; continue; }
+
+                foreach (var e in BuildCadEntities(product))
                     _database.AddEntity(e);
-                }
 
                 switch (product.IfcType)
                 {
@@ -409,24 +466,29 @@ public class IfcImportOptions
     public bool ImportWindows { get; set; } = true;
     public bool ImportDoors   { get; set; } = true;
     public bool ImportSpaces  { get; set; } = false;
+    public double ScaleFactor { get; set; } = 0;      // 0 = otomatik tespit
+    public bool PreviewOnly   { get; set; } = false;
 }
 
 public class IfcImportResult
 {
     public string FilePath { get; set; } = "";
     public bool Success { get; set; }
-    public int WallCount   { get; set; }
-    public int SlabCount   { get; set; }
-    public int WindowCount { get; set; }
-    public int DoorCount   { get; set; }
-    public int SpaceCount  { get; set; }
+    public int WallCount    { get; set; }
+    public int SlabCount    { get; set; }
+    public int WindowCount  { get; set; }
+    public int DoorCount    { get; set; }
+    public int SpaceCount   { get; set; }
+    public int SkippedCount { get; set; }
     public List<string> Warnings { get; set; } = [];
     public List<string> Errors   { get; set; } = [];
+    public List<string> Layers   { get; set; } = [];
 
-    public int TotalImported => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount;
+    public int ImportedCount => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount;
+    public int TotalCount    => ImportedCount;
 
     public override string ToString() =>
-        $"IFC Import: {TotalImported} eleman " +
+        $"IFC Import: {ImportedCount} eleman " +
         $"(Duvar={WallCount}, Döşeme={SlabCount}, Pencere={WindowCount}, Kapı={DoorCount}) " +
         $"— {(Success ? "BAŞARILI" : "HATA")}";
 }

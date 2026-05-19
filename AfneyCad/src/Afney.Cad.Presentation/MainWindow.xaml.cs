@@ -1168,9 +1168,19 @@ namespace Afney.Cad.Presentation
                         OnLegendCommand(this, new RoutedEventArgs());
                         break;
                     case "ifc":
+                    case "ifcexport":
                     case "export":
                     case "bim":
                         OnIfcExportCommand(this, new RoutedEventArgs());
+                        break;
+                    case "ifcimport":
+                    case "ifc-import":
+                        OnIfcImportCommand(this, new RoutedEventArgs());
+                        break;
+                    case "dxf":
+                    case "dxfexport":
+                    case "saveas":
+                        OnExportDxfCommand(this, new RoutedEventArgs());
                         break;
                     default:
                         StatusText.Text = $"Bilinmeyen komut: {cmdText}";
@@ -2570,68 +2580,98 @@ namespace Afney.Cad.Presentation
         }
 
         /*
-           NE: Pompa ve Hidrofor Seçimi
-           NEDEN: Kritik hattaki toplam basınç kaybını ve debiyi analiz ederek veritabanındaki uygun pompa modellerini önermek için.
+           NE: Pompa ve Hidrofor Seçimi — Q-H eğrisi grafiği ile
+           NEDEN: Kritik hattaki toplam basınç kaybını ve debiyi analiz ederek PumpSelectionDialog ile
+                  pompa seçimi, karakteristik eğrisi, çalışma noktası ve kavitasyon kontrolü yapmak.
         */
         private void OnPumpSelection(object sender, RoutedEventArgs e)
         {
             try
             {
+                double maxFlow    = 5.0;  // Default değerler
+                double reqHead    = 25.0;
+
                 var pipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
-                if (!pipes.Any())
+                if (pipes.Any())
                 {
-                    MessageBox.Show("Sistemde boru bulunamadı. Lütfen önce tesisatı çizin ve akış analizi yapın.", "Uyarı");
-                    return;
-                }
+                    OnCalculateFlowCommand(sender, e);
+                    maxFlow = pipes.Max(p => p.FlowRate);
 
-                // 1. Akış hesaplarını tazele
-                OnCalculateFlowCommand(sender, e);
-
-                // 2. Kritik Hattı Bul (En yüksek debili borudan başlayarak veya Sink üzerinden)
-                double maxFlow = pipes.Max(p => p.FlowRate);
-
-                // Tahmini Head yerine gerçek hesap yapmaya çalış
-                double requiredHead = 6.0; // Default fallback
-                var pressureService = new Afney.Cad.Mechanical.Services.PressureDropService(
-                    _mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
-
-                // Riser/Sink bul
-                var sink = pipes.OrderByDescending(p => p.FlowRate).FirstOrDefault();
-                if (sink != null)
-                {
-                    var report = pressureService.GenerateReport(sink.Id);
-                    if (report != null)
+                    var pressureService = new Afney.Cad.Mechanical.Services.PressureDropService(
+                        _mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
+                    var sink = pipes.OrderByDescending(p => p.FlowRate).FirstOrDefault();
+                    if (sink != null)
                     {
-                        requiredHead = report.TotalPressureRequired;
+                        var report = pressureService.GenerateReport(sink.Id);
+                        if (report != null)
+                            reqHead = report.TotalPressureRequired;
                     }
                 }
 
-                var pumpService = new Afney.Cad.Mechanical.Services.PumpSelectionService();
-                var recommendations = pumpService.RecommendPumps(maxFlow, requiredHead);
-
-                if (recommendations.Any())
+                var dialog = new Afney.Cad.Presentation.Dialogs.PumpSelectionDialog(_database, maxFlow, reqHead)
                 {
-                    string msg = $"HESAPLANAN SİSTEM İHTİYACI:\n" +
-                                 $"---------------------------\n" +
-                                 $"Maksimum Debi (Q): {maxFlow:F2} m³/h\n" +
-                                 $"Gerekli Basınç (Hm): {requiredHead:F2} mSS (Kritik Hat)\n\n" +
-                                 $"MÜHENDİSLİK ÖNERİLERİ (Uygun Pompalar):\n";
-
-                    foreach (var p in recommendations)
-                    {
-                        msg += $"> {p.Brand} {p.ModelName} (Güç: {p.PowerKW:F2} kW, Verim: %{p.Efficiency * 100:F0})\n";
-                    }
-
-                    MessageBox.Show(msg, "Pompa ve Hidrofor Seçim Modülü", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show($"Q={maxFlow:F2}, Hm={requiredHead:F2} değerlerine uygun pompa bulunamadı.", "Uyarı");
-                }
+                    Owner = this
+                };
+                dialog.ShowDialog();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Seçim modülü hatası: {ex.Message}");
+            }
+        }
+
+        /*
+           NE: IFC Dosyası İçeri Aktar
+           NEDEN: Revit/ArchiCAD'den gelen mimari modeli AfneyCAD'e altlık olarak çekmek için.
+        */
+        private void OnIfcImportCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Afney.Cad.Presentation.Dialogs.IfcImportDialog(_database)
+                {
+                    Owner = this
+                };
+                if (dialog.ShowDialog() == true)
+                {
+                    _activeContext?.Viewport.InvalidateViewport();
+                    StatusText.Text = "IFC aktarımı tamamlandı — mimari altlık görüntüleniyor.";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"IFC aktarım hatası: {ex.Message}");
+            }
+        }
+
+        /*
+           NE: DXF Olarak Dışa Aktar
+           NEDEN: Viewport içeriğini AutoCAD / LibreCAD'de açılabilir DXF R12 formatında kaydetmek için.
+        */
+        private void OnExportDxfCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title       = "DXF Olarak Kaydet",
+                    Filter      = "DXF Dosyası (*.dxf)|*.dxf",
+                    FileName    = $"AfneyCAD_{DateTime.Now:yyyyMMdd_HHmm}.dxf",
+                    DefaultExt  = ".dxf"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    var writer = new Afney.Cad.Infrastructure.Export.DxfWriterService(_database);
+                    writer.WriteToFile(dlg.FileName);
+                    StatusText.Text = $"DXF kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+                    MessageBox.Show($"DXF başarıyla kaydedildi:\n{dlg.FileName}", "DXF Export",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"DXF export hatası: {ex.Message}");
             }
         }
 
