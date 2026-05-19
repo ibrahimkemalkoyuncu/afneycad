@@ -165,6 +165,31 @@ public class FixtureLibraryService
             new() { Id = "DS-001", NameTR = "Döşeme Süzgeci (Yer Gideri)", NameEN = "Floor Drain", Category = "Temizlik",
                 LoadUnit = 0.5, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 75, FlowRateLps = 0,
                 RequiresHotWater = false, RequiresVent = true, SymbolType = "FloorDrain", SymbolWidth = 200, SymbolHeight = 200, Standard = "TS EN 12056" },
+
+            new() { Id = "DS-002", NameTR = "Yer Süzgeci (Banyo)", NameEN = "Bathroom Floor Drain", Category = "Temizlik",
+                LoadUnit = 0.5, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 50, FlowRateLps = 0,
+                RequiresHotWater = false, RequiresVent = false, SymbolType = "FloorDrain_Bath", SymbolWidth = 150, SymbolHeight = 150, Standard = "TS EN 12056" },
+
+            new() { Id = "DS-003", NameTR = "Döşeme Süzgeci (Ticari)", NameEN = "Commercial Floor Drain", Category = "Temizlik",
+                LoadUnit = 1.0, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 100, FlowRateLps = 0,
+                RequiresHotWater = false, RequiresVent = true, SymbolType = "FloorDrain_Comm", SymbolWidth = 300, SymbolHeight = 300, Standard = "TS EN 12056" },
+
+            // --- YAĞMUR SUYU GİDERLERİ ---
+            new() { Id = "YG-001", NameTR = "Yağmur Gideri (DN75)", NameEN = "Roof Drain DN75", Category = "Yağmur Suyu",
+                LoadUnit = 0, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 75, FlowRateLps = 1.5,
+                RequiresHotWater = false, RequiresVent = false, SymbolType = "RoofDrain_75", SymbolWidth = 200, SymbolHeight = 200, Standard = "TS EN 12056-3" },
+
+            new() { Id = "YG-002", NameTR = "Yağmur Gideri (DN100)", NameEN = "Roof Drain DN100", Category = "Yağmur Suyu",
+                LoadUnit = 0, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 100, FlowRateLps = 4.0,
+                RequiresHotWater = false, RequiresVent = false, SymbolType = "RoofDrain_100", SymbolWidth = 250, SymbolHeight = 250, Standard = "TS EN 12056-3" },
+
+            new() { Id = "YG-003", NameTR = "Yağmur Gideri (DN125)", NameEN = "Roof Drain DN125", Category = "Yağmur Suyu",
+                LoadUnit = 0, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 125, FlowRateLps = 8.0,
+                RequiresHotWater = false, RequiresVent = false, SymbolType = "RoofDrain_125", SymbolWidth = 300, SymbolHeight = 300, Standard = "TS EN 12056-3" },
+
+            new() { Id = "YG-004", NameTR = "Balkon Taşma Borusu", NameEN = "Balcony Overflow", Category = "Yağmur Suyu",
+                LoadUnit = 0, MinColdWaterDN = 0, MinHotWaterDN = 0, WasteDN = 75, FlowRateLps = 1.0,
+                RequiresHotWater = false, RequiresVent = false, SymbolType = "BalconyOverflow", SymbolWidth = 150, SymbolHeight = 150, Standard = "TS EN 12056-3" }
         });
     }
 

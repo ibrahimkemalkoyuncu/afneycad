@@ -17,6 +17,7 @@ public enum MechanicalSystemType
     DomesticColdWater, // Temiz Soğuk Su
     DomesticHotWater,  // Temiz Sıcak Su
     WasteWater,        // Pis Su / Gider
+    RainWater,         // Yağmur Suyu (Çatı Drenajı — TS EN 12056-3)
     Ventilation,       // Havalandırma
     FireProtection,    // Yangın Tesisatı
     Gas                // Doğalgaz

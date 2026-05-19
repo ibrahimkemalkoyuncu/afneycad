@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
 
@@ -155,6 +156,108 @@ public class WasteWaterDesignService
        - Yatay branşman: max %50
        - Kolektör: max %70
     */
+    /*
+       NE: Bölünmüş Kolon Çifti Oluştur (CreateSplitColumn)
+       NEDEN: OtoNET eğitiminde anlatılan senaryo — alt katta teras olduğunda kolon
+              alt segment (0-3 m) ve üst segment (3-6 m) olarak ayrı tanımlanır.
+              İki segment dik nokta yakalama ile yatayda birbirine bağlanır.
+
+       KULLANIM: Alt ve üst kolonların bağlantı noktaları (Vector3D) döner;
+                 PipeRoutingEngine bu noktaları perpendicular boru ile birleştirir.
+    */
+    public SplitColumnResult CreateSplitColumn(
+        Vector3D basePoint,
+        double lowerBottomZ,
+        double lowerTopZ,
+        double upperBottomZ,
+        double upperTopZ,
+        double nominalDiameter,
+        MechanicalSystemType systemType)
+    {
+        // Alt kolon: basePoint'ten lowerTopZ'ye dikey
+        var lowerBottom = new Vector3D(basePoint.X, basePoint.Y, lowerBottomZ);
+        var lowerTop    = new Vector3D(basePoint.X, basePoint.Y, lowerTopZ);
+
+        // Üst kolon: ofset noktadan upperBottomZ'ye dikey (kullanıcı konum seçer)
+        // Burada yatay bağlantı için üst kolonun alt ucu lowerTop ile aynı Z'de
+        var upperBottom = new Vector3D(basePoint.X, basePoint.Y, upperBottomZ);
+        var upperTop    = new Vector3D(basePoint.X, basePoint.Y, upperTopZ);
+
+        return new SplitColumnResult
+        {
+            LowerColumnBottom  = lowerBottom,
+            LowerColumnTop     = lowerTop,
+            UpperColumnBottom  = upperBottom,
+            UpperColumnTop     = upperTop,
+            NominalDiameter    = nominalDiameter,
+            SystemType         = systemType,
+            // Yatay bağlantı noktaları — dik nokta snap ile birleştirilecek
+            HorizontalJoinFrom = lowerTop,
+            HorizontalJoinTo   = upperBottom
+        };
+    }
+
+    /*
+       NE: Tesisat Kopyalama Validasyonu (ValidateCopySelection)
+       NEDEN: OtoNET eğitiminde kritik kural: tesisat kopyalanırken kolon boruları
+              kesinlikle seçilmemelidir — aksi halde program hata verir.
+              Bu metot seçilen entity listesini kontrol ederek kolon borularını filtreler.
+
+       DÖNÜŞ:
+       - IsValid: kolon borusu yoksa true
+       - RiserPipeCount: bulunan kolon borusu sayısı
+       - FilteredEntities: kolonlar çıkarılmış, kopyalamaya hazır liste
+    */
+    public CopyValidationResult ValidateCopySelection(IEnumerable<Domain.Abstractions.CadEntity> selectedEntities)
+    {
+        var all = selectedEntities.ToList();
+
+        // Kolon borusu tespiti: dikey (Z yönünde) PipeEntity'ler kolon sayılır
+        var riserPipes = all
+            .OfType<PipeEntity>()
+            .Where(p => IsVerticalPipe(p))
+            .ToList();
+
+        var filtered = all.Except(riserPipes).ToList();
+
+        return new CopyValidationResult
+        {
+            IsValid        = riserPipes.Count == 0,
+            RiserPipeCount = riserPipes.Count,
+            RiserPipes     = riserPipes.Cast<Domain.Abstractions.CadEntity>().ToList(),
+            FilteredEntities = filtered
+        };
+    }
+
+    // Boru dikeyle 80° üzeri açı yapıyorsa kolon sayılır (Z bileşeni baskın)
+    private static bool IsVerticalPipe(PipeEntity pipe)
+    {
+        var delta = pipe.EndPoint - pipe.StartPoint;
+        double len = delta.Length();
+        if (len < 0.001) return false;
+        double verticalRatio = Math.Abs(delta.Z) / len;
+        return verticalRatio > 0.8;
+    }
+
+    /*
+       NE: Yağmur Düşme Alanlarından Toplam Debi (CalculateFromCatchments)
+       NEDEN: RainfallCatchmentEntity listesini WasteWaterDesignService.CatchmentArea'ya
+              dönüştürerek CalculateRainwaterFlow() metoduna besler.
+    */
+    public RainwaterResult CalculateFromCatchmentEntities(
+        IEnumerable<Entities.RainfallCatchmentEntity> catchments,
+        double rainfallIntensity = 300.0)
+    {
+        var areas = catchments.Select(c => new CatchmentArea
+        {
+            Name               = c.AreaName,
+            AreaM2             = c.AreaM2,
+            RunoffCoefficient  = c.RunoffCoefficient
+        }).ToList();
+
+        return CalculateRainwaterFlow(areas, rainfallIntensity);
+    }
+
     private (double DN, double Slope, double Capacity, double FillingRatio) DeterminePipeSizeAndSlope(double flowLps)
     {
         // Standart pis su boru çapları ve minimum eğimleri
@@ -232,4 +335,29 @@ public class RainwaterAreaDetail
     public double AreaM2 { get; set; }
     public double RunoffCoefficient { get; set; }
     public double FlowRate { get; set; }
+}
+
+// Bölünmüş kolon senaryosu için sonuç modeli
+// (Alt katta teras olduğunda iki ayrı dikey segment + yatay bağlantı)
+public class SplitColumnResult
+{
+    public Vector3D LowerColumnBottom { get; set; }
+    public Vector3D LowerColumnTop    { get; set; }
+    public Vector3D UpperColumnBottom { get; set; }
+    public Vector3D UpperColumnTop    { get; set; }
+    public double NominalDiameter     { get; set; }
+    public MechanicalSystemType SystemType { get; set; }
+    // Dik nokta snap ile birleştirilecek yatay hat uç noktaları
+    public Vector3D HorizontalJoinFrom { get; set; }
+    public Vector3D HorizontalJoinTo   { get; set; }
+}
+
+// Tesisat kopyalama öncesi validasyon sonucu
+// Kural: kolon boruları (dikey PipeEntity) seçime dahil edilmemeli
+public class CopyValidationResult
+{
+    public bool IsValid { get; set; }
+    public int RiserPipeCount { get; set; }
+    public List<Domain.Abstractions.CadEntity> RiserPipes       { get; set; } = [];
+    public List<Domain.Abstractions.CadEntity> FilteredEntities { get; set; } = [];
 }

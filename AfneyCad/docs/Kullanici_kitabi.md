@@ -279,7 +279,158 @@ AfneyCAD: Başlangıç noktası eklerken **"Daire/Ünite"** alanını doldurun.
 
 ---
 
-## Bölüm 4 — FINE MEP vs AfneyCAD Özellik Karşılaştırma Tablosu
+## Bölüm 4 — Pis Su Tesisat Tasarımı
+
+### 4.1 Modül Seçimi ve Katman Yönetimi
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Otonet → Uygulama Seç → **Pis Su** | **Mekanik → Pis Su/Yağmur Suyu Tasarımı** → Katmanlar sekmesi |
+| Pis su modülüne geçince temiz su çizimleri kaybolur | `WasteWaterLayerService.SetActiveModule(WasteWater)` — diğer katmanlar gizlenir |
+| Otonet → Uygulama Katmanlarını Seç | **Katmanlar sekmesi → Görünür Katmanlar** checkbox listesi |
+| Temiz su + pis su aynı anda görülebilir | `ChkShowCold` + `ChkShowWaste` ikisi de işaretlenerek → Uygula |
+
+**Katman isimlendirme konvansiyonu:**
+| Katman | AfneyCAD İsmi |
+|---|---|
+| Temiz Soğuk Su | `MEP-COLD` (mavi) |
+| Temiz Sıcak Su | `MEP-HOT` (kırmızı) |
+| Pis Su | `MEP-WASTE` (kahverengi) |
+| Yağmur Suyu | `MEP-RAIN` (mavi ton) |
+| Yangın | `MEP-FIRE` (kırmızı) |
+| Doğalgaz | `MEP-GAS` (turuncu) |
+
+---
+
+### 4.2 Cihaz Yerleşimi — Akıllı Bağlantı Noktaları
+
+| OtoNET | AfneyCAD |
+|---|---|
+| ST Cihazları → **Akıllı Bağlantı Noktaları** | `FixtureLibraryDialog` → **"Sadece Bağlantı Noktası Ekle"** modu |
+| Mimari planda cihaz varsa tam sembol yerine bağlantı noktası (yıldız) | Bağlantı stub'ı — pis su çıkışı noktası eklenir, cihaz sembolü çizilmez |
+| Yer süzgeci gibi çizimi olmayan cihaz → "tümü" ile yerleştirilir | `FixtureLibraryService` → Kategori: **"Temizlik"** → DS-001 / DS-002 |
+
+**Yeni eklenen armatürler (Session #19):**
+- `DS-002` — Yer Süzgeci (Banyo) — DN50, DU=0.5
+- `DS-003` — Döşeme Süzgeci (Ticari) — DN100, DU=1.0
+- `YG-001` — Yağmur Gideri DN75 — max 1.5 lt/s
+- `YG-002` — Yağmur Gideri DN100 — max 4.0 lt/s
+- `YG-003` — Yağmur Gideri DN125 — max 8.0 lt/s
+- `YG-004` — Balkon Taşma Borusu — DN75
+
+---
+
+### 4.3 Pis Su Kolon Boruları
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Otonet → Kolon Borusu → Noktaya tıkla → Kot penceresi | **Mekanik → Kolon Ekle** → başlangıç/bitiş kotu girişi |
+| Dik nokta yakalama zorunlu | OSNAP `PERPt` aktif olmalı |
+| Fazla boru parçaları silinmeli | **Kolon Araçları → Seçimi Doğrula** |
+
+**Bölünmüş Kolon (Alt katta teras senaryosu):**
+
+OtoNET'te alt kolon (0-3 m) ve üst kolon (3-6 m) ayrı ayrı tanımlanıp yatay boru ile birleştirilir.
+
+AfneyCAD karşılığı — **Kolon Araçları sekmesi → Bölünmüş Kolon Oluştur:**
+
+| Alan | Açıklama | Örnek |
+|---|---|---|
+| Alt Bot (m) | Alt kolonun taban kotu | `0` |
+| Alt Top (m) | Alt kolonun tepe kotu (bölünme noktası) | `3` |
+| Üst Bot (m) | Üst kolonun taban kotu | `3` |
+| Üst Top (m) | Üst kolonun tepe kotu | `6` |
+
+Tamam'a basıldıktan sonra viewport'ta iki kolon noktası seçilir → `PipeRoutingEngine` yatay bağlantı borusunu dik nokta snap ile oluşturur.
+
+---
+
+### 4.4 Tesisat Kopyalama — Kural
+
+> **Kritik OtoNET Kuralı:** Tesisat kopyalanırken **kolon boruları kesinlikle seçilmemeli** — aksi program hata verir.
+
+AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
+
+1. **Seçimi Doğrula (Kolon Tespiti)** — seçili nesnelerde dikey `PipeEntity` (kolon) varsa kırmızı uyarı verir
+2. **Kolonları Çıkar ve Kopyala** — `WasteWaterDesignService.ValidateCopySelection()` kolonları filtreler, geri kalanlar kopyalanır
+
+**Teknik:** `IsVerticalPipe()` — boru Z bileşeni %80'den fazlaysa kolon sayılır.
+
+---
+
+### 4.5 Boşaltma Noktası (Rögar) Tanımlama
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Otonet → Boşaltma Noktası → Boru uç noktasına tıkla | **Kolon Araçları → Pis Su Rögar Noktası Yerleştir** |
+| Pis su kolonları zemin katta birleştirildikten sonra | `DrainageOutletEntity` (OutletType: SewerManhole) |
+| Uç nokta yakalama kullanılır | OSNAP `ENDPt` aktif olmalı |
+
+**DrainageOutletEntity özellikleri:**
+- `Type` — SewerManhole (rögar), RainDrain (yağmur), Septic (fosseptik)
+- `InvertLevel` — kanal taban kotu (metre)
+- Render: çarpı içinde daire sembolü (standart pafta sembolü)
+
+---
+
+### 4.6 Yağmur Suyu Tesisatı
+
+#### 4.6.1 Boru Türü Seçimi ve Yağmur Düşme Alanı
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Otonet → Boru Cinsi → Yağmur Suyu | Katmanlar sekmesi → Aktif Modül: **Yağmur Suyu** |
+| Otonet → Yağmur Düşme Alanı → Polygon çiz | **Yağmur Suyu sekmesi → Yağmur Düşme Alanı Çiz** → `RainfallCatchmentEntity` |
+| Yüzey türü seçilir → Alan hesaplanır | Yüzey türü (FlatRoof, GreenRoof, GravelRoof, SlopedRoof) → C katsayısı otomatik |
+
+**RainfallCatchmentEntity yüzey türleri:**
+| Yüzey Türü | Akış Katsayısı C |
+|---|---|
+| Düz Çatı (FlatRoof) | 1.0 |
+| Yeşil Çatı (GreenRoof) | 0.5 |
+| Çakıl Çatı (GravelRoof) | 0.7 |
+| Döşemeli Teras (PavedTerrace) | 0.9 |
+| Eğimli Çatı (SlopedRoof) | 1.0 |
+
+#### 4.6.2 Yağmur Gideri ve Kolon
+
+| OtoNET | AfneyCAD |
+|---|---|
+| ST Cihazları → Yağmur Gideri yerleştir | `FixtureLibraryDialog` → Kategori: **"Yağmur Suyu"** → YG-001..YG-004 |
+| Yağmur kolonları tanımlanır (0-6 m) | **Mekanik → Kolon Ekle** — SystemType: RainWater |
+| Dik nokta yakalama ile giderler bağlanır | OSNAP `PERPt` |
+
+#### 4.6.3 3D'de Kademeli Birleştirme
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Farklı hizadaki kolonlar 3D görünümde dik nokta ile yatayda bağlanır | 3D viewport → OSNAP `PERPt` → normal boru komutu ile bağlantı |
+
+#### 4.6.4 Yağmur Boşaltma Noktası
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Uç nokta yakalama ile boşaltma noktası yerleştirilir | **Kolon Araçları → Yağmur Suyu Boşaltma Noktası** |
+| | `DrainageOutletEntity` (OutletType: RainDrain) — mavi sembol |
+
+---
+
+### 4.7 Tesisatı Kabul Et (Pis Su ve Yağmur Suyu)
+
+| OtoNET | AfneyCAD |
+|---|---|
+| Otonet → Tesisatı Kabul Et | **Pis Su/Yağmur Suyu Tasarımı → Tesisatı Kabul Et sekmesi** |
+| Hata yoksa numaralandırılır, hesaplara hazır | Yeşil "BAŞARILI" mesajı → `ValidationGateService` tetiklenir |
+
+**Kontrol edilen koşullar:**
+- Her WasteWater ağında ≥1 `DrainageOutletEntity` (rögar)
+- Her RainWater ağında ≥1 `DrainageOutletEntity` (yağmur boşaltma)
+- Açık uç boru sonu yok
+- Kolon boruları ağa bağlı
+
+---
+
+## Bölüm 5 — FINE MEP vs AfneyCAD Özellik Karşılaştırma Tablosu
 
 | Özellik | OtoNET/FINE MEP | AfneyCAD v2.0 |
 |---|---|---|
@@ -304,12 +455,21 @@ AfneyCAD: Başlangıç noktası eklerken **"Daire/Ünite"** alanını doldurun.
 | Rapor (Word/PDF) | Word çıktı | **Var** (`ReportExportService`, DOCX+PDF) |
 | Çizime Hesap Etiketleme | Var | **Var** (`AutoPipeLabeler`, `AutoAnnotationService`) |
 | Kolon Şeması | Var (.dwg) | **Var** (`RiserDiagramExportDialog`) |
+| Pis Su Modülü (WasteWater) | Var | **Var** (`WasteWaterDesignService`, TS EN 12056-2) |
+| Katman Yönetimi (Çoklu Modül) | Var | **Var** (`WasteWaterLayerService`) |
+| Akıllı Bağlantı Noktası (Pis Su) | Var | **Var** (FixtureLibrary stub modu) |
+| Yer Süzgeci / Yağmur Gideri | Var | **Var** (DS-002, YG-001..004 — Session #19) |
+| Bölünmüş Kolon | Var | **Var** (`WasteWaterDesignService.CreateSplitColumn`) |
+| Kopyalama Kolon Validasyonu | Var | **Var** (`ValidateCopySelection`, `IsVerticalPipe`) |
+| Boşaltma Noktası (Rögar) | Var | **Var** (`DrainageOutletEntity`) |
+| Yağmur Düşme Alanı | Var | **Var** (`RainfallCatchmentEntity`, Shoelace alan hesabı) |
+| Yağmur Suyu Hesabı | Var (TS EN 12056-3) | **Var** (`WasteWaterDesignService.CalculateRainwaterFlow`) |
 | IFC İçeri Aktarma | Kısmi | **Geliştiriliyor** (bkz. `Eksiklikler.md §1`) |
 | Bağımsız Hesap Modu (CAD'siz) | Var (ADAPT/FCALC) | **Geliştiriliyor** (bkz. `Eksiklikler.md §2`) |
 
 ---
 
-## Bölüm 5 — Sık Karşılaşılan Sorunlar ve Çözümler
+## Bölüm 6 — Sık Karşılaşılan Sorunlar ve Çözümler
 
 ### S1: DWG açıldığında çizim çok küçük veya çok büyük görünüyor
 **Neden:** Dosya mm veya cm bazında kaydedilmiş.  
@@ -334,28 +494,27 @@ AfneyCAD: Başlangıç noktası eklerken **"Daire/Ünite"** alanını doldurun.
 
 ---
 
-## Bölüm 6 — Bir Sonraki Session Öncelikleri
+## Bölüm 7 — Bir Sonraki Session Öncelikleri
 
 Aşağıdaki özellikler `Eksiklikler.md` ile uyumlu olarak öncelik sırasına göre listelenmiştir:
 
-### Öncelik 1 — Bağımsız Hesap Tablosu Modu (Kritik)
+### Öncelik 1 — Pis Su Tesisat Hesapları (Bir Sonraki Eğitim Modülü)
+- OtoNET "Pis Su Tesisat Hesapları" eğitimi içeriği AfneyCAD'e aktarılacak
+- `WasteWaterDesignDialog` hesap föyü tamamlanacak
+- Kolon şeması (pis su için) ve Word/PDF rapor
+
+### Öncelik 2 — Bağımsız Hesap Tablosu Modu (Kritik)
 - `CalculationTableWindow`'a "CAD'siz mod" eklenmeli
 - Kullanıcı boru boyunu, debiyi ve cihaz sayısını manuel girebilmeli
 - OtoNET'teki ADAPT/FCALC davranışı hedeflenmeli
 - **İlgili dosyalar:** `CalculationTableWindow.xaml`, `CalculationTableService.cs`
 
-### Öncelik 2 — Çift Yönlü Hesap-Çizim Senkronizasyonu
+### Öncelik 3 — Çift Yönlü Hesap-Çizim Senkronizasyonu
 - Override edilen çap değerleri `PipeLabelEntity`'leri ve 3D modeli anlık güncellemeli
-- `AutoPipeLabeler`'ın live-update mekanizması geliştirilmeli
 - **İlgili dosyalar:** `AutoPipeLabeler.cs`, `AutoAnnotationService.cs`, `IsoSyncService.cs`
 
-### Öncelik 3 — Gelişmiş Ekipman Hesapları (Pompa/Hidrofor/Boyler)
-- `PumpSelectionService`'e pompa karakteristik eğrisi ve kavitasyon kontrolü eklenmeli
-- Genleşme tankı ve boyler kapasitesi hesabı interaktif hale getirilmeli
-
-### Öncelik 4 — Çoklu Uluslararası Standart Desteği
-- `StandardSelectionService` / `PipeSizer`'a ASPE ve BS EN 806 standartları eklenmeli
-- Tablo seviyesinde norm değiştirme → anında yeniden hesap
+### Öncelik 4 — Gelişmiş Ekipman Hesapları (Pompa/Hidrofor/Boyler)
+- `PumpSelectionService`'e pompa karakteristik eğrisi ve kavitasyon kontrolü
 
 ### Öncelik 5 — IFC İçeri Aktarma
 - `IfcExportService` tamamlandı; `IfcImportService` yazılmalı
@@ -363,4 +522,4 @@ Aşağıdaki özellikler `Eksiklikler.md` ile uyumlu olarak öncelik sırasına 
 
 ---
 
-*Son güncelleme: 2026-05-19 | AfneyCAD v2.0.0*
+*Son güncelleme: 2026-05-19 | AfneyCAD v2.1.0 — Pis Su / Yağmur Suyu Modülü*
