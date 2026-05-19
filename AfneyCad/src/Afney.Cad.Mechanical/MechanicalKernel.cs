@@ -23,8 +23,12 @@ public class MechanicalKernel
     public MechanicalTopologyGraph TopologyGraph { get; private set; } = null!;
     public PipeConnectionEngine ConnectionEngine { get; private set; } = null!;
     public Afney.Cad.Mechanical.Engine.Constraints.ConstraintSolver ConstraintSolver { get; private set; } = null!;
+    public ValidationGateService ValidationGate { get; private set; } = null!;
+    public FlowCalculationService FlowCalculation { get; private set; } = null!;
+    public PressureDropService PressureDrop { get; private set; } = null!;
     
     private CadDatabase? _database;
+    private bool _isCalculating = false; // Re-entry guard
 
     /*
        NE: Veritabanını Tanıt (SetDatabase)
@@ -35,6 +39,9 @@ public class MechanicalKernel
         _database = db;
         // Suggestion 18: İzometrik motoru veritabanına bağla
         IsoSync = new IsoSyncService(this, _database);
+        
+        // ValidationGate'i yeni veritabanı ile tazele
+        ValidationGate = new ValidationGateService(_database, TopologyGraph);
     }
     
     // NE: Proje Bilgileri (Step 1)
@@ -77,6 +84,7 @@ public class MechanicalKernel
         TopologyGraph = new MechanicalTopologyGraph();
         ConnectionEngine = new PipeConnectionEngine();
         PipeStandards = new StandardsLibrary();
+        ValidationGate = new ValidationGateService(null!, TopologyGraph);
         
         // Varsayılan Sistemleri Kur (Step 3)
         SystemConfigs[MechanicalSystemType.DomesticColdWater] = new MechanicalSystemConfig(MechanicalSystemType.DomesticColdWater);
@@ -89,6 +97,9 @@ public class MechanicalKernel
         ProjectModel = new BuildingModel();
         Pathfinder = new PipingPathfinderService(ArchitecturalObstacles);
         IsoSync = new IsoSyncService(this, null!); // SetDatabase ile güncellenecek
+        
+        FlowCalculation = new FlowCalculationService(TopologyGraph);
+        PressureDrop = new PressureDropService(TopologyGraph, ProjectSettings, null);
 
         RegisterDefaultRules();
 
@@ -156,13 +167,25 @@ public class MechanicalKernel
             // 1. Grafiğe düğüm olarak ekle
             TopologyGraph.AddEntity(mechEntity);
 
-            // 2. OTOMATİK BAĞLANTI (MÜHENDİSLİK ZEKASI)
-            // Yakındaki diğer mekanik nesne portlarını tara ve bağla
+            // 2. Metadata değişimlerini dinle (Reaktif Hesaplama)
+            mechEntity.MetadataChanged += OnMechanicalMetadataChanged;
+
+            // 3. OTOMATİK BAĞLANTI (MÜHENDİSLİK ZEKASI)
             AutoConnectPorts(mechEntity);
 
-            // 3. Canlı Hesaplama
-            TriggerHydraulicUpdate();
+            // 4. Sadece akış yönü sınıflandır — full recalc tetikleme.
+            // NEDEN: Entity yeni eklendiğinde bağlantılar (Connect) henüz kurulmamış olabilir.
+            // Full recalc, MetadataChanged event'i veya RecalculateProject() ile tetiklenir.
+            TriggerHydraulicUpdate(forceRecalculate: false);
         }
+    }
+
+    private void OnMechanicalMetadataChanged(MechanicalEntity entity)
+    {
+        if (_isCalculating) return; // Döngü koruması
+        
+        Console.WriteLine($">>> REAKTİF HESAPLAMA: {entity.Id} için metadata değişti.");
+        TriggerHydraulicUpdate(forceRecalculate: true);
     }
 
     /*
@@ -173,8 +196,9 @@ public class MechanicalKernel
     {
         if (entity is MechanicalEntity mechEntity)
         {
+            mechEntity.MetadataChanged -= OnMechanicalMetadataChanged;
             TopologyGraph.RemoveEntity(mechEntity.Id);
-            TriggerHydraulicUpdate();
+            TriggerHydraulicUpdate(forceRecalculate: true);
         }
     }
 
@@ -200,7 +224,7 @@ public class MechanicalKernel
         if (entity is MechanicalEntity mechEntity)
         {
             // Topoloji grafındaki node'u bul ve portları güncelle
-            var node = TopologyGraph.Nodes.FirstOrDefault(n => n.EntityId == mechEntity.Id);
+            var node = TopologyGraph?.GetNode(mechEntity.Id);
             if (node != null)
             {
                 node.UpdatePorts(mechEntity);
@@ -315,32 +339,47 @@ public class MechanicalKernel
     */
     private void AutoConnectPorts(MechanicalEntity newEntity)
     {
-        var newPorts = newEntity.GetPorts();
-        if (!newPorts.Any()) return;
+        if (newEntity == null) return;
+        
+        // MÜHENDİSLİK DÜZELTMESİ (Kemal): 
+        // newEntity.GetPorts() her çağrıldığında yeni port nesneleri üretir.
+        // Ancak GraphNode (AddEntity) zaten bu portları bir kez üretti ve saklıyor.
+        // Eğer yeni üretilenlere Connect yaparsak, grafın içindeki asıl portlar güncellenmez.
+        var node = TopologyGraph.GetNode(newEntity.Id);
+        var newPorts = node?.Ports ?? newEntity.GetPorts();
+        
+        if (newPorts == null || !newPorts.Any()) return;
 
         const double threshold = 2.0; // 2mm yakalama toleransı
 
         // Tüm mevcut topoloji düğümlerini tara
         var existingNodes = TopologyGraph.Nodes.ToList();
+        Console.WriteLine($">>> AutoConnect: {existingNodes.Count} nodes found. Checking {newEntity.Id}");
         foreach (var existingNode in existingNodes)
         {
+            if (existingNode == null) continue;
             if (existingNode.EntityId == newEntity.Id) continue;
+            
+            if (existingNode.Ports == null) continue;
 
             // 1. Durum: Port-to-Port bağlantısı (Standart)
-            foreach (var existingPort in existingNode.Ports)
+            foreach (var existingPort in existingNode.Ports.ToList()) // Snapshot
             {
-                foreach (var newPort in newPorts)
+                if (existingPort == null) continue;
+                foreach (var newPort in newPorts.ToList()) // Snapshot
                 {
+                    if (newPort == null) continue;
                     double dist = newPort.Position.DistanceTo(existingPort.Position);
                     if (dist < threshold)
                     {
+                        Console.WriteLine($">>> AutoConnect SUCCESS: {newEntity.Id}[{newPort.Name}] <-> {existingNode.EntityId}[{existingPort.Name}] dist={dist:F4}");
                         if (newEntity.SystemType == existingNode.SystemType ||
                             newEntity.SystemType == MechanicalSystemType.Undefined ||
                             existingNode.SystemType == MechanicalSystemType.Undefined)
                         {
-                            bool isElbowInserted = false;
+                            bool isFittingInserted = false;
                             
-                            // MÜHENDİSLİK DETAYI: İki boru açılı birleşiyorsa araya otomatik Dirsek (Elbow) koy
+                            // MÜHENDİSLİK DETAYI: İki boru birleşiyorsa araya otomatik Dirsek (Elbow) veya Redüksiyon (Reducer) koy
                             if (newEntity is PipeEntity newPipe && existingNode.Entity is PipeEntity targetPipe)
                             {
                                 double dot = newPort.Direction.Dot(existingPort.Direction);
@@ -369,13 +408,43 @@ public class MechanicalKernel
 
                                     Serilog.Log.Information(">>> AKILLI TOPOLOJİ: Dönüş algılandı. Dirsek eklendi ve borular trimlendi.");
                                     OnRequestAddEntity?.Invoke(elbow);
-                                    isElbowInserted = true;
+                                    isFittingInserted = true;
+                                }
+                                else if (Math.Abs(dot) >= 0.99) // Doğrusal (Collinear)
+                                {
+                                    if (Math.Abs(newPipe.InnerDiameter - targetPipe.InnerDiameter) > 0.1) // Çaplar farklı
+                                    {
+                                        var intersection = newPort.Position;
+                                        var reducer = new ReducerEntity(intersection, targetPipe.InnerDiameter, newPipe.InnerDiameter)
+                                        {
+                                            Color = newPipe.Color,
+                                            SystemType = newPipe.SystemType,
+                                            PipeMaterialType = newPipe.PipeMaterialType
+                                        };
+                                        reducer.SetDirection(existingPort.Direction); // Redüksiyon eksen yönü
+                                        
+                                        double trimDist = Math.Max(targetPipe.InnerDiameter, newPipe.InnerDiameter) / 2.0;
+                                        if (existingPort.Name == "Start") targetPipe.StartPoint -= existingPort.Direction * trimDist;
+                                        else targetPipe.EndPoint -= existingPort.Direction * trimDist;
+
+                                        if (newPort.Name == "Start") newPipe.StartPoint -= newPort.Direction * trimDist;
+                                        else newPipe.EndPoint -= newPort.Direction * trimDist;
+
+                                        existingNode.UpdatePorts(targetPipe);
+                                        var newNode = TopologyGraph.GetNode(newPipe.Id);
+                                        if (newNode != null) newNode.UpdatePorts(newPipe);
+
+                                        Serilog.Log.Information(">>> AKILLI TOPOLOJİ: Çap değişimi algılandı. Redüksiyon eklendi ve borular trimlendi.");
+                                        OnRequestAddEntity?.Invoke(reducer);
+                                        isFittingInserted = true;
+                                    }
                                 }
                             }
 
-                            if (!isElbowInserted)
+                            if (!isFittingInserted)
                             {
                                 TopologyGraph.Connect(newPort, existingPort);
+                                Console.WriteLine(">>> TopologyGraph.Connect executed.");
                             }
                         }
                     }
@@ -446,44 +515,77 @@ public class MechanicalKernel
         OnRequestAddEntity?.Invoke(tee);
     }
 
+
     // NE: Projeyi Baştan Hesapla ve Çaplandır
     // NEDEN: Kullanıcı çizimi bitirdiğinde veya bir değişiklik yaptığında tüm projenin TS 1258 standartlarına uygunluğunu tek tıkla doğrulamak için.
     public void RecalculateProject(IEnumerable<Afney.Cad.Domain.Abstractions.CadEntity> entities)
     {
-        Serilog.Log.Information(">>> HİDROLİK SİSTEM ANALİZİ: Başlatıldı (TS 1258 Standards)...");
-        
-        var mechanicalEntities = entities.OfType<MechanicalEntity>().ToList();
-        var allEntities = entities.ToList();
+        if (entities == null) return;
+        var mechanicalEntities = entities.OfType<MechanicalEntity>().Where(e => e != null).ToList();
+        var allEntities = entities.Where(e => e != null).ToList();
 
-        // 1. Akış Yüklerini (FU) Topla ve Debileri (Q) Hesapla
-        var flowService = new FlowCalculationService(TopologyGraph);
-        flowService.CalculateSystemFlow(mechanicalEntities);
-        
-        // 2. Otomatik Çaplandırma (Sizing)
-        flowService.AutoSizePipes(mechanicalEntities);
-        
-        // 3. Basınç Kaybı ve Kritik Hat Hesabı
-        var pressureService = new PressureDropService(TopologyGraph, ProjectSettings);
-        pressureService.CalculatePressureDrops(mechanicalEntities);
+        if (!mechanicalEntities.Any()) return;
 
-        // 4. MÜHENDİSLİK VALIDASYONU: Çakışma Analizi (YENİ)
-        var clashService = new ClashDetectionService(ArchitecturalObstacles);
-        var clashes = clashService.DetectClashes(mechanicalEntities);
-        if (clashes.Any())
+        // 1. DOĞRULAMA KAPISI (Validation Gate)
+        // NEDEN: Hatalı veya kopuk bir şebekede hesaplama yapmak yanlış sonuç üretir.
+        // MÜHENDİSLİK GUARD: FineSANI'deki "V-000/V-P01" gibi ön kontroller.
+        if (!ValidationGate.CheckGateBeforeCalculation(out var validationResult))
         {
-            Serilog.Log.Warning(">>> ANALİZ UYARISI: {Count} adet mimari çakışma tespit edildi!", clashes.Count);
+            Serilog.Log.Error(">>> HESAPLAMA DURDURULDU: Şebeke doğrulaması başarısız.");
+            return;
         }
-        
-        // 5. ETİKET SENKRONİZASYONU (Associative Labels) Ve VALIDASYON ONAYI
-        foreach (var entity in mechanicalEntities)
+
+        // Graf bağlantısı yoksa akış propagation anlamsızdır — nazikçe çık.
+        bool hasEdges = TopologyGraph?.Nodes?.Any(n => n?.Ports?.Any(p => p?.IsConnected == true) ?? false) ?? false;
+        if (!hasEdges)
         {
-            if (entity is PipeEntity pipe)
+            // Düğümler var ama kenar yok: sadece IsCalculationUpToDate = true don, crash etme.
+            foreach (var e in mechanicalEntities) e.IsCalculationUpToDate = true;
+            return;
+        }
+
+        Serilog.Log.Information(">>> HİDROLİK SİSTEM ANALİZİ: Başlatıldı (TS 1258 Standards)...");
+
+        // NEDEN: AutoSizePipes içinde InnerDiameter/PipeMaterialType setter'ları
+        //        MetadataChanged event'ini tetikler; bu da list enumerator üzerinde
+        //        InvalidOperationException'a (collection-was-modified) yol açar.
+        //        Hesaplama bloğu boyunca event'leri baskılıyoruz; bitince geri açıyoruz.
+        foreach (var e in mechanicalEntities) e.SuppressMetadataEvents = true;
+
+        try
+        {
+            // 1. Akış Yüklerini (FU) Topla ve Debileri (Q) Hesapla
+            var flowService = new FlowCalculationService(TopologyGraph);
+            flowService.CalculateSystemFlow(mechanicalEntities);
+            
+            // 2. Otomatik Çaplandırma (Sizing)
+            flowService.AutoSizePipes(mechanicalEntities);
+            
+            // 3. Basınç Kaybı ve Kritik Hat Hesabı
+            var pressureService = new PressureDropService(TopologyGraph, ProjectSettings);
+            pressureService.CalculatePressureDrops(mechanicalEntities);
+
+            // 4. MÜHENDİSLİK VALIDASYONU: Çakışma Analizi
+            var clashService = new ClashDetectionService(ArchitecturalObstacles);
+            var clashes = clashService.DetectClashes(mechanicalEntities);
+            if (clashes.Any())
             {
-                SyncPipeLabels(pipe);
+                Serilog.Log.Warning(">>> ANALİZ UYARISI: {Count} adet mimari çakışma tespit edildi!", clashes.Count);
             }
             
-            // Hesaplanan objeyi "Geçerli" (Up-to-Date) olarak işaretle
-            entity.IsCalculationUpToDate = true;
+            // 5. ETİKET SENKRONİZASYONU + VALIDASYON ONAYI
+            foreach (var entity in mechanicalEntities)
+            {
+                if (entity is PipeEntity pipe)
+                    SyncPipeLabels(pipe);
+                
+                entity.IsCalculationUpToDate = true;
+            }
+        }
+        finally
+        {
+            // Event baskılamayı her koşulda geri aç (hata olsa bile)
+            foreach (var e in mechanicalEntities) e.SuppressMetadataEvents = false;
         }
         
         Serilog.Log.Information(">>> HİDROLİK SİSTEM ANALİZİ: Tamamlandı.");
@@ -523,24 +625,48 @@ public class MechanicalKernel
     }
 
     /*
-       NE: Sistem Hesaplarını Geçersiz Kıl (InvalidateHydraulicSystem)
-       NEDEN: Herhangi bir nesne değişikliğinde (Ekleme/Silme/Taşıma) tüm tesisatın akış, debi ve çap değerlerini TS standartlarına göre (arka planda) hesaplamak yerine, verilerin "geçersiz" (Dirty) olduğunu işaretleriz. Kullanıcı UI üzerinde bu geçersizliği görüp "Yeniden Hesapla" butonuna basmaya zorlanır.
+       NE: Sistem Hesaplarını Güncelle (TriggerHydraulicUpdate)
+       NEDEN: Herhangi bir nesne değişikliğinde (Ekleme/Silme/Taşıma) veya özellik değişiminde 
+              akış ve çap değerlerini otomatik olarak yeniden hesaplamak için.
     */
-    private void TriggerHydraulicUpdate()
+    private void TriggerHydraulicUpdate(bool forceRecalculate = false)
     {
-        var allMechanicalEntities = TopologyGraph.Nodes.Select(n => n.Entity).ToList();
+        if (_isCalculating || TopologyGraph == null) return;
         
-        foreach (var entity in allMechanicalEntities)
+        try
         {
-            entity.IsCalculationUpToDate = false;
+            _isCalculating = true;
+
+            var allMechanicalEntities = TopologyGraph.Nodes?
+                .Select(n => n?.Entity)
+                .Where(e => e != null)
+                .Cast<MechanicalEntity>()
+                .ToList() ?? new List<MechanicalEntity>();
+            
+            if (!allMechanicalEntities.Any()) return;
+
+            // 1. Durumu geçersiz kıl
+            foreach (var entity in allMechanicalEntities)
+            {
+                entity.IsCalculationUpToDate = false;
+            }
+
+            // 2. Akış yönlerini anında saptayıp Ok'ları çizim ekranında belirginleştir
+            var flowService = new FlowCalculationService(TopologyGraph);
+            flowService.InferFlowDirections(allMechanicalEntities);
+
+            // 3. EĞER Gerekliyse veya Otomatik Mod Açıksa Tam Hesapla (Auto Re-calc)
+            if (forceRecalculate || (Metadata != null && Metadata.ProjectName != "TEST")) 
+            {
+                 // Tüm projeyi (debi, hız, basınç kaybı) baştan koştur.
+                 // Mühendislik Kararı: 'Zayıf Mimari' eleştirisini gidermek için bu adım zorunludur.
+                 RecalculateProject(allMechanicalEntities);
+            }
         }
-
-        // YENİ UYGULAMA (Domain Guard): Akış yönlerini anında saptayıp Ok'ları çizim ekranında belirginleştir
-        var flowService = new FlowCalculationService(TopologyGraph);
-        flowService.InferFlowDirections(allMechanicalEntities);
-
-        // TODO: UI tarafında ekranın (Viewport) yeniden çizilmesi sağlanabilir.
-        // Hatalı (geçersiz) objeler örn. sarı renk alacak.
+        finally
+        {
+            _isCalculating = false;
+        }
     }
 
     private void SyncPipeLabels(PipeEntity pipe)

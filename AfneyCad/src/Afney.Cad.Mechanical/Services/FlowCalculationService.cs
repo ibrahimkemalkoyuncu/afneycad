@@ -73,19 +73,21 @@ public class FlowCalculationService
             .Select(p => p.Id)
             .ToHashSet();
 
-        var fixtures = mechanicalEntities.OfType<SanitaryFixtureEntity>().ToList();
-        foreach (var fixture in fixtures)
+        // 1. Vitrifiyeler VE Manuel Yük Noktaları üzerinden akış yönü saptanır
+        foreach (var entity in mechanicalEntities)
         {
-            var path = FindPathToNearestSink(fixture.Id, sinks, entityMap);
+            if (entity is not SanitaryFixtureEntity && entity is not MechanicalLoadNode) continue;
+
+            var path = FindPathToNearestSink(entity.Id, sinks, entityMap);
             if (path != null)
             {
-                // Sadece yolu boyu boru yönlerini ata (FU veya hesap yapma)
+                // Sadece yol boyu boru yönlerini ata (FU veya hesap yapma)
                 for (int i = 0; i < path.Count - 1; i++)
                 {
                     var currentId = path[i];
                     var nextId = path[i + 1];
 
-                    if (entityMap.TryGetValue(nextId, out var entity) && entity is PipeEntity pipe)
+                    if (entityMap.TryGetValue(nextId, out var nextEntity) && nextEntity is PipeEntity pipe)
                     {
                         UpdatePipeFlowDirection(pipe, currentId, nextId);
                     }
@@ -120,14 +122,30 @@ public class FlowCalculationService
             .ToHashSet();
 
         // 3. Her Vitrifiyeden En Yakın Sink'e Yol Bul ve Yükle
-        var fixtures = mechanicalEntities.OfType<SanitaryFixtureEntity>().ToList();
-        foreach (var fixture in fixtures)
+        // 3. Her Vitrifiye veya Yük Noktasından En Yakın Sink'e Yol Bul ve Yükle
+        foreach (var entity in mechanicalEntities)
         {
-            var path = FindPathToNearestSink(fixture.Id, sinks, entityMap);
+            double fu = 0;
+            bool isWC = false;
+
+            if (entity is SanitaryFixtureEntity fixture)
+            {
+                fu = fixture.FixtureUnit;
+                isWC = fixture.FixtureType.Contains("WC", StringComparison.OrdinalIgnoreCase);
+            }
+            else if (entity is MechanicalLoadNode loadNode)
+            {
+                fu = loadNode.LoadUnits;
+                // LoadNode manuel yük olduğu için WC olup olmadığını SystemType veya isimlendirmeden çıkarabiliriz 
+                // ya da LoadNode'a IsWCLoad property'si eklenebilir. Şimdilik SystemType kuralı kalsın.
+                isWC = loadNode.SystemType == MechanicalSystemType.WasteWater; 
+            }
+            else continue;
+
+            var path = FindPathToNearestSink(entity.Id, sinks, entityMap);
             if (path != null)
             {
-                bool isWC = fixture.FixtureType.Contains("WC", StringComparison.OrdinalIgnoreCase);
-                ApplyLoadToPath(path, fixture.FixtureUnit, isWC, entityMap);
+                ApplyLoadToPath(path, fu, isWC, entityMap);
             }
         }
 
@@ -318,6 +336,15 @@ public class FlowCalculationService
         var pipes = entities.OfType<PipeEntity>().ToList();
         foreach (var pipe in pipes)
         {
+            // MÜHENDİSLİK ZEKASI (Kemal): Eğer kullanıcı çapı manuel kilitlemişse, 
+            // otomatik çaplandırma motoru bu boruya dokunmamalıdır.
+            if (pipe.IsSizeLocked) 
+            {
+                // Ama hızı her halükarda güncellemeliyiz ki kullanıcı manuel çapın hızını görsün
+                pipe.Velocity = pipe.GetVelocity();
+                continue;
+            }
+
             // 0. Otomatik Malzeme Ataması (Eğer generic ise)
             if (pipe.PipeMaterialType == PipeMaterial.Generic)
             {

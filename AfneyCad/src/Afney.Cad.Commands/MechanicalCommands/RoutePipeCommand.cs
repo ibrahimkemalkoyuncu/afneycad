@@ -196,18 +196,21 @@ public class RoutePipeCommand : ICadCommand
     */
     public void OnPointerMoved(Vector3D point) => UpdateGhost(point);
 
-    /*
-       NE: Önizleme Güncelle (UpdateGhost)
-       NEDEN: Fare hareket ettikçe, henüz çizilmeyen borunun nereye uzanacağını (Sarı hayalet çizgi ile) görselleştirerek kullanıcıya geri bildirim sağlamak için.
-    */
     private void UpdateGhost(Vector3D endPoint)
     {
         _ghostEntities.Clear();
         var lastPoint = _routingEngine.LastPoint;
         if (lastPoint == null) return;
 
+        // Eğim kaynaklı Z düşüş/yükseliş hesabı (Faz 27)
+        double slope = _routingEngine.CurrentSlope; 
+        double distance2D = Math.Sqrt(Math.Pow(endPoint.X - lastPoint.Value.X, 2) + Math.Pow(endPoint.Y - lastPoint.Value.Y, 2));
+        double zDelta = distance2D * slope;
+        
+        var slopedEndPoint = new Vector3D(endPoint.X, endPoint.Y, lastPoint.Value.Z + zDelta);
+
         // Ghost line (Sarı rehber çizgi)
-        var line = new Afney.Cad.Domain.Entities.Basic.LineEntity(lastPoint.Value, endPoint) 
+        var line = new Afney.Cad.Domain.Entities.Basic.LineEntity(lastPoint.Value, slopedEndPoint) 
         { 
             Color = 0xAAFFFF00 // Yarı saydam sarı
         };
@@ -221,7 +224,23 @@ public class RoutePipeCommand : ICadCommand
 
     public void Draw(IRenderContext context)
     {
-        foreach (var ghost in _ghostEntities) ghost.Draw(context);
+        foreach (var ghost in _ghostEntities) 
+        {
+            ghost.Draw(context);
+
+            // Eğimli hat uyarısını veya Z-derinlik (Drop/Rise) metnini farenin ucuna çiz (Faz 27)
+            if (ghost is Afney.Cad.Domain.Entities.Basic.LineEntity lineGhost)
+            {
+                if (Math.Abs(_routingEngine.CurrentSlope) > 0.001)
+                {
+                    var p2 = lineGhost.EndPoint;
+                    string depthText = $"Z: {p2.Z:F1} (Slope: {_routingEngine.CurrentSlope * 100:F1}%)";
+                    
+                    // Metni bitiş noktasının biraz üst/sağına yaz.
+                    context.DrawText(depthText, new Vector3D(p2.X + 15, p2.Y + 15, 0), 0, 14, 0xFF00FFFF); // Cyan metin
+                }
+            }
+        }
     }
 
     public void Cancel() => _ghostEntities.Clear();

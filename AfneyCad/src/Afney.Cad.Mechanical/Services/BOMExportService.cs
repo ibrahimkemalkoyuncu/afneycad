@@ -5,21 +5,129 @@ using System.Text;
 using System.IO;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Mechanical.Entities;
+using ClosedXML.Excel;
 
 namespace Afney.Cad.Mechanical.Services;
 
 /*
     NE: Gelişmiş BOM Raporlama Servisi (BOMExportService)
-    NEDEN: Proje metrajını (Boru, Fittings, Cihaz) profesyonel HTML formatında sunmak.
+    NEDEN: Proje metrajını (Boru, Fittings, Cihaz) profesyonel HTML ve Excel formatında sunmak.
     ÖZELLİKLER:
     - Boru (Pipe) Metrajı
     - Dirsek (Elbow) Sayımı
     - T-Parçası (Tee) Sayımı
     - Redüksiyon (Reducer) Sayımı
     - Vitrifiye (Fixture) Listesi
+    - Native Excel (.xlsx) Dışa Aktarımı
 */
 public class BOMExportService
 {
+    /*
+       NE: Excel Metraj Raporu Üret (GenerateExcelReport)
+       NEDEN: Profesyonel mühendislik çıktıları için verileri doğrudan .xlsx formatına dökerek Excel'de düzenlenebilir hale getirmek için.
+    */
+    public void GenerateExcelReport(IEnumerable<CadEntity> entities, string projectName, string filePath)
+    {
+        var allList = entities.ToList();
+        var pipes = allList.OfType<PipeEntity>().ToList();
+        var elbows = allList.OfType<ElbowEntity>().ToList();
+        var tees = allList.OfType<TeeEntity>().ToList();
+        var fixtures = allList.OfType<SanitaryFixtureEntity>().ToList();
+
+        using (var workbook = new XLWorkbook())
+        {
+            var summarySheet = workbook.Worksheets.Add("Özet");
+            summarySheet.Cell(1, 1).Value = "AfneyCAD Metraj Raporu";
+            summarySheet.Cell(1, 1).Style.Font.Bold = true;
+            summarySheet.Cell(1, 1).Style.Font.FontSize = 16;
+            summarySheet.Cell(2, 1).Value = $"Proje: {projectName}";
+            summarySheet.Cell(3, 1).Value = $"Tarih: {DateTime.Now:dd.MM.yyyy HH:mm}";
+
+            // 1. BORU LİSTESİ
+            if (pipes.Any())
+            {
+                var pipeSheet = workbook.Worksheets.Add("Borular");
+                pipeSheet.Cell(1, 1).Value = "Sistem";
+                pipeSheet.Cell(1, 2).Value = "Çap (DN)";
+                pipeSheet.Cell(1, 3).Value = "Malzeme";
+                pipeSheet.Cell(1, 4).Value = "Uzunluk (m)";
+                pipeSheet.Range(1, 1, 1, 4).Style.Font.Bold = true;
+                pipeSheet.Range(1, 1, 1, 4).Style.Fill.BackgroundColor = XLColor.FromHtml("#34495e");
+                pipeSheet.Range(1, 1, 1, 4).Style.Font.FontColor = XLColor.White;
+
+                var pipeGroups = pipes.GroupBy(p => new { p.SystemType, p.InnerDiameter, p.PipeMaterialType })
+                                      .OrderBy(g => g.Key.SystemType).ThenBy(g => g.Key.InnerDiameter).ToList();
+
+                int row = 2;
+                foreach (var group in pipeGroups)
+                {
+                    double totalLen = group.Sum(p => (p.EndPoint - p.StartPoint).Length()) / 1000.0;
+                    pipeSheet.Cell(row, 1).Value = group.Key.SystemType.ToString();
+                    pipeSheet.Cell(row, 2).Value = $"DN{group.Key.InnerDiameter:F0}";
+                    pipeSheet.Cell(row, 3).Value = group.Key.PipeMaterialType.ToString();
+                    pipeSheet.Cell(row, 4).Value = totalLen;
+                    pipeSheet.Cell(row, 4).Style.NumberFormat.Format = "0.00";
+                    row++;
+                }
+                pipeSheet.Columns().AdjustToContents();
+            }
+
+            // 2. FITTINGS LİSTESİ
+            if (elbows.Any() || tees.Any())
+            {
+                var fitSheet = workbook.Worksheets.Add("Ek Parçalar");
+                fitSheet.Cell(1, 1).Value = "Tip";
+                fitSheet.Cell(1, 2).Value = "Özellik";
+                fitSheet.Cell(1, 3).Value = "Sistem";
+                fitSheet.Cell(1, 4).Value = "Adet";
+                fitSheet.Range(1, 1, 1, 4).Style.Font.Bold = true;
+
+                int row = 2;
+                // Dirsekler
+                foreach (var group in elbows.GroupBy(e => new { e.InnerDiameter, e.SystemType }))
+                {
+                    fitSheet.Cell(row, 1).Value = "Dirsek (Elbow)";
+                    fitSheet.Cell(row, 2).Value = $"DN{group.Key.InnerDiameter:F0}";
+                    fitSheet.Cell(row, 3).Value = group.Key.SystemType.ToString();
+                    fitSheet.Cell(row, 4).Value = group.Count();
+                    row++;
+                }
+                // T-Parçaları
+                foreach (var group in tees.GroupBy(t => new { t.MainDiameter, t.BranchDiameter, t.SystemType }))
+                {
+                    fitSheet.Cell(row, 1).Value = "T-Parçası (Tee)";
+                    fitSheet.Cell(row, 2).Value = $"DN{group.Key.MainDiameter:F0}x{group.Key.BranchDiameter:F0}";
+                    fitSheet.Cell(row, 3).Value = group.Key.SystemType.ToString();
+                    fitSheet.Cell(row, 4).Value = group.Count();
+                    row++;
+                }
+                fitSheet.Columns().AdjustToContents();
+            }
+
+            // 3. ARMATÜR LİSTESİ
+            if (fixtures.Any())
+            {
+                var fixSheet = workbook.Worksheets.Add("Armatürler");
+                fixSheet.Cell(1, 1).Value = "Tip";
+                fixSheet.Cell(1, 2).Value = "Adet";
+                fixSheet.Cell(1, 3).Value = "Toplam LU";
+                fixSheet.Range(1, 1, 1, 3).Style.Font.Bold = true;
+
+                int row = 2;
+                foreach (var group in fixtures.GroupBy(f => f.FixtureType).OrderBy(g => g.Key))
+                {
+                    fixSheet.Cell(row, 1).Value = group.Key.ToString();
+                    fixSheet.Cell(row, 2).Value = group.Count();
+                    fixSheet.Cell(row, 3).Value = group.Sum(f => f.LoadUnits);
+                    row++;
+                }
+                fixSheet.Columns().AdjustToContents();
+            }
+
+            workbook.SaveAs(filePath);
+        }
+    }
+
     public string GenerateHtmlReport(IEnumerable<CadEntity> entities, string projectName)
     {
         var allList = entities.ToList();

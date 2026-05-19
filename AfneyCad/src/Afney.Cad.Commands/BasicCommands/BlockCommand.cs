@@ -17,116 +17,161 @@ namespace Afney.Cad.Commands.BasicCommands;
 public class BlockCommand : ICadCommand
 {
     private readonly CadDatabase _database;
-    private readonly Action<BlockCommand> _onRequestName;
+    
+    // Command layer UI bilmez, o yüzden callback veya interface ile tetikleriz.
+    private readonly Func<BlockCommand, bool?> _onOpenBMakeDialog; 
     
     // Durum
     private int _step = 0;
     private List<CadEntity> _selectedEntities = new();
     private Vector3D _basePoint;
+    
+    // Geçici olarak UI tarafının sağladığı Action delegasyonları
+    private Action<Vector3D>? _onBasePointPicked;
+    private Action? _onObjectsSelected;
 
     public string CommandName => "BLOCK";
     public Vector3D? ActivePoint => _basePoint;
     public List<CadEntity> SelectedEntities => _selectedEntities;
 
+    // NE: Dışarıdan okuyabilmek için, komut obje seçimi bekliyor mu?
+    public bool IsSelectingObjects => _step == 2;
+
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public BlockCommand(CadDatabase database, Action<BlockCommand> onRequestName)
+    // Presentation katmanı (MainWindow) Command'ı üretirken BMakeDialog açıcı Factory fonksiyonu geçmeli
+    public BlockCommand(CadDatabase database, Func<BlockCommand, bool?> onOpenBMakeDialog)
     {
         _database = database;
-        _onRequestName = onRequestName;
+        _onOpenBMakeDialog = onOpenBMakeDialog;
     }
 
-    /*
-       NE: Komutu Başlat (Start)
-       NEDEN: Blok oluşturma döngüsünü tetikleyerek seçili nesne olup olmadığını kontrol etmek ve kullanıcıyı nesne seçimine veya referans noktası belirlemeye yönlendirmek için.
-    */
     public void Start()
     {
         // 1. Önce seçim var mı kontrol et
         _selectedEntities = _database.GetSelectedEntities().ToList();
         
-        if (_selectedEntities.Count > 0)
-        {
-            // Seçim varsa doğrudan nokta iste
-            OnFeedback?.Invoke("BLOCK: Referans noktası (Base Point) seçin...");
-            _step = 2;
-        }
-        else
-        {
-            // Seçim yoksa önce nesne seçtir
-            OnFeedback?.Invoke("BLOCK: Blok yapılacak nesneleri seçin (Enter ile bitirin)...");
-            _step = 1;
-        }
+        // UI Dialog'u aç - Dialog işlemi bitirdiğinde (OK) form zaten FinalizeBlock()'u çağırır.
+        _onOpenBMakeDialog?.Invoke(this);
+    }
+    
+    /*
+       NE: BMakeDialog'dan Tetiklenen Pick Point
+    */
+    public void RequestPickPoint(Action<Vector3D> onPicked)
+    {
+        _step = 1;
+        _onBasePointPicked = onPicked;
+        OnFeedback?.Invoke("BLOCK: Referans noktası (Base Point) seçin...");
     }
 
     /*
-       NE: TÄ±klama OlayÄ± (OnPointerPressed)
-       NEDEN: AdÄ±m 1'de nesne seÃ§im tÄ±klamalarÄ±nÄ±, AdÄ±m 2'de ise bloÄŸun referans (baz) noktasÄ±nÄ± belirlemek iÃ§in.
+       NE: BMakeDialog'dan Tetiklenen Select Objects
+    */
+    public void RequestSelectObjects(Action onSelected)
+    {
+        _step = 2;
+        _onObjectsSelected = onSelected;
+        OnFeedback?.Invoke("BLOCK: Blok yapılacak nesneleri seçin (Enter ile bitirin)...");
+    }
+
+    // UI tarafına (BMakeDialog) haber verecek delegasyonlar
+    private Action<Vector3D>? _updateBasePointInDialog;
+    private Action? _updateSelectionCountInDialog;
+    private Action? _showDialogAction;
+    private Action? _closeDialogAction;
+
+    /*
+       NE: Tıklama Olayı (OnPointerPressed)
+       NEDEN: BMAKE dialogundan "Ekranda Seç" butonuna basıldığında tıklanan noktayı bloğun yerel orijini olarak (BasePoint) kaydetmek veya obje seçtirmek için.
     */
     public void OnPointerPressed(Vector3D point)
     {
-        if (_step == 1)
-        {
-            // Nesne seçimi (PickBox ile tek tek veya pencere ile yapılabilir ama burada basit nokta seçimi varsayalım)
-            // Aslında nesne seçimi genellikle Mouse Up/Down ile Selection Manager üzerinden yapılır.
-            // Bu komut aktifken Selection çalışmayabilir mi?
-            // Genelde komut içindeyken seçim yapmak için "PickEntityCommand" alt komutu kullanılır.
-            // Ama şimdilik basitlik adına: Kullanıcı nesneleri seçip komuta girmeli varsayımı yapabiliriz.
-            // Veya burada basit bir nokta kaydı alıp veritabanından seçim yapabiliriz.
-            
-            // Eğer adım 1 ise, seçim bekliyoruz. Kullanıcı seçim yapıp ENTER'a basmalı.
-            // Fare tıklamasıyla seçim mantığı CadEngine/MainWindow'da yönetiliyor olabilir.
-        }
-        else if (_step == 2)
+        if (_step == 1) // Pick Base Point
         {
             _basePoint = point;
-            _step = 3;
-            OnFeedback?.Invoke("BLOCK: Blok ismini girin...");
+            OnFeedback?.Invoke($"Base point selected: {point.X:F2}, {point.Y:F2}");
             
-            // İsim isteme diyaloğunu tetikle
-            _onRequestName?.Invoke(this);
+            // UI tarafındaki dialoga noktayı gönder
+            _updateBasePointInDialog?.Invoke(point);
+            
+            // Dialogu tekrar göster
+            _showDialogAction?.Invoke();
+            _step = 0; // Komut tekrar idle (dialog içinde) moda döner
+        }
+        else if (_step == 2) // Pick Objects
+        {
+            // Seçim işlemi (genelde SelectionManager ile halledilir)
         }
     }
 
-    /*
-       NE: Fare Hareket OlayÄ± (OnPointerMoved)
-       NEDEN: Blok komutu sÄ±rasÄ±nda herhangi bir dinamik Ã¶nizleme (ghost) gerekirse kullanmak iÃ§in.
-    */
     public void OnPointerMoved(Vector3D point) { }
 
     /*
-       NE: Klavye GiriÅŸ OlayÄ± (OnKeyDown)
-       NEDEN: ENTER tuÅŸu ile nesne seÃ§imini onaylamak veya ESC ile komutu iptal etmek iÃ§in.
+       NE: Klavye Girişi (OnKeyDown)
     */
     public void OnKeyDown(InputKey key)
     {
-        if (key == InputKey.Enter && _step == 1)
+        if (key == InputKey.Enter && _step == 2)
         {
-            // Seçimi tamamla
+            // Seçimi tamamla ve dialoga geri dön
             _selectedEntities = _database.GetSelectedEntities().ToList();
             if (_selectedEntities.Count == 0)
             {
-                OnFeedback?.Invoke("Uyarı: Hiç nesne seçilmedi. Lütfen nesne seçin.");
-                return;
+                OnFeedback?.Invoke("Uyarı: Hiç nesne seçilmedi.");
             }
             
-            OnFeedback?.Invoke("BLOCK: Referans noktası (Base Point) seçin...");
-            _step = 2;
+            _updateSelectionCountInDialog?.Invoke();
+            _showDialogAction?.Invoke();
+            _step = 0;
         }
         else if (key == InputKey.Escape)
         {
-            Cancel();
+            if (_step == 1 || _step == 2)
+            {
+                // Seçim yapmaktan vazgeçip dialoga dön
+                _showDialogAction?.Invoke();
+                _step = 0;
+            }
+            else
+            {
+                Cancel();
+            }
         }
     }
 
-    // UI'dan çağrılır
     /*
-        NE: Blok Tanımını Kapat (FinalizeBlock)
-        NEDEN: Kullanıcının girdiği isimle bir blok kaydı oluşturmak, seçilen nesneleri bu kaydın yerel koordinat sistemine (LCS) klonlamak ve sahnede bunların yerine bir Block Reference (INSERT) yerleştirmek için.
+       NE: BMakeDialog'dan Tetiklenen Pick Point
     */
-    public void FinalizeBlock(string name)
+    public void RequestPickPoint(Action<Vector3D> updatePointCb, Action showDialogCb)
     {
+        _step = 1;
+        _updateBasePointInDialog = updatePointCb;
+        _showDialogAction = showDialogCb;
+        OnFeedback?.Invoke("BLOCK: Referans noktası (Base Point) seçin...");
+    }
+
+    /*
+       NE: BMakeDialog'dan Tetiklenen Select Objects
+    */
+    public void RequestSelectObjects(Action updateSelectionCb, Action showDialogCb)
+    {
+        _step = 2;
+        _updateSelectionCountInDialog = updateSelectionCb;
+        _showDialogAction = showDialogCb;
+        OnFeedback?.Invoke("BLOCK: Blok yapılacak nesneleri seçin (Enter ile bitirin)...");
+    }
+
+    public void RegisterCloseCallback(Action closeDialogCb)
+    {
+        _closeDialogAction = closeDialogCb;
+    }
+
+    public void FinalizeBlock(string name, Vector3D basePnt, int behavior)
+    {
+        _selectedEntities = _database.GetSelectedEntities().ToList();
+
         if (string.IsNullOrWhiteSpace(name))
         {
             OnFeedback?.Invoke("Hata: Geçersiz blok ismi.");
@@ -134,59 +179,66 @@ public class BlockCommand : ICadCommand
             return;
         }
 
-        // 1. Blok Tanımı Oluştur
+        if (_selectedEntities.Count == 0)
+        {
+            OnFeedback?.Invoke("Hata: Blok yapılacak nesne seçilmedi.");
+            Cancel();
+            return;
+        }
+
         var blockRecord = new CadBlockRecord(name)
         {
-            BasePoint = _basePoint
+            BasePoint = basePnt
         };
 
-        // 2. Nesneleri Kopyala (Clone) ve Transform Et (BasePoint'e göre)
-        // Orijinal nesnelerin koordinatları WCS (World)
-        // Blok içindeki koordinatlar LCS (Local) -> P_local = P_world - BasePoint
-        var transformToLocal = Matrix4x4.TranslationMatrix(-_basePoint.X, -_basePoint.Y, -_basePoint.Z);
+        var transformToLocal = Matrix4x4.TranslationMatrix(-basePnt.X, -basePnt.Y, -basePnt.Z);
 
         foreach (var ent in _selectedEntities)
         {
             var clone = ent.Clone();
-            clone.Transform(transformToLocal); // Yerel koordinata çek
-            // ParentBlock vs ayarla?
-            // clone.ParentBlockId = ... Guid?
+            clone.Transform(transformToLocal); 
             blockRecord.Entities.Add(clone);
         }
 
-        // 3. Veritabanına Ekle
-        _database.AddBlock(blockRecord);
-
-        // 4. Orijinal Nesneleri Sil ve Yerine Insert Koy (Convert to Block)
-        // Transaction başlatılabilir
-        foreach (var ent in _selectedEntities)
+        if (_database.GetBlock(name) == null)
         {
-            _database.RemoveEntity(ent.Id);
+            _database.AddBlock(blockRecord);
+        }
+        else
+        {
+            OnFeedback?.Invoke($"Hata: '{name}' blok ismi zaten kullanılıyor.");
+            _showDialogAction?.Invoke();
+            return;
         }
 
-        var insert = new BlockReferenceEntity(name, _basePoint);
-        _database.AddEntity(insert);
+        if (behavior == 1 || behavior == 2)
+        {
+            foreach (var ent in _selectedEntities)
+            {
+                _database.RemoveEntity(ent.Id);
+            }
+        }
 
-        OnFeedback?.Invoke($"Blok '{name}' oluşturuldu.");
+        if (behavior == 1)
+        {
+            var insert = new BlockReferenceEntity(name, basePnt);
+            _database.AddEntity(insert);
+        }
+
+        _database.ClearSelection();
+        OnFeedback?.Invoke($"Blok '{name}' başarıyla oluşturuldu.");
+        _closeDialogAction?.Invoke();
         OnCompleted?.Invoke();
     }
 
-    /*
-       NE: Komutu Ä°ptal Et (Cancel)
-       NEDEN: KullanÄ±cÄ± vazgeÃ§tiÄŸinde seÃ§imleri temizlemek ve komutu sonlandÄ±rmak iÃ§in.
-    */
     public void Cancel()
     {
         _database.ClearSelection();
+        _closeDialogAction?.Invoke();
         OnCompleted?.Invoke();
     }
 
-    /*
-       NE: YardÄ±mcÄ± Ã‡izim (Draw)
-       NEDEN: Blok oluÅŸturma sÄ±rasÄ±nda kullanÄ±cÄ±ya gÃ¶rsel referanslar (Ã¶rn: baz noktadan mouse'a Ã§izgi) sunmak iÃ§in.
-    */
     public void Draw(IRenderContext context)
     {
-        // Görsel ipucu yok
     }
 }

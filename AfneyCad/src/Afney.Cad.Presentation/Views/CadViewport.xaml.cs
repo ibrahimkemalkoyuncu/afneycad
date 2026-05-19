@@ -57,13 +57,28 @@ namespace Afney.Cad.Presentation.Views;
 
         public event Action<string>? OnFeedback;
         public event Action<System.Collections.Generic.IEnumerable<CadEntity>>? SelectionChanged;
+        public event Action<bool>? OrthoToggled;
+
+        public bool IsOrthoEnabled { get; private set; } = false;
 
         // --- Katman Yönetimi (Layer Management) ---
         public System.Collections.Generic.HashSet<string> HiddenLayers { get; } = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        private readonly SKPaint _gridPaint = new() { Color = new SKColor(60, 60, 60, 50), Style = SKPaintStyle.Stroke, IsAntialias = true }; // Daha yumuşak grid
         private readonly SKPaint _axisPaint = new() { Color = new SKColor(100, 100, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
-        private readonly SKPaint _crosshairPaint = new() { Color = SKColors.White.WithAlpha(180), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true }; // Yumuşak imleç
+        private readonly SKPaint _crosshairPaint = new() { Color = SKColors.White.WithAlpha(180), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
+
+        // ── Cached SKPaint nesneleri (her frame new() yaratmaktan kaçınmak için) ──────────
+        private readonly SKPaint _gridMinorPaint = new() { Color = new SKColor(255, 255, 255, 14), StrokeWidth = 0, IsAntialias = false };
+        private readonly SKPaint _gridMajorPaint = new() { Color = new SKColor(255, 255, 255, 35), StrokeWidth = 0, IsAntialias = false };
+        private readonly SKPaint _originXPaint   = new() { Color = new SKColor(255, 50, 50, 150), StrokeWidth = 2, IsAntialias = true };
+        private readonly SKPaint _originYPaint   = new() { Color = new SKColor(50, 255, 50, 150), StrokeWidth = 2, IsAntialias = true };
+        private readonly SKPaint _originTxtPaint = new() { Color = SKColors.White, TextSize = 13, IsAntialias = true };
+        private readonly SKPaint _hoverBoxPaint  = new() { Color = new SKColor(173, 216, 230, 190), Style = SKPaintStyle.Stroke, StrokeWidth = 3f, IsAntialias = true };
+
+        // ── Smooth Zoom (Animasyonlu, AutoCAD hissiyatı) ─────────────────────────────────
+        private System.Windows.Threading.DispatcherTimer? _zoomTimer;
+        private const double ZoomLerp = 0.22;   // Her frame %22 yaklaşma → ~15 frame'de yerine oturur
+        private const double ZoomSnapThr = 1e-5; // Bu kadar yakında snap yap
 
         /*
            NE: CadViewport Yapıcı Metodu
@@ -80,11 +95,15 @@ namespace Afney.Cad.Presentation.Views;
         */
         public void Dispose()
         {
-            _gridPaint?.Dispose();
             _axisPaint?.Dispose();
             _crosshairPaint?.Dispose();
-            
-            // Eğer varsa highlightPaint vb. private memberlar da dispose edilebilir.
+            _gridMinorPaint?.Dispose();
+            _gridMajorPaint?.Dispose();
+            _originXPaint?.Dispose();
+            _originYPaint?.Dispose();
+            _originTxtPaint?.Dispose();
+            _hoverBoxPaint?.Dispose();
+            _zoomTimer?.Stop();
             Serilog.Log.Information("🧹 CadViewport Skia kaynakları temizlendi.");
         }
 
@@ -294,19 +313,14 @@ namespace Afney.Cad.Presentation.Views;
             var originScreen = WorldToScreen(new Vector3D(0, 0, 0));
             var originProjected = new SKPoint((float)originScreen.X, (float)originScreen.Y);
             
-            using (var penX = new SKPaint { Color = new SKColor(255, 50, 50, 150), StrokeWidth = 2, IsAntialias = true })
-            using (var penY = new SKPaint { Color = new SKColor(50, 255, 50, 150), StrokeWidth = 2, IsAntialias = true })
-            using (var textPaint = new SKPaint { Color = SKColors.White, TextSize = 14, IsAntialias = true })
+            // Origin guide — cached paint (no allocation per frame)
             {
                 float w = e.Info.Width;
                 float h = e.Info.Height;
-                // X Ekseni (Kırmızı)
-                canvas.DrawLine(0, originProjected.Y, w, originProjected.Y, penX);
-                // Y Ekseni (Yeşil)
-                canvas.DrawLine(originProjected.X, 0, originProjected.X, h, penY);
-                // Kılavuz Etiketi
-                canvas.DrawText("ORIGIN (0,0,0) - AUTO ALIGN GUIDE", originProjected.X + 10, originProjected.Y - 10, textPaint);
-                canvas.DrawCircle(originProjected.X, originProjected.Y, 5, penX);
+                canvas.DrawLine(0, originProjected.Y, w, originProjected.Y, _originXPaint);
+                canvas.DrawLine(originProjected.X, 0, originProjected.X, h, _originYPaint);
+                canvas.DrawText("ORIGIN (0,0,0)", originProjected.X + 8, originProjected.Y - 8, _originTxtPaint);
+                canvas.DrawCircle(originProjected.X, originProjected.Y, 5, _originXPaint);
             }
 
             // Entities
@@ -337,32 +351,14 @@ namespace Afney.Cad.Presentation.Views;
             // Hover (Glow) Efekti (Faz 26)
             if (_hoveredEntity != null && _selectionManager != null && !_selectionManager.IsSelected(_hoveredEntity.Id))
             {
-                // Sadece seçili olmayan objelerde hover glow gösterilsin
-                using var hoverPaint = new SKPaint
-                {
-                    Color = new SKColor(173, 216, 230, 200), // Açık Mavi (LightBlue) Parlama
-                    Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 4f,
-                    IsAntialias = true,
-                    MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 3f) // Bulanıklık efekti
-                };
-                
-                // Entity'nin kendi çizim rutini ama bu sefer Hover kalemini veriyoruz
-                // Geçici olarak RenderContext'te özel kalem kullandırtmak kolay değil,
-                // O yüzden basitçe bir BoundingBox çizelim veya Entity'nin çizim fonksiyonunu modifiye edelim.
-                // En garantilisi Entity içine .DrawHighlight() yazmaktır ancak mevcut mimariyi bozmamak için şimdilik BoundingBox parlatması veya Draw() override ile yapılabilir.
-                
-                // MÜHENDİSLİK Kararı: Entity.Draw() direkt SKRenderContext alıyor. Bunu değiştirmek yerine
-                // Geometri üzerinde parlatma için ufak bir hack ile context.DefaultStroke değiştirilebilir,
-                // veya en hızlı/güvenli yok HoverObjesinin BoundingBox'ını şeffaf bir Glow içine almaktır.
+                // Cached hover paint — no per-frame allocation
                 var hb = _hoveredEntity.GetBoundingBox();
                 var pBase = WorldToScreen(hb.Min);
-                var pTop = WorldToScreen(hb.Max);
-                
-                canvas.DrawRect((float)Math.Min(pBase.X, pTop.X) - 2, 
-                                (float)Math.Min(pBase.Y, pTop.Y) - 2, 
-                                (float)Math.Abs(pTop.X - pBase.X) + 4, 
-                                (float)Math.Abs(pTop.Y - pBase.Y) + 4, hoverPaint);
+                var pTop  = WorldToScreen(hb.Max);
+                canvas.DrawRect((float)Math.Min(pBase.X, pTop.X) - 2,
+                                (float)Math.Min(pBase.Y, pTop.Y) - 2,
+                                (float)Math.Abs(pTop.X - pBase.X) + 4,
+                                (float)Math.Abs(pTop.Y - pBase.Y) + 4, _hoverBoxPaint);
             }
             
             // Selection Highlighting (Glow)
@@ -388,54 +384,51 @@ namespace Afney.Cad.Presentation.Views;
            NE: Sonsuz Grid Çizme
            NEDEN: Kullanıcının derinlik ve mesafe algısını kolaylaştıran, zoom seviyesine göre dinamik olarak ölçeklenen bir ızgara yapısı çizer.
         */
+        /*
+           NE: Sonsuz Grid Çizme (İyileştirilmiş)
+           NASIL:
+             - Log10 tabanlı adım hesabı: Zoom ne olursa olsun grid çizgi yoğunluğu sabit.
+             - Cached SKPaint: Her frame yeni nesne oluşturulmuyor.
+             - Ekranda görünür aralıkta kalan çizgiler MAX_LINES ile sınırlandırıldı.
+        */
         private void DrawInfiniteGrid(SKCanvas canvas, float width, float height)
         {
             var tl = ScreenToWorld(new Point(0, 0));
             var br = ScreenToWorld(new Point(width, height));
 
-            // Dinamik Ölçekleme (Minor ve Major)
-            double minorStep = 10.0;
-            if (_zoom < 5.0) minorStep = 100.0;
-            if (_zoom < 0.5) minorStep = 1000.0;
-            if (_zoom < 0.05) minorStep = 10000.0;
-            if (_zoom < 0.005) minorStep = 100000.0;
+            // Log10 tabanlı ölçek: ekranda her zaman ~8-80 minor çizgi görünür
+            // 200 birim → ekranda yaklaşık 8-10 çizgi olacak şekilde adım ayarlanır
+            double rawStep = Math.Pow(10.0, Math.Ceiling(Math.Log10(200.0 / Math.Max(_zoom, 1e-9))));
+            double minorStep = rawStep;
+            double majorStep  = minorStep * 10.0;
 
-            double majorStep = minorStep * 10.0;
-
-            using var minorPaint = new SKPaint
-            {
-                Color = new SKColor(255, 255, 255).WithAlpha(15), // Çok soluk beyaz
-                StrokeWidth = 0, // Hairline
-                IsAntialias = false, // Net çizgi, bulantı yok
-                PathEffect = SKPathEffect.CreateDash(new float[] { 1f, 5f }, 0) // Noktalı (dotted)
-            };
-
-            using var majorPaint = new SKPaint
-            {
-                Color = new SKColor(255, 255, 255).WithAlpha(30), // Biraz daha belirgin
-                StrokeWidth = 0, // Hairline
-                IsAntialias = false // Net
-            };
+            const int MaxLines = 400; // performans koruyucu
 
             // Dikey çizgiler (X ekseninde adım)
-            for (double x = Math.Floor(tl.X / minorStep) * minorStep; x <= br.X; x += minorStep)
+            int vCount = 0;
+            for (double x = Math.Floor(tl.X / minorStep) * minorStep; x <= br.X && vCount < MaxLines; x += minorStep, vCount++)
             {
                 var p1 = WorldToScreen(new Vector3D(x, tl.Y, 0));
                 var p2 = WorldToScreen(new Vector3D(x, br.Y, 0));
-                
-                // Major grid tespiti (mod alma floating point hatasına duyarlı)
-                bool isMajor = Math.Abs(x % majorStep) < (minorStep * 0.1) || Math.Abs(x % majorStep) > majorStep - (minorStep * 0.1);
-                canvas.DrawLine((float)p1.X, (float)p1.Y, (float)p2.X, (float)p2.Y, isMajor ? majorPaint : minorPaint);
+                bool isMajor = (Math.Abs(x % majorStep) < minorStep * 0.1) ||
+                               (Math.Abs(x % majorStep) > majorStep - minorStep * 0.1);
+                canvas.DrawLine((float)p1.X, (float)p1.Y, (float)p2.X, (float)p2.Y,
+                                isMajor ? _gridMajorPaint : _gridMinorPaint);
             }
 
             // Yatay çizgiler (Y ekseninde adım)
-            for (double y = Math.Floor(br.Y / minorStep) * minorStep; y <= tl.Y; y += minorStep)
+            int hCount = 0;
+            // Not: Y ekseninde tl.Y > br.Y olabilir (ters koordinat)
+            double yMin = Math.Min(tl.Y, br.Y);
+            double yMax = Math.Max(tl.Y, br.Y);
+            for (double y = Math.Floor(yMin / minorStep) * minorStep; y <= yMax && hCount < MaxLines; y += minorStep, hCount++)
             {
                 var p1 = WorldToScreen(new Vector3D(tl.X, y, 0));
                 var p2 = WorldToScreen(new Vector3D(br.X, y, 0));
-                
-                bool isMajor = Math.Abs(y % majorStep) < (minorStep * 0.1) || Math.Abs(y % majorStep) > majorStep - (minorStep * 0.1);
-                canvas.DrawLine((float)p1.X, (float)p1.Y, (float)p2.X, (float)p2.Y, isMajor ? majorPaint : minorPaint);
+                bool isMajor = (Math.Abs(y % majorStep) < minorStep * 0.1) ||
+                               (Math.Abs(y % majorStep) > majorStep - minorStep * 0.1);
+                canvas.DrawLine((float)p1.X, (float)p1.Y, (float)p2.X, (float)p2.Y,
+                                isMajor ? _gridMajorPaint : _gridMinorPaint);
             }
         }
 
@@ -697,7 +690,11 @@ namespace Afney.Cad.Presentation.Views;
 
             if (e.ChangedButton == MouseButton.Left)
             {
-                if (_activeCommand != null && _lastMouseWorldPos.HasValue)
+                // MÜHENDİSLİK: Eğer BlockCommand obje seçimi bekliyorsa (step = 2) OnPointerPressed göndermek yerine
+                // doğrudan Viewport'un normal seçim kutusu (selection box) mantığına geçiş yap.
+                bool isBmakeSelecting = _activeCommand is Afney.Cad.Commands.BasicCommands.BlockCommand bc && bc.IsSelectingObjects;
+
+                if (_activeCommand != null && _lastMouseWorldPos.HasValue && !isBmakeSelecting)
                     _activeCommand.OnPointerPressed(_lastMouseWorldPos.Value);
                 else 
                 { 
@@ -734,9 +731,17 @@ namespace Afney.Cad.Presentation.Views;
             {
                 if (_activeCommand != null)
                 {
-                    _activeCommand.Cancel();
-                    SetActiveCommand(null);
-                    _rightClickCanceledCommand = true;
+                    /*
+                       MÜHENDİSLİK: Komut aktifken sağ tık = "Enter gibi onayla"
+                       NEDEN: Manuel Mahal gibi komutlarda sağ tık ile seçimi bitirmek
+                              AutoCAD standardıdır. Cancel() çağırmak seçimi silerdi.
+                       SONUÇ: Komut kendi OnKeyDown(Enter) mantığıyla bitirir;
+                              OnCompleted event'i tetiklendiğinde viewport komutu temizler.
+                    */
+                    Serilog.Log.Information("[Viewport] Sağ tık → aktif komuta OnKeyDown(Enter) gönderiliyor.");
+                    _activeCommand.OnKeyDown(InputKey.Enter);
+                    _rightClickCanceledCommand = false;
+                    InvalidateViewport();
                 }
                 else
                 {
@@ -847,7 +852,30 @@ namespace Afney.Cad.Presentation.Views;
             if (_snapEngine != null)
                 _activeSnap = _snapEngine.FindSnapPoint(worldPos, 15.0 / _zoom, _activeCommand?.ActivePoint);
 
-            if (_activeSnap.HasValue) _lastMouseWorldPos = _activeSnap.Value.Position;
+            if (_activeSnap.HasValue)
+            {
+                _lastMouseWorldPos = _activeSnap.Value.Position;
+            }
+            else if (IsOrthoEnabled && _activeCommand != null && _activeCommand.ActivePoint.HasValue)
+            {
+                // MÜHENDİSLİK: AutoCAD standartlarına göre OSNAP yoksa ve ORTHO açıksa, koordinatları kısıtla
+                var basePoint = _activeCommand.ActivePoint.Value;
+                var current = _lastMouseWorldPos.Value;
+                
+                double dx = Math.Abs(current.X - basePoint.X);
+                double dy = Math.Abs(current.Y - basePoint.Y);
+
+                if (dx > dy)
+                {
+                    // Yatay kilit
+                    _lastMouseWorldPos = new Vector3D(current.X, basePoint.Y, current.Z);
+                }
+                else
+                {
+                    // Dikey kilit
+                    _lastMouseWorldPos = new Vector3D(basePoint.X, current.Y, current.Z);
+                }
+            }
 
             if (_activeCommand != null && _lastMouseWorldPos.HasValue)
                 _activeCommand.OnPointerMoved(_lastMouseWorldPos.Value);
@@ -1001,9 +1029,15 @@ namespace Afney.Cad.Presentation.Views;
                     {
                         try
                         {
-                            var rect = new CadBoundingBox(
-                                ScreenToWorld(_selectionStartPoint), 
-                                ScreenToWorld(_selectionCurrentPoint));
+                            var p1 = ScreenToWorld(_selectionStartPoint);
+                            var p2 = ScreenToWorld(_selectionCurrentPoint);
+                            // MÜHENDİSLİK: AutoCAD gibi 2D top-down görünümden seçim yaparken,
+                            // seçim kutusunun Z ekseninde (derinlikte) sonsuz kabul edilmesi gerekir.
+                            // Aksi takdirde Z koordinatı 0 olmayan nesneler seçilemez.
+                            p1 = new Vector3D(p1.X, p1.Y, -1000000);
+                            p2 = new Vector3D(p2.X, p2.Y, 1000000);
+
+                            var rect = new CadBoundingBox(p1, p2);
                             
                             bool isCrossing = _selectionCurrentPoint.X < _selectionStartPoint.X;
                             
@@ -1051,30 +1085,47 @@ namespace Afney.Cad.Presentation.Views;
            STANDART: AutoCAD instant zoom kullanır — fare imlecine doğru/dosyandan anında zoom.
            Faktör: 1.15x (çevrim başına %15)
         */
+        /*
+           NE: Fare Tekerleği — AutoCAD Standardı
+           NASIL:
+           1. Delta-aware: e.Delta / 120 → kaç notch → Math.Pow(1.12, notches)
+              → hızlı scroll = büyük adım, yavaş = küçük adım (kümülatif)
+           2. Anında (instant) zoom — AutoCAD animasyon kullanmaz, lerp YOK
+           3. Pivot = fare imleci konumu (dünya koordinatı sabit kalır)
+        */
         private void CadCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             var mousePos = e.GetPosition(CadCanvas);
-            var worldPosBefore = ScreenToWorld(mousePos);
 
-            // AutoCAD Standard: %15 zoom per scroll notch, instant
-            double zoomFactor = e.Delta > 0 ? 1.15 : 1.0 / 1.15;
-            _zoom *= zoomFactor;
-            _zoom = Math.Clamp(_zoom, 1e-6, 1e6);
+            // Kaç notch? (1 notch = 120 delta birimi; bazı fareler kesirli verir)
+            double notches = e.Delta / 120.0;
+            // Her ±1 notch ~%12 zoom. Negatif notch = zoom-out.
+            double factor = Math.Pow(1.12, notches);
 
-            // Fare imlecine doğru zoom (pivot point = cursor position)
+            // Yeni zoom değeri (klamp: aşırı in/out'u engelle)
+            double newZoom = Math.Clamp(_zoom * factor, 1e-6, 1e6);
+
+            // Pivot hesabı: fare imlecinin dünya koordinatı (worldPivot) sabit kalmalı.
+            // worldPivot = (mousePos - offset) / zoom
+            // Yeni offset = mousePos - worldPivot * newZoom
+            double worldPivotX = (mousePos.X - _offset.X) / _zoom;
+            double worldPivotY = (mousePos.Y - _offset.Y) / _zoom;
+
+            _zoom   = newZoom;
             _offset = new Vector3D(
-                mousePos.X - (worldPosBefore.X * _zoom),
-                mousePos.Y - (worldPosBefore.Y * _zoom), 0);
+                mousePos.X - worldPivotX * newZoom,
+                mousePos.Y - worldPivotY * newZoom, 0);
 
-            // Target'ları senkronize et
-            _targetZoom = _zoom;
+            // Target'ları da güncelle (ZoomExtents vb. ile tutarlılık)
+            _targetZoom   = _zoom;
             _targetOffset = _offset;
 
             if (ZoomText != null)
-                ZoomText.Text = $"Z: {_zoom:F3}";
+                ZoomText.Text = $"Z: {_zoom:F4}x";
 
             InvalidateViewport();
         }
+
 
         /*
            NE: Klavye Olay Yöneticisi (KeyDown)
@@ -1082,11 +1133,28 @@ namespace Afney.Cad.Presentation.Views;
         */
         private void CadCanvas_KeyDown(object sender, KeyEventArgs e)
         {
+            /*
+               NE: Enter / Space → aktif komuta "onayla" sinyali gönder
+               NEDEN: Manuel Mahal gibi komutlar Enter ile polygon oluşturur.
+                      Viewport'un bu tuşları yutmaması için e.Handled = true yapılır.
+            */
+            if (e.Key == Key.Enter || e.Key == Key.Return || e.Key == Key.Space)
+            {
+                if (_activeCommand != null)
+                {
+                    Serilog.Log.Information("[Viewport] Enter/Space → _activeCommand.OnKeyDown(Enter)");
+                    _activeCommand.OnKeyDown(InputKey.Enter);
+                    e.Handled = true;
+                    InvalidateViewport();
+                    return;
+                }
+            }
+
             // ESC TUŞU: HER ŞEYİ İPTAL ET!
             if (e.Key == Key.Escape)
             {
                 Serilog.Log.Information("⛔ ESC tuşuna basıldı - İşlemler iptal ediliyor");
-                
+
                 // 1. Aktif komut varsa iptal et
                 if (_activeCommand != null)
                 {
@@ -1095,7 +1163,7 @@ namespace Afney.Cad.Presentation.Views;
                     OnFeedback?.Invoke("Komut iptal edildi (ESC)");
                     Serilog.Log.Information("❌ Aktif komut iptal edildi");
                 }
-                
+
                 // 2. Seçim modu aktifse kapat
                 if (_isSelecting)
                 {
@@ -1120,17 +1188,37 @@ namespace Afney.Cad.Presentation.Views;
                 {
                     var toDelete = _selectionManager.GetSelectedEntities().ToList();
                     _selectionManager.ClearSelection();
-                    
+
                     foreach (var ent in toDelete)
                     {
                         _database.TransactionManager.Submit(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
                     }
-                    
+
                     SelectionChanged?.Invoke(System.Linq.Enumerable.Empty<CadEntity>());
                     InvalidateViewport();
                     OnFeedback?.Invoke($"{toDelete.Count} obje silindi.");
                 }
             }
+            else if (e.Key == Key.F8)
+            {
+                ToggleOrtho();
+                e.Handled = true;
+            }
+        }
+
+        public void ToggleOrtho()
+        {
+            ToggleOrthoMode(!IsOrthoEnabled);
+        }
+
+        public void ToggleOrthoMode(bool isEnabled)
+        {
+            if (IsOrthoEnabled == isEnabled) return;
+            IsOrthoEnabled = isEnabled;
+            Serilog.Log.Information("📐 Ortho Mode Set to: {Status}", IsOrthoEnabled);
+            OrthoToggled?.Invoke(IsOrthoEnabled);
+            OnFeedback?.Invoke(IsOrthoEnabled ? "Ortho Mode: AÇIK" : "Ortho Mode: KAPALI");
+            InvalidateViewport();
         }
 
 

@@ -418,6 +418,15 @@ public class DwgImportService
     {
         if (string.IsNullOrEmpty(value)) return value;
 
+        // 0. \U+xxxx AutoCAD Unicode Escape Çözümleme (EN ÖNCELİKLİ)
+        // Türkçe karakterler DWG içinde \U+015E (Ş), \U+011E (Ğ) vb. olarak saklanabilir.
+        // Regex: \U+ ile başlayan, 4 hex basamaklı dizileri Unicode char'a çevir.
+        value = Regex.Replace(value, @"\\U\+([0-9A-Fa-f]{4})", m =>
+        {
+            int codePoint = Convert.ToInt32(m.Groups[1].Value, 16);
+            return ((char)codePoint).ToString();
+        });
+
         // 1. Yeni Satır (\P) -> Environment.NewLine
         value = value.Replace("\\P", Environment.NewLine);
         

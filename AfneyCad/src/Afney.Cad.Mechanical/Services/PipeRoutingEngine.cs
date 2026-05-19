@@ -24,6 +24,8 @@ public class PipeRoutingEngine
     private Vector3D? _lastPoint;
     private double _currentDiameter = 100.0;
     private double _currentSlope = 0.0; // % olarak eğim
+    
+    public double CurrentSlope => _currentSlope;
     private MechanicalSystemType _currentSystemType = MechanicalSystemType.DomesticColdWater;
     
     public Vector3D? LastPoint => _lastPoint;
@@ -126,27 +128,64 @@ public class PipeRoutingEngine
         // Eğer önceki boru varsa, köşeye dirsek yerleştir
         if (_lastPipe != null)
         {
-            MechanicalEntity fitting;
+            MechanicalEntity? fitting = null;
             
+            var v1 = (_lastPipe.EndPoint - _lastPipe.StartPoint).Normalize();
+            var v2 = (adjustedEnd - start).Normalize();
+            double dot = v1.Dot(v2);
+            bool isCollinear = Math.Abs(dot) >= 0.99;
+
             if (_fittingSelector != null)
             {
-                fitting = _fittingSelector.SelectElbow(_lastPipe, newPipe);
+                if (isCollinear)
+                {
+                    if (Math.Abs(_lastPipe.InnerDiameter - _currentDiameter) > 0.1)
+                    {
+                        fitting = _fittingSelector.SelectReducer(_lastPipe, newPipe);
+                        if (fitting is ReducerEntity reducer)
+                        {
+                            reducer.SetDirection(v1);
+                        }
+                    }
+                }
+                else
+                {
+                    fitting = _fittingSelector.SelectElbow(_lastPipe, newPipe);
+                }
             }
             else
             {
-                // Fallback: Manuel Dirsek
-                 fitting = new ElbowEntity(start, _currentDiameter, 
-                    (start - _lastPipe.StartPoint).Normalize(), 
-                    (adjustedEnd - start).Normalize() 
-                )
+                if (isCollinear)
                 {
-                     Color = 0xFFFFA500,
-                     SystemType = _currentSystemType
-                     // Material = PipeMaterial.PPRC_PN20 // ElbowEntity'de henüz Material property yoksa eklemeliyim
-                };
+                    if (Math.Abs(_lastPipe.InnerDiameter - _currentDiameter) > 0.1)
+                    {
+                        fitting = new ReducerEntity(start, _lastPipe.InnerDiameter, _currentDiameter)
+                        {
+                            Color = 0xFFFFA500,
+                            SystemType = _currentSystemType,
+                            PipeMaterialType = PipeMaterial.PPRC_PN20
+                        };
+                        ((ReducerEntity)fitting).SetDirection(v1);
+                    }
+                }
+                else
+                {
+                    // Fallback: Manuel Dirsek
+                     fitting = new ElbowEntity(start, _currentDiameter, 
+                        v1, 
+                        v2 
+                    )
+                    {
+                         Color = 0xFFFFA500,
+                         SystemType = _currentSystemType
+                    };
+                }
             }
             
-            createdEntities.Add(fitting);
+            if (fitting != null)
+            {
+                createdEntities.Add(fitting);
+            }
         }
 
         createdEntities.Add(newPipe);

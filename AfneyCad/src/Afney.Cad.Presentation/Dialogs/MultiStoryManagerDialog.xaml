@@ -23,15 +23,93 @@
         </StackPanel>
         <DataGrid Grid.Row="2" x:Name="FloorGrid" AutoGenerateColumns="False" IsReadOnly="True"
                   Background="#252535" Foreground="White" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
-                  BorderBrush="#555" GridLinesVisibility="All" CanUserSortColumns="True">
+                  BorderBrush="#555" GridLinesVisibility="All" CanUserSortColumns="True"
+                  ColumnHeaderHeight="32" RowHeight="26">
+
+            <!-- Kolon Başlık Stili: Koyu Tema Uyumlu -->
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#1B2A3C"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Padding" Value="6,0,4,0"/>
+                    <Setter Property="BorderBrush" Value="#3A5070"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,2"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#2A3D55"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <!-- Satır Stili -->
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#1565C0"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#2A3A4A"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+
+            <!-- Hücre Stili -->
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Padding" Value="4,2"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.CellStyle>
+
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Sıra" Binding="{Binding Order}" Width="45"/>
-                <DataGridTextColumn Header="Kat Adı" Binding="{Binding Name}" Width="150"/>
-                <DataGridTextColumn Header="Kot (mm)" Binding="{Binding Elevation, StringFormat=F0}" Width="90"/>
-                <DataGridTextColumn Header="Yükseklik (mm)" Binding="{Binding Height, StringFormat=F0}" Width="110"/>
+                <DataGridTextColumn Header="Sıra" Binding="{Binding Order}" Width="45">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Kat Adı" Binding="{Binding Name}" Width="150">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#7FC3FF"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Kot (mm)" Binding="{Binding Elevation, StringFormat=F0}" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#A0FFAA"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Yükseklik (mm)" Binding="{Binding Height, StringFormat=F0}" Width="110">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#A0FFAA"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 <DataGridCheckBoxColumn Header="Aktif" Binding="{Binding IsActive}" Width="50"/>
-                <DataGridTextColumn Header="Entity" Binding="{Binding EntityIds.Count}" Width="55"/>
-                <DataGridTextColumn Header="Kolon" Binding="{Binding RiserIds.Count}" Width="55"/>
+                <DataGridTextColumn Header="Entity" Binding="{Binding EntityIds.Count}" Width="55">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#FFD080"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Kolon" Binding="{Binding RiserIds.Count}" Width="55">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#FFD080"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10">

@@ -211,9 +211,11 @@ public class PipeEntity : MechanicalEntity
         double maxY = Math.Max(StartPoint.Y, EndPoint.Y);
         double maxZ = Math.Max(StartPoint.Z, EndPoint.Z);
 
+        double padding = (InnerDiameter / 2.0) + InsulationThickness;
+
         return new CadBoundingBox(
-            new Vector3D(minX, minY, minZ),
-            new Vector3D(maxX, maxY, maxZ)
+            new Vector3D(minX - padding, minY - padding, minZ - padding),
+            new Vector3D(maxX + padding, maxY + padding, maxZ + padding)
         );
     }
 

@@ -53,7 +53,7 @@ public class TeeEntity : MechanicalEntity
 
     protected override CadBoundingBox CalculateBoundingBox()
     {
-        double size = MainDiameter * 3;
+        double size = (MainDiameter * 3) + InsulationThickness;
         return new CadBoundingBox(
              new Vector3D(Center.X - size, Center.Y - size, Center.Z - size),
              new Vector3D(Center.X + size, Center.Y + size, Center.Z + size)

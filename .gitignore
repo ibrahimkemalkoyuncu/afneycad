@@ -26,5 +26,7 @@ CALC/
 *.ifc
 *.bld
 *.md
+!AfneyCad/docs/*.md
+!AfneyCad/Eksiklikler.md
 *.ps1
 *.html

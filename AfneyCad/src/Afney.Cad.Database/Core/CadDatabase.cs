@@ -162,16 +162,96 @@ public class CadDatabase
     public IEnumerable<CadEntity> SelectByBox(CadBoundingBox range, bool isCrossing)
     {
         var candidates = QueryEntities(range);
-        if (isCrossing)
+        
+        if (!isCrossing)
         {
-            // Crossing: BoundingBox range ile kesişen her şey (QuadTree zaten bunu getiriyor)
-            return candidates;
-        }
-        else
-        {
-            // Window: Tamamı range içinde olmalı
+            // Window (Mavi): Nesnenin BoundingBox'ının TAMAMI range içinde kalmalı
             return candidates.Where(e => range.Contains(e.GetBoundingBox()));
         }
+
+        // Crossing (Yeşil): Kutu içine girmesi VE/VEYA sınırlarıyla kesişmesi yeterli
+        var selected = new HashSet<CadEntity>();
+        
+        foreach (var entity in candidates)
+        {
+            var bbox = entity.GetBoundingBox();
+            
+            // Eğer bounding box tamamen içindeyse zaten kesişiyordur
+            if (range.Contains(bbox))
+            {
+                selected.Add(entity);
+                continue;
+            }
+            
+            // Geometri bazlı kesişim:
+            // Afney.Cad.Database, Mechanical projeye referans vermediği için typeof ile bağımlılık yaratmıyoruz
+            // Tüm SnapPoint'lerini çekip, Start/End noktaları üzerinden line-rect kesişim testi yapıyoruz.
+            var snaps = entity.GetSnapPoints().ToList();
+            var endPoints = snaps.Where(s => s.Type == SnapPointType.Endpoint).ToList();
+
+            if (endPoints.Count >= 2)
+            {
+                // En az 2 uç noktası olan nesneler (Line, Pipe vb.)
+                var p1 = endPoints[0].Position;
+                var p2 = endPoints[1].Position;
+
+                if (LineIntersectsRect(p1, p2, range) || range.Contains(p1) || range.Contains(p2))
+                {
+                    selected.Add(entity);
+                    continue;
+                }
+            }
+            
+            // Çizgi değilse veya yukarıda bulunamadıysa: BoundingBox kesişimine güven
+            if (range.Intersects(bbox))
+            {
+                selected.Add(entity);
+            }
+        }
+        
+        return selected;
+    }
+
+    // Yardımcı Geometri: Çizgi-Dikdörtgen Kesişimi (Cohen-Sutherland veya basit sınır testi)
+    private bool LineIntersectsRect(Vector3D p1, Vector3D p2, CadBoundingBox rect)
+    {
+        // Line-Rect intersection
+        double minX = rect.Min.X, maxX = rect.Max.X;
+        double minY = rect.Min.Y, maxY = rect.Max.Y;
+        
+        // Find min and max X for the line segment
+        double minSegmentX = Math.Min(p1.X, p2.X);
+        double maxSegmentX = Math.Max(p1.X, p2.X);
+
+        // Find min and max Y for the line segment
+        double minSegmentY = Math.Min(p1.Y, p2.Y);
+        double maxSegmentY = Math.Max(p1.Y, p2.Y);
+        
+        // 1. AABB overlap test first (Fast reject)
+        if (maxSegmentX < minX || minSegmentX > maxX || maxSegmentY < minY || minSegmentY > maxY)
+            return false;
+            
+        // 2. Cross product check (if line intersects rect boundaries)
+        bool intersectsLine(Vector3D l1, Vector3D l2, Vector3D l3, Vector3D l4)
+        {
+            double den = (l4.Y - l3.Y) * (l2.X - l1.X) - (l4.X - l3.X) * (l2.Y - l1.Y);
+            if (Math.Abs(den) < double.Epsilon) return false;
+            
+            double ua = ((l4.X - l3.X) * (l1.Y - l3.Y) - (l4.Y - l3.Y) * (l1.X - l3.X)) / den;
+            double ub = ((l2.X - l1.X) * (l1.Y - l3.Y) - (l2.Y - l1.Y) * (l1.X - l3.X)) / den;
+            
+            return (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1);
+        }
+        
+        var r1 = new Vector3D(minX, minY, 0);
+        var r2 = new Vector3D(maxX, minY, 0);
+        var r3 = new Vector3D(maxX, maxY, 0);
+        var r4 = new Vector3D(minX, maxY, 0);
+        
+        return intersectsLine(p1, p2, r1, r2) || 
+               intersectsLine(p1, p2, r2, r3) || 
+               intersectsLine(p1, p2, r3, r4) || 
+               intersectsLine(p1, p2, r4, r1);
     }
 
     public IEnumerable<CadEntity> GetAllEntities() => _entities.Values;

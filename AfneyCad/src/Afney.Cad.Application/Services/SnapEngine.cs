@@ -120,23 +120,19 @@ public class SnapEngine
     }
 
     /*
-    METOD ADI: CalculatePerpendicularSnap
-    AMACI: Bir nesne üzerine, referans noktasından (lastPoint) inilen dikmenin ayağını bulmak.
-    */
-    /*
        NE: Diklik Snap'i Hesapla (CalculatePerpendicularSnap)
        NEDEN: Devam eden bir çizim hattından bir nesneye (boru veya çizgi) inilen dikmenin temas noktasını geometrik olarak saptamak için.
     */
     private SnapPoint? CalculatePerpendicularSnap(CadEntity entity, Vector3D cursor, Vector3D lastPoint)
     {
-        if (entity is Afney.Cad.Domain.Entities.Basic.LineEntity line)
+        var snaps = entity.GetSnapPoints().ToList();
+        var endPoints = snaps.Where(s => s.Type == SnapPointType.Endpoint).ToList();
+
+        if (endPoints.Count >= 2)
         {
-            Vector3D perp = GetPerpendicularPoint(lastPoint, line.StartPoint, line.EndPoint);
-            return new SnapPoint(perp, SnapPointType.Perpendicular);
-        }
-        else if (entity is Afney.Cad.Mechanical.Entities.PipeEntity pipe)
-        {
-            Vector3D perp = GetPerpendicularPoint(lastPoint, pipe.StartPoint, pipe.EndPoint);
+            var p1 = endPoints[0].Position;
+            var p2 = endPoints[1].Position;
+            Vector3D perp = GetPerpendicularPoint(lastPoint, p1, p2);
             return new SnapPoint(perp, SnapPointType.Perpendicular);
         }
 

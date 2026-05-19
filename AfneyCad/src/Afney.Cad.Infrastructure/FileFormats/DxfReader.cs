@@ -120,9 +120,10 @@ namespace Afney.Cad.Infrastructure.FileFormats
         {
             if (item == null) return Enumerable.Empty<CadEntity>();
             
-            // AGRESİF FİLTRELEME: Mimari planda leke yapan her şeyi temizle.
+            // AGRESİF FİLTRELEME: Analitik çizimi bozan nesneleri temizle.
+            // NOT: Hatch artık filtrelenmez — solid fill boundary'ler HatchEntity'e dönüştürülür.
             string typeName = item.GetType().Name;
-            if (typeName == "Solid" || typeName == "Trace" || typeName == "Hatch" || 
+            if (typeName == "Solid" || typeName == "Trace" || 
                 typeName == "AttributeDefinition" || typeName == "Viewport" || 
                 typeName == "Wipeout" || typeName == "Face3D" || typeName == "3DFace" || typeName == "Ray" || typeName == "XLine") 
                 return Enumerable.Empty<CadEntity>();
@@ -150,13 +151,26 @@ namespace Afney.Cad.Infrastructure.FileFormats
                         foreach (var bEnt in record.Entities)
                         {
                             var cloned = bEnt.Clone();
-                            if (CanInheritColor(cloned.Color)) cloned.Color = color; 
+                            if (CanInheritColor(cloned.Color)) cloned.Color = color;
+
+                            // MÜHENDİSLİK KURALI: AutoCAD Block Layer Inheritance
+                            // Blok içinde "0" katmanındaki entity'ler INSERT'in katmanını miras alır.
+                            // Başka bir katmandaki entity'ler kendi katmanlarını korur.
+                            if (string.IsNullOrEmpty(cloned.Layer) || cloned.Layer == "0")
+                                cloned.Layer = layerName;
+
                             Transform(cloned, ip, s, cos, sin, record.BasePoint);
                             result.Add(cloned);
                         }
                     }
                 } catch {}
                 return result;
+            }
+
+            // HATCH — Solid fill boundary → HatchEntity
+            if (typeName == "Hatch")
+            {
+                return ConvertHatch(entity, color, layerName);
             }
 
             CadEntity? n = null;
@@ -197,6 +211,90 @@ namespace Afney.Cad.Infrastructure.FileFormats
         private bool CanInheritColor(uint c)
         {
             return c == 0xFFFFFFFF || c == 0xFF000000 || c == 0;
+        }
+
+        /*
+           NE: ACadSharp Hatch → HatchEntity Dönüştür
+           NEDEN: AutoCAD Hatch nesnesinin boundary path listesini okuyarak 
+           solid fill olanıları HatchEntity'ye çevirmek için.
+           
+           MÜHENDİSLİK:
+           - IsSolid: Solid hatch (true) veya pattern hatch (false)
+           - HatchPaths: Her path bir boundary loop'tur (outer/inner)
+           - Sadece outer boundary (first path) esas alınır; iç deliklerin delinmesi 
+             kontur üzerine üst katman HatchEntity ile mümkün ama şu an kapsam dışı.
+        */
+        private IEnumerable<CadEntity> ConvertHatch(dynamic entity, uint color, string layerName)
+        {
+            var result = new List<CadEntity>();
+            try
+            {
+                // Pattern hatch'leri (ANSI31, ANSI37 vb.) yoksay — sadece solid/gradient
+                // IsSolid: true → solid fill
+                bool isSolid = false;
+                try { isSolid = entity.IsSolid; } catch { }
+                
+                if (!isSolid)
+                {
+                    // Pattern hatch boundary'lerini de LwPolyline olarak import et
+                    // (görünmez dolgu ama kontur görünürsün)
+                    foreach (var path in entity.Paths)
+                    {
+                        var verts = new List<Vector3D>();
+                        try
+                        {
+                            foreach (var edge in path.Edges)
+                            {
+                                string edgeType = edge.GetType().Name;
+                                if (edgeType == "HatchLineBoundary" || edgeType == "HatchPolylineBoundary")
+                                {
+                                    try { foreach (var v in edge.Vertices) verts.Add(new Vector3D(v.X, v.Y, 0)); } catch { }
+                                }
+                            }
+                        } catch { }
+                        if (verts.Count >= 2)
+                        {
+                            var poly = new LwPolylineEntity(verts, true) { Color = color, Layer = layerName };
+                            result.Add(poly);
+                        }
+                    }
+                    return result;
+                }
+
+                // Solid fill: Tüm boundary path'lerini HatchEntity olarak import et
+                foreach (var path in entity.Paths)
+                {
+                    var verts = new List<Vector3D>();
+                    try
+                    {
+                        // Poly boundary
+                        try
+                        {
+                            foreach (var v in path.Vertices)
+                                verts.Add(new Vector3D(v.X, v.Y, 0));
+                        }
+                        catch { }
+
+                        // Edge-based boundary (LwPolyline edge)
+                        if (verts.Count == 0)
+                        {
+                            foreach (var edge in path.Edges)
+                            {
+                                try { foreach (var v in edge.Vertices) verts.Add(new Vector3D(v.X, v.Y, 0)); } catch { }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    if (verts.Count >= 3)
+                    {
+                        var h = new HatchEntity(verts, color, 75) { Layer = layerName };
+                        result.Add(h);
+                    }
+                }
+            }
+            catch { /* Okuma hatası — entity sessizce atlanır */ }
+            return result;
         }
 
         private uint ResolveColorDyn(dynamic c)

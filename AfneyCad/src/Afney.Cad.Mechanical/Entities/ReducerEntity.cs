@@ -79,7 +79,7 @@ public class ReducerEntity : MechanicalEntity
 
     protected override CadBoundingBox CalculateBoundingBox()
     {
-        double maxD = Math.Max(Diameter1, Diameter2);
+        double maxD = Math.Max(Diameter1, Diameter2) + (InsulationThickness * 2);
         return new CadBoundingBox(
             new Vector3D(Position.X - maxD, Position.Y - maxD, Position.Z - maxD),
             new Vector3D(Position.X + maxD, Position.Y + maxD, Position.Z + maxD)

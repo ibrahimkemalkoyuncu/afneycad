@@ -226,15 +226,18 @@ public class SkiaRenderContext : IRenderContext
     */
     public void DrawText(string text, Vector3D position, double angleDegrees, double fontSize, uint color, bool centerAlign = true)
     {
-        // FONT AYARI: AutoCAD SHX (Simplex/Txt) hissiyatı için teknik font fallback yapısı.
-        // Sırasıyla ISOCPEUR (Mühendislik standardı), Consolas, Courier New ve son çare Arial denenir.
+        // FONT AYARI: Türkçe karakter desteği öncelikli.
+        // ISOCPEUR Türkçe karakterleri (ş,ö,ü,ğ,ı,İ,Ş,Ö,Ü,Ğ) desteklemiyor, kaldırıldı.
+        // Segoe UI (Windows standart, tam Unicode Türkçe), ardından Arial Unicode MS denenir.
+        // Hiçbiri yoksa SKFontManager.MatchCharacter ile Türkçe 'Ş' destekleyen system fontu seçilir.
         string key = $"{color}_{fontSize}_{centerAlign}_CADFont";
         if (!_textPaintCache.TryGetValue(key, out var paint))
         {
-            var typeface = SKTypeface.FromFamilyName("ISOCPEUR", SKFontStyle.Normal) 
-                        ?? SKTypeface.FromFamilyName("Consolas", SKFontStyle.Normal) 
-                        ?? SKTypeface.FromFamilyName("Courier New", SKFontStyle.Normal) 
-                        ?? SKTypeface.FromFamilyName("Arial", SKFontStyle.Normal);
+            var typeface = SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Normal)
+                        ?? SKTypeface.FromFamilyName("Arial Unicode MS", SKFontStyle.Normal)
+                        ?? SKTypeface.FromFamilyName("Arial", SKFontStyle.Normal)
+                        ?? SKFontManager.Default.MatchCharacter('\u015e') // 'Ş' destekli font
+                        ?? SKTypeface.Default;
 
             paint = new SKPaint
             {
@@ -305,5 +308,50 @@ public class SkiaRenderContext : IRenderContext
         var c1 = Project(p1);
         var c2 = Project(p2);
         _canvas.DrawLine(c1.X, c1.Y, c2.X, c2.Y, paintCenter);
+    }
+
+    /*
+       NE: Dolu Çokgen Çiz (DrawFilledPolygon)
+       NEDEN: AutoCAD Hatch entity'lerinin solid fill alanlarını yarı şeffaf dolgu olarak render etmek için.
+       MÜHENDİSLİK: Alpha değeri ile hem görünürlük hem de altındaki çizgileri kapatmama dengesi kurulur.
+    */
+    public void DrawFilledPolygon(IEnumerable<Vector3D> vertices, uint color, byte alpha = 80)
+    {
+        var verts = vertices.ToList();
+        if (verts.Count < 3) return;
+
+        // Screen koordinatlarına proje et
+        var pts = verts.Select(v => Project(v)).ToArray();
+
+        // SKPath ile kapalı poligon oluştur
+        using var path = new SKPath();
+        path.MoveTo(pts[0].X, pts[0].Y);
+        for (int i = 1; i < pts.Length; i++)
+            path.LineTo(pts[i].X, pts[i].Y);
+        path.Close();
+
+        // RGB rengi çıkar (uint ARGB → R, G, B)
+        byte r = (byte)((color >> 16) & 0xFF);
+        byte g = (byte)((color >> 8) & 0xFF);
+        byte b = (byte)(color & 0xFF);
+
+        // Fill paint — yarı şeffaf dolgu
+        using var fillPaint = new SKPaint
+        {
+            Color = new SKColor(r, g, b, alpha),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true,
+        };
+        _canvas.DrawPath(path, fillPaint);
+
+        // Kontur çizgisi (hairline, opak) — kenarları belirginleştirir
+        using var strokePaint = new SKPaint
+        {
+            Color = new SKColor(r, g, b, 180),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 0f, // Hairline
+            IsAntialias = false,
+        };
+        _canvas.DrawPath(path, strokePaint);
     }
 }

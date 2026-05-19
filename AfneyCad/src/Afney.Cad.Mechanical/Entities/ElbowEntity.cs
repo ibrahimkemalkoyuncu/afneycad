@@ -50,9 +50,10 @@ public class ElbowEntity : MechanicalEntity
 
     protected override CadBoundingBox CalculateBoundingBox()
     {
+        double padding = Radius + (InnerDiameter / 2.0) + InsulationThickness;
         return new CadBoundingBox(
-             new Vector3D(Center.X - Radius, Center.Y - Radius, Center.Z - Radius),
-             new Vector3D(Center.X + Radius, Center.Y + Radius, Center.Z + Radius)
+             new Vector3D(Center.X - padding, Center.Y - padding, Center.Z - padding),
+             new Vector3D(Center.X + padding, Center.Y + padding, Center.Z + padding)
         );
     }
     

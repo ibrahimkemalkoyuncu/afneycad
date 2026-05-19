@@ -26,6 +26,7 @@ public class MechanicalTopologyGraph
 
     public IEnumerable<GraphNode> Nodes => _nodes.Values;
     public List<Mechanical.Entities.RoomEntity> Rooms { get; } = new();
+    public List<Mechanical.Entities.MahalEntity> Mahals { get; } = new();
 
     /*
        NE: Nesne Ekle (AddEntity)
@@ -57,6 +58,12 @@ public class MechanicalTopologyGraph
     {
         Rooms.Add(room);
         // AddEntity(room); // RoomEntity is not a MechanicalEntity
+    }
+
+    public void AddRoom(Mechanical.Entities.MahalEntity mahal)
+    {
+        Mahals.Add(mahal);
+        AddEntity(mahal);
     }
     
     // EKLENDİ: Port yapısına uygun bağlantı
@@ -191,6 +198,19 @@ public class GraphNode
     public void UpdatePorts(MechanicalEntity entity)
     {
          var newPorts = entity.GetPorts();
+         
+         // MÜHENDİSLİK DÜZELTMESİ: Mevcut bağlantıları koru
+         foreach (var newPort in newPorts)
+         {
+             var existingPort = Ports.FirstOrDefault(p => p.Name == newPort.Name);
+             if (existingPort != null && existingPort.IsConnected)
+             {
+                 newPort.IsConnected = true;
+                 newPort.ConnectedEntityId = existingPort.ConnectedEntityId;
+                 newPort.ConnectedPortName = existingPort.ConnectedPortName;
+             }
+         }
+
          Ports.Clear();
          Ports.AddRange(newPorts);
     }
@@ -213,7 +233,9 @@ public class GraphNode
     
     public IEnumerable<GraphNode> GetNeighbors(MechanicalTopologyGraph graph)
     {
-        foreach (var port in Ports)
+        // Snapshot (ToArray) kullanıyoruz; çünkü bir port üzerinden dolaşırken 
+        // başka bir thread veya re-entrant çağrı Ports listesini (UpdatePorts) değiştirebilir.
+        foreach (var port in Ports.ToArray())
         {
             if (port.IsConnected && port.ConnectedEntityId.HasValue)
             {

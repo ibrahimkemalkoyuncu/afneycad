@@ -26,6 +26,7 @@ namespace Afney.Cad.Presentation.Dialogs
 
         public event Action? RequestPickPoint;
         public event Action? RequestSelectObjects;
+        public event Action<string, string, List<CadEntity>, Vector3D>? OnExportConfirmed;
 
         public WBlockWizard(CadViewport viewport, string defaultPath = "")
         {
@@ -130,13 +131,12 @@ namespace Afney.Cad.Presentation.Dialogs
 
         private void Finish_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = true;
+            OnExportConfirmed?.Invoke(FinalPath, FloorName, SelectedEntities, BasePoint);
             Close();
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;
             Close();
         }
 

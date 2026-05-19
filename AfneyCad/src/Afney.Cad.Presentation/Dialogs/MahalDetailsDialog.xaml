@@ -1,45 +1,327 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.MahalDetailsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Mahal Analizi" Height="400" Width="450"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        Background="#1E1E1E" Foreground="White">
-    <Grid Margin="20">
+        Title="Mahal Tanımı"
+        Height="520" Width="480"
+        MinHeight="480" MinWidth="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="#1A1A1F"
+        Foreground="White"
+        FontFamily="Segoe UI"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <!-- Ortak TextBox stili -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Background"       Value="#252530"/>
+            <Setter Property="Foreground"       Value="White"/>
+            <Setter Property="BorderBrush"      Value="#444"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="Padding"          Value="6,4"/>
+            <Setter Property="FontSize"         Value="13"/>
+            <Setter Property="CaretBrush"       Value="White"/>
+        </Style>
+
+        <!-- Ortak ComboBox stili -->
+        <Style x:Key="DarkComboBox" TargetType="ComboBox">
+            <Setter Property="Background"       Value="#252530"/>
+            <Setter Property="Foreground"       Value="White"/>
+            <Setter Property="BorderBrush"      Value="#444"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="Padding"          Value="6,3"/>
+            <Setter Property="FontSize"         Value="13"/>
+        </Style>
+
+        <!-- Label stili -->
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground"  Value="#AAAAAA"/>
+            <Setter Property="FontSize"    Value="11"/>
+            <Setter Property="Margin"      Value="0,0,0,3"/>
+            <Setter Property="FontWeight"  Value="SemiBold"/>
+        </Style>
+
+        <!-- Vurgu buton (Kaydet) -->
+        <Style x:Key="SaveBtn" TargetType="Button">
+            <Setter Property="Background"      Value="#007ACC"/>
+            <Setter Property="Foreground"      Value="White"/>
+            <Setter Property="FontWeight"      Value="Bold"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding"         Value="24,8"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0090E0"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#005A9E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Normal buton (İptal) -->
+        <Style x:Key="CancelBtn" TargetType="Button">
+            <Setter Property="Background"      Value="#333340"/>
+            <Setter Property="Foreground"      Value="#CCCCCC"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush"     Value="#555"/>
+            <Setter Property="Padding"         Value="20,8"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3E3E52"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>  <!-- Başlık -->
+            <RowDefinition Height="Auto"/>  <!-- Ad + Tip giriş -->
+            <RowDefinition Height="Auto"/>  <!-- Alan + Çevre bilgisi -->
+            <RowDefinition Height="Auto"/>  <!-- Vitrifiye başlığı -->
+            <RowDefinition Height="*"/>     <!-- Vitrifiye tablosu -->
+            <RowDefinition Height="Auto"/>  <!-- Toplam FU -->
+            <RowDefinition Height="Auto"/>  <!-- Butonlar -->
         </Grid.RowDefinitions>
 
-        <StackPanel Margin="0,0,0,15">
-            <TextBlock x:Name="MahalTitle" Text="MAHAL ANALİZİ" FontSize="18" FontWeight="Bold" Foreground="Orange"/>
-            <TextBlock x:Name="MahalSubTitle" Text="Mutfak - 15.50 m²" FontSize="12" Foreground="Gray"/>
-        </StackPanel>
-
-        <TextBlock Grid.Row="1" Text="BAĞLI VİTRİFİYE VE YÜK BİRİMLERİ" FontWeight="Bold" Margin="0,0,0,5" Foreground="Cyan"/>
-        
-        <DataGrid x:Name="FixtureGrid" Grid.Row="2" Background="#2D2D2D" Foreground="White" BorderThickness="0" 
-                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Cihaz Tipi" Binding="{Binding FixtureType}" Width="*"/>
-                <DataGridTextColumn Header="Yük Birimi (FU)" Binding="{Binding LoadUnits}" Width="100"/>
-            </DataGrid.Columns>
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <Setter Property="Background" Value="#2D2D2D"/>
-                </Style>
-            </DataGrid.RowStyle>
-        </DataGrid>
-
-        <Border Grid.Row="3" Background="#333" Padding="10" Margin="0,15,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <TextBlock Text="TOPLAM YÜK BİRİMİ (∑FU):" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBlock x:Name="TotalFUText" Text="2.5" FontSize="16" FontWeight="Bold" Foreground="Orange" VerticalAlignment="Center"/>
+        <!-- ══════════════════════════ BAŞLIK ══════════════════════════ -->
+        <Border Grid.Row="0" Background="#0D1117" Padding="20,14,20,14"
+                BorderBrush="#007ACC" BorderThickness="0,0,0,2">
+            <StackPanel>
+                <TextBlock Text="🏠 MAHAL TANIMI"
+                           FontSize="17" FontWeight="Bold"
+                           Foreground="#00AAFF"/>
+                <TextBlock x:Name="MahalSubHeaderText"
+                           Text="Yeni Mahal"
+                           FontSize="11" Foreground="#888"
+                           Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <Button Grid.Row="4" Content="KAPAT" IsCancel="True" HorizontalAlignment="Right" Width="100" Height="30" Margin="0,15,0,0" Background="#3E3E42" Foreground="White" BorderThickness="0"/>
+        <!-- ══════════════════════ GİRİŞ ALANLARI ══════════════════════ -->
+        <Border Grid.Row="1" Background="#1E1E2A" Padding="20,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Mahal Adı -->
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="MAHAL ADI *" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="MahalNameInput"
+                             Style="{StaticResource DarkTextBox}"
+                             MaxLength="80"
+                             ToolTip="Zorunlu alan — mahal adını girin (örn: Banyo, Mutfak)"/>
+                </StackPanel>
+
+                <!-- Mahal Tipi -->
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="MAHAL TİPİ" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="MahalTypeCombo"
+                              Style="{StaticResource DarkComboBox}"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="Banyo"/>
+                        <ComboBoxItem Content="WC"/>
+                        <ComboBoxItem Content="Mutfak"/>
+                        <ComboBoxItem Content="Mutfak + Banyo"/>
+                        <ComboBoxItem Content="Oturma Odası"/>
+                        <ComboBoxItem Content="Yatak Odası"/>
+                        <ComboBoxItem Content="Çocuk Odası"/>
+                        <ComboBoxItem Content="Ofis"/>
+                        <ComboBoxItem Content="Koridor"/>
+                        <ComboBoxItem Content="Antre"/>
+                        <ComboBoxItem Content="Balkon"/>
+                        <ComboBoxItem Content="Depo"/>
+                        <ComboBoxItem Content="Diğer"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══════════════════════ ALAN & ÇEVRE ══════════════════════ -->
+        <Border Grid.Row="2" Background="#181820" Padding="20,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <!-- Alan -->
+                <Border Background="#1E2B1E" CornerRadius="6" Padding="14,8" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="ALAN"
+                                   FontSize="10" Foreground="#66AA66"
+                                   FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="AreaText"
+                                   Text="— m²"
+                                   FontSize="16" FontWeight="Bold"
+                                   Foreground="#44DD88"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                <!-- Çevre -->
+                <Border Background="#1E2020" CornerRadius="6" Padding="14,8">
+                    <StackPanel>
+                        <TextBlock Text="ÇEVRE"
+                                   FontSize="10" Foreground="#6699AA"
+                                   FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="PerimeterText"
+                                   Text="— m"
+                                   FontSize="16" FontWeight="Bold"
+                                   Foreground="#44BBDD"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- ══════════════════════ VİTRİFİYE BAŞLIK ══════════════════════ -->
+        <Border Grid.Row="3" Background="#1A1A22" Padding="20,8,20,4">
+            <TextBlock Text="BAĞLI VİTRİFİYE / SARFIYAT BİRİMLERİ"
+                       FontSize="10" FontWeight="Bold"
+                       Foreground="#00CCAA"/>
+        </Border>
+
+        <!-- ══════════════════════ VİTRİFİYE TABLOSU ══════════════════════ -->
+        <DataGrid x:Name="FixtureGrid"
+                  Grid.Row="4"
+                  Margin="20,0,20,0"
+                  Background="#16161E"
+                  Foreground="#DDDDDD"
+                  BorderThickness="1"
+                  BorderBrush="#2A2A38"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="#252530"
+                  RowBackground="#16161E"
+                  AlternatingRowBackground="#1C1C26"
+                  HeadersVisibility="Column"
+                  SelectionMode="Single"
+                  FontSize="12">
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background"    Value="#1E1E2A"/>
+                    <Setter Property="Foreground"    Value="#00AAFF"/>
+                    <Setter Property="FontWeight"    Value="Bold"/>
+                    <Setter Property="FontSize"      Value="11"/>
+                    <Setter Property="Padding"       Value="10,6"/>
+                    <Setter Property="BorderBrush"   Value="#2A2A38"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Cihaz / Reseptör"
+                                    Binding="{Binding FixtureType}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="LU (Yük Birimi)"
+                                    Binding="{Binding LoadUnits, StringFormat={}{0:F2}}"
+                                    Width="110">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="Foreground"          Value="#FFAA44"/>
+                            <Setter Property="FontWeight"          Value="SemiBold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+            <!-- Boş durum mesajı -->
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Style.Triggers>
+                        <Trigger Property="HasItems" Value="False">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGrid">
+                                        <Border Background="#16161E" Padding="20">
+                                            <TextBlock Text="Bu mahalde henüz vitrifiye tanımlanmamış."
+                                                       Foreground="#555" FontStyle="Italic"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+        </DataGrid>
+
+        <!-- ══════════════════════ TOPLAM FU ══════════════════════ -->
+        <Border Grid.Row="5"
+                Background="#1A1A22"
+                BorderBrush="#333340" BorderThickness="0,1,0,0"
+                Padding="20,10" Margin="0,4,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="TOPLAM YÜK BİRİMİ (∑LU)"
+                           FontSize="11" FontWeight="Bold"
+                           Foreground="#888"
+                           VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock x:Name="TotalFUText"
+                               Text="0.00"
+                               FontSize="22" FontWeight="Bold"
+                               Foreground="#FF9900"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text=" FU"
+                               FontSize="13" Foreground="#886644"
+                               VerticalAlignment="Bottom"
+                               Margin="2,0,0,3"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══════════════════════ BUTONLAR ══════════════════════ -->
+        <Border Grid.Row="6"
+                Background="#0D0D14"
+                Padding="20,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock x:Name="ValidationMsg"
+                           Text=""
+                           Foreground="#FF5555"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0"/>
+                <Button x:Name="CancelButton"
+                        Content="İPTAL"
+                        Style="{StaticResource CancelBtn}"
+                        Click="OnCancelClick"
+                        Margin="0,0,8,0"/>
+                <Button x:Name="SaveButton"
+                        Content="KAYDET"
+                        Style="{StaticResource SaveBtn}"
+                        Click="OnSaveClick"
+                        IsDefault="True"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

@@ -191,14 +191,36 @@ public class FixtureLibraryService
     /*
        NE: Vitrifiyen'den SanitaryFixtureEntity Oluştur
        NEDEN: Katalogdan seçilen cihazı CAD entity'ye dönüştürmek.
+
+       MÜHENDİSLİK DETAYI:
+       - Katalogdaki MinColdWaterDN, MinHotWaterDN ve WasteDN değerlerini
+         entity'nin ofset hesabında GetPorts() kullanabilmesi için
+         FixtureType string'i içinde barındıran standart isimlendirme kuralına
+         güveniyoruz (WC / Lavabo / Duş / Küvet / Eviye / Döşeme Süzgeci).
+       - Boyutlar (SymbolWidth, SymbolHeight) katalogdan entity'ye kopyalanır.
     */
     public Entities.SanitaryFixtureEntity CreateEntity(string fixtureId, Vector3D position)
     {
         var def = GetById(fixtureId);
         if (def == null) throw new ArgumentException($"Fixture ID '{fixtureId}' bulunamadı.");
 
-        var entity = new Entities.SanitaryFixtureEntity(position, def.NameTR, def.LoadUnit);
-        entity.Color = 0xFF00FF00;
+        var entity = new Entities.SanitaryFixtureEntity(position, def.NameTR, def.LoadUnit)
+        {
+            // Fiziksel boyutlar katalogdan
+            Width  = def.SymbolWidth  > 0 ? def.SymbolWidth  : 500,
+            Depth  = def.SymbolHeight > 0 ? def.SymbolHeight : 400,
+            Color  = 0xFF00FFFF,
+            // Sistem tipi: Pis su cihazları için WasteWater
+            SystemType = Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticColdWater
+        };
+
+        // WC → soğuk su bağlantısı küçük, sıcak su yok, pis su DN100
+        // Bu bilgi GetPorts() içinde FixtureType string'e göre otomatik seçilir.
+        // Ekstra güvence: HotWaterOffset = Zero eğer katalogda sıcak su yoksa
+        if (!def.RequiresHotWater)
+        {
+            entity.HotWaterOffset = Afney.Cad.Geometry.Primitives.Vector3D.Zero;
+        }
 
         return entity;
     }

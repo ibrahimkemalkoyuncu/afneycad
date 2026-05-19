@@ -60,6 +60,10 @@ public class Pipe3DModelService
             {
                 result.Models.Add(GenerateTee3D(tee, lod));
             }
+            else if (entity is ReducerEntity reducer)
+            {
+                result.Models.Add(GenerateReducer3D(reducer, lod));
+            }
         }
 
         result.TotalVertices = result.Models.Sum(m => m.Vertices.Count);
@@ -87,7 +91,7 @@ public class Pipe3DModelService
         model.SystemType = pipe.SystemType.ToString();
 
         double radius = pipe.InnerDiameter / 2.0;
-        double outerRadius = radius + GetWallThickness(pipe.InnerDiameter);
+        double outerRadius = radius + GetWallThickness(pipe.InnerDiameter) + pipe.InsulationThickness;
         int segments = lod switch { LevelOfDetail.LOD100 => 6, LevelOfDetail.LOD200 => 12, _ => 24 };
 
         // Boru yön vektörü
@@ -149,7 +153,7 @@ public class Pipe3DModelService
         model.SystemType = elbow.SystemType.ToString();
 
         double radius = elbow.InnerDiameter / 2.0;
-        double outerRadius = radius + GetWallThickness(elbow.InnerDiameter);
+        double outerRadius = radius + GetWallThickness(elbow.InnerDiameter) + elbow.InsulationThickness;
         
         int pathSegments = lod == LevelOfDetail.LOD100 ? 3 : (lod == LevelOfDetail.LOD200 ? 6 : 12);
         int profileSegments = lod == LevelOfDetail.LOD100 ? 6 : (lod == LevelOfDetail.LOD200 ? 12 : 24);
@@ -238,24 +242,81 @@ public class Pipe3DModelService
         var pMainStart = tee.Center - tee.MainDirection * (length / 2);
         var pMainEnd = tee.Center + tee.MainDirection * (length / 2);
         
-        GenerateCylinderToModel(model, pMainStart, pMainEnd, tee.InnerDiameter, lod);
+        GenerateCylinderToModel(model, pMainStart, pMainEnd, tee.InnerDiameter, tee.InsulationThickness, lod);
 
         // 2. Branşman Silindiri (Branch)
         // Kesişimde temiz görünmesi için merkezden biraz daha içeriden başlatılabilir ama görselleştirme için merkez yeterli.
         var pBranchStart = tee.Center;
         var pBranchEnd = tee.Center + tee.BranchDirection * (length / 2);
         
-        GenerateCylinderToModel(model, pBranchStart, pBranchEnd, tee.InnerDiameter, lod);
+        GenerateCylinderToModel(model, pBranchStart, pBranchEnd, tee.InnerDiameter, tee.InsulationThickness, lod);
 
         model.Properties["MainDiameter"] = tee.InnerDiameter;
         return model;
     }
 
-    private void GenerateCylinderToModel(Solid3DModel model, Vector3D start, Vector3D end, double diameter, LevelOfDetail lod)
+    /*
+       NE: Redüksiyon → 3D Model
+       NEDEN: Çap değişimlerinde boruları bağlayan konik (truncated cone) yapı oluşturur.
+    */
+    public Solid3DModel GenerateReducer3D(ReducerEntity reducer, LevelOfDetail lod = LevelOfDetail.LOD200)
+    {
+        var model = new Solid3DModel();
+        model.EntityId = reducer.Id;
+        model.Type = "Reducer";
+        model.SystemType = reducer.SystemType.ToString();
+
+        double len = Math.Max(reducer.Diameter1, reducer.Diameter2);
+        var start = reducer.Position - (reducer.Direction * (len / 2));
+        var end = reducer.Position + (reducer.Direction * (len / 2));
+
+        double r1 = reducer.Diameter1 / 2.0;
+        double r2 = reducer.Diameter2 / 2.0;
+        double outerR1 = r1 + GetWallThickness(reducer.Diameter1) + reducer.InsulationThickness;
+        double outerR2 = r2 + GetWallThickness(reducer.Diameter2) + reducer.InsulationThickness;
+
+        int segments = lod switch { LevelOfDetail.LOD100 => 6, LevelOfDetail.LOD200 => 12, _ => 24 };
+
+        var dirNorm = reducer.Direction;
+        var (localX, localY) = ComputeLocalAxes(dirNorm);
+
+        for (int ring = 0; ring <= 1; ring++)
+        {
+            var center = ring == 0 ? start : end;
+            double currentOuterR = ring == 0 ? outerR1 : outerR2;
+            
+            for (int i = 0; i < segments; i++)
+            {
+                double angle = 2.0 * Math.PI * i / segments;
+                double cos = Math.Cos(angle);
+                double sin = Math.Sin(angle);
+
+                model.Vertices.Add(new Vector3D(
+                    center.X + currentOuterR * (cos * localX.X + sin * localY.X),
+                    center.Y + currentOuterR * (cos * localX.Y + sin * localY.Y),
+                    center.Z + currentOuterR * (cos * localX.Z + sin * localY.Z)));
+            }
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+            int i0 = i, i1 = next, i2 = segments + i, i3 = segments + next;
+
+            model.Faces.Add((i0, i2, i1));
+            model.Faces.Add((i1, i2, i3));
+        }
+
+        model.Properties["Diameter1"] = reducer.Diameter1;
+        model.Properties["Diameter2"] = reducer.Diameter2;
+        return model;
+    }
+
+    private void GenerateCylinderToModel(Solid3DModel model, Vector3D start, Vector3D end, double diameter, double insulationThickness, LevelOfDetail lod)
     {
         int segments = lod switch { LevelOfDetail.LOD100 => 6, LevelOfDetail.LOD200 => 12, _ => 24 };
         double radius = diameter / 2.0;
-        double outerRadius = radius + GetWallThickness(diameter);
+        double outerRadius = radius + GetWallThickness(diameter) + insulationThickness;
 
         var direction = end - start;
         double len = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z);

@@ -79,6 +79,8 @@ public class SelectionManager
         {
             _selectedEntityIds.Add(entity.Id);
             _selectedEntityCache[entity.Id] = entity;
+            entity.IsSelected = true;
+            _database.UpdateEntity(entity);
         }
     }
 
@@ -95,17 +97,17 @@ public class SelectionManager
         Serilog.Log.Information("🟢 CROSSING SELECTION: ({MinX},{MinY}) → ({MaxX},{MaxY})", 
             selectionBox.Min.X, selectionBox.Min.Y, selectionBox.Max.X, selectionBox.Max.Y);
 
-        var entities = _database.QueryEntities(selectionBox);
+        var entities = _database.SelectByBox(selectionBox, isCrossing: true);
         int addedCount = 0;
 
         foreach (var entity in entities)
         {
-            // Crossing: Bounding box kesişimi varsa seç
-            var bbox = entity.GetBoundingBox();
-            if (BoundingBoxIntersects(selectionBox, bbox))
+            if (!_selectedEntityIds.Contains(entity.Id))
             {
                 _selectedEntityIds.Add(entity.Id);
                 _selectedEntityCache[entity.Id] = entity; // Cache'e ekle
+                entity.IsSelected = true;
+                _database.UpdateEntity(entity);
                 addedCount++;
             }
         }
@@ -126,17 +128,17 @@ public class SelectionManager
         Serilog.Log.Information("🔵 WINDOW SELECTION: ({MinX},{MinY}) → ({MaxX},{MaxY})", 
             selectionBox.Min.X, selectionBox.Min.Y, selectionBox.Max.X, selectionBox.Max.Y);
 
-        var entities = _database.QueryEntities(selectionBox);
+        var entities = _database.SelectByBox(selectionBox, isCrossing: false);
         int addedCount = 0;
 
         foreach (var entity in entities)
         {
-            // Window: Bounding box TAMAMEN içinde olmalı
-            var bbox = entity.GetBoundingBox();
-            if (BoundingBoxContains(selectionBox, bbox))
+            if (!_selectedEntityIds.Contains(entity.Id))
             {
                 _selectedEntityIds.Add(entity.Id);
                 _selectedEntityCache[entity.Id] = entity; // Cache'e ekle
+                entity.IsSelected = true;
+                _database.UpdateEntity(entity);
                 addedCount++;
             }
         }
@@ -152,6 +154,11 @@ public class SelectionManager
         if (_selectedEntityIds.Contains(entityId))
         {
             _selectedEntityIds.Remove(entityId);
+            if (_selectedEntityCache.TryGetValue(entityId, out var entityToRemove))
+            {
+                entityToRemove.IsSelected = false;
+                _database.UpdateEntity(entityToRemove);
+            }
             _selectedEntityCache.Remove(entityId);
         }
         else
@@ -160,7 +167,11 @@ public class SelectionManager
             // Cache'e ekle - ancak önce entity'yi bul
             var entity = _database.GetEntity(entityId);
             if (entity != null)
+            {
                 _selectedEntityCache[entityId] = entity;
+                entity.IsSelected = true;
+                _database.UpdateEntity(entity);
+            }
         }
     }
 
@@ -169,6 +180,11 @@ public class SelectionManager
     */
     public void ClearSelection()
     {
+        foreach (var entity in _selectedEntityCache.Values)
+        {
+            entity.IsSelected = false;
+            _database.UpdateEntity(entity);
+        }
         _selectedEntityIds.Clear();
         _selectedEntityCache.Clear();
         Serilog.Log.Information("🧹 Seçim temizlendi");

@@ -119,6 +119,34 @@ public static class GeomUtils
         return diff;
     }
     /*
+       NE: İki doğrunun kesişim (İnfinite Line Intersection) noktası
+       NEDEN: Uzatma (Extend) veya Buda (Trim) komutlarında, çizgilerin matematiksel olarak uzantılarında nerede kesiştiğini bulmak için.
+    */
+    public static bool GetIntersectionLineLine(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4, out Vector3D intersection)
+    {
+        intersection = new Vector3D(0, 0, 0);
+
+        double A1 = p2.Y - p1.Y;
+        double B1 = p1.X - p2.X;
+        double C1 = A1 * p1.X + B1 * p1.Y;
+
+        double A2 = p4.Y - p3.Y;
+        double B2 = p3.X - p4.X;
+        double C2 = A2 * p3.X + B2 * p3.Y;
+
+        double delta = A1 * B2 - A2 * B1;
+
+        if (Math.Abs(delta) < 1e-9)
+            return false; // Paralel
+
+        double x = (B2 * C1 - B1 * C2) / delta;
+        double y = (A1 * C2 - A2 * C1) / delta;
+
+        intersection = new Vector3D(x, y, 0);
+        return true;
+    }
+
+    /*
        NE: Çizgi Parçası Kesişimi (DoSegmentsIntersect)
        NEDEN: Boru çakışmalarını veya borunun duvardan geçip geçmediğini anlamak için. (Boolean Logic 2D)
     */

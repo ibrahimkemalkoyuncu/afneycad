@@ -127,6 +127,38 @@ public struct Matrix4x4
     public static Matrix4x4 CreateRotationZ(double radians) => RotationZ(radians);
     // ----------------------------------------------------------
 
+    /*
+       NE: İki Noktaya Göre Yansıma (Reflection) Matrisi
+       NEDEN: Orijinal AutoCAD'deki gibi iki noktanın oluşturduğu eksene göre nesnelerin simetriğini almak için.
+    */
+    public static Matrix4x4 Reflection(Vector3D p1, Vector3D p2)
+    {
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
+        
+        // Eksenin açısı
+        double angle = Math.Atan2(dy, dx);
+
+        // Algoritma: 
+        // 1. P1 noktasından Orijine (0,0) taşı
+        // 2. Ekseni X ekseni ile hizala (Döndür)
+        // 3. Y ekseninde yansıt (Scale: Y = -1)
+        // 4. Tekrar geri döndür
+        // 5. P1 noktasına geri taşı
+
+        var t1 = CreateTranslation(-p1.X, -p1.Y, 0);
+        var r1 = CreateRotationZ(-angle);
+        var s1 = CreateScale(1.0, -1.0, 1.0); // Y eksenini ters çevir
+        var r2 = CreateRotationZ(angle);
+        var t2 = CreateTranslation(p1.X, p1.Y, 0);
+
+        // Matris Çarpımı (Sırasıyla sağdan sola uygulanır ama biz a*b yapıyoruz)
+        // C#'ta (T2 * R2 * S1 * R1 * T1) şeklinde yazılır (Eğer sol taraf mevcut vektör ise).
+        // Veya bizim çarpım metodumuza göre soldan sağa:
+        
+        return t2 * r2 * s1 * r1 * t1;
+    }
+
     public static Matrix4x4 operator *(Matrix4x4 a, Matrix4x4 b)
     {
         var res = new Matrix4x4();

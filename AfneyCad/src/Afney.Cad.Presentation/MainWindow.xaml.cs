@@ -11,11 +11,14 @@ using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Commands.MechanicalCommands;
 using Afney.Cad.Commands.BasicCommands;
 using Afney.Cad.Presentation.Dialogs;
+using Afney.Cad.Presentation.ViewModels;
 using Afney.Cad.Domain.Blocks;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Serilog;
@@ -38,6 +41,7 @@ namespace Afney.Cad.Presentation
         // MDI (Multi Document Interface) - Çoklu Sekme Yönetimi
         private System.Collections.ObjectModel.ObservableCollection<CadDocumentContext> _documents = new System.Collections.ObjectModel.ObservableCollection<CadDocumentContext>();
         private CadDocumentContext? _activeContext;
+        private Afney.Cad.Presentation.Services.AutoSaveService? _autoSaveService;
 
         public CadDocumentContext ActiveContext
         {
@@ -70,8 +74,43 @@ namespace Afney.Cad.Presentation
             // Katman Görünürlük (Layer Visibility) Tuşlarına basıldıkça Viewport Engine'e haber ver
             ProjectNavigatorPanel.LayerVisibilityChanged += OnLayerVisibilityChanged;
 
+            // ── Layer Manager Panel event wire-up ────────────────────────────────
+            // Görünürlük toggle → HiddenLayers + InvalidateViewport
+            LayerPanel.LayerVisibilityChanged += (layerName, isVisible) =>
+            {
+                OnLayerVisibilityChanged(layerName, isVisible);
+            };
+
+            // Dondur toggle → Viewport yenile (IsFrozen = hidden + seçilemez)
+            LayerPanel.LayerFreezeChanged += (layerName, isFrozen) =>
+            {
+                // Dondur = gizle gibi davran (ek seçilemezlik mantığı ileride eklenebilir)
+                OnLayerVisibilityChanged(layerName, !isFrozen);
+            };
+
+            // Kilit toggle → ilerde seçim filtresi için (şimdilik sadece log)
+            LayerPanel.LayerLockChanged += (layerName, isLocked) =>
+            {
+                Serilog.Log.Information("[MainWindow] Katman kilidi: {Layer} = {IsLocked}", layerName, isLocked);
+            };
+            // ─────────────────────────────────────────────────────────────────────
+
             // İlk sekmeyi (Boş Proje) oluştur
             CreateNewDocument("Boş Proje");
+
+            // Auto-Save Servisini Bağla (Aktif context'in db'si üzerine her 5 dakikada bir)
+            _autoSaveService = new Afney.Cad.Presentation.Services.AutoSaveService(ActiveContext.Database, TimeSpan.FromMinutes(5));
+            _autoSaveService.OnAutoSaveCompleted += (path) => 
+            {
+                Dispatcher.Invoke(() => StatusText.Text = $"Otomatik Kayıt: {DateTime.Now:HH:mm} ({System.IO.Path.GetFileName(path)})");
+            };
+            _autoSaveService.OnAutoSaveFailed += (ex) => 
+            {
+                Dispatcher.Invoke(() => StatusText.Text = $"Otomatik Kayıt Hatası: {ex.Message}");
+            };
+            _autoSaveService.Start();
+            
+            this.Closing += MainWindow_Closing;
         }
 
         /*
@@ -112,6 +151,17 @@ namespace Afney.Cad.Presentation
             viewport.Initialize(ctx.Database, ctx.SnapEngine, ctx.SelectionManager);
             viewport.OnFeedback += (msg) => StatusText.Text = msg;
             viewport.SelectionChanged += (items) => RightPanel.UpdateEntityInfo(items.FirstOrDefault());
+            viewport.OrthoToggled += (isOrtho) => 
+            {
+                // UI Thread'ine geçerek buton durumunu ve rengini değiştir
+                Dispatcher.Invoke(() => 
+                {
+                    BtnOrthoMode.IsChecked = isOrtho;
+                    BtnOrthoMode.Foreground = isOrtho 
+                        ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#00DDFF")) 
+                        : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#AAAAAA"));
+                });
+            };
 
             ctx.Viewport = viewport;
 
@@ -136,6 +186,11 @@ namespace Afney.Cad.Presentation
         {
             // Viewport'u çerçevele (Border vs eklenebilir)
             return viewport;
+        }
+
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            _autoSaveService?.Stop();
         }
 
         private void OnEntityModifiedFromRightPanel(object? sender, Afney.Cad.Domain.Abstractions.CadEntity e)
@@ -210,12 +265,17 @@ namespace Afney.Cad.Presentation
                 _activeContext.Viewport.InvalidateViewport();
                 e.Handled = true;
             }
-            // Ctrl + Shift + Z kombinasyonu Mac/bazı standartlar için Redo yerine de geçerli
             else if (isCtrlDown && System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) && e.Key == System.Windows.Input.Key.Z)
             {
                 Serilog.Log.Information("⌨️ Kısayol: Ctrl+Shift+Z (Redo)");
                 _history.Redo();
                 _activeContext.Viewport.InvalidateViewport();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.F8)
+            {
+                Serilog.Log.Information("⌨️ Kısayol: F8 (Ortho Toggle)");
+                _activeContext.Viewport.ToggleOrtho();
                 e.Handled = true;
             }
         }
@@ -234,12 +294,198 @@ namespace Afney.Cad.Presentation
                 Title = $"AfneyCAD - {ctx.ProjectName} [{(string.IsNullOrEmpty(ctx.FilePath) ? "Kaydedilmemiş" : ctx.FilePath)}]";
 
                 // Undo/Redo butonlarını güncelle
-                UpdateUndoLabels(); // _history artık ActiveContext.History'ye bakıyor
+                UpdateUndoLabels();
 
-                // Navigator ve Info Panel'i güncelle (Context değiştiği için)
-                // (ProjectNavigator code-behind kullanıyorsa orayı da bağlamalıyız, şimdilik dursun)
+                // ── Layer Manager panelini yeni context ile güncelle ──────────────
+                // Sol Panel panelini aç ve katman listesini tazele
+                LeftPanelBorder.Visibility = Visibility.Visible;
+                LayerPanel.RefreshLayers(ctx.Database);
+                LayerPanel.SyncHiddenLayers(ctx.Viewport.HiddenLayers);
+                RefreshActiveLayerCombo(ctx.Database);
+            }
+        }
 
-                // Viewport.InvalidateVisual(); // Gerek yok, zaten yeni viewport ekrana geldi.
+        /*
+           NE: Sol Panel Tab Butonları (Navigator / Layers)
+           NEDEN: LeftPanelBorder içindeki mini tab şeridinde iki sekme arasında geçiş yapmak için.
+        */
+        private void OnLeftTab_Navigator(object sender, RoutedEventArgs e)
+        {
+            ProjectNavigatorPanel.Visibility = Visibility.Visible;
+            LayerPanel.Visibility = Visibility.Collapsed;
+            TabNavBtn.Background = new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1F3A5F"));
+            TabNavBtn.Foreground = System.Windows.Media.Brushes.White;
+            TabLayerBtn.Background = System.Windows.Media.Brushes.Transparent;
+            TabLayerBtn.Foreground = new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#AAA"));
+        }
+
+        private void OnLeftTab_Layers(object sender, RoutedEventArgs e)
+        {
+            ProjectNavigatorPanel.Visibility = Visibility.Collapsed;
+            LayerPanel.Visibility = Visibility.Visible;
+            TabLayerBtn.Background = new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1F3A5F"));
+            TabLayerBtn.Foreground = System.Windows.Media.Brushes.White;
+            TabNavBtn.Background = System.Windows.Media.Brushes.Transparent;
+            TabNavBtn.Foreground = new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#AAA"));
+
+            // Listeyi yenile
+            if (_activeContext != null)
+            {
+                LayerPanel.RefreshLayers(_activeContext.Database);
+                LayerPanel.SyncHiddenLayers(_activeContext.Viewport.HiddenLayers);
+            }
+        }
+
+        /*
+           NE: Katman Pickup Listesini Doldur (RefreshActiveLayerCombo)
+           NEDEN: Dosya açıldığında veya sekme değiştiğinde Popup içindeki LayerPickerList'i
+           LayerItemViewModel nesneleriyle doldurmak ve aktif katman label/rengini güncellemek için.
+        */
+        private void RefreshActiveLayerCombo(Afney.Cad.Database.Core.CadDatabase db)
+        {
+            if (LayerPickerList == null) return;
+
+            var allLayers = db.GetLayers().ToList();
+            // Katman 0 her zaman ilk; geri kalanlar alfabetik
+            var sorted = allLayers
+                .Where(l => l.Name == "0")
+                .Concat(allLayers.Where(l => l.Name != "0").OrderBy(l => l.Name))
+                .ToList();
+
+            // LayerItemViewModel listesi oluştur
+            var viewModels = sorted.Select(l => new LayerItemViewModel
+            {
+                Name        = l.Name,
+                ColorBrush  = l.ColorBrush,
+                IsVisible   = !(_activeContext?.Viewport?.HiddenLayers.Contains(l.Name) ?? false),
+                IsFrozen    = l.IsFrozen,
+                IsLocked    = l.IsLocked
+            }).ToList();
+
+            LayerPickerList.ItemsSource = viewModels;
+
+            // Aktif katman label ve renk noktasını güncelle
+            string current = db.ActiveLayerName ?? "0";
+            var active = sorted.FirstOrDefault(l => l.Name == current) ?? sorted.FirstOrDefault();
+            if (active != null) SetActiveLayerUI(active.Name, active.ColorBrush);
+        }
+
+        /*
+           NE: Aktif Katman UI Güncelle
+           NEDEN: Button label'ını ve renk noktasını merkezi bir yerden güncellemek için.
+        */
+        private void SetActiveLayerUI(string name, string colorBrush)
+        {
+            if (ActiveLayerLabel != null)
+                ActiveLayerLabel.Text = name;
+
+            if (ActiveLayerColorDot != null)
+            {
+                try
+                {
+                    ActiveLayerColorDot.Background =
+                        (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter()
+                            .ConvertFromString(colorBrush)!;
+                }
+                catch { /* Geçersiz renk — yok say */ }
+            }
+        }
+
+        // ── Katman Seçici Popup Event Handler'ları ────────────────────────────
+
+        /*
+           NE: Katman Seçici Butonuna Tıklandı (OnLayerPickerBtnClick)
+           NEDEN: Popup'ı açmak/kapatmak için.
+        */
+        private void OnLayerPickerBtnClick(object sender, RoutedEventArgs e)
+        {
+            LayerPickerPopup.IsOpen = !LayerPickerPopup.IsOpen;
+        }
+
+        /*
+           NE: Katman Adına Tıklandı (OnLayerNameClick)
+           NEDEN: Tıklanan katmanı aktif yapmak ve popup'ı kapatmak için.
+        */
+        private void OnLayerNameClick(object sender, MouseButtonEventArgs e)
+        {
+            if (_activeContext == null) return;
+            if (sender is System.Windows.Controls.TextBlock tb && tb.DataContext is LayerItemViewModel vm)
+            {
+                _activeContext.Database.ActiveLayerName = vm.Name;
+                SetActiveLayerUI(vm.Name, vm.ColorBrush);
+                StatusText.Text = $"Aktif Katman: {vm.Name}";
+                Serilog.Log.Information("[Layer] Aktif katman: {Layer}", vm.Name);
+                LayerPickerPopup.IsOpen = false;
+            }
+        }
+
+        /*
+           NE: Görünürlük Toggle (OnLayerVisibilityToggle_Click)
+           NEDEN: Katmanı popup içinden gizleyip göstermek için.
+        */
+        private void OnLayerVisibilityToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext == null) return;
+            if (sender is Button btn && btn.DataContext is LayerItemViewModel vm)
+            {
+                vm.IsVisible = !vm.IsVisible;
+                OnLayerVisibilityChanged(vm.Name, vm.IsVisible);
+            }
+        }
+
+        /*
+           NE: Dondurma Toggle (OnLayerFreezeToggle_Click)
+           NEDEN: Katmanı dondurulmuş/serbest yapmak için.
+        */
+        private void OnLayerFreezeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext == null) return;
+            if (sender is Button btn && btn.DataContext is LayerItemViewModel vm)
+            {
+                vm.IsFrozen = !vm.IsFrozen;
+                // Dondurulmuş katman görünmez davranır
+                OnLayerVisibilityChanged(vm.Name, !vm.IsFrozen);
+                Serilog.Log.Information("[Layer] Dondurma: {Layer} = {Frozen}", vm.Name, vm.IsFrozen);
+            }
+        }
+
+        /*
+           NE: Kilit Toggle (OnLayerLockToggle_Click)
+           NEDEN: Katmanı kilitleyip/açmak için (seçim filtresi — ileride kullanılacak).
+        */
+        private void OnLayerLockToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext == null) return;
+            if (sender is Button btn && btn.DataContext is LayerItemViewModel vm)
+            {
+                vm.IsLocked = !vm.IsLocked;
+                Serilog.Log.Information("[Layer] Kilit: {Layer} = {Locked}", vm.Name, vm.IsLocked);
+            }
+        }
+
+        /*
+           NE: Katman Yöneticisi Aç/Kapat (OnToggleLayerPanel)
+           NEDEN: 1.Sistem tabındaki 🗂 butonundan sol panelin Katmanlar sekmesini açıp kapatmak için.
+        */
+        private void OnToggleLayerPanel(object sender, RoutedEventArgs e)
+        {
+            if (LeftPanelBorder.Visibility == Visibility.Collapsed)
+            {
+                LeftPanelBorder.Visibility = Visibility.Visible;
+                // Katmanlar sekmesine geç
+                OnLeftTab_Layers(sender, e);
+            }
+            else
+            {
+                // Zaten açıksa ve Katmanlar sekmesindeyse kapat; yoksa Katmanlar sekmesine geç
+                if (LayerPanel.Visibility == Visibility.Visible)
+                    LeftPanelBorder.Visibility = Visibility.Collapsed;
+                else
+                    OnLeftTab_Layers(sender, e);
             }
         }
 
@@ -320,6 +566,64 @@ namespace Afney.Cad.Presentation
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
+        }
+
+        /*
+           NE: Buda (Trim) Komutu
+           NEDEN: Seçilen kısmı diğer objelerle olan kesişim noktalarına göre kırpmak için.
+        */
+        private void OnTrimCommand(object sender, RoutedEventArgs e)
+        {
+            // Zoom seviyesi tam Property olarak dışarıda yoksa sabit 1.0 üzerinden işlem görebilir
+            // Ancak doğru referans _activeContext.Viewport varsa oradan alınabilir
+            var cmd = new Afney.Cad.Commands.BasicCommands.TrimCommand(_database, _history.TransactionManager, 1.0);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        /*
+           NE: Uzat (Extend) Komutu
+           NEDEN: Seçilen objeyi diğer objelerle olan kesişim noktalarına kadar uzatmak için.
+        */
+        private void OnExtendCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.ExtendCommand(_database, _history.TransactionManager, 1.0);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        /*
+           NE: Ayna (Mirror) Komutu
+           NEDEN: Seçilen nesneleri çizilen bir eksen üzerinden simetrik kopyalamak için.
+        */
+        private void OnMirrorCommand(object sender, RoutedEventArgs e)
+        {
+            var selectedEntities = _activeContext?.SelectionManager?.GetSelectedEntities() ?? new List<Afney.Cad.Domain.Abstractions.CadEntity>();
+            
+            var cmd = new Afney.Cad.Commands.BasicCommands.MirrorCommand(_database, _history.TransactionManager, selectedEntities);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        /*
+           NE: Patlat (Explode) Komutu
+           NEDEN: Seçilen Blok (BlockReferenceEntity) veya Poligon (LwPolylineEntity) gibi birleşik parçaları temel çizgilerine/ayrık elemanlara ayırmak için.
+        */
+        private void OnExplodeCommand(object sender, RoutedEventArgs e)
+        {
+            var selectedEntities = _activeContext?.SelectionManager?.GetSelectedEntities() ?? new List<Afney.Cad.Domain.Abstractions.CadEntity>();
+            
+            var cmd = new Afney.Cad.Commands.BasicCommands.ExplodeCommand(_database, _history.TransactionManager, selectedEntities);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
         }
 
         /*
@@ -473,19 +777,12 @@ namespace Afney.Cad.Presentation
                 StatusText.Text = "WBlock HazÄ±r.";
             };
 
-            // 3. BaÅŸlangÄ±Ã§ Durumu
+            // 3. BaÅŸlangÄ±ç Durumu
             cmd.SetSelectedEntities(Viewport.GetSelectedEntities());
             wizard.SetEntities(cmd.SelectedEntities); // Sihirbaz ilk aÃ§Ä±ldÄ±ÄŸÄ±nda varsa Ã¶nceki seÃ§imleri de alsÄ±n
 
-            // Sihirbaz Modeline geÃ§iyoruz
-            if (wizard.ShowDialog() == true)
+            wizard.OnExportConfirmed += (finalPath, floorName, entitiesToSave, basePoint) =>
             {
-                string finalPath = wizard.FinalPath;
-                string floorName = wizard.FloorName;
-
-                var entitiesToSave = wizard.SelectedEntities;
-                var basePoint = wizard.BasePoint;
-
                 // KayÄ±t Ä°ÅŸlemi (Logic ArchitecturalBlockCommand.FinalizeExport iÃ§inde)
                 var cloned = entitiesToSave.Select(x => x.Clone()).ToList();
                 var scaleService = new Afney.Cad.Mechanical.Services.ArchitecturalScaleService();
@@ -505,10 +802,18 @@ namespace Afney.Cad.Presentation
                 });
 
                 cmd.FinalizeExport(floorName, System.IO.Path.GetDirectoryName(finalPath) ?? projectPath, json);
-            }
+            };
 
-            // Temizlik
-            Viewport.SetActiveCommand(null);
+            wizard.Closed += (s, ev) =>
+            {
+                if (Viewport.ActiveCommand == cmd)
+                {
+                    Viewport.SetActiveCommand(null);
+                }
+            };
+
+            // Sihirbaz Modeline geçiyoruz (Modeless)
+            wizard.Show();
         }
 
         /*
@@ -519,12 +824,11 @@ namespace Afney.Cad.Presentation
         {
             var cmd = new BlockCommand(_database, (bc) =>
             {
-                var dialog = new BlockNameDialog();
+                var dialog = new Afney.Cad.Presentation.Dialogs.BMakeDialog(bc, _database);
                 dialog.Owner = this;
-                if (dialog.ShowDialog() == true)
-                {
-                    bc.FinalizeBlock(dialog.BlockName);
-                }
+                
+                dialog.Show();
+                return true;
             });
 
             cmd.OnFeedback += msg => StatusText.Text = msg;
@@ -569,6 +873,7 @@ namespace Afney.Cad.Presentation
             // OnSelectRoom ile aynı komut kullanılıyor (kod tekrarını önle)
             OnSelectRoom(sender, e);
         }
+
 
         /*
            NE: Mahal İnceleme Komutu
@@ -692,6 +997,12 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnOffsetCommand(object sender, RoutedEventArgs e)
+        {
+            if (ActiveContext?.Viewport == null) return;
+            ExecuteCommand("OFFSET");
+        }
+
         /*
            NE: Bina Tanımlama (Define Building) Metodu
            NEDEN: Çok katlı projelerde kat yüksekliklerini tanımlamak, mimari dosyaları sekmelere bağlamak ve 3D bina montajı yapmak için.
@@ -807,6 +1118,10 @@ namespace Afney.Cad.Presentation
                     case "line":
                         OnLineCommand(this, new RoutedEventArgs());
                         break;
+                    case "o":
+                    case "offset":
+                        OnOffsetCommand(this, new RoutedEventArgs());
+                        break;
                     case "c":
                     case "circle":
                         OnCircleCommand(this, new RoutedEventArgs());
@@ -888,6 +1203,13 @@ namespace Afney.Cad.Presentation
                     {
                         // Oda seçildiğinde yapılacak işlem
                     }));
+                    break;
+                case "OFFSET":
+                    var selectedForOffset = ActiveContext.Database.GetSelectedEntities().ToList();
+                    if (selectedForOffset.Count > 0)
+                        ActiveContext.Viewport.SetCommand(new Afney.Cad.Commands.BasicCommands.OffsetCommand(ActiveContext.Database, ActiveContext.History.TransactionManager, selectedForOffset));
+                    else
+                        StatusText.Text = "Lütfen önce ötelenecek nesneleri seçin.";
                     break;
                     // ... diğer komutlar
             }
@@ -1069,6 +1391,29 @@ namespace Afney.Cad.Presentation
                 }
 
                 Serilog.Log.Information($"OSNAP Bayrağı ({btn.Name}): {(isEnabled ? "Açık" : "Kapalı")}");
+            }
+        }
+
+        #endregion
+
+        #region -- ORTHO MODE --
+        
+        /*
+           NE: Ortho Modu (F8 / UI Button) Yönetimi
+           NEDEN: Çizimleri dik (yatay/dikey) eksenlere kısıtlamak için.
+        */
+        private void OnOrthoModeToggle(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext?.Viewport == null) return;
+            
+            if (sender is System.Windows.Controls.Primitives.ToggleButton btn)
+            {
+                bool isEnabled = btn.IsChecked == true;
+                _activeContext.Viewport.ToggleOrthoMode(isEnabled);
+                
+                btn.Foreground = isEnabled ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 221, 255)) : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(150, 150, 150));
+                
+                Serilog.Log.Information($"Ortho Modu: {(isEnabled ? "Açık" : "Kapalı")}");
             }
         }
 
@@ -1272,6 +1617,23 @@ namespace Afney.Cad.Presentation
                 try { mahalService.ExportMahalDataToJson(mahalPath); } catch (Exception ex) { Log.Warning("Otomatik Mahal Analizi tamamlanamadı: " + ex.Message); }
 
                 Viewport.ZoomExtents();
+
+                // ── Katman UI'larını Güncelle ─────────────────────────────────
+                // Proje açıldıktan sonra katman seçici ve panel yenilenmelidir
+                Dispatcher.Invoke(() =>
+                {
+                    if (_activeContext != null)
+                    {
+                        RefreshActiveLayerCombo(_activeContext.Database);
+                        LayerPanel.RefreshLayers(_activeContext.Database);
+                        LayerPanel.SyncHiddenLayers(_activeContext.Viewport.HiddenLayers);
+                        LeftPanelBorder.Visibility = Visibility.Visible;
+                        // Katmanlar sekmesini aktif yap
+                        LayerPanel.Visibility = Visibility.Visible;
+                        ProjectNavigatorPanel.Visibility = Visibility.Collapsed;
+                    }
+                });
+                // ────────────────────────────────────────────────────────────────
 
                 string statusMsg = $"Proje yüklendi: {activeEntities.Count} nesne.";
                 StatusText.Text = statusMsg;
@@ -1479,6 +1841,23 @@ namespace Afney.Cad.Presentation
         }
 
         /*
+           NE: Otonom Tüm Mahalleri Bul
+           NEDEN: SpaceDetectionEngine'i tetikleyerek çizimdeki tüm olası odaları otonom olarak bulmak için.
+        */
+        private void OnAutoDetectSpacesCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.AutoDetectSpacesCommand(_database);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => 
+            {
+                Viewport.SetActiveCommand(null);
+                Viewport.InvalidateViewport(); // Yeni öğeler çizim alanında görünsün
+            };
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        /*
            NE: Mahal Tanımlama (Oda Seçme)
            NEDEN: Kullanıcının tıkladığı noktadan sınırı bulmak, etiket basmak ve opsiyonel olarak vitrifiyeleri otomatik yerleştirmek için.
         */
@@ -1609,6 +1988,105 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        /*
+           NE: Manuel Mahal Tanımlama Komutu (OnManualMahalDefine)
+           NEDEN: Kullanıcı duvarları tek tek seçerek + gap noktalari ekleyerek mahal sınırı belirleyebilsin.
+        */
+        private void OnManualMahalDefine(object sender, RoutedEventArgs e)
+        {
+            if (_database == null)
+            {
+                MessageBox.Show("Önce bir çizim açın.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.ManualMahalCommand(_database, (mahal) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        var dialog = new Dialogs.MahalDetailsDialog(mahal);
+                        dialog.Owner = this;
+                        if (dialog.ShowDialog() == true)
+                        {
+                            _database.TransactionManager.Submit(
+                                new Afney.Cad.Database.Transactions.Operations.AddEntityOperation(_database, mahal));
+                            if (_mechanicalKernel != null)
+                                _mechanicalKernel.TopologyGraph.AddRoom(mahal);
+                            Viewport.InvalidateVisual();
+                            StatusText.Text = $"MAHAL KAYDEDİLDİ: {mahal.MahalName} ({mahal.MahalType}) — {mahal.Area:F2} m²";
+                        }
+                        else
+                        {
+                            StatusText.Text = "Manuel mahal tanımlama iptal edildi.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "[Manuel Mahal] Dialog açılırken hata");
+                        MessageBox.Show($"Mahal dialog hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                });
+            });
+
+            cmd.OnFeedback  += (msg) => Dispatcher.Invoke(() => StatusText.Text = msg);
+            cmd.OnCompleted += ()    => Dispatcher.Invoke(() => Viewport.SetActiveCommand(null));
+
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        /*
+           NE: Dikdörtgen Mahal Tanımlama Komutu (OnRectMahalDefine)
+           NEDEN: Kullanıcı 2 köşe nokta tıklayarak tam dikdörtgen mahal belirleyebilsin.
+                  Kapı/pencere boşluklarını görmezden gelir — dikdörtgen olduğu gibi sınır olur.
+        */
+        private void OnRectMahalDefine(object sender, RoutedEventArgs e)
+        {
+            if (_database == null)
+            {
+                MessageBox.Show("Önce bir çizim açın.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.RectMahalCommand((mahal) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        var dialog = new Dialogs.MahalDetailsDialog(mahal);
+                        dialog.Owner = this;
+                        if (dialog.ShowDialog() == true)
+                        {
+                            _database.TransactionManager.Submit(
+                                new Afney.Cad.Database.Transactions.Operations.AddEntityOperation(_database, mahal));
+                            if (_mechanicalKernel != null)
+                                _mechanicalKernel.TopologyGraph.AddRoom(mahal);
+                            Viewport.InvalidateVisual();
+                            StatusText.Text = $"DİKDÖRTGEN MAHAL KAYDEDİLDİ: {mahal.MahalName} ({mahal.MahalType}) — {mahal.Area:F2} m²";
+                        }
+                        else
+                        {
+                            StatusText.Text = "Dikdörtgen mahal tanımlama iptal edildi.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "[Rect Mahal] Dialog açılırken hata");
+                        MessageBox.Show($"Mahal dialog hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                });
+            });
+
+            cmd.OnFeedback  += (msg) => Dispatcher.Invoke(() => StatusText.Text = msg);
+            cmd.OnCompleted += ()    => Dispatcher.Invoke(() => Viewport.SetActiveCommand(null));
+
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnSmartDetectRoomClick(object sender, RoutedEventArgs e)
         {
             // ...
@@ -1723,6 +2201,81 @@ namespace Afney.Cad.Presentation
             Viewport.SetActiveCommand(cmd);
             cmd.Start();
             StatusText.Text = "Mahal sınırlarını belirlemek için kapalı bir alan bak noktasını tıklayın...";
+        }
+
+        /*
+           NE: Armatürleri Ana Hatta Bağla (Connect Receptors — Track A)
+           NEDEN: Veritabanındaki tüm (veya seçili) armatürleri otomatik algılayıp
+                  uygun sistem tipindeki en yakın boruya branşman oluşturarak bağlar.
+                  FineSANI'deki "Connect Receptors" komutunun eşdeğeri.
+        */
+        private void OnConnectReceptors(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var service = new Afney.Cad.Mechanical.Services.ConnectReceptorsService(_database, _mechanicalKernel);
+
+                // Seçili nesne varsa sadece onları, yoksa tümünü bağla
+                var selected = Viewport.GetSelectedEntities()
+                    .OfType<Afney.Cad.Mechanical.Entities.SanitaryFixtureEntity>()
+                    .ToList();
+
+                Afney.Cad.Mechanical.Services.ConnectReceptorsService.ConnectResult result;
+                if (selected.Any())
+                {
+                    result = service.ConnectSelected(selected);
+                    StatusText.Text = $"Seçili {selected.Count} armatür için bağlantı işleniyor...";
+                }
+                else
+                {
+                    result = service.ConnectAll();
+                    StatusText.Text = "Tüm armatürler için bağlantı işleniyor...";
+                }
+
+                if (!result.NewEntities.Any() && result.ConnectedCount == 0)
+                {
+                    string msg = "Bağlanacak armatür bulunamadı veya uygun hat mevcut değil.";
+                    if (result.SkipReasons.Any())
+                        msg += "\n\nAtlanan durumlar:\n" + string.Join("\n", result.SkipReasons.Take(5));
+                    MessageBox.Show(msg, "Connect Receptors", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Transaction: Yeni parçaları ekle, eski bölünen boruları kaldır
+                var ops = new Afney.Cad.Database.Transactions.CompositeOperation("Connect Receptors");
+
+                foreach (var ent in result.NewEntities)
+                {
+                    ops.Add(new Afney.Cad.Database.Transactions.Operations.AddEntityOperation(_database, ent));
+                    if (ent is Afney.Cad.Mechanical.Entities.MechanicalEntity mEnt)
+                        _mechanicalKernel.OnEntityAddedToDatabase(mEnt);
+                }
+
+                foreach (var old in result.ToRemove)
+                {
+                    ops.Add(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, old));
+                    _mechanicalKernel.TopologyGraph.RemoveEntity(old.Id);
+                }
+
+                _history.TransactionManager.Submit(ops);
+                Viewport.InvalidateVisual();
+
+                // Kullanıcıya özet rapor
+                string summary = $"Connect Receptors tamamlandı:\n\n" +
+                                 $"  ✅ Bağlanan port sayısı : {result.ConnectedCount}\n" +
+                                 $"  ⚠️ Atlanan port sayısı  : {result.SkippedCount}\n" +
+                                 $"  🔩 Oluşturulan parça    : {result.NewEntities.Count}\n";
+
+                if (result.SkipReasons.Any())
+                    summary += $"\nAtlananlar:\n" + string.Join("\n", result.SkipReasons.Take(5));
+
+                MessageBox.Show(summary, "Connect Receptors", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText.Text = $"Connect Receptors: {result.ConnectedCount} port bağlandı.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Connect Receptors hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /*
@@ -2297,6 +2850,67 @@ namespace Afney.Cad.Presentation
             {
                 MessageBox.Show($"Rotalama hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /*
+           NE: Çift Hat Çizimi (Double Pipe Autorouting — Track A)
+           NEDEN: TS 1258'e göre sıcak ve soğuk su hatları minimum 100mm ayrı rotalanmalıdır.
+                  Bu komut iki nokta alarak paralel (kırmızı/mavi) boru çiftini otomatik oluşturur.
+        */
+        private void OnDoublePipeRoute(object sender, RoutedEventArgs e)
+        {
+            StatusText.Text = "ÇIFT HAT — Başlangıç noktasını tıklayın...";
+
+            var pickStartCmd = new Afney.Cad.Commands.BasicCommands.PickPointCommand();
+            pickStartCmd.OnPointPicked += (startPt) =>
+            {
+                StatusText.Text = "ÇIFT HAT — Bitiş noktasını tıklayın...";
+
+                var pickEndCmd = new Afney.Cad.Commands.BasicCommands.PickPointCommand();
+                pickEndCmd.OnPointPicked += (endPt) =>
+                {
+                    try
+                    {
+                        var service = new Afney.Cad.Mechanical.Services.DoublePipeRoutingService(_database)
+                        {
+                            SeparationDistance = 150.0 // TS 1258 min: 100mm, önerilen: 150mm
+                        };
+
+                        var result = service.RouteDoublePipe(startPt, endPt);
+
+                        var ops = new Afney.Cad.Database.Transactions.CompositeOperation("Double Pipe Route");
+                        foreach (var p in result.HotPipes)
+                        {
+                            ops.Add(new Afney.Cad.Database.Transactions.Operations.AddEntityOperation(_database, p));
+                            _mechanicalKernel.OnEntityAddedToDatabase(p);
+                        }
+                        foreach (var p in result.ColdPipes)
+                        {
+                            ops.Add(new Afney.Cad.Database.Transactions.Operations.AddEntityOperation(_database, p));
+                            _mechanicalKernel.OnEntityAddedToDatabase(p);
+                        }
+
+                        _history.TransactionManager.Submit(ops);
+                        Viewport.InvalidateVisual();
+
+                        StatusText.Text = $"Çift Hat: {result.HotPipes.Count} sıcak + {result.ColdPipes.Count} soğuk boru oluşturuldu.";
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Çift hat hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    finally
+                    {
+                        Viewport.SetActiveCommand(null);
+                    }
+                };
+
+                Viewport.SetActiveCommand(pickEndCmd);
+                pickEndCmd.Start();
+            };
+
+            Viewport.SetActiveCommand(pickStartCmd);
+            pickStartCmd.Start();
         }
 
         private void OnSepticTankDesign(object sender, RoutedEventArgs e)

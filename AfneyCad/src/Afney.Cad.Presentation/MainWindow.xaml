@@ -1,4 +1,4 @@
-<Window x:Class="Afney.Cad.Presentation.MainWindow"
+﻿<Window x:Class="Afney.Cad.Presentation.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -138,6 +138,199 @@
                                         <TextBlock Text="Süreç" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- ═══ KATMAN SEÇİCİ (AutoCAD tarzı Button+Popup) ═══ -->
+                                <Border BorderBrush="#5588BB" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <!-- Renk göstergesi (aktif katman) -->
+                                            <Border x:Name="ActiveLayerColorDot"
+                                                    Width="14" Height="14" CornerRadius="2"
+                                                    Background="#FF00FF" VerticalAlignment="Center"
+                                                    Margin="0,0,4,0" BorderBrush="#888" BorderThickness="1"/>
+
+                                            <!-- Tıklanabilir Katman Seçim Butonu — Dropdown açar -->
+                                            <Grid>
+                                                <Button x:Name="LayerPickerBtn"
+                                                        Width="170" Height="24"
+                                                        Background="#1E2535" Foreground="White"
+                                                        BorderBrush="#3A5070" BorderThickness="1"
+                                                        FontSize="12" FontFamily="Consolas" FontWeight="SemiBold"
+                                                        HorizontalContentAlignment="Left"
+                                                        Padding="6,0,20,0"
+                                                        Click="OnLayerPickerBtnClick"
+                                                        ToolTip="Aktif katmanı seçin — katman listesini açar"
+                                                        Cursor="Hand">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="LayerBtnBorder"
+                                                                    Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    CornerRadius="3">
+                                                                <Grid>
+                                                                    <ContentPresenter HorizontalAlignment="Left"
+                                                                                      VerticalAlignment="Center"
+                                                                                      Margin="{TemplateBinding Padding}"/>
+                                                                    <!-- Ok ikonu sağda -->
+                                                                    <TextBlock Text="▾" Foreground="#88AACC"
+                                                                               HorizontalAlignment="Right"
+                                                                               VerticalAlignment="Center"
+                                                                               Margin="0,0,5,0" FontSize="10"/>
+                                                                </Grid>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="LayerBtnBorder" Property="BorderBrush" Value="#0078D7"/>
+                                                                    <Setter TargetName="LayerBtnBorder" Property="Background" Value="#253045"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                    <!-- Aktif katman adı (kod tarafından güncellenir) -->
+                                                    <TextBlock x:Name="ActiveLayerLabel"
+                                                               Text="0"
+                                                               Foreground="White"
+                                                               FontFamily="Consolas" FontSize="12"
+                                                               VerticalAlignment="Center"/>
+                                                </Button>
+
+                                                <!-- POPUP: Katman listesi -->
+                                                <Popup x:Name="LayerPickerPopup"
+                                                       PlacementTarget="{Binding ElementName=LayerPickerBtn}"
+                                                       Placement="Bottom"
+                                                       StaysOpen="False"
+                                                       AllowsTransparency="True"
+                                                       PopupAnimation="Slide">
+                                                    <Border Background="#1A1E2E"
+                                                            BorderBrush="#3A5070" BorderThickness="1"
+                                                            CornerRadius="4"
+                                                            MinWidth="280" MaxHeight="300">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="*"/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <!-- Başlık -->
+                                                            <Border Grid.Row="0" Background="#252A3A" Padding="8,4" CornerRadius="4,4,0,0">
+                                                                <TextBlock Text="  Katmanlar" Foreground="#88AACC"
+                                                                           FontSize="11" FontWeight="Bold"
+                                                                           FontFamily="Segoe UI"/>
+                                                            </Border>
+
+                                                            <!-- Katman Listesi -->
+                                                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                                                          MaxHeight="260">
+                                                                <ListBox x:Name="LayerPickerList"
+                                                                         Background="Transparent"
+                                                                         BorderThickness="0"
+                                                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                                         SelectionMode="Single"
+                                                                         VirtualizingPanel.IsVirtualizing="True">
+                                                                    <ListBox.ItemContainerStyle>
+                                                                        <Style TargetType="ListBoxItem">
+                                                                            <Setter Property="Background" Value="Transparent"/>
+                                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                                            <Setter Property="Padding" Value="2,1"/>
+                                                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                                            <Style.Triggers>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter Property="Background" Value="#252A3A"/>
+                                                                                </Trigger>
+                                                                                <Trigger Property="IsSelected" Value="True">
+                                                                                    <Setter Property="Background" Value="#1A3A6A"/>
+                                                                                </Trigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </ListBox.ItemContainerStyle>
+                                                                    <ListBox.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <!-- Her satır: [👁] [❄] [🔒] [■ renk] Katman Adı -->
+                                                                            <Grid Margin="2,2" Height="22">
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="22"/> <!-- Görünürlük -->
+                                                                                    <ColumnDefinition Width="22"/> <!-- Dondur -->
+                                                                                    <ColumnDefinition Width="22"/> <!-- Kilitle -->
+                                                                                    <ColumnDefinition Width="14"/> <!-- Renk -->
+                                                                                    <ColumnDefinition Width="*"/>  <!-- Katman Adı -->
+                                                                                </Grid.ColumnDefinitions>
+
+                                                                                <!-- 👁 Görünürlük (tıklanabilir) -->
+                                                                                <Button Grid.Column="0"
+                                                                                        Content="{Binding VisibilityIcon}"
+                                                                                        FontSize="12" Background="Transparent"
+                                                                                        BorderThickness="0" Cursor="Hand"
+                                                                                        ToolTip="Katmanı Gizle/Göster"
+                                                                                        Tag="{Binding Name}"
+                                                                                        Click="OnLayerVisibilityToggle_Click"/>
+
+                                                                                <!-- ❄ Dondur (tıklanabilir) -->
+                                                                                <Button Grid.Column="1"
+                                                                                        Content="{Binding FreezeIcon}"
+                                                                                        FontSize="12" Background="Transparent"
+                                                                                        BorderThickness="0" Cursor="Hand"
+                                                                                        ToolTip="Katmanı Dondur/Çöz"
+                                                                                        Tag="{Binding Name}"
+                                                                                        Click="OnLayerFreezeToggle_Click">
+                                                                                    <Button.Foreground>
+                                                                                        <SolidColorBrush Color="#44CCFF"/>
+                                                                                    </Button.Foreground>
+                                                                                </Button>
+
+                                                                                <!-- 🔒 Kilitle (tıklanabilir) -->
+                                                                                <Button Grid.Column="2"
+                                                                                        Content="{Binding LockIcon}"
+                                                                                        FontSize="12" Background="Transparent"
+                                                                                        BorderThickness="0" Cursor="Hand"
+                                                                                        ToolTip="Katmanı Kilitle/Aç"
+                                                                                        Tag="{Binding Name}"
+                                                                                        Click="OnLayerLockToggle_Click">
+                                                                                    <Button.Foreground>
+                                                                                        <SolidColorBrush Color="#FFCC44"/>
+                                                                                    </Button.Foreground>
+                                                                                </Button>
+
+                                                                                <!-- ■ Renk karesi -->
+                                                                                <Border Grid.Column="3"
+                                                                                        Width="12" Height="12"
+                                                                                        CornerRadius="2"
+                                                                                        Background="{Binding ColorBrush}"
+                                                                                        BorderBrush="#555" BorderThickness="1"
+                                                                                        VerticalAlignment="Center"/>
+
+                                                                                <!-- Katman Adı — tıklanınca aktif yapar -->
+                                                                                <TextBlock Grid.Column="4"
+                                                                                           Text="{Binding Name}"
+                                                                                           Foreground="White"
+                                                                                           FontFamily="Consolas"
+                                                                                           FontSize="12"
+                                                                                           VerticalAlignment="Center"
+                                                                                           Margin="6,0,0,0"
+                                                                                           Cursor="Hand"
+                                                                                           MouseLeftButtonUp="OnLayerNameClick"/>
+                                                                            </Grid>
+                                                                        </DataTemplate>
+                                                                    </ListBox.ItemTemplate>
+                                                                </ListBox>
+                                                            </ScrollViewer>
+                                                        </Grid>
+                                                    </Border>
+                                                </Popup>
+                                            </Grid>
+
+                                            <!-- Katman Yöneticisi Butonu -->
+                                            <Button Content="🗂" Click="OnToggleLayerPanel"
+                                                    Style="{StaticResource RbnBtn}"
+                                                    ToolTip="Katman Yöneticisini Aç/Kapat"
+                                                    Width="28" Height="24" Margin="4,0,0,0"
+                                                    FontSize="13"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Katman" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+
                             </WrapPanel>
                         </Border>
                     </TabItem>
@@ -149,9 +342,11 @@
                                 <Border BorderBrush="#00CC88" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="🏠 Akıllı" Click="OnSmartDetectRoomClick" Style="{StaticResource RbnOk}" ToolTip="Otomatik oda tanıma"/>
-                                            <Button Content="📍 Manuel" Click="OnSelectRoom" Style="{StaticResource RbnBtn}"/>
-                                            <Button Content="🏷️ Tanımla" Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="🤖 Otonom" Click="OnAutoDetectSpacesCommand" Style="{StaticResource RbnAccent}" ToolTip="Tüm mimariyi tara ve bütün odaları otonom tespit et"/>
+                                            <Button Content="🏠 Akıllı" Click="OnSmartDetectRoomClick" Style="{StaticResource RbnOk}" ToolTip="Tıklanan bölgedeki odayı otomatik tanıma"/>
+                                            <Button Content="📍 Manuel" Click="OnManualMahalDefine" Style="{StaticResource RbnBtn}" ToolTip="Manuel Mahal: Duvarları seçip Enter ile kapat"/>
+                                            <Button Content="⬛ Dikdörtgen" Click="OnRectMahalDefine" Style="{StaticResource RbnBtn}" ToolTip="Dikdörtgen Mahal: 2 köşe tıkla — kapı/pencere boşluklarını görmezden gelir"/>
+                                            <Button Content="🏷️ Tag" Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}"/>
                                         </StackPanel>
                                         <TextBlock Text="Mahal Tanımı" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
@@ -204,6 +399,12 @@
                                                     <TextBlock Text="Parallel" FontSize="9"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Click="OnDoublePipeRoute" Style="{StaticResource RbnAccent}" ToolTip="Cift Hat Ciz - Sicak+Soguk (TS 1258)" Margin="2,0" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 2 5 H 22 M 2 9 H 22 M 2 15 H 22 M 2 19 H 22" Stroke="#FF6666" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,1"/>
+                                                    <TextBlock Text="CiftHat" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
                                         </StackPanel>
                                         <TextBlock Text="Boru Çizimi" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     </StackPanel>
@@ -238,6 +439,12 @@
                                                 <StackPanel>
                                                     <Path Data="M 8 12 A 4 4 0 1 1 8 4 A 4 4 0 1 1 8 12 M 16 20 A 4 4 0 1 1 16 12 A 4 4 0 1 1 16 20 M 10 9 L 14 15" Stroke="#AA66FF" StrokeThickness="1" HorizontalAlignment="Center" Margin="0,2"/>
                                                     <TextBlock Text="Auto-Con" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnConnectReceptors" Style="{StaticResource RbnOk}" ToolTip="Armatuerleri Ana Hatta Bagla (TS 1258)" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 4 12 A 3 3 0 1 0 4 6 A 3 3 0 1 0 4 12 M 20 12 A 3 3 0 1 0 20 6 A 3 3 0 1 0 20 12 M 7 9 L 17 9" Stroke="#44DD88" StrokeThickness="1.2" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Connect" FontSize="9"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Click="OnRiserConnection" Style="{StaticResource RbnBtn}" ToolTip="Kolon Bağlantısı" Width="40">
@@ -278,6 +485,30 @@
                                                 <StackPanel>
                                                     <Path Data="M 12 4 A 8 8 0 1 1 12 20 A 8 8 0 1 1 12 4 Z" Stroke="#00AAFF" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
                                                     <TextBlock Text="Circle" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnTrimCommand" Style="{StaticResource RbnBtn}" ToolTip="Buda (TR)" Width="40">
+                                                <StackPanel>
+                                                    <Path Data="M 4 12 L 20 12 M 12 4 L 12 10 M 12 14 L 12 20" Stroke="#FF4444" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Trim" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnExtendCommand" Style="{StaticResource RbnBtn}" ToolTip="Uzat (EX)" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 4 12 L 14 12 M 16 4 L 16 20 M 14 12 L 10 9 M 14 12 L 10 15" Stroke="#44DD88" StrokeThickness="1.5" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Extend" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnMirrorCommand" Style="{StaticResource RbnBtn}" ToolTip="Ayna (MI)" Width="45">
+                                                <StackPanel>
+                                                    <Path Data="M 12 2 L 12 22 M 4 6 L 10 12 L 4 18 Z M 20 6 L 14 12 L 20 18 Z" Stroke="#FFBB00" StrokeThickness="1.5" Fill="#66FFBB00" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Mirror" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnExplodeCommand" Style="{StaticResource RbnBtn}" ToolTip="Patlat (X)" Width="50">
+                                                <StackPanel>
+                                                    <Path Data="M 6 6 L 10 10 M 18 6 L 14 10 M 12 14 L 12 20 M 10 14 L 6 18 M 14 14 L 18 18" Stroke="#AA88FF" StrokeThickness="2" StrokeDashArray="2 1" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Explode" FontSize="9"/>
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
@@ -423,10 +654,42 @@
                 <ColumnDefinition Width="Auto"/> <!-- Intelligence -->
             </Grid.ColumnDefinitions>
 
-            <!-- 1. LEFT PANEL: PROJECT NAVIGATOR -->
-            <controls:ProjectNavigatorView x:Name="ProjectNavigatorPanel" Grid.Column="0" Width="220" BorderBrush="#3E3E42" BorderThickness="0,0,1,0" Visibility="Collapsed"/>
-            
+            <!-- 1. LEFT PANEL: Navigator + Katmanlar (Tab-based dockable) -->
+            <Border Grid.Column="0" Width="240"
+                    BorderBrush="#3E3E42" BorderThickness="0,0,1,0"
+                    x:Name="LeftPanelBorder" Visibility="Collapsed">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Tab bar -->
+                        <RowDefinition Height="*"/>    <!-- Content -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Mini tab strip -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Background="#252A35" Height="28">
+                        <Button x:Name="TabNavBtn" Content="📁 Proje" FontSize="10"
+                                Background="#1F3A5F" Foreground="White"
+                                BorderThickness="0" Padding="8,4" Cursor="Hand"
+                                Click="OnLeftTab_Navigator"/>
+                        <Button x:Name="TabLayerBtn" Content="🗂 Katmanlar" FontSize="10"
+                                Background="Transparent" Foreground="#AAA"
+                                BorderThickness="0" Padding="8,4" Cursor="Hand"
+                                Click="OnLeftTab_Layers"/>
+                    </StackPanel>
+
+                    <!-- Navigator (görünürlük koda bağlı) -->
+                    <controls:ProjectNavigatorView x:Name="ProjectNavigatorPanel"
+                                                   Grid.Row="1"
+                                                   Visibility="Collapsed"/>
+
+                    <!-- Layer Manager -->
+                    <controls:LayerManagerPanel x:Name="LayerPanel"
+                                                Grid.Row="1"
+                                                Visibility="Visible"/>
+                </Grid>
+            </Border>
+
             <GridSplitter Grid.Column="1" Width="4" Background="#1E1E1E" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+
 
             <!-- 2. LEFT TOOLBAR (FINE SANI STYLE) -->
             <ToolBarTray Grid.Column="2" Orientation="Vertical" Background="#333337" IsLocked="True">
@@ -444,12 +707,17 @@
                     
                     <Button Content="Line" Click="OnLineCommand" ToolTip="Çizgi (L)"/>
                     <Button Content="Circle" Click="OnCircleCommand" ToolTip="Daire (C)"/>
+                    <Button Content="Trim" Click="OnTrimCommand" ToolTip="Buda (TR)" Foreground="#FF4444" FontWeight="Bold"/>
+                    <Button Content="Extend" Click="OnExtendCommand" ToolTip="Uzat (EX)" Foreground="#44DD88" FontWeight="Bold"/>
+                    <Button Content="Mirror" Click="OnMirrorCommand" ToolTip="Ayna (MI)" Foreground="#FFBB00" FontWeight="Bold"/>
+                    <Button Content="Explode" Click="OnExplodeCommand" ToolTip="Patlat (X)" Foreground="#AA88FF" FontWeight="Bold"/>
                     <Button Content="Pipe" Click="OnDrawPipeCommand" ToolTip="Boru Çiz (P)" Foreground="Orange" FontWeight="Bold"/>
                     <Button Content="WallFix" Click="OnPlaceFixtureOnWall" ToolTip="Duvara Cihaz Yerleştir" Foreground="Cyan"/>
                     <Separator/>
                     <Button Content="Move" ToolTip="Taşı (M)"/>
                     <Button Content="Copy" ToolTip="Kopyala (CO)"/>
                     <Separator/>
+                    <Button Content="Otonom" Click="OnAutoDetectSpacesCommand" ToolTip="Tüm Mimariyi Tara (ATO)" Foreground="#00DDFF" FontWeight="Bold"/>
                     <Button Content="Mahal" Click="OnDefineMahalCommand" ToolTip="Mahal Tanımla (MA)" Foreground="LightGreen" FontWeight="Bold"/>
                     <Button Content="Analiz" Click="OnInspectMahalCommand" ToolTip="Mahal Analizi (MAN)" Foreground="Yellow"/>
                     <Separator/>
@@ -547,8 +815,11 @@
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
-                <!-- OSNAP KONTROLLERİ -->
+                <!-- KISAYOL KONTROLLERİ -->
                 <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+                    <!-- ORTHO KONTROLÜ -->
+                    <ToggleButton x:Name="BtnOrthoMode" Content="Ortho (F8)" Click="OnOrthoModeToggle" IsChecked="False" Width="70" Margin="0,0,15,0" Background="#333337" Foreground="#AAAAAA" BorderThickness="0" ToolTip="Dik Açılı Çizim (F8)"/>
+                    
                     <TextBlock Text="OSNAP:" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold" ToolTip="Kenetleme Araçları"/>
                     <ToggleButton x:Name="BtnOsnapMaster" Content="Açık" IsChecked="True" Width="40" Margin="2,0" Click="OnOsnapMasterToggle" Background="#333337" Foreground="#00DDFF" BorderThickness="0"/>
                     <Rectangle Width="1" Fill="#555" Margin="4,2"/>

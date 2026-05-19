@@ -1,0 +1,130 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.BMakeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Block Definition" Height="450" Width="600"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1E1E1E" Foreground="White" WindowStyle="ToolWindow">
+        
+    <Window.Resources>
+        <Style TargetType="GroupBox">
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#007ACC"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#333337"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#007ACC"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Block Name -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Name:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox x:Name="TxtBlockName" Grid.Column="1" Height="26"/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Base Point Section -->
+            <GroupBox Grid.Column="0" Header="Base point">
+                <StackPanel>
+                    <Button x:Name="BtnPickPoint" Content="Pick point" HorizontalAlignment="Left" Click="BtnPickPoint_Click" Margin="0,0,0,10" Width="100"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="X:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,5"/>
+                        <TextBox x:Name="TxtBaseX" Grid.Row="0" Grid.Column="1" Text="0.000" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Text="Y:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,5"/>
+                        <TextBox x:Name="TxtBaseY" Grid.Row="1" Grid.Column="1" Text="0.000" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Text="Z:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="TxtBaseZ" Grid.Row="2" Grid.Column="1" Text="0.000" />
+                    </Grid>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Objects Section -->
+            <GroupBox Grid.Column="1" Header="Objects">
+                <StackPanel>
+                    <Button x:Name="BtnSelectObjects" Content="Select objects" HorizontalAlignment="Left" Click="BtnSelectObjects_Click" Margin="0,0,0,10" Width="100"/>
+                    
+                    <TextBlock x:Name="LblObjectsSelected" Text="0 objects selected" Foreground="LightSkyBlue" Margin="0,0,0,10"/>
+                    
+                    <RadioButton x:Name="RbRetain" Content="Retain (Keep objects)" IsChecked="False" Foreground="White" Margin="0,0,0,5"/>
+                    <RadioButton x:Name="RbConvert" Content="Convert to block" IsChecked="True" Foreground="White" Margin="0,0,0,5"/>
+                    <RadioButton x:Name="RbDelete" Content="Delete" IsChecked="False" Foreground="White"/>
+                </StackPanel>
+            </GroupBox>
+        </Grid>
+
+        <!-- Preview and Behavior -->
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <GroupBox Grid.Column="0" Header="Behavior">
+                <StackPanel>
+                    <CheckBox x:Name="ChkAnnotative" Content="Annotative" Foreground="White" Margin="0,0,0,5" IsEnabled="False"/>
+                    <CheckBox x:Name="ChkScaleUniformly" Content="Scale uniformly" Foreground="White" Margin="0,0,0,5" IsChecked="True"/>
+                    <CheckBox x:Name="ChkAllowExploding" Content="Allow exploding" Foreground="White" IsChecked="True"/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="1" Header="Description">
+                <TextBox x:Name="TxtDescription" TextWrapping="Wrap" AcceptsReturn="True" Height="70" VerticalContentAlignment="Top"/>
+            </GroupBox>
+        </Grid>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="OK" Click="Ok_Click" Width="80" Background="#007ACC" FontWeight="Bold"/>
+            <Button Content="Cancel" IsCancel="True" Click="Cancel_Click" Width="80"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

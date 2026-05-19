@@ -102,23 +102,48 @@ public class SanitaryFixtureEntity : MechanicalEntity
 
         Vector3D TransformOffset(Vector3D offset)
         {
-             // 2D Rotasyon (Z ekseni etrafında) + Translate
              double rx = offset.X * cos - offset.Y * sin;
              double ry = offset.X * sin + offset.Y * cos;
              return new Vector3D(Position.X + rx, Position.Y + ry, Position.Z + offset.Z);
         }
 
-        // 1. Soğuk Su Portu (Mavi)
-        if (ColdWaterOffset.X != 0 || ColdWaterOffset.Y != 0) // Eğer tanımlıysa
-            ports.Add(new MechanicalPort(Id, "ColdWater", TransformOffset(ColdWaterOffset), Vector3D.ZAxis) { FlowType = FlowDirection.In });
-            
-        // 2. Sıcak Su Portu (Kırmızı)
-        if (HotWaterOffset.X != 0 || HotWaterOffset.Y != 0)
-            ports.Add(new MechanicalPort(Id, "HotWater", TransformOffset(HotWaterOffset), Vector3D.ZAxis) { FlowType = FlowDirection.In });
+        // Çap kararları: TS 1258 minimum boru bağlantı çapları
+        bool isWC     = FixtureType.Contains("WC") || FixtureType.Contains("Toilet")
+                     || FixtureType.Contains("Klozet") || FixtureType.Contains("Alaturka")
+                     || FixtureType.Contains("Pisuvar") || FixtureType.Contains("Urinal");
+        bool isLavabo = FixtureType.Contains("Lavabo") || FixtureType.Contains("Washbasin");
+        bool isDush   = FixtureType.Contains("Duş") || FixtureType.Contains("Shower");
+        bool isKuvet  = FixtureType.Contains("Küvet") || FixtureType.Contains("Bathtub");
+        bool isEviye  = FixtureType.Contains("Eviye") || FixtureType.Contains("Sink");
 
-        // 3. Pis Su Portu (Kahverengi/Siyah)
-        if (DrainOffset.X != 0 || DrainOffset.Y != 0)
-            ports.Add(new MechanicalPort(Id, "Drainage", TransformOffset(DrainOffset), -Vector3D.ZAxis) { FlowType = FlowDirection.Out }); // Aşağı yönlü
+        double cwDN   = 15.0; // Soğuk su: DN15 (min TS 1258)
+        double hwDN   = 15.0; // Sıcak su: DN15
+        double drDN   = isWC ? 100.0 :           // WC: DN100
+                        (isDush || isKuvet || isEviye) ? 50.0 : // Duş/Küvet/Eviye: DN50
+                        40.0;                    // Lavabo ve diğer: DN40
+
+        // Temiz su malzemesi: Genellikle PPRC, Pis su: PVC
+        var cwMaterial = Afney.Cad.Mechanical.Enums.PipeMaterial.PPRC_PN20;
+        var drMaterial = Afney.Cad.Mechanical.Enums.PipeMaterial.PVC_SN4;
+
+        // 1. Soğuk Su Portu (Mavi)
+        bool hasCold = ColdWaterOffset.X != 0 || ColdWaterOffset.Y != 0 || ColdWaterOffset.Z != 0;
+        if (hasCold)
+            ports.Add(new MechanicalPort(Id, "ColdWater", TransformOffset(ColdWaterOffset), Vector3D.ZAxis, cwDN, cwMaterial)
+                { FlowType = FlowDirection.In });
+            
+        // 2. Sıcak Su Portu (Kırmızı) — WC ve FloorDrain için yok
+        bool needsHot = !isWC && !FixtureType.Contains("FloorDrain") && !FixtureType.Contains("Yer Süz");
+        bool hasHot   = HotWaterOffset.X != 0 || HotWaterOffset.Y != 0 || HotWaterOffset.Z != 0;
+        if (needsHot && hasHot)
+            ports.Add(new MechanicalPort(Id, "HotWater", TransformOffset(HotWaterOffset), Vector3D.ZAxis, hwDN, cwMaterial)
+                { FlowType = FlowDirection.In });
+
+        // 3. Pis Su Portu (Kahverengi) — her zaman var (X, Y veya Z offset tanımlıysa)
+        bool hasDrain = DrainOffset.X != 0 || DrainOffset.Y != 0 || DrainOffset.Z != 0;
+        if (hasDrain)
+            ports.Add(new MechanicalPort(Id, "Drainage", TransformOffset(DrainOffset), -Vector3D.ZAxis, drDN, drMaterial)
+                { FlowType = FlowDirection.Out });
 
         return ports;
     }
@@ -261,6 +286,76 @@ public class SanitaryFixtureEntity : MechanicalEntity
             SystemType = this.SystemType
         };
     }
+
+    // ── STATIC FACTORY METODLAR (TS 1258 Standart Değerler) ──────────────────────
+    // NE: Standart cihazları tek satırda örneğini alma.
+    // NEDEN: Birim testlerde, sihirbazda ve DWG import'ta hızlı obje üretimi için.
+
+    /// <summary>Standart yarım ayak lavabo — 550×450mm, DN40 gider, DN15 sıcak+soğuk.</summary>
+    public static SanitaryFixtureEntity CreateWashbasin(Vector3D position)
+        => new(position, "Lavabo (Yarım Ayak)", 1.5)
+        {
+            Width = 550, Depth = 450,
+            ColdWaterOffset = new Vector3D(80, -50, -500),
+            HotWaterOffset  = new Vector3D(-80, -50, -500),
+            DrainOffset     = new Vector3D(0, 0, -550),
+            Color = 0xFF00FFFF
+        };
+
+    /// <summary>Rezervuarlı klozet — 400×600mm, DN100 gider, DN15 soğuk, sıcak su YOK.</summary>
+    public static SanitaryFixtureEntity CreateWC(Vector3D position)
+        => new(position, "Klozet (Rezervuarlı)", 3.0)
+        {
+            Width = 400, Depth = 600,
+            ColdWaterOffset = new Vector3D(-150, -550, 200),
+            HotWaterOffset  = Vector3D.Zero, // WC'de sıcak su bağlantısı yok
+            DrainOffset     = new Vector3D(0, -250, -100),
+            Color = 0xFF00FFFF
+        };
+
+    /// <summary>Duş teknesi — 800×800mm, DN50 gider, DN15 sıcak+soğuk.</summary>
+    public static SanitaryFixtureEntity CreateShower(Vector3D position)
+        => new(position, "Duş Teknesi", 2.0)
+        {
+            Width = 800, Depth = 800,
+            ColdWaterOffset = new Vector3D(80, 0, 1000),
+            HotWaterOffset  = new Vector3D(-80, 0, 1000),
+            DrainOffset     = new Vector3D(0, 380, 0),
+            Color = 0xFF00FFFF
+        };
+
+    /// <summary>Banyo küveti — 700×1600mm, DN50 gider, DN15 sıcak+soğuk.</summary>
+    public static SanitaryFixtureEntity CreateBathtub(Vector3D position)
+        => new(position, "Banyo Küveti", 3.0)
+        {
+            Width = 700, Depth = 1600,
+            ColdWaterOffset = new Vector3D(80, -700, 500),
+            HotWaterOffset  = new Vector3D(-80, -700, 500),
+            DrainOffset     = new Vector3D(0, 730, 0),
+            Color = 0xFF00FFFF
+        };
+
+    /// <summary>Mutfak eviyesi (tek) — 500×400mm, DN50 gider, DN15 sıcak+soğuk.</summary>
+    public static SanitaryFixtureEntity CreateSink(Vector3D position)
+        => new(position, "Mutfak Eviyesi (Tek)", 2.0)
+        {
+            Width = 500, Depth = 400,
+            ColdWaterOffset = new Vector3D(80, -150, -400),
+            HotWaterOffset  = new Vector3D(-80, -150, -400),
+            DrainOffset     = new Vector3D(0, 0, -450),
+            Color = 0xFF00FFFF
+        };
+
+    /// <summary>Döşeme süzgeci — 200×200mm, yalnızca DN75 pis su çıkışı.</summary>
+    public static SanitaryFixtureEntity CreateFloorDrain(Vector3D position)
+        => new(position, "Döşeme Süzgeci", 0.5)
+        {
+            Width = 200, Depth = 200,
+            ColdWaterOffset = Vector3D.Zero, // Soğuk su bağlantısı yok
+            HotWaterOffset  = Vector3D.Zero,
+            DrainOffset     = new Vector3D(0, 0, -300),
+            Color = 0xFF00FFFF
+        };
 
     public void SetPortsByRule(string ruleName) { /* To implement later */ } // kurallara göre port ayarla
 

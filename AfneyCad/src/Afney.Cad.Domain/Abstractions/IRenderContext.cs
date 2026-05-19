@@ -34,4 +34,9 @@ public interface IRenderContext
     
     void DrawSpline(IEnumerable<Vector3D> points, uint color, double thickness, string linetype = "Continuous");
     void DrawText(string text, Vector3D position, double angleDegrees, double fontSize, uint color, bool centerAlign = true);
+
+    // NE: Dolu Çokgen Çiz (Hatch Fill)
+    // NEDEN: AutoCAD Hatch entity'lerinin solid/gradient dolgu alanlarını kapalı poligon olarak render etmek için.
+    // alpha: 0 (tamamen şeffaf) → 255 (opak). Tipik DXF Hatch için 80 (yarı şeffaf) önerilir.
+    void DrawFilledPolygon(IEnumerable<Vector3D> vertices, uint color, byte alpha = 80);
 }

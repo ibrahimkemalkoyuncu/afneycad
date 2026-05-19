@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Engine;
 using Afney.Cad.Mechanical.Entities;
+using Afney.Cad.Mechanical.Enums;
 
 namespace Afney.Cad.Mechanical.Services
 {
@@ -25,9 +23,9 @@ namespace Afney.Cad.Mechanical.Services
         private readonly CadDatabase _database;
         private readonly MechanicalTopologyGraph _topology;
 
-        public DomainGuardService(CadDatabase database, MechanicalTopologyGraph topology)
+        public DomainGuardService(CadDatabase? database, MechanicalTopologyGraph topology)
         {
-            _database = database ?? throw new ArgumentNullException(nameof(database));
+            _database = database!; // Can be null initially
             _topology = topology ?? throw new ArgumentNullException(nameof(topology));
         }
 
@@ -45,12 +43,75 @@ namespace Afney.Cad.Mechanical.Services
             // 2. Akış Yönü ve Döngü (Cycle) Kontrolü
             CheckTopologyConsistency(result);
 
+            // 3. MÜHENDİSLİK GUARD: Armatür Kontrolü (V-P01/V-P02)
+            CheckFixtureAvailability(result);
+
+            // 4. MÜHENDİSLİK GUARD: Giriş Noktası Kontrolü (V-000)
+            CheckSourceConnectivity(result);
+
+            // 5. Sistem Tipi Tutarlılığı
+            CheckSystemConsistency(result);
+
             if (result.Errors.Any())
             {
                 result.IsValid = false;
             }
 
             return result;
+        }
+
+        /*
+           NE: Armatür Varlığını Kontrol Et (CheckFixtureAvailability)
+           NEDEN: Sistemde hiç armatür (Lavabo, WC vb.) yoksa hesaplama yapmak anlamsızdır.
+        */
+        private void CheckFixtureAvailability(ValidationResult result)
+        {
+            if (_database == null) return;
+            var fixtures = _database.GetAllEntities().OfType<SanitaryFixtureEntity>().ToList();
+            if (!fixtures.Any())
+            {
+                result.Errors.Add("Hata (V-P01): Şebekede tanımlı armatür bulunamadı. Hesaplama yapılamaz.");
+            }
+        }
+
+        /*
+           NE: Kaynak Bağlantısını Kontrol Et (CheckSourceConnectivity)
+           NEDEN: Tesisatın bir ana su girişine veya kolon başlangıcına bağlı olması gerekir.
+        */
+        private void CheckSourceConnectivity(ValidationResult result)
+        {
+            if (_database == null) return;
+            // Basitleştirilmiş: Şebekede en az bir "LoadNode" (Giriş/Çıkış noktası) olmalı
+            var loadNodes = _database.GetAllEntities().OfType<MechanicalLoadNode>().ToList();
+            if (!loadNodes.Any())
+            {
+                result.Errors.Add("Hata (V-000): Şebekede su giriş noktası (Valve/Meter) veya ana kolon tespiti yapılamadı.");
+            }
+        }
+
+        /*
+           NE: Sistem Tipi Tutarlılığını Kontrol Et (CheckSystemConsistency)
+           NEDEN: Temiz su hattına yanlışlıkla pis su armatürü bağlanması gibi hataları yakalamak için.
+        */
+        private void CheckSystemConsistency(ValidationResult result)
+        {
+            // Topolojik ağda farklı sistem tiplerinin karıştığı boruları bul
+            foreach (var node in _topology.Nodes)
+            {
+                if (node.Entity is PipeEntity pipe)
+                {
+                    var neighbors = _topology.GetNeighbors(node.EntityId);
+                    foreach (var neighbor in neighbors)
+                    {
+                        if (neighbor.SystemType != pipe.SystemType && 
+                            neighbor.SystemType != MechanicalSystemType.Undefined && 
+                            pipe.SystemType != MechanicalSystemType.Undefined)
+                        {
+                            result.Warnings.Add($"Sistem Karmaşası: {pipe.SystemType} hattı, {neighbor.SystemType} bir nesneye bağlanmış.");
+                        }
+                    }
+                }
+            }
         }
 
         /*
@@ -62,7 +123,7 @@ namespace Afney.Cad.Mechanical.Services
         {
             foreach (var node in _topology.Nodes)
             {
-                // Odalar açık uç mantığının dışındadır
+                // Mahaller açık uç mantığının dışındadır
                 if (node.Entity is MahalEntity) continue;
 
                 foreach (var port in node.Ports)
@@ -84,7 +145,6 @@ namespace Afney.Cad.Mechanical.Services
         private void CheckTopologyConsistency(ValidationResult result)
         {
             // İleride ağacın (Tree) yapısının kontrolü, ters akış tespiti (Reverse Flow) gibi mantıklar buraya eklenecektir.
-            // Örn: DFS / BFS ile Adjacency List gezilir ve Cycle Detection yapılır.
         }
 
         private string GetEntityDisplayName(MechanicalEntity entity)

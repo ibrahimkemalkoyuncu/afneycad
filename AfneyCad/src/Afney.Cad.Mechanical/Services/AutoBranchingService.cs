@@ -208,6 +208,13 @@ public class AutoBranchingService
     }
 
     /*
+       NE: Branşman Bağlantısı Oluştur (CreateBranchConnectionPublic)
+       NEDEN: ConnectReceptorsService gibi dışarıdan yetkilendirilmiş servislerden de erişilebilmesi için.
+    */
+    public BranchResult CreateBranchConnectionPublic(Vector3D sourcePoint, PipeEntity mainPipe, MechanicalPort port)
+        => CreateBranchConnection(sourcePoint, mainPipe, port);
+
+    /*
        NE: Branşman Bağlantısı Oluştur (CreateBranchConnection)
        NEDEN: Tek bir nokta (cihaz girişi) ile ana boru arasında; dikey iniş, dikey kavis, fittings ve ara borulardan oluşan fiziksel bağlantı setini üretmek için.
     */
