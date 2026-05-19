@@ -626,6 +626,18 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnMoveCommand(object sender, RoutedEventArgs e)
+        {
+            StatusText.Text = "Taşı: Nesne seçin ve hedef noktayı tıklayın.";
+            MessageBox.Show("Taşı komutu için önce nesne seçin, sonra 'M' kısayoluna basın.", "Taşı", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void OnCopyCommand(object sender, RoutedEventArgs e)
+        {
+            StatusText.Text = "Kopyala: Nesne seçin ve hedef noktayı tıklayın.";
+            MessageBox.Show("Kopyala komutu için önce nesne seçin, sonra 'CO' kısayoluna basın.", "Kopyala", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         /*
            NE: Boru Çizme Komutu (OnDrawPipeCommand)
            NEDEN: Mekanik tesisat borusu çizimini başlatmak ve Kernel/Settings entegrasyonunu sağlamak için.
