@@ -1,7 +1,7 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.CalculationTableWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="📊 Hidrolik Hesaplama Tablosu — AfneyCAD" Height="650" Width="1100"
+        Title="📊 Hidrolik Hesaplama Tablosu — AfneyCAD" Height="700" Width="1200"
         WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White">
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -10,34 +10,172 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="HİDROLİK HESAPLAMA TABLOSU (TS 1258 / DIN 1988)" FontSize="18" FontWeight="Bold" Foreground="#00BFFF" Margin="0,0,0,10"/>
-        <DataGrid Grid.Row="1" x:Name="CalcGrid" AutoGenerateColumns="False" IsReadOnly="False"
-                  CellEditEnding="CalcGrid_CellEditEnding"
-                  Background="#252535" Foreground="White" HeadersVisibility="Column" GridLinesVisibility="All"
-                  RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E" BorderBrush="#555" CanUserSortColumns="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Hat No" Binding="{Binding LineNo}" Width="55" IsReadOnly="True" />
-                <DataGridTextColumn Header="Boru ID" Binding="{Binding PipeId}" Width="70" IsReadOnly="True" />
-                <DataGridTextColumn Header="Sistem" Binding="{Binding SystemType}" Width="75" IsReadOnly="True" />
-                <DataGridTextColumn Header="Uzunluk (m)" Binding="{Binding LengthM, StringFormat=F2}" Width="85" IsReadOnly="True" />
-                <DataGridTextColumn Header="LU" Binding="{Binding TotalLU, StringFormat=F1}" Width="50" IsReadOnly="True" />
-                <DataGridTextColumn Header="Q (l/s)" Binding="{Binding DesignFlowLps, StringFormat=F3}" Width="70" IsReadOnly="True" />
-                <!-- SADECE DN (ÇAP) SÜTUNU DÜZENLENEBİLİR OLACAK -->
-                <DataGridTextColumn Header="DN" Binding="{Binding DiameterDN, UpdateSourceTrigger=LostFocus}" Width="55" />
-                <DataGridTextColumn Header="v (m/s)" Binding="{Binding VelocityMs, StringFormat=F2}" Width="70" IsReadOnly="True" />
-                <DataGridTextColumn Header="R (mbar/m)" Binding="{Binding FrictionLossMbar, StringFormat=F2}" Width="85" IsReadOnly="True" />
-                <DataGridTextColumn Header="hf (mSS)" Binding="{Binding TotalLossMSS, StringFormat=F3}" Width="75" IsReadOnly="True" />
-                <DataGridTextColumn Header="Küm. (mSS)" Binding="{Binding CumulativeLossMSS, StringFormat=F3}" Width="90" IsReadOnly="True" />
-                <DataGridTextColumn Header="Malzeme" Binding="{Binding Material}" Width="80" IsReadOnly="True" />
-            </DataGrid.Columns>
-        </DataGrid>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10">
-            <TextBlock x:Name="SummaryText" Foreground="#AAA" FontSize="12" VerticalAlignment="Center"/>
+
+        <!-- Başlık -->
+        <TextBlock Grid.Row="0" Text="HİDROLİK HESAPLAMA TABLOSU" FontSize="18" FontWeight="Bold"
+                   Foreground="#00BFFF" Margin="0,0,0,8"/>
+
+        <!-- Tab Kontrol -->
+        <TabControl Grid.Row="1" x:Name="MainTabControl" Background="#252535" BorderBrush="#444"
+                    SelectionChanged="MainTabControl_SelectionChanged">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="#2A2A3A"/>
+                    <Setter Property="Foreground" Value="#CCC"/>
+                    <Setter Property="Padding" Value="12,6"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#005A9C"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- ===== SEKME 1: TEMİZ SU (TS 1258 / DIN 1988) ===== -->
+            <TabItem Header="💧 Temiz Su (TS 1258)">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <DataGrid Grid.Row="0" x:Name="CalcGrid" AutoGenerateColumns="False" IsReadOnly="False"
+                              CellEditEnding="CalcGrid_CellEditEnding"
+                              Background="#252535" Foreground="White" HeadersVisibility="Column"
+                              GridLinesVisibility="All" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
+                              BorderBrush="#555" CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Hat No"      Binding="{Binding LineNo}"                           Width="55"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Boru ID"     Binding="{Binding PipeId}"                           Width="75"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Sistem"      Binding="{Binding SystemType}"                       Width="80"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Uzunluk (m)" Binding="{Binding LengthM, StringFormat=F2}"         Width="90"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="LU"          Binding="{Binding TotalLU, StringFormat=F1}"         Width="50"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Q (l/s)"     Binding="{Binding DesignFlowLps, StringFormat=F3}"   Width="75"  IsReadOnly="True"/>
+                            <!-- SADECE DN DÜZENLENEBİLİR -->
+                            <DataGridTextColumn Header="DN"          Binding="{Binding DiameterDN, UpdateSourceTrigger=LostFocus}" Width="55"/>
+                            <DataGridTextColumn Header="v (m/s)"     Binding="{Binding VelocityMs, StringFormat=F2}"      Width="70"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="R (mbar/m)"  Binding="{Binding FrictionLossMbar, StringFormat=F2}" Width="90" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="hf (mSS)"    Binding="{Binding TotalLossMSS, StringFormat=F3}"    Width="80"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Küm. (mSS)"  Binding="{Binding CumulativeLossMSS, StringFormat=F3}" Width="90" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Malzeme"     Binding="{Binding Material}"                         Width="80"  IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="1" x:Name="SummaryText" Foreground="#AAA" FontSize="12"
+                               Margin="0,6,0,0" VerticalAlignment="Center"/>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== SEKME 2: PİS SU (TS EN 12056-2) ===== -->
+            <TabItem Header="🔵 Pis Su (TS EN 12056-2)">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Kontrol satırı -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,6,0,6">
+                        <TextBlock Text="K Faktörü:" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="KFactorCombo" Width="200" Background="#333" Foreground="White"
+                                  SelectionChanged="KFactorCombo_SelectionChanged">
+                            <ComboBoxItem Content="Sistem II — Konut (K=0.5)"      Tag="0.5" IsSelected="True"/>
+                            <ComboBoxItem Content="Sistem III — Ticari (K=0.7)"    Tag="0.7"/>
+                            <ComboBoxItem Content="Sistem I/IV — Tam Kapasite (K=1.0)" Tag="1.0"/>
+                        </ComboBox>
+                        <Button Content="Yenile" Click="RefreshWaste_Click" Width="80" Height="26"
+                                Margin="10,0,0,0" Background="#005A9C" Foreground="White" BorderThickness="0"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" x:Name="WasteCalcGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                              Background="#252535" Foreground="White" HeadersVisibility="Column"
+                              GridLinesVisibility="All" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
+                              BorderBrush="#555" CanUserSortColumns="True">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                        <Setter Property="Background" Value="#3A2800"/>
+                                        <Setter Property="Foreground" Value="#FFD700"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Hat No"       Binding="{Binding LineNo}"                          Width="55"/>
+                            <DataGridTextColumn Header="Boru ID"      Binding="{Binding PipeId}"                          Width="75"/>
+                            <DataGridTextColumn Header="Sistem"       Binding="{Binding SystemType}"                      Width="90"/>
+                            <DataGridTextColumn Header="Uzunluk (m)"  Binding="{Binding LengthM, StringFormat=F2}"        Width="90"/>
+                            <DataGridTextColumn Header="ΣDU"          Binding="{Binding TotalDU, StringFormat=F1}"        Width="60"/>
+                            <DataGridTextColumn Header="K"            Binding="{Binding FrequencyFactor, StringFormat=F1}" Width="45"/>
+                            <DataGridTextColumn Header="Q_ww (lt/s)"  Binding="{Binding FlowQww, StringFormat=F3}"        Width="85"/>
+                            <DataGridTextColumn Header="DN (mm)"      Binding="{Binding DiameterDN, StringFormat=F0}"     Width="65"/>
+                            <DataGridTextColumn Header="Eğim (%)"     Binding="{Binding SlopePct, StringFormat=F1}"       Width="70"/>
+                            <DataGridTextColumn Header="Doluluk (%)"  Binding="{Binding FillingRatioPct, StringFormat=F0}" Width="80"/>
+                            <DataGridTextColumn Header="v (m/s)"      Binding="{Binding VelocityMs, StringFormat=F2}"     Width="70"/>
+                            <DataGridTextColumn Header="Malzeme"      Binding="{Binding Material}"                        Width="80"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="2" x:Name="WasteSummaryText" Foreground="#AAA" FontSize="12"
+                               Margin="0,6,0,0"/>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== SEKME 3: MANUEL GİRİŞ (CAD gerektirmez) ===== -->
+            <TabItem Header="✏ Manuel Giriş">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,6,0,6">
+                        <TextBlock Text="CAD çizimi olmadan borular ve armatürler için manuel hesap girişi yapın."
+                                   Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <Button Content="+ Satır Ekle" Click="ManualAddRow_Click" Width="90" Height="26"
+                                Background="#2E8B57" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
+                        <Button Content="Sil" Click="ManualDeleteRow_Click" Width="60" Height="26"
+                                Background="#8B3A3A" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
+                        <Button Content="Hesapla" Click="ManualCalc_Click" Width="80" Height="26"
+                                Background="#005A9C" Foreground="White" BorderThickness="0"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" x:Name="ManualGrid" AutoGenerateColumns="False" IsReadOnly="False"
+                              CanUserAddRows="False"
+                              Background="#252535" Foreground="White" HeadersVisibility="Column"
+                              GridLinesVisibility="All" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
+                              BorderBrush="#555">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Hat No"      Binding="{Binding LineNo}"          Width="55"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Açıklama"    Binding="{Binding Description}"     Width="150"/>
+                            <DataGridTextColumn Header="Sistem"      Binding="{Binding SystemType}"      Width="90"/>
+                            <DataGridTextColumn Header="Uzunluk (m)" Binding="{Binding LengthM}"         Width="90"/>
+                            <DataGridTextColumn Header="DU/LU"       Binding="{Binding LoadValue}"       Width="60"/>
+                            <DataGridTextColumn Header="DN (mm)"     Binding="{Binding DiameterDN}"      Width="65"/>
+                            <DataGridTextColumn Header="Q (lt/s)"    Binding="{Binding FlowLps, StringFormat=F3}"    Width="75"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="v (m/s)"     Binding="{Binding VelocityMs, StringFormat=F2}" Width="70"  IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Eğim (%)"    Binding="{Binding SlopePct}"        Width="70"/>
+                            <DataGridTextColumn Header="Doluluk (%)" Binding="{Binding FillingRatioPct, StringFormat=F0}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Not"         Binding="{Binding Note}"            Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="2" x:Name="ManualSummaryText" Foreground="#AAA" FontSize="12"
+                               Margin="0,6,0,0"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Durum çubuğu -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock x:Name="StatusText" Foreground="#777" FontSize="11" VerticalAlignment="Center"/>
         </StackPanel>
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5">
-            <Button Content="📄 HTML Dışa Aktar" Click="ExportHtml_Click" Width="140" Height="32" Margin="5,0" Background="#005A9C" Foreground="White" BorderThickness="0"/>
-            <Button Content="📊 CSV Dışa Aktar" Click="ExportCsv_Click" Width="140" Height="32" Margin="5,0" Background="#2E8B57" Foreground="White" BorderThickness="0"/>
-            <Button Content="Kapat" Click="Close_Click" Width="80" Height="32" Margin="5,0" Background="#555" Foreground="White" BorderThickness="0"/>
+
+        <!-- Butonlar -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6">
+            <Button Content="📄 HTML Raporu" Click="ExportHtml_Click"   Width="130" Height="32" Margin="5,0" Background="#005A9C" Foreground="White" BorderThickness="0"/>
+            <Button Content="📊 CSV Dışa Aktar" Click="ExportCsv_Click" Width="130" Height="32" Margin="5,0" Background="#2E8B57" Foreground="White" BorderThickness="0"/>
+            <Button Content="Kapat" Click="Close_Click"                  Width="80"  Height="32" Margin="5,0" Background="#555"    Foreground="White" BorderThickness="0"/>
         </StackPanel>
     </Grid>
 </Window>

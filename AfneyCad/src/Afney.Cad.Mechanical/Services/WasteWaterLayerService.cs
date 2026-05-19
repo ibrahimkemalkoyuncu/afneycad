@@ -104,7 +104,7 @@ public class WasteWaterLayerService
     {
         foreach (var (systemType, layerName) in LayerNames)
         {
-            var layer = _database.LayerTable.Layers
+            var layer = _database.GetLayers()
                 .FirstOrDefault(l => l.Name.Equals(layerName, StringComparison.OrdinalIgnoreCase));
 
             if (layer != null)
@@ -126,29 +126,29 @@ public class WasteWaterLayerService
     */
     public void EnsureLayers()
     {
-        var layerColors = new Dictionary<MechanicalSystemType, SkiaSharp.SKColor>
+        // ARGB uint renk paleti (SkiaSharp bağımlılığı olmadan)
+        var layerColors = new Dictionary<MechanicalSystemType, uint>
         {
-            { MechanicalSystemType.DomesticColdWater, new SkiaSharp.SKColor(0,   150, 255) },
-            { MechanicalSystemType.DomesticHotWater,  new SkiaSharp.SKColor(255, 80,  80)  },
-            { MechanicalSystemType.WasteWater,        new SkiaSharp.SKColor(139, 90,  43)  },
-            { MechanicalSystemType.RainWater,         new SkiaSharp.SKColor(30,  144, 255) },
-            { MechanicalSystemType.FireProtection,    new SkiaSharp.SKColor(220, 20,  60)  },
-            { MechanicalSystemType.Gas,               new SkiaSharp.SKColor(255, 165, 0)   },
-            { MechanicalSystemType.Ventilation,       new SkiaSharp.SKColor(100, 200, 100) },
+            { MechanicalSystemType.DomesticColdWater, 0xFF0096FF }, // Mavi
+            { MechanicalSystemType.DomesticHotWater,  0xFFFF5050 }, // Kırmızı
+            { MechanicalSystemType.WasteWater,        0xFF8B5A2B }, // Kahverengi
+            { MechanicalSystemType.RainWater,         0xFF1E90FF }, // Dodger Mavi
+            { MechanicalSystemType.FireProtection,    0xFFDC143C }, // Kırmızı
+            { MechanicalSystemType.Gas,               0xFFFFA500 }, // Turuncu
+            { MechanicalSystemType.Ventilation,       0xFF64C864 }, // Yeşil
         };
 
         foreach (var (systemType, layerName) in LayerNames)
         {
-            bool exists = _database.LayerTable.Layers
+            bool exists = _database.GetLayers()
                 .Any(l => l.Name.Equals(layerName, StringComparison.OrdinalIgnoreCase));
 
             if (!exists)
             {
-                layerColors.TryGetValue(systemType, out var color);
-                _database.LayerTable.AddLayer(new Domain.Tables.CadLayer
+                layerColors.TryGetValue(systemType, out uint color);
+                _database.AddLayer(new Domain.Tables.CadLayer(layerName)
                 {
-                    Name = layerName,
-                    Color = color,
+                    Color     = color,
                     IsVisible = _visibleSystems.Contains(systemType)
                 });
             }

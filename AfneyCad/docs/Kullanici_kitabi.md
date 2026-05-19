@@ -1,6 +1,6 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.0 — 19 Mayıs 2026  
-**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap
+**Sürüm:** v2.2.0 — 19 Mayıs 2026  
+**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
 > Her bölüm: "OtoNET'te nasıl yapılır?" → "AfneyCAD'de nasıl yapılır?" formatındadır.
@@ -464,8 +464,12 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 | Boşaltma Noktası (Rögar) | Var | **Var** (`DrainageOutletEntity`) |
 | Yağmur Düşme Alanı | Var | **Var** (`RainfallCatchmentEntity`, Shoelace alan hesabı) |
 | Yağmur Suyu Hesabı | Var (TS EN 12056-3) | **Var** (`WasteWaterDesignService.CalculateRainwaterFlow`) |
-| IFC İçeri Aktarma | Kısmi | **Geliştiriliyor** (bkz. `Eksiklikler.md §1`) |
-| Bağımsız Hesap Modu (CAD'siz) | Var (ADAPT/FCALC) | **Geliştiriliyor** (bkz. `Eksiklikler.md §2`) |
+| IFC İçeri Aktarma | Kısmi | **Var** (`IfcImportService` — duvar/döşeme/pencere/kapı, IFC 2x3+4) |
+| Bağımsız Hesap Modu (CAD'siz) | Var (ADAPT/FCALC) | **Var** (`CalculationTableWindow` — Manuel Giriş sekmesi) |
+| Pis Su Hesap Föyü (TS EN 12056-2) | Var | **Var** (`CalculationTableWindow` — Pis Su sekmesi + HTML rapor) |
+| Pompa Q-H Karakteristik Eğrisi | Var | **Var** (`PumpSelectionService.GetPumpCurvePoints`, çalışma noktası) |
+| Kavitasyon Kontrolü (NPSHa/NPSHr) | Var | **Var** (`PumpSelectionService.CheckCavitation`) |
+| Çap Güncelleme → Otomatik Etiket | Var | **Var** (`PipeDN_Changed` event → `AutoPipeLabeler`) |
 
 ---
 
@@ -494,32 +498,33 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 
 ---
 
-## Bölüm 7 — Bir Sonraki Session Öncelikleri
+## Bölüm 7 — Session #20 Tamamlanan Özellikler
 
-Aşağıdaki özellikler `Eksiklikler.md` ile uyumlu olarak öncelik sırasına göre listelenmiştir:
+### Tamamlanan (Session #20 — 2026-05-19)
 
-### Öncelik 1 — Pis Su Tesisat Hesapları (Bir Sonraki Eğitim Modülü)
-- OtoNET "Pis Su Tesisat Hesapları" eğitimi içeriği AfneyCAD'e aktarılacak
-- `WasteWaterDesignDialog` hesap föyü tamamlanacak
-- Kolon şeması (pis su için) ve Word/PDF rapor
+| # | Özellik | Durum | Ana Dosya |
+|---|---|---|---|
+| 1 | Pis Su Hesap Tablosu (TS EN 12056-2) | ✅ | `CalculationTableService.GenerateWasteWaterTable()` |
+| 2 | Pis Su HTML Raporu (Manning + DU) | ✅ | `CalculationTableService.ExportWasteWaterToHtml()` |
+| 3 | Hesap Tablosu — Pis Su Sekmesi | ✅ | `CalculationTableWindow.xaml` — TabControl |
+| 4 | Bağımsız Hesap Modu (Manuel Giriş) | ✅ | `CalculationTableWindow` — Manuel Giriş sekmesi |
+| 5 | DN Değişimi → AutoPipeLabeler Sync | ✅ | `PipeDN_Changed` event + `MainWindow` wire-up |
+| 6 | Pompa Q-H Karakteristik Eğrisi | ✅ | `PumpSelectionService.GetPumpCurvePoints()` |
+| 7 | Sistem Eğrisi + Çalışma Noktası | ✅ | `PumpSelectionService.CalculateDutyPoint()` |
+| 8 | Kavitasyon Kontrolü (NPSHa/NPSHr) | ✅ | `PumpSelectionService.CheckCavitation()` |
+| 9 | IFC İçeri Aktarma (2x3/4) | ✅ | `IfcImportService` — duvar/döşeme/pencere/kapı |
+| 10 | DrainageOutletEntity derleme hataları | ✅ | Abstract üyeler tamamlandı |
+| 11 | RainfallCatchmentEntity derleme hataları | ✅ | Abstract üyeler tamamlandı |
+| 12 | WasteWaterLayerService API güncellemesi | ✅ | `LayerTable` → `GetLayers()`/`AddLayer()` |
 
-### Öncelik 2 — Bağımsız Hesap Tablosu Modu (Kritik)
-- `CalculationTableWindow`'a "CAD'siz mod" eklenmeli
-- Kullanıcı boru boyunu, debiyi ve cihaz sayısını manuel girebilmeli
-- OtoNET'teki ADAPT/FCALC davranışı hedeflenmeli
-- **İlgili dosyalar:** `CalculationTableWindow.xaml`, `CalculationTableService.cs`
+### Bir Sonraki Session Öncelikleri
 
-### Öncelik 3 — Çift Yönlü Hesap-Çizim Senkronizasyonu
-- Override edilen çap değerleri `PipeLabelEntity`'leri ve 3D modeli anlık güncellemeli
-- **İlgili dosyalar:** `AutoPipeLabeler.cs`, `AutoAnnotationService.cs`, `IsoSyncService.cs`
-
-### Öncelik 4 — Gelişmiş Ekipman Hesapları (Pompa/Hidrofor/Boyler)
-- `PumpSelectionService`'e pompa karakteristik eğrisi ve kavitasyon kontrolü
-
-### Öncelik 5 — IFC İçeri Aktarma
-- `IfcExportService` tamamlandı; `IfcImportService` yazılmalı
-- Revit/ArchiCAD'den gelen duvar, kat, pencere verisi tanınmalı
+1. **Pompa Q-H Grafiği UI** — `PumpSelectionDialog`'a OxyPlot veya SkiaSharp ile eğri çizimi
+2. **IFC Import Dialog** — Kullanıcı arayüzünden `.ifc` dosya seçimi ve katman önizlemesi
+3. **ASPE / BS / ASHRAE Normu** — `PipeSizer`'a uluslararası norm desteği
+4. **Sıcak Su Resirkülasyon** — `HotWaterCirculationService` ve devre dengeleme
+5. **Çizim Çıktısı (PDF/DXF)** — Viewport'tan doğrudan DXF/PDF dışa aktarma
 
 ---
 
-*Son güncelleme: 2026-05-19 | AfneyCAD v2.1.0 — Pis Su / Yağmur Suyu Modülü*
+*Son güncelleme: 2026-05-19 | AfneyCAD v2.2.0 — Session #20: Hesap Tablosu + IFC + Pompa Eğrisi*

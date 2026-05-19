@@ -207,4 +207,173 @@ public class PumpSelectionService
             $"{_catalog.Min(p => p.MaxHead):F0} - {_catalog.Max(p => p.MaxHead):F0} mSS"
         );
     }
+
+    /*
+       NE: Pompa Q-H Karakteristik Eğrisi (GetPumpCurvePoints)
+       NEDEN: FINE SANI'deki pompa eğrisi grafiğine eşdeğer.
+              Gerçek pompa eğrisi katalog verisi gerektirir; burada BEP + MaxFlow/MaxHead
+              üç noktalı ikinci dereceden parabol ile modellenir.
+
+       FORMÜL: H = a*Q² + b*Q + c  (a<0, c = H_shutoff, BEP noktası geçiyor)
+       DÖNDÜRÜR: (Q m³/h, H mSS) çift listesi — 20 nokta, 0..MaxFlow aralığı
+    */
+    public List<(double FlowM3h, double HeadMSS)> GetPumpCurvePoints(PumpModel pump, int pointCount = 20)
+    {
+        // Kapatma yüksekliği: MaxHead * 1.15 (tipik santrifüj pompa)
+        double hShutoff = pump.MaxHead * 1.15;
+        double hBep     = pump.BepHead;
+        double qBep     = pump.BepFlow;
+        double hZero    = 0.0;  // Q = MaxFlow'da H ≈ 0
+
+        // Üç nokta: (0, hShutoff), (qBep, hBep), (qMax, 0)
+        // H = a*Q² + b*Q + c  →  c = hShutoff
+        // Diğer iki denklem:
+        //   a*qBep² + b*qBep = hBep - hShutoff
+        //   a*qMax² + b*qMax = -hShutoff
+        double qMax = pump.MaxFlow;
+        double c = hShutoff;
+        // Matris çözümü (2x2):
+        //  [qBep²  qBep ] [a]   [hBep - c]
+        //  [qMax²  qMax ] [b] = [-c      ]
+        double det = qBep * qBep * qMax - qMax * qMax * qBep;
+        double a, b;
+        if (Math.Abs(det) < 1e-9)
+        {
+            // Çözümsüz → basit lineer yaklaşım
+            a = 0;
+            b = qMax > 0 ? -hShutoff / qMax : 0;
+        }
+        else
+        {
+            a = (( hBep - c) * qMax - (-c) * qBep) / det;
+            b = ((-c) * qBep * qBep - (hBep - c) * qMax * qMax) / det;
+        }
+
+        var points = new List<(double, double)>(pointCount);
+        for (int i = 0; i <= pointCount; i++)
+        {
+            double q = qMax * i / pointCount;
+            double h = a * q * q + b * q + c;
+            if (h < 0) h = 0;
+            points.Add((q, h));
+        }
+        return points;
+    }
+
+    /*
+       NE: Sistem Eğrisi Noktaları (GetSystemCurvePoints)
+       NEDEN: Boru sistemi direncinin Q'ya bağlı değişimini göstermek.
+
+       FORMÜL: H_sistem = H_statik + R * Q²
+         H_statik: Pompalama yüksekliği (statik head) — m
+         R: Sistem direnci katsayısı — (H_tasarım - H_statik) / Q_tasarım²
+    */
+    public List<(double FlowM3h, double HeadMSS)> GetSystemCurvePoints(
+        double staticHead, double designFlow, double designHead, int pointCount = 20)
+    {
+        double r = designFlow > 0 ? (designHead - staticHead) / (designFlow * designFlow) : 0;
+        double qMax = designFlow * 1.5;
+        var points = new List<(double, double)>(pointCount);
+        for (int i = 0; i <= pointCount; i++)
+        {
+            double q = qMax * i / pointCount;
+            double h = staticHead + r * q * q;
+            points.Add((q, h));
+        }
+        return points;
+    }
+
+    /*
+       NE: Çalışma Noktası Hesabı (CalculateDutyPoint)
+       NEDEN: Pompa eğrisi ile sistem eğrisinin kesişimi = gerçek çalışma noktası.
+              FINE SANI'deki "OP" (Operating Point) göstergesi.
+
+       YÖNTEM: Binary search — pompa H > sistem H iken sol taraf, aksi halde sağ taraf
+    */
+    public (double FlowM3h, double HeadMSS, bool IsInRange) CalculateDutyPoint(
+        PumpModel pump, double staticHead, double designFlow, double designHead)
+    {
+        var pumpCurve   = GetPumpCurvePoints(pump, 200);
+        var systemCurve = GetSystemCurvePoints(staticHead, designFlow, designHead, 200);
+
+        // Her Q değerinde (pompa H - sistem H) işaret değişimini bul
+        double prevDiff = double.NaN;
+        double opQ = 0, opH = 0;
+        bool found = false;
+
+        for (int i = 0; i < pumpCurve.Count && i < systemCurve.Count; i++)
+        {
+            double diff = pumpCurve[i].HeadMSS - systemCurve[i].HeadMSS;
+            if (!double.IsNaN(prevDiff) && prevDiff * diff < 0)
+            {
+                // Lineer interpolasyon
+                double q1 = pumpCurve[i - 1].FlowM3h, h1p = pumpCurve[i - 1].HeadMSS, h1s = systemCurve[i - 1].HeadMSS;
+                double q2 = pumpCurve[i].FlowM3h,     h2p = pumpCurve[i].HeadMSS,     h2s = systemCurve[i].HeadMSS;
+                double denom = (h1p - h1s) - (h2p - h2s);
+                opQ = Math.Abs(denom) > 1e-9 ? q1 + (q1 - q2) * (h1p - h1s) / denom : (q1 + q2) / 2;
+                opH = staticHead + (designHead - staticHead) / (designFlow * designFlow) * opQ * opQ;
+                found = true;
+                break;
+            }
+            prevDiff = diff;
+        }
+
+        bool inRange = found && opQ >= pump.BepFlow * 0.7 && opQ <= pump.BepFlow * 1.3;
+        return (opQ, opH, inRange);
+    }
+
+    /*
+       NE: Kavitasyon Kontrolü (CheckCavitation)
+       NEDEN: NPSHa (Available) < NPSHr (Required) ise pompa kavite eder — gürültü ve hasar.
+
+       FORMÜL:
+         NPSHa = (P_atm + P_tank - P_vapor) / ρg  + z_s  - hf_s
+           P_atm = 10.33 mSS (deniz seviyesi)
+           P_vapor ≈ 0.24 mSS (20°C su)
+           z_s = emme yüksekliği (negatif = serbest yüzey altında)
+           hf_s = emme hattı basınç kaybı (mSS)
+         NPSHr = katalog değeri (basit model: MaxHead * 0.03 + 0.5)
+    */
+    public CavitationCheckResult CheckCavitation(
+        PumpModel pump, double suctionHeightM, double suctionLossMSS, double waterTempC = 20.0)
+    {
+        double pAtm    = 10.33;
+        double pVapor  = WaterVaporPressureMSS(waterTempC);
+        double npsHa   = pAtm - pVapor + suctionHeightM - suctionLossMSS;
+        double npsHr   = pump.MaxHead * 0.03 + 0.5; // Basit katalog modeli
+        double margin  = npsHa - npsHr;
+        bool isSafe    = margin >= 0.5; // NPSH marjı ≥ 0.5 mSS önerilir
+
+        return new CavitationCheckResult
+        {
+            NPSHa     = npsHa,
+            NPSHr     = npsHr,
+            Margin    = margin,
+            IsSafe    = isSafe,
+            WaterTemp = waterTempC,
+            Recommendation = isSafe
+                ? "Kavitasyon riski yok. Emme hattı uygun."
+                : $"UYARI: NPSHa ({npsHa:F2} mSS) < NPSHr ({npsHr:F2} mSS) + 0.5 marj! Emme yüksekliği azaltın veya kayıpları düşürün."
+        };
+    }
+
+    private static double WaterVaporPressureMSS(double tempC)
+    {
+        // Antoine yaklaşımı: P_sat (kPa), 0-100°C
+        double logP = 8.07131 - 1730.63 / (233.426 + tempC);
+        double pKPa = Math.Pow(10, logP) * 0.133322; // mmHg → kPa
+        return pKPa / 9.80665; // kPa → mSS
+    }
+}
+
+// --- POMPA HESAP SONUÇ MODELLERİ ---
+
+public class CavitationCheckResult
+{
+    public double NPSHa { get; set; }
+    public double NPSHr { get; set; }
+    public double Margin { get; set; }
+    public bool IsSafe { get; set; }
+    public double WaterTemp { get; set; }
+    public string Recommendation { get; set; } = "";
 }

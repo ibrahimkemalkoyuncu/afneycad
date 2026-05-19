@@ -1,7 +1,8 @@
+using System.Collections.Generic;
+using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Engine;
 using Afney.Cad.Mechanical.Enums;
-using System.Collections.Generic;
 
 namespace Afney.Cad.Mechanical.Entities;
 
@@ -9,13 +10,9 @@ namespace Afney.Cad.Mechanical.Entities;
    NE: Boşaltma Noktası (DrainageOutletEntity) — Rögar / Tahliye Çıkışı
    NEDEN: OtoNET'teki "Boşaltma Noktası" komutunun AfneyCAD karşılığı.
           Pis su ve yağmur suyu hatlarının bina dışına (rögara) bağlandığı son noktayı temsil eder.
-
-   MÜHENDİSLİK DETAYI:
-   - Pis Su: Zemin kattaki tüm kolonların birleştiği ve binayı terk ettiği nokta.
-   - Yağmur Suyu: Yağmur kolonlarının doğrudan yere boşaldığı uç nokta.
-   - HydraulicNetwork hesaplamasında "Sink" (alıcı) düğüm olarak işaretlenir.
-   - Tesisatı Kabul Et doğrulamasında her WasteWater ve RainWater ağında
-     en az bir DrainageOutletEntity olması zorunludur.
+   MÜHENDİSLİK:
+   - HydraulicNetwork hesaplamasında "Sink" (alıcı) düğüm.
+   - Tesisatı Kabul Et doğrulamasında her WasteWater/RainWater ağında en az bir adet zorunlu.
 */
 public class DrainageOutletEntity : MechanicalEntity
 {
@@ -26,8 +23,10 @@ public class DrainageOutletEntity : MechanicalEntity
         Septic          // Fosseptik / arıtma
     }
 
+    public Vector3D Position { get; set; }
+
     private OutletType _outletType;
-    private double _invertLevel;  // Kanal taban kotu (metre)
+    private double _invertLevel;
     private string _label = "";
 
     public OutletType Type
@@ -36,7 +35,6 @@ public class DrainageOutletEntity : MechanicalEntity
         set { _outletType = value; OnMetadataChanged(); }
     }
 
-    // Kanal taban kotu — zemin ise 0.0, bodrum çıkışı ise negatif
     public double InvertLevel
     {
         get => _invertLevel;
@@ -58,46 +56,64 @@ public class DrainageOutletEntity : MechanicalEntity
             : MechanicalSystemType.WasteWater;
     }
 
-    public override IEnumerable<MechanicalPort> GetPorts()
-    {
-        // Tek giriş portu — boşaltma noktaları alıcıdır, çıkış vermez
-        yield return new MechanicalPort
+    public override List<MechanicalPort> GetPorts() =>
+    [
+        new MechanicalPort(Id, "DrainInlet", Position, new Vector3D(0, -1, 0), InnerDiameter)
         {
-            Position = Position,
-            Direction = new Vector3D(0, -1, 0),
-            PortType = MechanicalPort.PortKind.Inlet,
-            NominalDiameter = InnerDiameter
-        };
-    }
+            FlowType = Engine.FlowDirection.Bidirectional
+        }
+    ];
 
-    public override void Draw(Afney.Cad.Domain.Abstractions.IRenderContext ctx)
+    public override void Draw(IRenderContext ctx)
     {
-        // Rögar sembolü: çarpı içinde daire (standart sıhhi tesisat paftası sembolü)
-        float r = 0.15f;
-        var col = SystemType == MechanicalSystemType.RainWater
-            ? new SkiaSharp.SKColor(0, 150, 255)   // Mavi — yağmur suyu
-            : new SkiaSharp.SKColor(139, 90, 43);  // Kahverengi — pis su
+        double r = 200; // 200mm = rögar sembol yarıçapı
+        uint col = SystemType == MechanicalSystemType.RainWater
+            ? 0xFF0096FF   // Mavi — yağmur suyu
+            : 0xFF8B5A2B;  // Kahverengi — pis su
 
-        ctx.DrawCircle((float)Position.X, (float)Position.Y, r, col, filled: false);
+        ctx.DrawCircle(Position, r, col, 1.5);
         ctx.DrawLine(
-            (float)(Position.X - r), (float)Position.Y,
-            (float)(Position.X + r), (float)Position.Y, col, 1.5f);
+            new Vector3D(Position.X - r, Position.Y, 0),
+            new Vector3D(Position.X + r, Position.Y, 0), col, 1.5);
         ctx.DrawLine(
-            (float)Position.X, (float)(Position.Y - r),
-            (float)Position.X, (float)(Position.Y + r), col, 1.5f);
+            new Vector3D(Position.X, Position.Y - r, 0),
+            new Vector3D(Position.X, Position.Y + r, 0), col, 1.5);
 
         if (!string.IsNullOrEmpty(_label))
-            ctx.DrawText(_label, (float)(Position.X + r + 0.05), (float)Position.Y, 10f, col);
+            ctx.DrawText(_label, new Vector3D(Position.X + r + 50, Position.Y, 0), 0, 120, col);
     }
 
-    public override CadEntity Clone()
+    protected override CadBoundingBox CalculateBoundingBox()
     {
-        return new DrainageOutletEntity(Position, _outletType)
+        const double r = 200;
+        return new CadBoundingBox(
+            new Vector3D(Position.X - r, Position.Y - r, 0),
+            new Vector3D(Position.X + r, Position.Y + r, 0));
+    }
+
+    public override void Move(Vector3D delta)
+    {
+        Position = new Vector3D(Position.X + delta.X, Position.Y + delta.Y, Position.Z + delta.Z);
+        InvalidateCache();
+    }
+
+    public override void Transform(Matrix4x4 matrix)
+    {
+        Position = matrix.Transform(Position);
+        InvalidateCache();
+    }
+
+    public override IEnumerable<SnapPoint> GetSnapPoints()
+    {
+        yield return new SnapPoint(Position, SnapPointType.Center);
+    }
+
+    public override CadEntity Clone() =>
+        new DrainageOutletEntity(Position, _outletType)
         {
             InnerDiameter = InnerDiameter,
-            InvertLevel = _invertLevel,
-            Label = _label,
-            LayerId = LayerId
+            InvertLevel   = _invertLevel,
+            Label         = _label,
+            Layer         = Layer
         };
-    }
 }

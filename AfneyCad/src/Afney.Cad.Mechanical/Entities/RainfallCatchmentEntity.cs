@@ -1,23 +1,17 @@
+using System.Collections.Generic;
+using System.Linq;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Engine;
 using Afney.Cad.Mechanical.Enums;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Afney.Cad.Mechanical.Entities;
 
 /*
    NE: Yağmur Düşme Alanı (RainfallCatchmentEntity)
    NEDEN: OtoNET'teki "Yağmur Düşme Alanı" komutunun AfneyCAD karşılığı.
-          Çatı, teras veya platform üzerinde yağmur suyu toplanan alanı polygon olarak tanımlar.
-
-   MÜHENDİSLİK DETAYI:
-   - Kullanıcı çatı üzerinde köşe noktalarını tıklayarak kapalı bir polygon çizer.
-   - Program polygon alanını (m²) otomatik hesaplar.
-   - Yüzey Türü (düz çatı, yeşil çatı, eğimli çatı) akış katsayısını (C) belirler.
-   - WasteWaterDesignService.CalculateRainwaterFlow() bu entity'yi CatchmentArea'ya dönüştürür.
-   - Q = r * C * A / 10000 formülü ile debi hesaplanır (TS EN 12056-3).
+          Çatı/teras üzerinde yağmur suyu toplanan alanı polygon olarak tanımlar.
+   FORMÜL: Q = r * C * A / 10000  (TS EN 12056-3)
 */
 public class RainfallCatchmentEntity : MechanicalEntity
 {
@@ -30,7 +24,10 @@ public class RainfallCatchmentEntity : MechanicalEntity
         SlopedRoof      // Eğimli çatı — C = 1.0
     }
 
-    private List<Vector3D> _vertices = new();
+    // Polygon merkezi — konumlandırma için
+    public Vector3D Position { get; set; } = Vector3D.Zero;
+
+    private readonly List<Vector3D> _vertices = [];
     private SurfaceType _surfaceType = SurfaceType.FlatRoof;
     private string _areaName = "Çatı Alanı";
 
@@ -48,18 +45,15 @@ public class RainfallCatchmentEntity : MechanicalEntity
         set { _areaName = value; OnMetadataChanged(); }
     }
 
-    // Akış katsayısı — yüzey tipine göre otomatik
     public double RunoffCoefficient => _surfaceType switch
     {
-        SurfaceType.FlatRoof => 1.0,
-        SurfaceType.GreenRoof => 0.5,
-        SurfaceType.GravelRoof => 0.7,
+        SurfaceType.GreenRoof    => 0.5,
+        SurfaceType.GravelRoof   => 0.7,
         SurfaceType.PavedTerrace => 0.9,
-        SurfaceType.SlopedRoof => 1.0,
-        _ => 1.0
+        _                        => 1.0
     };
 
-    // Polygon alanı — Shoelace (Gauss) formülü ile hesaplanır (m²)
+    // Shoelace (Gauss) formülü ile m² cinsinden alan
     public double AreaM2
     {
         get
@@ -82,61 +76,92 @@ public class RainfallCatchmentEntity : MechanicalEntity
         SystemType = MechanicalSystemType.RainWater;
     }
 
-    public void AddVertex(Vector3D point) => _vertices.Add(point);
+    public void AddVertex(Vector3D point)
+    {
+        _vertices.Add(point);
+        InvalidateCache();
+    }
 
     public void ClosePolygon()
     {
-        // İlk ve son nokta çok yakınsa zaten kapalıdır
-        if (_vertices.Count > 2 && (_vertices[0] - _vertices[^1]).Length > 0.01)
+        if (_vertices.Count > 2 && (_vertices[0] - _vertices[^1]).Length() > 0.01)
             _vertices.Add(_vertices[0]);
+        InvalidateCache();
     }
 
-    // Merkez nokta — etiket yerleştirme için
     public Vector3D Centroid
     {
         get
         {
-            if (_vertices.Count == 0) return Vector3D.Zero;
+            if (_vertices.Count == 0) return Position;
             double cx = _vertices.Average(v => v.X);
             double cy = _vertices.Average(v => v.Y);
             return new Vector3D(cx, cy, Position.Z);
         }
     }
 
-    public override IEnumerable<MechanicalPort> GetPorts() => Enumerable.Empty<MechanicalPort>();
+    public override List<MechanicalPort> GetPorts() => [];
 
     public override void Draw(IRenderContext ctx)
     {
         if (_vertices.Count < 3) return;
 
-        // Yarı şeffaf mavi dolgu + mavi çerçeve
-        var fillColor = new SkiaSharp.SKColor(0, 120, 255, 50);
-        var borderColor = new SkiaSharp.SKColor(0, 120, 255, 200);
+        const uint border = 0xFF0078FF; // ARGB: opak, mavi — yağmur suyu rengi
 
-        var pts = _vertices.Select(v => (v.X, v.Y)).ToList();
-
-        // Polygon kenarlarını çiz
-        for (int i = 0; i < pts.Count - 1; i++)
+        for (int i = 0; i < _vertices.Count - 1; i++)
         {
-            ctx.DrawLine(
-                (float)pts[i].X, (float)pts[i].Y,
-                (float)pts[i + 1].X, (float)pts[i + 1].Y,
-                borderColor, 1.5f);
+            ctx.DrawLine(_vertices[i], _vertices[i + 1], border, 1.5);
         }
 
-        // Alan ve isim etiketi — centroid'de
         var c = Centroid;
-        string label = $"{_areaName}\n{AreaM2:F1} m²\nC={RunoffCoefficient:F1}";
-        ctx.DrawText(label, (float)c.X, (float)c.Y, 10f, borderColor);
+        string label = $"{_areaName}  {AreaM2:F1} m²  C={RunoffCoefficient:F1}";
+        ctx.DrawText(label, c, 0, 120, border);
+    }
+
+    protected override CadBoundingBox CalculateBoundingBox()
+    {
+        if (_vertices.Count == 0)
+            return new CadBoundingBox(Position, Position);
+
+        double minX = _vertices.Min(v => v.X);
+        double minY = _vertices.Min(v => v.Y);
+        double maxX = _vertices.Max(v => v.X);
+        double maxY = _vertices.Max(v => v.Y);
+        return new CadBoundingBox(new Vector3D(minX, minY, 0), new Vector3D(maxX, maxY, 0));
+    }
+
+    public override void Move(Vector3D delta)
+    {
+        for (int i = 0; i < _vertices.Count; i++)
+            _vertices[i] = new Vector3D(_vertices[i].X + delta.X, _vertices[i].Y + delta.Y, _vertices[i].Z + delta.Z);
+        Position = new Vector3D(Position.X + delta.X, Position.Y + delta.Y, Position.Z + delta.Z);
+        InvalidateCache();
+    }
+
+    public override void Transform(Matrix4x4 matrix)
+    {
+        for (int i = 0; i < _vertices.Count; i++)
+            _vertices[i] = matrix.Transform(_vertices[i]);
+        Position = matrix.Transform(Position);
+        InvalidateCache();
+    }
+
+    public override IEnumerable<SnapPoint> GetSnapPoints()
+    {
+        foreach (var v in _vertices)
+            yield return new SnapPoint(v, SnapPointType.Endpoint);
+        if (_vertices.Count > 0)
+            yield return new SnapPoint(Centroid, SnapPointType.Center);
     }
 
     public override CadEntity Clone()
     {
         var clone = new RainfallCatchmentEntity
         {
-            _areaName = _areaName,
+            _areaName    = _areaName,
             _surfaceType = _surfaceType,
-            LayerId = LayerId
+            Layer        = Layer,
+            Position     = Position
         };
         clone._vertices.AddRange(_vertices);
         return clone;

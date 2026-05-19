@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Entities;
@@ -183,11 +180,168 @@ public class CalculationTableService
         return sb.ToString();
     }
 
+    /*
+       NE: Pis Su ve Yağmur Suyu Hesap Tablosu Üret (TS EN 12056-2 / TS EN 12056-3)
+       NEDEN: Gravitasyonel pis su sistemleri basınç tablosu ile değil, DU tabanlı debi +
+              Manning eğim ile hesaplanır. Temiz su tablosundan ayrı bir föy gerektirir.
+    */
+    public WasteWaterCalcTable GenerateWasteWaterTable(string projectName = "AfneyCAD Projesi", double kFactor = 0.5)
+    {
+        var table = new WasteWaterCalcTable { ProjectName = projectName, FrequencyFactor = kFactor };
+
+        var wastePipes = _database.GetAllEntities().OfType<PipeEntity>()
+            .Where(p => p.SystemType == MechanicalSystemType.WasteWater ||
+                        p.SystemType == MechanicalSystemType.RainWater)
+            .OrderBy(p => p.SystemType)
+            .ThenByDescending(p => p.LoadUnits)
+            .ToList();
+
+        int lineNo = 1;
+        foreach (var pipe in wastePipes)
+        {
+            double lengthM = pipe.GetLength() / 1000.0;
+            double totalDU = pipe.LoadUnits;
+            double qWw = totalDU > 0 ? kFactor * Math.Sqrt(totalDU) : 0;
+            double slopePct = MinimumSlopePct(pipe.InnerDiameter);
+            double slopeM = slopePct / 100.0;
+            double vManning = EstimateVelocityManning(pipe.InnerDiameter, slopeM);
+            double fillingRatio = EstimateFillingRatio(qWw, pipe.InnerDiameter, slopeM);
+
+            var row = new WasteWaterCalcRow
+            {
+                LineNo = lineNo++,
+                PipeId = pipe.Id.ToString().Substring(0, 8),
+                SystemType = GetSystemLabel(pipe.SystemType),
+                LengthM = lengthM,
+                TotalDU = totalDU,
+                FrequencyFactor = kFactor,
+                FlowQww = qWw,
+                DiameterDN = pipe.InnerDiameter,
+                SlopePct = slopePct,
+                FillingRatioPct = fillingRatio * 100.0,
+                VelocityMs = vManning,
+                Material = pipe.PipeMaterialType.ToString(),
+                IsWarning = fillingRatio > 0.7 || vManning < 0.6
+            };
+            table.Rows.Add(row);
+        }
+
+        table.TotalPipeCount = wastePipes.Count;
+        table.TotalLength = wastePipes.Sum(p => p.GetLength() / 1000.0);
+        table.GeneratedDate = DateTime.Now;
+        return table;
+    }
+
+    /*
+       NE: Pis Su Hesap Föyü HTML Raporu
+       NEDEN: TS EN 12056-2 standardında mühendislik onay belgesi olarak sunulacak.
+    */
+    public string ExportWasteWaterToHtml(WasteWaterCalcTable table)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='UTF-8'>");
+        sb.AppendLine($"<title>Pis Su Hesap Föyü - {table.ProjectName}</title>");
+        sb.AppendLine("<style>");
+        sb.AppendLine("body{font-family:'Segoe UI',sans-serif;margin:20px;color:#333;}");
+        sb.AppendLine("h1{color:#8B4513;border-bottom:3px solid #8B4513;padding-bottom:8px;}");
+        sb.AppendLine("h2{color:#555;font-size:14px;margin-top:0;}");
+        sb.AppendLine("table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px;}");
+        sb.AppendLine("th,td{border:1px solid #ccc;padding:6px 8px;text-align:center;}");
+        sb.AppendLine("th{background:#5D4037;color:#fff;font-weight:bold;}");
+        sb.AppendLine("tr:nth-child(even){background:#fdf8f5;}");
+        sb.AppendLine(".warn{background:#fff3cd;color:#856404;font-weight:bold;}");
+        sb.AppendLine(".ok{color:#2E7D32;}");
+        sb.AppendLine(".summary{margin-top:18px;padding:12px;background:#efebe9;border-radius:4px;}");
+        sb.AppendLine(".footer{margin-top:28px;font-size:10px;color:#999;text-align:center;}");
+        sb.AppendLine(".legend{margin-top:15px;font-size:11px;color:#666;}");
+        sb.AppendLine("</style></head><body>");
+
+        sb.AppendLine("<h1>PİS SU TESİSATI HİDROLİK HESAP FÖYÜ</h1>");
+        sb.AppendLine($"<h2>TS EN 12056-2 — Cazibeli Pis Su Sistemleri (Eş Zamanlılık Sistemi II, K={table.FrequencyFactor})</h2>");
+        sb.AppendLine($"<p>Proje: <strong>{table.ProjectName}</strong> &nbsp;|&nbsp; Tarih: {table.GeneratedDate:dd.MM.yyyy HH:mm}</p>");
+
+        sb.AppendLine("<table><thead><tr>");
+        sb.AppendLine("<th>Hat No</th><th>Boru ID</th><th>Sistem</th><th>Uzunluk (m)</th>");
+        sb.AppendLine("<th>ΣDU</th><th>K</th><th>Q<sub>ww</sub> (lt/s)</th>");
+        sb.AppendLine("<th>DN (mm)</th><th>Eğim (%)</th><th>Doluluk (%)</th><th>v (m/s)</th><th>Malzeme</th>");
+        sb.AppendLine("</tr></thead><tbody>");
+
+        foreach (var row in table.Rows)
+        {
+            string cls = row.IsWarning ? " class='warn'" : "";
+            string fillCls = row.FillingRatioPct > 70 ? " style='color:red;font-weight:bold'" : " class='ok'";
+            string vClass = row.VelocityMs < 0.6 ? " style='color:orange'" : "";
+            sb.AppendLine($"<tr{cls}>");
+            sb.AppendLine($"<td>{row.LineNo}</td>");
+            sb.AppendLine($"<td>#{row.PipeId}</td>");
+            sb.AppendLine($"<td>{row.SystemType}</td>");
+            sb.AppendLine($"<td>{row.LengthM:F2}</td>");
+            sb.AppendLine($"<td>{(row.TotalDU > 0 ? row.TotalDU.ToString("F1") : "—")}</td>");
+            sb.AppendLine($"<td>{row.FrequencyFactor:F1}</td>");
+            sb.AppendLine($"<td>{row.FlowQww:F3}</td>");
+            sb.AppendLine($"<td>DN {row.DiameterDN:F0}</td>");
+            sb.AppendLine($"<td>{row.SlopePct:F1}</td>");
+            sb.AppendLine($"<td{fillCls}>{row.FillingRatioPct:F0}</td>");
+            sb.AppendLine($"<td{vClass}>{row.VelocityMs:F2}</td>");
+            sb.AppendLine($"<td>{row.Material}</td>");
+            sb.AppendLine("</tr>");
+        }
+
+        sb.AppendLine("</tbody></table>");
+
+        sb.AppendLine("<div class='legend'>");
+        sb.AppendLine("⚠ Sarı = Doluluk %70 aşıldı veya v &lt; 0.6 m/s (öz-temizleme hızı yetersiz) &nbsp;|&nbsp;");
+        sb.AppendLine("Formül: Q<sub>ww</sub> = K × √(ΣDU)");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<div class='summary'><h3>Özet</h3>");
+        sb.AppendLine($"<p><strong>Toplam Boru Segmenti:</strong> {table.TotalPipeCount} adet</p>");
+        sb.AppendLine($"<p><strong>Toplam Uzunluk:</strong> {table.TotalLength:F1} metre</p>");
+        sb.AppendLine($"<p><strong>Frekans Faktörü K:</strong> {table.FrequencyFactor} (Sistem II — Konut)</p>");
+        int warnings = table.Rows.Count(r => r.IsWarning);
+        sb.AppendLine($"<p><strong>Uyarı Sayısı:</strong> {(warnings > 0 ? $"<span style='color:red'>{warnings} ⚠</span>" : "<span style='color:green'>0 ✓</span>")}</p>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine($"<div class='footer'>AfneyCAD Engine — TS EN 12056-2 Pis Su Hesap Föyü — {table.GeneratedDate:dd.MM.yyyy}</div>");
+        sb.AppendLine("</body></html>");
+        return sb.ToString();
+    }
+
+    private static double MinimumSlopePct(double dn) => dn switch
+    {
+        <= 50  => 2.5,
+        <= 75  => 2.0,
+        <= 100 => 1.0,
+        <= 125 => 0.8,
+        <= 150 => 0.7,
+        <= 200 => 0.5,
+        _      => 0.3
+    };
+
+    private static double EstimateVelocityManning(double dn, double slope)
+    {
+        double dM = dn / 1000.0;
+        double n = 0.012; // PVC Manning katsayısı
+        double R = dM / 4.0; // Tam dolu için hidrolik yarıçap
+        return (1.0 / n) * Math.Pow(R, 2.0 / 3.0) * Math.Pow(Math.Max(slope, 0.001), 0.5);
+    }
+
+    private static double EstimateFillingRatio(double qLps, double dn, double slope)
+    {
+        double dM = dn / 1000.0;
+        double area = Math.PI * (dM / 2.0) * (dM / 2.0);
+        double n = 0.012;
+        double R = dM / 4.0;
+        double qFullLps = (1.0 / n) * area * Math.Pow(R, 2.0 / 3.0) * Math.Pow(Math.Max(slope, 0.001), 0.5) * 1000.0;
+        return qFullLps > 0 ? Math.Min(qLps / qFullLps, 1.0) : 0;
+    }
+
     private string GetSystemLabel(MechanicalSystemType type) => type switch
     {
         MechanicalSystemType.DomesticColdWater => "Soğuk Su",
         MechanicalSystemType.DomesticHotWater => "Sıcak Su",
         MechanicalSystemType.WasteWater => "Pis Su",
+        MechanicalSystemType.RainWater => "Yağmur Suyu",
         _ => "Genel"
     };
 }
@@ -222,4 +376,33 @@ public class CalculationRow
     public double CumulativeLossMSS { get; set; }
     public bool IsVelocityWarning { get; set; }
     public string Material { get; set; } = "";
+}
+
+// --- PİS SU HESAP TABLOSU VERİ MODELLERİ (TS EN 12056-2) ---
+
+public class WasteWaterCalcTable
+{
+    public string ProjectName { get; set; } = "";
+    public double FrequencyFactor { get; set; } = 0.5;
+    public List<WasteWaterCalcRow> Rows { get; set; } = [];
+    public int TotalPipeCount { get; set; }
+    public double TotalLength { get; set; }
+    public DateTime GeneratedDate { get; set; }
+}
+
+public class WasteWaterCalcRow
+{
+    public int LineNo { get; set; }
+    public string PipeId { get; set; } = "";
+    public string SystemType { get; set; } = "";
+    public double LengthM { get; set; }
+    public double TotalDU { get; set; }
+    public double FrequencyFactor { get; set; }
+    public double FlowQww { get; set; }       // lt/s
+    public double DiameterDN { get; set; }
+    public double SlopePct { get; set; }      // %
+    public double FillingRatioPct { get; set; } // %
+    public double VelocityMs { get; set; }
+    public string Material { get; set; } = "";
+    public bool IsWarning { get; set; }
 }

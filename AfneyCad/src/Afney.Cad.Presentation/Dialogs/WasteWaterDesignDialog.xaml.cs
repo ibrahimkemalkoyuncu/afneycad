@@ -228,7 +228,7 @@ namespace Afney.Cad.Presentation.Dialogs
             log.AppendLine($"[{DateTime.Now:HH:mm:ss}] Tesisatı Kabul Et başlatıldı...");
 
             // Temel doğrulama: veritabanındaki DrainageOutletEntity varlığını kontrol et
-            var allEntities = _database.EntityTable.GetAll();
+            var allEntities = _database.GetAllEntities();
 
             var wasteOutlets = allEntities.OfType<Afney.Cad.Mechanical.Entities.DrainageOutletEntity>()
                 .Where(o => o.SystemType == MechanicalSystemType.WasteWater).ToList();

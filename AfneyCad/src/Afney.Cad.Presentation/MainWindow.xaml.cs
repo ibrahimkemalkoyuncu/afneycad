@@ -2737,6 +2737,22 @@ namespace Afney.Cad.Presentation
                     _mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
                 var dialog = new Dialogs.CalculationTableWindow(_database, pressureService);
                 dialog.Owner = this;
+
+                // DN değişince boru etiketlerini ve izometrik şemayı güncelle
+                dialog.PipeDN_Changed += (pipeId, newDN) =>
+                {
+                    try
+                    {
+                        var labeler = new Afney.Cad.Mechanical.Services.AutoPipeLabeler(_database);
+                        labeler.LabelAllPipes();
+                        _activeContext?.Viewport.InvalidateViewport();
+                    }
+                    catch (Exception labelEx)
+                    {
+                        Serilog.Log.Warning(labelEx, "AutoPipeLabeler DN güncellemesi sırasında hata.");
+                    }
+                };
+
                 dialog.ShowDialog();
             }
             catch (Exception ex)
