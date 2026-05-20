@@ -2859,6 +2859,19 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnWasteWaterCalcSheet(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.WasteWaterCalcSheetDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Hesap Föyü hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnPipe3DView(object sender, RoutedEventArgs e)
         {
             try

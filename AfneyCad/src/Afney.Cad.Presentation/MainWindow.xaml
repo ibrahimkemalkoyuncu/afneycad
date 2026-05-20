@@ -462,6 +462,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="🚿 Pis Su" Click="OnWasteWaterDesign" Style="{StaticResource RbnBtn}" ToolTip="Pis Su / Yağmur"/>
                                             <Button Content="🧯 Fosseptik" Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="📋 Hesap Föyü" Click="OnWasteWaterCalcSheet" Style="{StaticResource RbnBtn}" ToolTip="Segment bazlı Manning hesabı · Foseptik · Pompa · Keşif"/>
                                         </StackPanel>
                                         <TextBlock Text="Pis Su Modülleri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
