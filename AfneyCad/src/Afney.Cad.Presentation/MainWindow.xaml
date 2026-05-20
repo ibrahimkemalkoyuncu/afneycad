@@ -627,6 +627,8 @@
                                             <Button Content="♻️ Resirkülasyon" Click="OnHotWaterCirculation" Style="{StaticResource RbnBtn}" ToolTip="Sıcak su resirkülasyon devre tasarımı"/>
                                             <Button Content="🔵 Basınç Bölgesi" Click="OnPressureZoneDesign"  Style="{StaticResource RbnBtn}" ToolTip="PRV basınç bölgesi tasarımı"/>
                                             <Button Content="💰 Maliyet"        Click="OnPipeCostAnalysis"    Style="{StaticResource RbnBtn}" ToolTip="Boru maliyeti ve keşif analizi"/>
+                                            <Button Content="📐 Oto Boyut"      Click="OnAutoSizing"          Style="{StaticResource RbnBtn}" ToolTip="TS EN 806-3 ile tüm ağı otomatik boyutlandır"/>
+                                            <Button Content="⚙ Pompaj Grubu"   Click="OnPumpGroup"           Style="{StaticResource RbnBtn}" ToolTip="Paralel/seri pompa kombinasyonu Q-H analizi"/>
                                         </StackPanel>
                                         <TextBlock Text="İleri Analiz" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>

@@ -192,6 +192,8 @@ public class PumpSelectionService
        NE: Tüm Markaları Listele
        NEDEN: UI'da ComboBox için marka filtresi
     */
+    public List<PumpModel> GetAllPumps() => _catalog.OrderBy(p => p.Brand).ThenBy(p => p.ModelName).ToList();
+
     public List<string> GetAvailableBrands() => _catalog.Select(p => p.Brand).Distinct().OrderBy(b => b).ToList();
 
     /*

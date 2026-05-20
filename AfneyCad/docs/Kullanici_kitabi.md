@@ -1,6 +1,6 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.4.0 — 19 Mayıs 2026  
-**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG
+**Sürüm:** v2.5.0 — 21 Mayıs 2026  
+**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
 > Her bölüm: "OtoNET'te nasıl yapılır?" → "AfneyCAD'de nasıl yapılır?" formatındadır.
@@ -545,14 +545,24 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 | 8 | MainWindow — yeni handler'lar | ✅ | `OnHotWaterCirculation`, `OnPressureZoneDesign`, `OnPipeCostAnalysis`, `OnPrintViewport`, `OnExportPng` |
 | 9 | Ribbon — İleri Analiz grubu | ✅ | Resirkülasyon · Basınç Bölgesi · Maliyet · Yazdır · PNG |
 
+### Tamamlanan (Session #23 — 2026-05-21)
+
+| # | Özellik | Durum | Ana Dosya |
+|---|---|---|---|
+| 1 | FireFightingDialog 4-sekme yeniden tasarım | ✅ | Sprinkler · Hidrant · Hortum Makarası · Su Talebi — NFPA + TS EN 671 + TS EN 12845 |
+| 2 | BOMDialog 3-sekme maliyet entegrasyonu | ✅ | `BOMDialog.xaml/.cs` — PipeCostService + vitrifiye fiyat katalogu + CSV/HTML export |
+| 3 | AutoSizingService | ✅ | `AutoSizingService.cs` — TS EN 806-3 FU→Q→DN otomatik boyutlandırma, tüm ağ tek komut |
+| 4 | PumpGroupDialog | ✅ | `PumpGroupDialog.xaml/.cs` — Paralel/seri Q-H SkiaSharp grafiği, çalışma noktası |
+| 5 | PumpSelectionService.GetAllPumps() | ✅ | `PumpSelectionService.cs` — tüm pompa listesi API |
+| 6 | MainWindow — Oto Boyut + Pompaj Grubu butonları | ✅ | İleri Analiz grubu genişletildi |
+
 ### Bir Sonraki Session Öncelikleri
 
-1. **BOM Maliyet Kolonları** — Mevcut `BOMDialog`'a Birim Fiyat ve Toplam TL kolonları ekleme
-2. **Yangın Söndürme Dialog** — `FireFightingDialog`'a Hidrant + Hortum Makarası sekmeleri
-3. **Basınç Düşümü 3D** — Boru hattında renk gradyanı ile basınç haritası
-4. **Pompaj Grubu Seçimi** — Paralel/seri pompa kombinasyonu Q-H grafiği
-5. **Otomatik Boyutlandırma** — Tüm boru ağını tek komutla TS 1258'e göre boyutlandır
+1. **Basınç Düşümü Haritası** — Boru hattında renk gradyanı ile basınç dağılımı (viewport overlay)
+2. **Tahliye Şeması** — Pis su kolonu izometrik diyagram otomatik üretimi
+3. **Raporlama Motoru** — Tüm dialog çıktılarını tek PDF'e birleştirme
+4. **Multi-floor Koordinasyon** — Kat tespiti ve çakışma kontrolü (clash detection)
 
 ---
 
-*Son güncelleme: 2026-05-19 | AfneyCAD v2.4.0 — Session #22: Resirkülasyon Dialog + Basınç Bölgesi + Hidrant + Maliyet + Baskı/PNG*
+*Son güncelleme: 2026-05-21 | AfneyCAD v2.5.0 — Session #23: BOM Maliyet + Pompaj Grubu + Oto Boyutlandırma + FF Dialog*

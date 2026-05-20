@@ -3186,6 +3186,48 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnAutoSizing(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc    = new Afney.Cad.Mechanical.Services.AutoSizingService();
+                var result = svc.SizeAll(_database);
+
+                string warnings = result.Warnings.Count > 0
+                    ? "\n\nUyarılar:\n" + string.Join("\n", result.Warnings.Take(10))
+                    : "";
+
+                MessageBox.Show(
+                    result.Summary + warnings,
+                    "Otomatik Boyutlandırma Tamamlandı",
+                    MessageBoxButton.OK,
+                    result.Warnings.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+
+                if (result.ResizedPipes > 0)
+                {
+                    Viewport?.InvalidateVisual();
+                    StatusText.Text = $"Oto boyutlandırma: {result.ResizedPipes} boru güncellendi.";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Otomatik boyutlandırma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPumpGroup(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Afney.Cad.Presentation.Dialogs.PumpGroupDialog { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Pompaj Grubu hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnAuditSystem(object sender, RoutedEventArgs e)
         {
             try
