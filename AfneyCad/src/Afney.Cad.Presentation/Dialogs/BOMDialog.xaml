@@ -1,42 +1,198 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.BOMDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Malzeme Metraj Listesi (BOM)" Height="500" Width="600"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        Background="#1E1E1E" Foreground="White">
-    <Grid Margin="20">
+        Title="Malzeme Metraj ve Maliyet Listesi (BOM) — AfneyCAD"
+        Height="700" Width="980" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="BorderBrush" Value="#333"/>
+            <Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+            <Setter Property="ColumnHeaderHeight" Value="30"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#1E2A3A"/>
+            <Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#333"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="32"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>  <!-- Başlık -->
+            <RowDefinition Height="Auto"/>  <!-- Araç çubuğu -->
+            <RowDefinition Height="*"/>     <!-- İçerik -->
+            <RowDefinition Height="Auto"/>  <!-- Toplam -->
+            <RowDefinition Height="Auto"/>  <!-- Butonlar -->
         </Grid.RowDefinitions>
 
-        <TextBlock Text="BORU METRAJ LİSTESİ" FontWeight="Bold" Foreground="LimeGreen" Margin="0,0,0,10"/>
-        
-        <DataGrid x:Name="PipeGrid" Grid.Row="1" Background="#2D2D2D" Foreground="White" BorderThickness="0" 
-                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" ItemsSource="{Binding PipeGroups}">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Çap (DN)" Binding="{Binding Diameter}" Width="100"/>
-                <DataGridTextColumn Header="Sistem" Binding="{Binding SystemType}" Width="*"/>
-                <DataGridTextColumn Header="Toplam Uzunluk (m)" Binding="{Binding TotalLength, StringFormat={}{0:F2}}" Width="150"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Başlık -->
+        <Border Grid.Row="0" Background="#0D47A1" Padding="16,10">
+            <DockPanel>
+                <TextBlock Text="📦" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <StackPanel>
+                    <TextBlock Text="MALZEME METRAJ ve MALİYET LİSTESİ (BOM)"
+                               FontSize="14" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="Birim fiyatlar: 2024 Türkiye piyasası yaklaşık değerleri (KDV hariç)"
+                               FontSize="10" Foreground="#90CAF9"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                            HorizontalAlignment="Right">
+                    <TextBlock Text="Beklenmedik Gider (%):" VerticalAlignment="Center" Margin="0,0,8,0"
+                               Foreground="#90CAF9" FontSize="11"/>
+                    <TextBox x:Name="TxtContingency" Text="10" Width="45" Height="26"
+                             Background="#1A3A6A" Foreground="White" BorderBrush="#1565C0"
+                             Padding="4,2" VerticalContentAlignment="Center"
+                             TextChanged="Contingency_Changed"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
-        <TextBlock Grid.Row="2" Text="VİTRİFİYE VE CİHAZ LİSTESİ" FontWeight="Bold" Foreground="Cyan" Margin="0,20,0,10"/>
+        <!-- Tab kontrolü -->
+        <TabControl Grid.Row="2" Background="#1E1E2E" BorderThickness="0" Padding="0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="#252535"/>
+                    <Setter Property="Foreground" Value="#888"/>
+                    <Setter Property="Padding" Value="14,6"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#1565C0"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
 
-        <DataGrid x:Name="FixtureGrid" Grid.Row="3" Background="#2D2D2D" Foreground="White" BorderThickness="0" 
-                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" ItemsSource="{Binding FixtureGroups}">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Cihaz Tipi" Binding="{Binding Type}" Width="*"/>
-                <DataGridTextColumn Header="Adet" Binding="{Binding Count}" Width="100"/>
-            </DataGrid.Columns>
-        </DataGrid>
+            <!-- ── BORU METRAJ & MALİYET ── -->
+            <TabItem Header="🔵 Boru Metrajı &amp; Maliyeti">
+                <DataGrid x:Name="PipeGrid" AutoGenerateColumns="False" Margin="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Çap (DN)"         Binding="{Binding DiameterDisplay}"    Width="70"/>
+                        <DataGridTextColumn Header="Sistem"            Binding="{Binding SystemType}"         Width="*"/>
+                        <DataGridTextColumn Header="Malzeme"           Binding="{Binding MaterialDisplay}"    Width="90"/>
+                        <DataGridTextColumn Header="Uzunluk (m)"       Binding="{Binding LengthDisplay}"      Width="90"/>
+                        <DataGridTextColumn Header="Birim Fiyat (TL/m)" Binding="{Binding UnitPriceDisplay}"  Width="120"/>
+                        <DataGridTextColumn Header="Malzeme (TL)"      Binding="{Binding MaterialCostDisplay}" Width="105"/>
+                        <DataGridTextColumn Header="İşçilik (TL)"      Binding="{Binding LaborCostDisplay}"   Width="95"/>
+                        <DataGridTextColumn Header="Ek Parça (TL)"     Binding="{Binding FittingCostDisplay}" Width="95"/>
+                        <DataGridTextColumn Header="Toplam (TL)"       Binding="{Binding TotalCostDisplay}"   Width="100"/>
+                    </DataGrid.Columns>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsHighCost}" Value="True">
+                                    <Setter Property="Foreground" Value="#FFD54F"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                </DataGrid>
+            </TabItem>
 
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="EXCEL'E AKTAR" Width="120" Height="30" Margin="0,0,10,0" Background="#1D6F42" Foreground="White" BorderThickness="0"/>
-            <Button Content="KAPAT" IsCancel="True" Width="100" Height="30" Background="#3E3E42" Foreground="White" BorderThickness="0"/>
-        </StackPanel>
+            <!-- ── VİTRİFİYE LİSTESİ ── -->
+            <TabItem Header="🚿 Vitrifiye &amp; Cihazlar">
+                <DataGrid x:Name="FixtureGrid" AutoGenerateColumns="False" Margin="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cihaz Tipi"   Binding="{Binding Type}"  Width="*"/>
+                        <DataGridTextColumn Header="Adet"          Binding="{Binding Count}" Width="80"/>
+                        <DataGridTextColumn Header="Tahmini (TL/adet)" Binding="{Binding UnitCostDisplay}" Width="140"/>
+                        <DataGridTextColumn Header="Toplam (TL)"   Binding="{Binding TotalCostDisplay}" Width="110"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- ── SİSTEM DAĞILIMI ── -->
+            <TabItem Header="📊 Sistem Bazlı Özet">
+                <DataGrid x:Name="SystemGrid" AutoGenerateColumns="False" Margin="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Sistem"            Binding="{Binding System}"      Width="*"/>
+                        <DataGridTextColumn Header="Toplam Uzunluk (m)" Binding="{Binding Length}"     Width="140"/>
+                        <DataGridTextColumn Header="Malzeme (TL)"      Binding="{Binding Material}"   Width="130"/>
+                        <DataGridTextColumn Header="İşçilik (TL)"      Binding="{Binding Labor}"      Width="120"/>
+                        <DataGridTextColumn Header="Toplam (TL)"       Binding="{Binding Total}"      Width="120"/>
+                        <DataGridTextColumn Header="Pay (%)"           Binding="{Binding SharePct}"   Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Maliyet Özeti -->
+        <Border Grid.Row="3" Background="#0A1A2A" BorderBrush="#1565C0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#1A2A3A" CornerRadius="4" Padding="10,6" Margin="0,0,10,0">
+                        <StackPanel>
+                            <TextBlock Text="MALZEME" FontSize="9" Foreground="#90CAF9"/>
+                            <TextBlock x:Name="TxtMaterial" Text="—" FontSize="13" FontWeight="Bold" Foreground="#90CAF9"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#1A2A3A" CornerRadius="4" Padding="10,6" Margin="0,0,10,0">
+                        <StackPanel>
+                            <TextBlock Text="İŞÇİLİK" FontSize="9" Foreground="#80CBC4"/>
+                            <TextBlock x:Name="TxtLabor" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80CBC4"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#1A2A3A" CornerRadius="4" Padding="10,6" Margin="0,0,10,0">
+                        <StackPanel>
+                            <TextBlock Text="EK PARÇA" FontSize="9" Foreground="#FFCC80"/>
+                            <TextBlock x:Name="TxtFitting" Text="—" FontSize="13" FontWeight="Bold" Foreground="#FFCC80"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#1A2A3A" CornerRadius="4" Padding="10,6" Margin="0,0,10,0">
+                        <StackPanel>
+                            <TextBlock Text="BEKLENMEDİK" FontSize="9" Foreground="#EF9A9A"/>
+                            <TextBlock x:Name="TxtContingencyAmt" Text="—" FontSize="13" FontWeight="Bold" Foreground="#EF9A9A"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#1A3A2A" CornerRadius="4" Padding="10,6" BorderBrush="#2E7D32" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="GENEL TOPLAM (KDV HARİÇ)" FontSize="9" Foreground="#A5D6A7"/>
+                            <TextBlock x:Name="TxtGrandTotal" Text="—" FontSize="15" FontWeight="Bold" Foreground="#69F0AE"/>
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+
+                <TextBlock Grid.Column="1" x:Name="TxtPipeCount"
+                           Text="" Foreground="#666" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+            </Grid>
+        </Border>
+
+        <!-- Butonlar -->
+        <Border Grid.Row="4" Background="#1B1B2E" Padding="8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Margin="0,0,8,0"/>
+                <Button Content="📊 CSV Dışa Aktar" Click="ExportCsv_Click" Background="#2E7D32" Margin="0,0,8,0"/>
+                <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

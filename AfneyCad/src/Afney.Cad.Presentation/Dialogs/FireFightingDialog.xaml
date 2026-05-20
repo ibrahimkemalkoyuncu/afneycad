@@ -1,36 +1,337 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.FireFightingDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="🔥 Yangın Söndürme (Sprinkler) Hesabı — AfneyCAD" Height="550" Width="650"
-        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="NoResize">
-    <Grid Margin="15">
+        Title="Yangın Söndürme Sistemi Tasarımı — AfneyCAD"
+        Height="680" Width="920" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="0,4"/>
+        </Style>
+        <Style x:Key="FfBtn" TargetType="Button">
+            <Setter Property="Background" Value="#C62828"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="FfBtnGreen" TargetType="Button" BasedOn="{StaticResource FfBtn}">
+            <Setter Property="Background" Value="#2E7D32"/>
+        </Style>
+        <Style x:Key="FfBtnGray" TargetType="Button" BasedOn="{StaticResource FfBtn}">
+            <Setter Property="Background" Value="#444"/>
+        </Style>
+        <!-- Input label -->
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Width" Value="165"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="#CCC"/>
+        </Style>
+        <Style x:Key="Inp" TargetType="TextBox">
+            <Setter Property="Width" Value="90"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="SPRİNKLER SİSTEMİ TASARIMI (NFPA 13 / EN 12845)" FontSize="16" FontWeight="Bold" Foreground="#FF4444" Margin="0,0,0,15"/>
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Koruma Alanı (m²):" Width="150"/><TextBox x:Name="AreaInput" Width="80" Text="500" Background="#333" Foreground="White"/></StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Tavan Yüksekliği (m):" Width="150"/><TextBox x:Name="HeightInput" Width="80" Text="3.0" Background="#333" Foreground="White"/></StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Dış Basınç (mSS):" Width="150"/><TextBox x:Name="PressureInput" Width="80" Text="0" Background="#333" Foreground="White"/></StackPanel>
+
+        <!-- Başlık -->
+        <Border Grid.Row="0" Background="#B71C1C" Padding="16,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🔥" FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <StackPanel>
+                    <TextBlock Text="YANGIN SÖNDÜRME SİSTEMİ TASARIMI"
+                               FontSize="15" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="NFPA 13 / TS EN 12845 / TS EN 671-1/2 / BKY"
+                               FontSize="10" Foreground="#FFCDD2"/>
+                </StackPanel>
             </StackPanel>
-            <StackPanel Grid.Column="1">
-                <TextBlock Text="Tehlike Sınıfı:" Margin="0,5"/>
-                <ComboBox x:Name="HazardCombo" Width="220" Background="#333" Foreground="Black" SelectedIndex="0">
-                    <ComboBoxItem Content="Hafif Tehlike (Ofis, Konut)"/>
-                    <ComboBoxItem Content="Orta Tehlike G1 (Otopark)"/>
-                    <ComboBoxItem Content="Orta Tehlike G2 (Ağır Depo)"/>
-                    <ComboBoxItem Content="Yüksek Tehlike (Kimyasal)"/>
-                </ComboBox>
-                <CheckBox x:Name="WetSystemCheck" Content="Islak Sistem" IsChecked="True" Foreground="White" Margin="0,10"/>
-                <Button Content="🔄 Hesapla" Click="Calculate_Click" Width="150" Height="32" Margin="0,10" Background="#FF4444" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
-            </StackPanel>
-        </Grid>
-        <TextBlock Grid.Row="2" x:Name="ResultText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,10"/>
-        <Button Grid.Row="3" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+        </Border>
+
+        <!-- Sekmeli içerik -->
+        <TabControl Grid.Row="1" Background="#1E1E2E" BorderThickness="0" Padding="0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="#252535"/>
+                    <Setter Property="Foreground" Value="#AAA"/>
+                    <Setter Property="Padding" Value="14,6"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#C62828"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- ── TAB 1: SPRİNKLER ── -->
+            <TabItem Header="🔴 Sprinkler Sistemi">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Giriş -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Sistem Parametreleri" FontWeight="Bold" FontSize="13"
+                                   Foreground="#FF5252" Margin="0,0,0,10"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Koruma Alanı (m²):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="AreaInput" Text="500" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Tavan Yüksekliği (m):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="HeightInput" Text="3.0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Dış Basınç (mSS):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="PressureInput" Text="0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Tehlike Sınıfı:" Margin="0,10,0,4" Foreground="#CCC"/>
+                        <ComboBox x:Name="HazardCombo" Width="280" SelectedIndex="0" HorizontalAlignment="Left">
+                            <ComboBoxItem Content="LH — Hafif Tehlike (Ofis, Konut, Hastane)"/>
+                            <ComboBoxItem Content="OH1 — Orta Tehlike G1 (Otopark, Hafif Fabrika)"/>
+                            <ComboBoxItem Content="OH2 — Orta Tehlike G2 (Ağır Fabrika, Depo)"/>
+                            <ComboBoxItem Content="EH — Yüksek Tehlike (Kimyasal, Boya)"/>
+                        </ComboBox>
+
+                        <CheckBox x:Name="WetSystemCheck" Content="Islak Sistem (Wet Pipe)" IsChecked="True" Margin="0,12,0,4"/>
+                        <CheckBox x:Name="EsfrCheck" Content="ESFR Başlık (Tavan > 6m için)" IsChecked="False"/>
+
+                        <Button Content="⚙️  Hesapla" Click="SprinklerCalculate_Click"
+                                Style="{StaticResource FfBtn}" Width="160" Height="34"
+                                HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                    </StackPanel>
+
+                    <!-- Sonuç -->
+                    <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
+                            CornerRadius="4" Padding="14" Margin="12,0,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="SprinklerResultText"
+                                       Text="Hesap için parametreleri girin ve 'Hesapla' butonuna basın."
+                                       Foreground="#66BB6A" FontFamily="Consolas" FontSize="12"
+                                       TextWrapping="Wrap" LineHeight="20"/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ── TAB 2: HİDRANT ── -->
+            <TabItem Header="🔵 Hidrant Sistemi">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Hidrant Sistemi Parametreleri" FontWeight="Bold" FontSize="13"
+                                   Foreground="#42A5F5" Margin="0,0,0,10"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Bina Alanı (m²):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="HydBuildingArea" Text="1500" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Kat Sayısı:" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="HydFloors" Text="8" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Kat Yüksekliği (m):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="HydFloorHeight" Text="3.5" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Şebeke Basıncı (bar):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="HydAvailPressure" Text="3.5" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Hidrant Tipi:" Margin="0,10,0,4" Foreground="#CCC"/>
+                        <ComboBox x:Name="HydTypeCombo" Width="200" SelectedIndex="0" HorizontalAlignment="Left">
+                            <ComboBoxItem Content="İç Hidrant (DN52 — 400 lt/dk)"/>
+                            <ComboBoxItem Content="Dış Hidrant (DN100 — 1500 lt/dk)"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Tehlike Sınıfı:" Margin="0,8,0,4" Foreground="#CCC"/>
+                        <ComboBox x:Name="HydHazardCombo" Width="200" SelectedIndex="1" HorizontalAlignment="Left">
+                            <ComboBoxItem Content="Hafif Tehlike"/>
+                            <ComboBoxItem Content="Orta Tehlike G1"/>
+                            <ComboBoxItem Content="Orta Tehlike G2"/>
+                            <ComboBoxItem Content="Yüksek Tehlike"/>
+                        </ComboBox>
+
+                        <Button Content="⚙️  Hesapla" Click="HydrantCalculate_Click"
+                                Style="{StaticResource FfBtn}" Width="160" Height="34"
+                                HorizontalAlignment="Left" Margin="0,16,0,0"
+                                Background="#1565C0"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
+                            CornerRadius="4" Padding="14" Margin="12,0,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="HydrantResultText"
+                                       Text="Hesap için parametreleri girin ve 'Hesapla' butonuna basın."
+                                       Foreground="#42A5F5" FontFamily="Consolas" FontSize="12"
+                                       TextWrapping="Wrap" LineHeight="20"/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ── TAB 3: HORTUM MAKARASI ── -->
+            <TabItem Header="🟠 Hortum Makarası">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Hortum Makarası (First-Aid Hose Reel)" FontWeight="Bold" FontSize="13"
+                                   Foreground="#FFA726" Margin="0,0,0,10"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Kat Alanı (m²):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="ReelFloorArea" Text="800" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <TextBlock Text="Kat Sayısı:" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="ReelFloors" Text="8" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+
+                        <Border Background="#1A2A1A" BorderBrush="#2E7D32" BorderThickness="1"
+                                CornerRadius="4" Padding="10" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="TS EN 671-1 Gereksinimleri:" Foreground="#81C784" FontWeight="Bold" FontSize="11"/>
+                                <TextBlock Text="• Her makara: 100 lt/dk @ 2.5 bar" Foreground="#AAA" FontSize="11" Margin="0,4,0,0"/>
+                                <TextBlock Text="• Hortum uzunluğu: 30 m" Foreground="#AAA" FontSize="11"/>
+                                <TextBlock Text="• Kapsama yarıçapı: 35 m (30m+5m jet)" Foreground="#AAA" FontSize="11"/>
+                                <TextBlock Text="• Her 500 m² için 1 makara" Foreground="#AAA" FontSize="11"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="⚙️  Hesapla" Click="HoseReelCalculate_Click"
+                                Style="{StaticResource FfBtn}" Width="160" Height="34"
+                                HorizontalAlignment="Left" Margin="0,16,0,0"
+                                Background="#E65100"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
+                            CornerRadius="4" Padding="14" Margin="12,0,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="HoseReelResultText"
+                                       Text="Hesap için parametreleri girin ve 'Hesapla' butonuna basın."
+                                       Foreground="#FFA726" FontFamily="Consolas" FontSize="12"
+                                       TextWrapping="Wrap" LineHeight="20"/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ── TAB 4: SU TEMİNİ ANALİZİ ── -->
+            <TabItem Header="💧 Su Talebi Analizi">
+                <Grid Margin="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Su Talebi &amp; Arz Dengesi" FontWeight="Bold" FontSize="13"
+                                   Foreground="#26C6DA" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Talep Değerleri" Foreground="#888" FontSize="11" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Sprinkler Debi (lt/dk):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsDemandSprinkler" Text="0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Hidrant Debi (lt/dk):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsDemandHydrant" Text="0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Hortum Makarası (lt/dk):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsDemandReel" Text="0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+
+                        <Rectangle Height="1" Fill="#333" Margin="0,10"/>
+                        <TextBlock Text="Arz Değerleri" Foreground="#888" FontSize="11" Margin="0,0,0,6"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Şebeke Kapasitesi (lt/dk):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsSupplyFlow" Text="1000" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Şebeke Basıncı (bar):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsSupplyPressure" Text="3.5" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <CheckBox x:Name="WsHasBooster" Content="Güçlendirme Pompası Var" IsChecked="False"
+                                  Margin="0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Pompa Kapasitesi (lt/dk):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsBoosterFlow" Text="0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <TextBlock Text="Pompa Basıncı (bar):" Style="{StaticResource Lbl}"/>
+                            <TextBox x:Name="WsBoosterHead" Text="0" Style="{StaticResource Inp}"/>
+                        </StackPanel>
+
+                        <Button Content="⚙️  Analiz Et" Click="WaterSupplyAnalyze_Click"
+                                Style="{StaticResource FfBtn}" Width="160" Height="34"
+                                HorizontalAlignment="Left" Margin="0,16,0,0"
+                                Background="#00695C"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
+                            CornerRadius="4" Padding="14" Margin="12,0,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="WaterSupplyResultText"
+                                       Text="Sprinkler, Hidrant ve Hortum Makarası hesaplarından elde ettiğiniz debi değerlerini girin."
+                                       Foreground="#26C6DA" FontFamily="Consolas" FontSize="12"
+                                       TextWrapping="Wrap" LineHeight="20"/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- Alt butonlar -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Background="#252535" Margin="0">
+            <Button Content="📄 HTML Rapor" Click="ExportHtml_Click"
+                    Style="{StaticResource FfBtnGreen}" Width="120" Height="32" Margin="8"/>
+            <Button Content="Kapat" Click="Close_Click"
+                    Style="{StaticResource FfBtnGray}" Width="80" Height="32" Margin="0,8,12,8"/>
+        </StackPanel>
     </Grid>
 </Window>
