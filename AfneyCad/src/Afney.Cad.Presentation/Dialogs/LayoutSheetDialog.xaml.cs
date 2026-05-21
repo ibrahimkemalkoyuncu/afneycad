@@ -179,6 +179,36 @@ public partial class LayoutSheetDialog : Window
         Refresh();
     }
 
+    private void TitleBlock_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new TitleBlockDialog(_database) { Owner = this };
+        dialog.ShowDialog();
+        Refresh();
+    }
+
+    private void ExportDxf_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title      = "Pafta DXF Çıktısı",
+            Filter     = "DXF|*.dxf",
+            FileName   = $"AfneyCAD_Pafta_{DateTime.Now:yyyyMMdd}",
+            DefaultExt = ".dxf"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+
+        try
+        {
+            var writer = new Afney.Cad.Infrastructure.Export.DxfWriterService(_database);
+            writer.WriteToFile(dlg.FileName);
+            TxtStatus.Text = $"✅ DXF kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"DXF hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void Refresh_Click(object sender, RoutedEventArgs e) => Refresh();
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 

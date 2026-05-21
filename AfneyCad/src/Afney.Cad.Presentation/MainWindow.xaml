@@ -639,9 +639,11 @@
                                 <Border BorderBrush="#FF6F00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="📷 Ekran Çizimi"   Click="OnViewportCapture"  Style="{StaticResource RbnBtn}" ToolTip="Aktif katı blok olarak yakala ve kaydet"/>
-                                            <Button Content="🔗 Xref Yöneticisi" Click="OnXrefManager"    Style="{StaticResource RbnBtn}" ToolTip="Dış kaynak blokları bağla / ayır"/>
-                                            <Button Content="📄 Pafta Düzeni"   Click="OnLayoutSheet"      Style="{StaticResource RbnBtn}" ToolTip="Kat çizimlerini pafta sayfasına yerleştir · Blok Ekle · Patlat"/>
+                                            <Button Content="📷 Ekran Çizimi"    Click="OnViewportCapture"  Style="{StaticResource RbnBtn}" ToolTip="Aktif katı blok olarak yakala ve kaydet"/>
+                                            <Button Content="🔗 Xref Yöneticisi" Click="OnXrefManager"      Style="{StaticResource RbnBtn}" ToolTip="Dış kaynak blokları bağla / ayır"/>
+                                            <Button Content="📄 Pafta Düzeni"    Click="OnLayoutSheet"      Style="{StaticResource RbnBtn}" ToolTip="Kat çizimlerini pafta sayfasına yerleştir · Blok Ekle · Patlat"/>
+                                            <Button Content="🗒 Antet"           Click="OnTitleBlock"       Style="{StaticResource RbnBtn}" ToolTip="ISO standart antet (title block) ekle"/>
+                                            <Button Content="🔄 Kat Senkron"     Click="OnSyncSystemLayers" Style="{StaticResource RbnBtn}" ToolTip="Mekanik entity katmanlarını sistem tipine göre güncelle"/>
                                         </StackPanel>
                                         <TextBlock Text="Pafta &amp; Çıktı" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
@@ -658,6 +660,22 @@
                                     <StackPanel>
                                         <Button Content="🔎 Zoom Extents" Click="OnZoomExtents" Style="{StaticResource RbnBtn}"/>
                                         <TextBlock Text="Navigasyon" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Sistem Katman Görünürlük Toggle'ları -->
+                                <Border BorderBrush="#FF6F00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="BtnToggleColdWater"  Content="💧 Temiz Su"     Click="OnToggleColdWater"  Style="{StaticResource RbnBtn}" Tag="MEP_TEMIZ_SU"     ToolTip="Temiz su katmanını göster/gizle"/>
+                                            <Button x:Name="BtnToggleHotWater"   Content="🔴 Sıcak Su"     Click="OnToggleHotWater"   Style="{StaticResource RbnBtn}" Tag="MEP_SICAK_SU"     ToolTip="Sıcak su katmanını göster/gizle"/>
+                                            <Button x:Name="BtnToggleWasteWater" Content="🟤 Pis Su"        Click="OnToggleWasteWater" Style="{StaticResource RbnBtn}" Tag="MEP_PIS_SU"       ToolTip="Pis su katmanını göster/gizle"/>
+                                            <Button x:Name="BtnToggleFire"       Content="🔥 Yangın"       Click="OnToggleFire"       Style="{StaticResource RbnBtn}" Tag="MEP_YANGIN"       ToolTip="Yangın sistemini göster/gizle"/>
+                                            <Button x:Name="BtnToggleGas"        Content="💨 Gaz"           Click="OnToggleGas"        Style="{StaticResource RbnBtn}" Tag="MEP_GAZ"          ToolTip="Gaz katmanını göster/gizle"/>
+                                            <Button x:Name="BtnToggleVent"       Content="🌀 Havalandırma" Click="OnToggleVent"       Style="{StaticResource RbnBtn}" Tag="MEP_HAVALANDIRMA" ToolTip="Havalandırma katmanını göster/gizle"/>
+                                            <Button Content="✅ Tümünü Göster"   Click="OnShowAllSystems"  Style="{StaticResource RbnBtn}" ToolTip="Tüm sistem katmanlarını göster"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Sistem Görünürlüğü" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border BorderBrush="#00DDFF" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">

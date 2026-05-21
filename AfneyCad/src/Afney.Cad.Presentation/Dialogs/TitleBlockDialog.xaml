@@ -1,0 +1,168 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.TitleBlockDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Antet Ekle — AfneyCAD"
+        Height="520" Width="500" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2A2A3E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="5,3"/>
+            <Setter Property="Margin" Value="0,3"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="32"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2A2A3E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Margin" Value="0,3"/>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık -->
+        <Border Grid.Row="0" Background="#0D47A1" Padding="14,10">
+            <StackPanel>
+                <TextBlock Text="ANTET (TITLE BLOCK) EKLE" FontSize="14" FontWeight="Bold"/>
+                <TextBlock Text="ISO standart başlık bloğu oluştur ve çizime ekle" FontSize="10" Foreground="#90CAF9"/>
+            </StackPanel>
+        </Border>
+
+        <!-- İçerik -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="12">
+            <StackPanel>
+
+                <!-- Firma / Proje Bilgileri -->
+                <GroupBox Header="Firma &amp; Proje Bilgileri">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Firma Adı:" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtFirma" Text="AfneyCAD Mühendislik"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Proje Adı:" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtProje"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Çizim Adı:" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtCizim" Text="Mekanik Tesisat Planı"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Teknik Bilgiler -->
+                <GroupBox Header="Teknik Bilgiler">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Pafta No:"    VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtPaftaNo" Text="P-01" Margin="0,3,8,3"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Revizyon:"   VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="0" Grid.Column="3" x:Name="TxtRevizyon" Text="A"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ölçek:"      VerticalAlignment="Center"/>
+                        <ComboBox  Grid.Row="1" Grid.Column="1" x:Name="CmbOlcek" Margin="0,3,8,3" IsEditable="True">
+                            <ComboBoxItem Content="1/50" IsSelected="True"/>
+                            <ComboBoxItem Content="1/100"/>
+                            <ComboBoxItem Content="1/200"/>
+                            <ComboBoxItem Content="1/500"/>
+                            <ComboBoxItem Content="1/1000"/>
+                        </ComboBox>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Kağıt:"      VerticalAlignment="Center"/>
+                        <ComboBox  Grid.Row="1" Grid.Column="3" x:Name="CmbKagit">
+                            <ComboBoxItem Content="A3" IsSelected="True"/>
+                            <ComboBoxItem Content="A2"/>
+                            <ComboBoxItem Content="A1"/>
+                            <ComboBoxItem Content="A0"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Tarih:"      VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtTarih" Margin="0,3,8,3"/>
+                        <CheckBox  Grid.Row="2" Grid.Column="2" x:Name="ChkBorder"
+                                   Content="Çerçeve çiz" Foreground="White" IsChecked="True" VerticalAlignment="Center"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Çizen / Kontrol -->
+                <GroupBox Header="Sorumlu Kişiler">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Çizen:"         VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtCizen"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Kontrol Eden:"  VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtKontrol"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Konum -->
+                <GroupBox Header="Yerleştirme Konumu (mm)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="X:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="TxtOriginX" Text="0" Width="70"/>
+                        <TextBlock Text="Y:" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                        <TextBox x:Name="TxtOriginY" Text="0" Width="70"/>
+                        <TextBlock Text="(Antet sol-alt köşesi)" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   Foreground="#666" FontSize="10"/>
+                    </StackPanel>
+                </GroupBox>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Butonlar -->
+        <Border Grid.Row="2" Background="#1B1B2E" Padding="10,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="🗒 Antet Ekle" Click="Insert_Click"
+                        Background="#2E7D32" Margin="0,0,8,0" Width="150"/>
+                <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

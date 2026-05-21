@@ -3282,6 +3282,72 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnTitleBlock(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.TitleBlockDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+                Viewport.InvalidateVisual();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Antet hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnSyncSystemLayers(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.SystemLayerService();
+                int updated = svc.SyncEntityLayers(_database);
+                Viewport.InvalidateVisual();
+                MessageBox.Show(
+                    $"Katman senkronizasyonu tamamlandı.\n{updated} entity güncellendi.",
+                    "Kat Senkron", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Katman senkron hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ── Sistem Katman Toggle Handler'ları ─────────────────────────────────
+        private void OnToggleColdWater(object sender, RoutedEventArgs e)  => ToggleSystemLayer("MEP_TEMIZ_SU",     BtnToggleColdWater);
+        private void OnToggleHotWater(object sender, RoutedEventArgs e)   => ToggleSystemLayer("MEP_SICAK_SU",     BtnToggleHotWater);
+        private void OnToggleWasteWater(object sender, RoutedEventArgs e) => ToggleSystemLayer("MEP_PIS_SU",       BtnToggleWasteWater);
+        private void OnToggleFire(object sender, RoutedEventArgs e)       => ToggleSystemLayer("MEP_YANGIN",       BtnToggleFire);
+        private void OnToggleGas(object sender, RoutedEventArgs e)        => ToggleSystemLayer("MEP_GAZ",          BtnToggleGas);
+        private void OnToggleVent(object sender, RoutedEventArgs e)       => ToggleSystemLayer("MEP_HAVALANDIRMA", BtnToggleVent);
+
+        private void OnShowAllSystems(object sender, RoutedEventArgs e)
+        {
+            Viewport.HiddenLayers.Clear();
+            // Tüm toggle butonlarını "aktif" görünümüne geri al
+            foreach (var btn in new[] { BtnToggleColdWater, BtnToggleHotWater, BtnToggleWasteWater,
+                                         BtnToggleFire, BtnToggleGas, BtnToggleVent })
+            {
+                btn.Opacity = 1.0;
+            }
+            Viewport.InvalidateVisual();
+        }
+
+        private void ToggleSystemLayer(string layerName, System.Windows.Controls.Button btn)
+        {
+            if (Viewport.HiddenLayers.Contains(layerName))
+            {
+                Viewport.HiddenLayers.Remove(layerName);
+                btn.Opacity = 1.0; // görünür
+            }
+            else
+            {
+                Viewport.HiddenLayers.Add(layerName);
+                btn.Opacity = 0.4; // gizli
+            }
+            Viewport.InvalidateVisual();
+        }
+
         private void OnAuditSystem(object sender, RoutedEventArgs e)
         {
             try

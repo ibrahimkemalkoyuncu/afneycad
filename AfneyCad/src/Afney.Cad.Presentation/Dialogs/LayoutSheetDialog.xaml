@@ -140,9 +140,13 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="TxtStatus" Grid.Column="0" VerticalAlignment="Center"
-                           Foreground="#90CAF9" FontSize="10" TextWrapping="Wrap"
-                           Text="⚠ Patlat işlemi yalnızca bir kez yapılmalıdır. İkinci patlatma veri kaybına yol açar."/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="🗒 Antet Ekle" Click="TitleBlock_Click" Background="#5D4037" Margin="0,0,8,0"/>
+                    <Button Content="💾 DXF Çıktı" Click="ExportDxf_Click"  Background="#1B5E20" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TxtStatus" VerticalAlignment="Center"
+                               Foreground="#90CAF9" FontSize="10" TextWrapping="Wrap"
+                               Text="⚠ Patlat işlemi yalnızca bir kez yapılmalıdır."/>
+                </StackPanel>
                 <Button Grid.Column="1" Content="Kapat" Click="Close_Click" Background="#444" Width="80" Margin="0"/>
             </Grid>
         </Border>

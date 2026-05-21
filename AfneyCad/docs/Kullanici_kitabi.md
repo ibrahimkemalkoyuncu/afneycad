@@ -1,5 +1,5 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.7.0 — 21 Mayıs 2026  
+**Sürüm:** v2.8.0 — 21 Mayıs 2026  
 **Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
@@ -595,4 +595,23 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 
 ---
 
-*Son güncelleme: 2026-05-21 | AfneyCAD v2.7.0 — Session #25: Pafta Düzeni + Ekran Çizimi + Xref + Patlat*
+## Session #26 — Antet + Sistem Katman Görünürlüğü + DXF Çıktı
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | SystemLayerService | ✅ | MEP_TEMIZ_SU / MEP_PIS_SU / MEP_YANGIN vb. katman → renk eşleme |
+| 2 | TitleBlockService | ✅ | ISO A0–A4 antet — çerçeve + firma + proje + pafta no + imza hücresi |
+| 3 | TitleBlockDialog | ✅ | Tüm antet alanları + kağıt boyutu + konumlandırma |
+| 4 | Sistem Katman Toggleları | ✅ | Görünüm tab'ı — 6 sistem butonu + Tümünü Göster (opacity ile görsel geri bildirim) |
+| 5 | LayoutSheetDialog — Antet + DXF | ✅ | Antet Ekle ve DXF Çıktı butonları |
+| 6 | Kat Senkron | ✅ | Tüm mekanik entity'lerin katmanını sistem tipine göre günceller |
+
+### Bir Sonraki Session Öncelikleri
+
+1. **Basınç Düşümü Haritası** — Boru hattında renk gradyanı ile basınç dağılımı (viewport overlay)
+2. **Multi-floor Koordinasyon** — Kat tespiti ve çakışma kontrolü (clash detection)
+3. **Raporlama Motoru** — Tüm dialog çıktılarını tek PDF'e birleştirme
+
+---
+
+*Son güncelleme: 2026-05-21 | AfneyCAD v2.8.0 — Session #26: Antet + Sistem Katman + DXF Çıktı*
