@@ -1,0 +1,129 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.DrawingUpdateDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Çizimi Güncelle — AfneyCAD"
+        Height="480" Width="500" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="32"/>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık -->
+        <Border Grid.Row="0" Background="#0D47A1" Padding="14,10">
+            <StackPanel>
+                <TextBlock Text="ÇİZİMİ GÜNCELLE" FontSize="14" FontWeight="Bold"/>
+                <TextBlock Text="Hesap sonuçlarını çizim üzerine yaz" FontSize="10" Foreground="#90CAF9"/>
+            </StackPanel>
+        </Border>
+
+        <!-- İçerik -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="12">
+            <StackPanel>
+
+                <!-- Kapsam -->
+                <GroupBox Header="Kapsam">
+                    <StackPanel>
+                        <RadioButton x:Name="RbAll" Content="Tümünü güncelle (Tüm boru segmentleri)"
+                                     Foreground="White" IsChecked="True" Margin="0,4" GroupName="Scope"/>
+                        <RadioButton x:Name="RbSelected" Content="Seçili borular"
+                                     Foreground="White" Margin="0,4" GroupName="Scope"/>
+                        <RadioButton x:Name="RbWaste" Content="Yalnızca Pis Su / Yağmur Suyu"
+                                     Foreground="White" Margin="0,4" GroupName="Scope"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Çizime yazılacak özellikler -->
+                <GroupBox Header="Çizimde Görünmesi İstenen Özellikler">
+                    <StackPanel>
+                        <CheckBox x:Name="ChkLength"    Content="📏 Uzunluk (m)"          IsChecked="True"/>
+                        <CheckBox x:Name="ChkDiameter"  Content="⭕ Boru Çapı (DN mm)"     IsChecked="True"/>
+                        <CheckBox x:Name="ChkSlope"     Content="📐 Eğim (%)"              IsChecked="True"/>
+                        <CheckBox x:Name="ChkFillRatio" Content="💧 Doluluk Derecesi (%)"  IsChecked="True"/>
+                        <CheckBox x:Name="ChkVelocity"  Content="💨 Akış Hızı (m/s)"      IsChecked="False"/>
+                        <CheckBox x:Name="ChkFlow"      Content="🌊 Debi (l/s)"            IsChecked="False"/>
+                        <CheckBox x:Name="ChkLoadUnits" Content="⚖ Yük Birimi (DU)"       IsChecked="False"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Metin Biçimi -->
+                <GroupBox Header="Metin Biçimi">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Metin Yüksekliği:" VerticalAlignment="Center" Margin="0,4"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="CmbTextHeight" Margin="4,4">
+                            <ComboBoxItem Content="50 mm" IsSelected="True"/>
+                            <ComboBoxItem Content="75 mm"/>
+                            <ComboBoxItem Content="100 mm"/>
+                            <ComboBoxItem Content="150 mm"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Yerleştirme:" VerticalAlignment="Center" Margin="0,4"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1" x:Name="CmbPlacement" Margin="4,4">
+                            <ComboBoxItem Content="Boru Üstü" IsSelected="True"/>
+                            <ComboBoxItem Content="Boru Altı"/>
+                            <ComboBoxItem Content="Boru Ortası"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Renk:" VerticalAlignment="Center" Margin="0,4"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1" x:Name="CmbTextColor" Margin="4,4">
+                            <ComboBoxItem Content="Beyaz" IsSelected="True"/>
+                            <ComboBoxItem Content="Sarı"/>
+                            <ComboBoxItem Content="Açık Mavi"/>
+                        </ComboBox>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Durum -->
+                <Border x:Name="StatusBorder" Background="#0A1A0A" CornerRadius="4"
+                        Padding="10,8" Visibility="Collapsed" BorderBrush="#2E7D32" BorderThickness="1">
+                    <TextBlock x:Name="TxtStatus" TextWrapping="Wrap" Foreground="#A5D6A7" FontSize="11"/>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Butonlar -->
+        <Border Grid.Row="2" Background="#1B1B2E" Padding="10,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="🖊 Otomatik Yerleştirme" Click="AutoPlace_Click"
+                        Background="#2E7D32" Margin="0,0,8,0" Width="180"/>
+                <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -1,5 +1,5 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.5.0 — 21 Mayıs 2026  
+**Sürüm:** v2.6.0 — 21 Mayıs 2026  
 **Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
@@ -556,6 +556,17 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 | 5 | PumpSelectionService.GetAllPumps() | ✅ | `PumpSelectionService.cs` — tüm pompa listesi API |
 | 6 | MainWindow — Oto Boyut + Pompaj Grubu butonları | ✅ | İleri Analiz grubu genişletildi |
 
+## Session #24 — Pis Su Hesap Föyü Tam Entegrasyon
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | WasteWaterCalcSheetService | ✅ | Manning + DU yöntemi, foseptik, pompa, HTML export |
+| 2 | WasteWaterCalcSheetDialog | ✅ | 4-sekme: Hesap Föyü / Devre Seç. / Çukur-Pompa / Keşif |
+| 3 | DrawingUpdateDialog | ✅ | Çizim üzerine etiket yazma — 7 özellik + Otomatik Yerleştirme |
+| 4 | PrintContentDialog | ✅ | Baskı içeriği seçimi + HTML / Word raporu çıktısı |
+| 5 | Kolon Şeması wiring | ✅ | RiserDiagramExportDialog'a bağlandı |
+| 6 | WasteWaterCalcSheetDialog wiring | ✅ | UpdateDrawing + ExportHtml + RiserDiagram butonları bağlandı |
+
 ### Bir Sonraki Session Öncelikleri
 
 1. **Basınç Düşümü Haritası** — Boru hattında renk gradyanı ile basınç dağılımı (viewport overlay)
@@ -565,4 +576,4 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 
 ---
 
-*Son güncelleme: 2026-05-21 | AfneyCAD v2.5.0 — Session #23: BOM Maliyet + Pompaj Grubu + Oto Boyutlandırma + FF Dialog*
+*Son güncelleme: 2026-05-21 | AfneyCAD v2.6.0 — Session #24: Pis Su Hesap Föyü + DrawingUpdate + PrintContent + Kolon Şeması*

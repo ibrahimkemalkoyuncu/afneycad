@@ -255,47 +255,20 @@ public partial class WasteWaterCalcSheetDialog : Window
 
     private void ExportHtml_Click(object sender, RoutedEventArgs e)
     {
-        if (_lastResult is null)
-        {
-            MessageBox.Show("Önce hesapla.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        string html = _svc.ExportToHtml(_lastResult);
-        string path = Path.Combine(Path.GetTempPath(), $"AfneyCAD_HesapFoyu_{DateTime.Now:yyyyMMdd_HHmm}.html");
-        File.WriteAllText(path, html, Encoding.UTF8);
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+        var dialog = new PrintContentDialog(_database, _lastResult) { Owner = this };
+        dialog.ShowDialog();
     }
 
     private void RiserDiagram_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(
-            "Kolon şeması oluşturuluyor...\n\nBu özellik mevcut oturumda ana çizim penceresinden\n'Kolon Şeması → Oluştur' komutuyla da çalıştırılabilir.",
-            "Kolon Şeması",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var dialog = new RiserDiagramExportDialog(_database) { Owner = this };
+        dialog.ShowDialog();
     }
 
     private void UpdateDrawing_Click(object sender, RoutedEventArgs e)
     {
-        if (_lastResult is null)
-        {
-            MessageBox.Show("Önce hesapla.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        int updated = 0;
-        foreach (var row in _lastResult.Rows)
-        {
-            // FlowRate and Velocity already written in CalculateFromDatabase
-            updated++;
-        }
-
-        MessageBox.Show(
-            $"Çizim güncellendi.\n{updated} boru elemanının debi ve hız değerleri güncellendi.",
-            "Çizimi Güncelle",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var dialog = new DrawingUpdateDialog(_database, _lastResult) { Owner = this };
+        dialog.ShowDialog();
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
