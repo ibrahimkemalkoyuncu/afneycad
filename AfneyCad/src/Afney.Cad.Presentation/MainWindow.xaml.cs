@@ -3241,6 +3241,47 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnViewportCapture(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.ViewportCaptureDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ekran Çizimi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnXrefManager(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.XrefManagerDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+                Viewport.InvalidateVisual();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Xref Yöneticisi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnLayoutSheet(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.LayoutSheetDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+                Viewport.InvalidateVisual();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Pafta Düzeni hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnAuditSystem(object sender, RoutedEventArgs e)
         {
             try

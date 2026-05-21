@@ -1,5 +1,5 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.6.0 — 21 Mayıs 2026  
+**Sürüm:** v2.7.0 — 21 Mayıs 2026  
 **Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
@@ -576,4 +576,23 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 
 ---
 
-*Son güncelleme: 2026-05-21 | AfneyCAD v2.6.0 — Session #24: Pis Su Hesap Föyü + DrawingUpdate + PrintContent + Kolon Şeması*
+## Session #25 — Pafta Düzeni ve Çıktı Hazırlama
+
+| # | Özellik | Durum | OTONET Karşılığı |
+|---|---------|-------|-----------------|
+| 1 | FloorSnapshotService | ✅ | Kat tespiti + CaptureToBlock |
+| 2 | ViewportCaptureDialog | ✅ | Ekran Çizimi → blok kaydet |
+| 3 | XrefManagerDialog | ✅ | Dış Kaynak Yöneticisi — Bağla / Ayır |
+| 4 | LayoutSheetDialog | ✅ | Pafta Düzeni — Blok Ekle + Patlat (tek kez kuralı) |
+| 5 | MainWindow — Pafta & Çıktı grubu | ✅ | 3 yeni buton: Ekran Çizimi · Xref · Pafta |
+
+### Bir Sonraki Session Öncelikleri
+
+1. **Basınç Düşümü Haritası** — Boru hattında renk gradyanı ile basınç dağılımı (viewport overlay)
+2. **Antet Şablonu** — Pafta sayfası için firma antet bloğu ekleme
+3. **DXF/DWG Çıktı** — Pafta düzenini DXF olarak dışa aktar
+4. **Multi-floor Koordinasyon** — Kat tespiti ve çakışma kontrolü (clash detection)
+
+---
+
+*Son güncelleme: 2026-05-21 | AfneyCAD v2.7.0 — Session #25: Pafta Düzeni + Ekran Çizimi + Xref + Patlat*
