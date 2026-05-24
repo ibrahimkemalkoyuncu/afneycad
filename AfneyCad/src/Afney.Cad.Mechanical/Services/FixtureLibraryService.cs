@@ -213,6 +213,57 @@ public class FixtureLibraryService
 
     public int GetTotalCount() => _catalog.Count;
 
+    // --- MUTASYON METODLARİ ---
+
+    public void AddOrUpdate(FixtureDefinition def)
+    {
+        var existing = _catalog.FirstOrDefault(f => f.Id.Equals(def.Id, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+            _catalog[_catalog.IndexOf(existing)] = def;
+        else
+            _catalog.Add(def);
+        SaveCatalog();
+    }
+
+    public bool Delete(string id)
+    {
+        var existing = _catalog.FirstOrDefault(f => f.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        if (existing == null) return false;
+        _catalog.Remove(existing);
+        SaveCatalog();
+        return true;
+    }
+
+    public void ResetToDefaults()
+    {
+        LoadDefaults();
+        SaveCatalog();
+    }
+
+    public void ImportJson(string filePath, bool merge = false)
+    {
+        string json = System.IO.File.ReadAllText(filePath);
+        var imported = System.Text.Json.JsonSerializer.Deserialize<List<FixtureDefinition>>(json);
+        if (imported == null || imported.Count == 0) return;
+        if (!merge) _catalog.Clear();
+        foreach (var def in imported)
+        {
+            var existing = _catalog.FirstOrDefault(f => f.Id.Equals(def.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+                _catalog[_catalog.IndexOf(existing)] = def;
+            else
+                _catalog.Add(def);
+        }
+        SaveCatalog();
+    }
+
+    public void ExportJson(string filePath)
+    {
+        var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+        string json = System.Text.Json.JsonSerializer.Serialize(_catalog, options);
+        System.IO.File.WriteAllText(filePath, json);
+    }
+
     /*
        NE: Vitrifiyen'den SanitaryFixtureEntity Oluştur
        NEDEN: Katalogdan seçilen cihazı CAD entity'ye dönüştürmek.

@@ -1,0 +1,62 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.EntityPropertiesDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nesne Özellikleri"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1E1E2E" Foreground="White">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#CCCCEE"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="FontSize" Value="12"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="5,3"/>
+            <Setter Property="Height" Value="28"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="28"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="#90CAF9"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/><Setter Property="Padding" Value="0,4,0,2"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="14,6"/>
+            <Setter Property="Height" Value="32"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="Separator"><Setter Property="Background" Value="#333"/><Setter Property="Margin" Value="0,6,0,6"/></Style>
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+        <!-- Başlık -->
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="TxtEntityIcon" Text="⬜" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <StackPanel>
+                    <TextBlock x:Name="TxtEntityType" Text="Nesne" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                    <TextBlock x:Name="TxtEntityId"   Text="" FontSize="10" Foreground="#557799"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Butonlar -->
+        <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="TxtStatus" Grid.Column="0" Text="" Foreground="#77AA77" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Content="Uygula" Width="80" Click="Apply_Click" Margin="0,0,8,0"/>
+            <Button Grid.Column="2" Content="Tamam"  Width="80" Click="Ok_Click"/>
+            <Button Grid.Column="3" Content="İptal"  Width="80" Margin="8,0,0,0" Click="Cancel_Click" Background="#333"/>
+        </Grid>
+
+        <!-- Scroll içerik -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="PropertiesPanel" Margin="0,0,4,0"/>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

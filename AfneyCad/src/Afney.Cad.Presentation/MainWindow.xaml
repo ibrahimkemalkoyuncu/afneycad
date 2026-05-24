@@ -366,6 +366,12 @@
                                                     <TextBlock Text="Fixture" FontSize="9"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Click="OnManageCatalog" Style="{StaticResource RbnBtn}" ToolTip="Vitrifiye Kataloğunu Yönet (Ekle/Sil/JSON)" Margin="2,0" Width="45">
+                                                <StackPanel>
+                                                    <TextBlock Text="📚" FontSize="14" HorizontalAlignment="Center" Margin="0,2"/>
+                                                    <TextBlock Text="Katalog" FontSize="9"/>
+                                                </StackPanel>
+                                            </Button>
                                         </StackPanel>
                                         <TextBlock Text="Kütüphane" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     </StackPanel>
@@ -463,6 +469,7 @@
                                             <Button Content="🚿 Pis Su" Click="OnWasteWaterDesign" Style="{StaticResource RbnBtn}" ToolTip="Pis Su / Yağmur"/>
                                             <Button Content="🧯 Fosseptik" Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}"/>
                                             <Button Content="📋 Hesap Föyü" Click="OnWasteWaterCalcSheet" Style="{StaticResource RbnBtn}" ToolTip="Segment bazlı Manning hesabı · Foseptik · Pompa · Keşif"/>
+                                            <Button Content="🌧 Yağmur Suyu" Click="OnRainWaterCalc" Style="{StaticResource RbnBtn}" ToolTip="TS EN 12056-3 — Çatı yağmur suyu hesabı"/>
                                         </StackPanel>
                                         <TextBlock Text="Pis Su Modülleri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
@@ -471,6 +478,12 @@
                                     <StackPanel>
                                         <Button Content="🔥 Sprinkler" Click="OnFireFightingDesign" Style="{StaticResource RbnWarn}"/>
                                         <TextBlock Text="Yangın" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#FFDD00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="⛽ Doğalgaz Hesabı" Click="OnGasCalc" Style="{StaticResource RbnBtn}" ToolTip="TS EN 1775 / TS 7363 — Düşük basınç boru boyutlandırma"/>
+                                        <TextBlock Text="Doğalgaz" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
@@ -609,6 +622,8 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="📥 IFC İçeri" Click="OnIfcImportCommand" Style="{StaticResource RbnBtn}" ToolTip="Mimari IFC dosyasını altlık olarak aktar"/>
                                             <Button Content="📤 DXF Dışarı" Click="OnExportDxfCommand" Style="{StaticResource RbnAccent}" ToolTip="Çizimi DXF R12 formatında dışa aktar"/>
+                                            <Button Content="💾 DWG Kaydet" Click="OnExportDwgCommand" Style="{StaticResource RbnBtn}" ToolTip="Çizimi DWG formatında kaydet (ACadSharp)"/>
+                                            <Button Content="📊 Excel (.xlsx)" Click="OnExportExcel" Style="{StaticResource RbnBtn}" ToolTip="Metraj + Hesap Föyleri Excel olarak dışa aktar"/>
                                             <Button Content="🖼️ PNG Kaydet" Click="OnExportPng" Style="{StaticResource RbnBtn}" ToolTip="Viewport'u yüksek çözünürlüklü PNG olarak kaydet"/>
                                         </StackPanel>
                                         <TextBlock Text="Dışa/İçeri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>

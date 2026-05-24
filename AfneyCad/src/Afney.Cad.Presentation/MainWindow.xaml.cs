@@ -95,6 +95,9 @@ namespace Afney.Cad.Presentation
             };
             // ─────────────────────────────────────────────────────────────────────
 
+            // Çift tıkla → Entity Properties
+            Viewport.EntityDoubleClicked += OnEntityDoubleClicked;
+
             // İlk sekmeyi (Boş Proje) oluştur
             CreateNewDocument("Boş Proje");
 
@@ -1703,9 +1706,41 @@ namespace Afney.Cad.Presentation
             MessageBox.Show("Kaydetme özelliği yakında eklenecektir.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void OnSaveAs(object sender, RoutedEventArgs e)
+        private void OnSaveAs(object sender, RoutedEventArgs e) => OnExportDwgCommand(sender, e);
+
+        private void OnExportDwgCommand(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Farklı Kaydet özelliği yakında eklenecektir.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (_database == null) return;
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title      = "DWG Olarak Kaydet",
+                    Filter     = "AutoCAD DWG (*.dwg)|*.dwg|DXF Dosyası (*.dxf)|*.dxf",
+                    FileName   = $"AfneyCAD_{DateTime.Now:yyyyMMdd_HHmm}",
+                    DefaultExt = ".dwg"
+                };
+                if (dlg.ShowDialog() != true) return;
+
+                if (dlg.FileName.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase))
+                {
+                    var dxf = new Afney.Cad.Infrastructure.Export.DxfWriterService(_database);
+                    dxf.WriteToFile(dlg.FileName);
+                }
+                else
+                {
+                    var dwg = new Afney.Cad.Infrastructure.Export.DwgExportService(_database);
+                    dwg.WriteToFile(dlg.FileName);
+                }
+
+                StatusText.Text = $"Kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+                MessageBox.Show($"Dosya başarıyla kaydedildi:\n{dlg.FileName}", "Kaydet",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Kaydetme hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void OnAutoSave(object sender, RoutedEventArgs e)
@@ -2835,13 +2870,27 @@ namespace Afney.Cad.Presentation
         {
             try
             {
-                var dialog = new Dialogs.FixtureLibraryDialog();
-                dialog.Owner = this;
+                var dialog = new Dialogs.FixtureLibraryDialog(_database) { Owner = this };
                 dialog.ShowDialog();
+                Viewport.InvalidateViewport();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Reseptör kütüphanesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnManageCatalog(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var library = new Afney.Cad.Mechanical.Services.FixtureLibraryService();
+                var dialog = new Dialogs.UserFixtureCatalogDialog(library) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Katalog yönetimi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2869,6 +2918,76 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"Hesap Föyü hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnExportExcel(object sender, RoutedEventArgs e)
+        {
+            if (_database == null) return;
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title      = "Excel Çıktısı",
+                    Filter     = "Excel Çalışma Kitabı (*.xlsx)|*.xlsx",
+                    FileName   = $"AfneyCAD_{DateTime.Now:yyyyMMdd_HHmm}",
+                    DefaultExt = ".xlsx"
+                };
+                if (dlg.ShowDialog() != true) return;
+
+                var svc = new Afney.Cad.Infrastructure.Export.ExcelExportService(_database);
+                svc.WriteToFile(dlg.FileName, projectName: "AfneyCAD Projesi");
+
+                StatusText.Text = $"Excel kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+                var ans = MessageBox.Show($"Excel başarıyla kaydedildi.\nDosyayı açmak ister misiniz?",
+                    "Excel Çıktısı", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (ans == MessageBoxResult.Yes)
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Excel export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnEntityDoubleClicked(Afney.Cad.Domain.Abstractions.CadEntity entity)
+        {
+            try
+            {
+                var dialog = new Dialogs.EntityPropertiesDialog(_database, entity) { Owner = this };
+                dialog.EntityChanged += (_, _) => Viewport.InvalidateViewport();
+                dialog.ShowDialog();
+                Viewport.InvalidateViewport();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Özellik paneli hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnRainWaterCalc(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.RainWaterCalcDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Yağmur Suyu Hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnGasCalc(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.GasCalcDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Doğalgaz Hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

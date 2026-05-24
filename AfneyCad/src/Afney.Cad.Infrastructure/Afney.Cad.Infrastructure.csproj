@@ -8,7 +8,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ACadSharp" Version="3.4.2" />
+    <PackageReference Include="ACadSharp"  Version="3.4.2" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
 
   <PropertyGroup>

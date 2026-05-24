@@ -58,6 +58,7 @@ namespace Afney.Cad.Presentation.Views;
         public event Action<string>? OnFeedback;
         public event Action<System.Collections.Generic.IEnumerable<CadEntity>>? SelectionChanged;
         public event Action<bool>? OrthoToggled;
+        public event Action<CadEntity>? EntityDoubleClicked;
 
         public bool IsOrthoEnabled { get; private set; } = false;
 
@@ -686,6 +687,29 @@ namespace Afney.Cad.Presentation.Views;
                 CadCanvas.CaptureMouse();
                 CadCanvas.Cursor = System.Windows.Input.Cursors.Hand;
                 return;
+            }
+
+            if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && _activeCommand == null
+                && _database != null && _lastMouseWorldPos.HasValue)
+            {
+                // Çift tıkla → Entity Properties
+                double ht = 12.0 / Math.Max(0.001, _zoom);
+                var wp = _lastMouseWorldPos.Value;
+                var all = _database.GetAllEntities().ToList();
+                for (int i = all.Count - 1; i >= 0; i--)
+                {
+                    var ent = all[i];
+                    if (HiddenLayers.Contains(ent.Layer)) continue;
+                    var bb = ent.GetBoundingBox();
+                    if (wp.X >= bb.Min.X - ht && wp.X <= bb.Max.X + ht &&
+                        wp.Y >= bb.Min.Y - ht && wp.Y <= bb.Max.Y + ht &&
+                        ent.DistanceTo(wp) < ht)
+                    {
+                        EntityDoubleClicked?.Invoke(ent);
+                        e.Handled = true;
+                        return;
+                    }
+                }
             }
 
             if (e.ChangedButton == MouseButton.Left)

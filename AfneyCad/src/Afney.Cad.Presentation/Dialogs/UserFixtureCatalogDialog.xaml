@@ -1,0 +1,89 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.UserFixtureCatalogDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vitrifiye Kataloğu Yönetimi — AfneyCAD" Height="620" Width="1020"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="RowBackground" Value="#252535"/><Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+            <Setter Property="IsReadOnly" Value="False"/><Setter Property="CanUserAddRows" Value="False"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <!-- Başlık -->
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="📚 Vitrifiye Kataloğu Yönetimi" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  Ekle / Düzenle / Sil / JSON Import-Export" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Alt buton çubuğu -->
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="TxtStatus" Grid.Column="0" Text="" Foreground="#77AA77" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="Kaydet &amp; Kapat" Width="120" Margin="0,0,8,0"
+                        Click="SaveClose_Click" Background="#1B5E20"/>
+                <Button Grid.Column="2" Content="İptal" Width="80" Click="Cancel_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <!-- Araç çubuğu -->
+        <Border DockPanel.Dock="Top" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="+ Yeni Cihaz" Width="110" Click="AddNew_Click" Background="#1B5E20" Margin="0,0,6,0"/>
+                <Button Content="Sil" Width="60" Click="Delete_Click" Background="#B71C1C" Margin="0,0,6,0"/>
+                <Button Content="Çoğalt" Width="80" Click="Duplicate_Click" Margin="0,0,16,0"/>
+                <Button Content="📥 JSON Aktar" Width="110" Click="ImportJson_Click" Background="#4A148C" Margin="0,0,6,0"/>
+                <Button Content="📤 JSON Ver" Width="100" Click="ExportJson_Click" Background="#1A237E" Margin="0,0,16,0"/>
+                <Button Content="Fabrika Varsayılanları" Width="140" Click="ResetDefaults_Click" Background="#37474F"/>
+                <TextBlock x:Name="CountText" Margin="12,0,0,0" Foreground="#AAA" FontSize="11"/>
+            </StackPanel>
+        </Border>
+
+        <!-- DataGrid -->
+        <DataGrid x:Name="CatalogGrid" AutoGenerateColumns="False"
+                  SelectionChanged="CatalogGrid_SelectionChanged"
+                  CellEditEnding="CatalogGrid_CellEditEnding">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID"           Binding="{Binding Id}"               Width="80"/>
+                <DataGridTextColumn Header="İsim (TR)"    Binding="{Binding NameTR}"            Width="170"/>
+                <DataGridTextColumn Header="İsim (EN)"    Binding="{Binding NameEN}"            Width="130"/>
+                <DataGridTextColumn Header="Kategori"     Binding="{Binding Category}"          Width="90"/>
+                <DataGridTextColumn Header="LU"           Binding="{Binding LoadUnit}"          Width="45"/>
+                <DataGridTextColumn Header="Soğuk DN"     Binding="{Binding MinColdWaterDN}"    Width="68"/>
+                <DataGridTextColumn Header="Sıcak DN"     Binding="{Binding MinHotWaterDN}"     Width="68"/>
+                <DataGridTextColumn Header="Pis Su DN"    Binding="{Binding WasteDN}"           Width="68"/>
+                <DataGridTextColumn Header="Q (l/s)"      Binding="{Binding FlowRateLps}"       Width="58"/>
+                <DataGridCheckBoxColumn Header="Sıcak Su" Binding="{Binding RequiresHotWater}"  Width="60"/>
+                <DataGridCheckBoxColumn Header="Hav."     Binding="{Binding RequiresVent}"      Width="45"/>
+                <DataGridTextColumn Header="Gen. (mm)"    Binding="{Binding SymbolWidth}"       Width="65"/>
+                <DataGridTextColumn Header="Der. (mm)"    Binding="{Binding SymbolHeight}"      Width="65"/>
+                <DataGridTextColumn Header="Standart"     Binding="{Binding Standard}"          Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>
