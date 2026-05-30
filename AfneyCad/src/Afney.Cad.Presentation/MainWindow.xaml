@@ -485,6 +485,17 @@
                                         <TextBlock Text="Pis Su Modülleri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
+                                <Border BorderBrush="#4FC3F7" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🏗️ Depo/Hidrofor" Click="OnDepoHidrofor" Style="{StaticResource RbnBtn}" ToolTip="Su deposu hacmi + hidrofor seçimi (TS 1258)"/>
+                                            <Button Content="💧 Su Sayacı" Click="OnWaterMeter" Style="{StaticResource RbnBtn}" ToolTip="Su sayacı DN seçimi"/>
+                                            <Button Content="♻ Genleşme" Click="OnExpansionTank" Style="{StaticResource RbnBtn}" ToolTip="Genleşme tankı hesabı (TS EN 12828)"/>
+                                            <Button Content="🛡 Geri Akış" Click="OnBackflowPreventer" Style="{StaticResource RbnBtn}" ToolTip="Geri akış önleyici (TS EN 1717)"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Tesisat Ekipmanları" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                                 <Border BorderBrush="#FF4444" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
                                     <StackPanel>
                                         <Button Content="🔥 Sprinkler" Click="OnFireFightingDesign" Style="{StaticResource RbnWarn}"/>
@@ -559,6 +570,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="🛡️ Check System" Click="OnAuditSystem" Style="{StaticResource RbnWarn}" ToolTip="Açık uçları ve ters debileri bulur"/>
                                             <Button Content="💥 Çakışma Analizi" Click="OnClashDetectionClick" Style="{StaticResource RbnWarn}" ToolTip="3D Mimar-Tesisat BoundingBox çakışma analizi" Margin="4,0,0,0"/>
+                                            <Button Content="🔗 Topoloji" Click="OnNetworkTopology" Style="{StaticResource RbnWarn}" ToolTip="Döngü · Açık Uç · Kritik Yol analizi" Margin="4,0,0,0"/>
                                         </StackPanel>
                                         <TextBlock Text="Validasyon &amp; Çakışma" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>

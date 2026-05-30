@@ -3183,6 +3183,40 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnNetworkTopology(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.NetworkTopologyDialog(_database) { Owner = this };
+                if (dialog.ShowDialog() == true) Viewport.InvalidateViewport();
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnDepoHidrofor(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.DepoHidroforDialog(_database) { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnWaterMeter(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.WaterMeterDialog(_database) { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnExpansionTank(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.ExpansionTankDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnBackflowPreventer(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.BackflowPreventerDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnPdfExport(object sender, RoutedEventArgs e)
         {
             try

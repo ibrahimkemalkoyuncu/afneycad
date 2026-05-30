@@ -1,0 +1,80 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.BackflowPreventerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🛡 Geri Akış Önleyici — TS EN 1717" Height="460" Width="560"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🛡 Geri Akış Önleyici Seçimi" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  TS EN 1717 / TS EN 13959" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="⚙️ Seç" Width="100" Margin="0,0,8,0" Click="Select_Click" Background="#1B5E20"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+        <StackPanel>
+            <!-- Giriş -->
+            <Border Background="#252535" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Kirlenme Risk Sınıfı (1-5):" Margin="0,3"/>
+                    <ComboBox  Grid.Row="0" Grid.Column="1" x:Name="CboRisk" SelectedIndex="1" Margin="0,3">
+                        <ComboBoxItem Content="Sınıf 1 — İçme suyu (risk yok)"/>
+                        <ComboBoxItem Content="Sınıf 2 — Düşük risk (renk/koku)"/>
+                        <ComboBoxItem Content="Sınıf 3 — Orta risk (zararlı)"/>
+                        <ComboBoxItem Content="Sınıf 4 — Yüksek risk (zehirli)"/>
+                        <ComboBoxItem Content="Sınıf 5 — Radyoaktif/mikrobiyolojik"/>
+                    </ComboBox>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Pik Debi (l/s):" Margin="0,4,0,0"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtFlow" Text="1.0" Margin="0,4,0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Sistem DN:" Margin="0,4,0,0"/>
+                    <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtDN" Text="25" Margin="0,4,0,2"/>
+                </Grid>
+            </Border>
+            <!-- Sonuç -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="10">
+                <StackPanel>
+                    <TextBlock Text="SEÇİM SONUCU" Foreground="#90CAF9" FontWeight="Bold" FontSize="10" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Cihaz Tipi:" Foreground="#90CAF9" Margin="0,3"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ResType" Text="—" FontWeight="Bold" Margin="0,3"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Cihaz Adı:" Foreground="#90CAF9" Margin="0,3"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ResName" Text="—" Margin="0,3" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Açıklama:" Foreground="#90CAF9" Margin="0,3"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ResDesc" Text="—" Margin="0,3" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Kayıp Basınç:" Foreground="#90CAF9" Margin="0,3"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ResDp" Text="—" Margin="0,3"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Standart:" Foreground="#90CAF9" Margin="0,3"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ResStd" Text="—" Margin="0,3"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </DockPanel>
+</Window>
