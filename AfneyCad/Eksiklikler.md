@@ -1,26 +1,73 @@
 # AfneyCAD Geliştirme ve Eksiklik Analizi (Gap Analysis)
 
-Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları ve geliştirilmesi gereken alanları özetlemektedir.
+> **Son güncelleme:** 2026-05-30 — Session #28 sonrası durum  
+> Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
+
+---
 
 ## 1. AutoBUILD (Mimari BIM Modelleme) Eksiklikleri
 
-AutoBUILD, binanın 3B 'kabuğunu' oluşturan modüldür. Mevcut durumdaki eksiklikler:
+| Özellik | Durum | Not |
+|---|---|---|
+| IFC Import (Revit/ArchiCAD) | ✅ **Var** | `IfcImportService` — duvar/döşeme/pencere/kapı, IFC 2x3+4 (Session #20) |
+| IFC Export | ✅ **Var** | `IfcExportService` |
+| Parametrik BIM Nesneleri | ❌ Eksik | `ArchitecturalObstacle` sadece geometrik engel; U-value, malzeme katmanı yok |
+| Akıllı Altlık / DWG→BIM | ❌ Eksik | 2B DWG üzerinden otomatik duvar→3B BIM dönüşümü yok |
+| Geniş Mimari Kütüphane | ❌ Eksik | Kolon / çatı / döşeme / mobilya kütüphanesi ve yerleşim araçları yok |
 
-*   **IFC Import (BIM Verisi İçeri Aktarma):** Şu an sadece dışa aktarım (`IfcExportService`) mevcuttur. Revit, ArchiCAD veya Allplan gibi yazılımlardan gelen IFC dosyalarını içeri aktarıp; duvarları, katları ve pencereleri otomatik olarak tanımlama özelliği eksiktir.
-*   **Parametrik BIM Nesneleri:** Mevcut `ArchitecturalObstacle` yapısı, nesneleri sadece 'geometrik engel' olarak görür. FINE SANI'deki gibi duvarların ısıl geçirgenlik (U-value), katmanlı malzeme yapısı (sıva, tuğla, yalıtım) ve çift tıklandığında açılan parametrik özellik pencereleri eksiktir.
-*   **Akıllı Altlık Yönetimi (Fast-Modeling):** 2B DWG/DXF mimari planlar üzerinden "akıllı seçim" ile saniyeler içinde duvarları 3B BIM nesnesine dönüştüren hızlandırıcı araçlar henüz mevcut değildir.
-*   **Geniş Mimari Kütüphane:** Kolonlar, çatılar, döşemeler ve zengin iç mekan tefrişat (mobilya, bitki vb.) kütüphanesi ve bunların yerleşim araçları eksiktir.
+---
 
 ## 2. ADAPT/FCALC (Hidrolik Hesaplama Motoru) Eksiklikleri
 
-ADAPT/FCALC, tasarım ile hesaplama sayfaları arasındaki çift yönlü köprüdür. Mevcut durumdaki eksiklikler:
+| Özellik | Durum | Not |
+|---|---|---|
+| Bağımsız Hesap Modu (CAD'siz) | ✅ **Var** | `CalculationTableWindow` — Manuel Giriş sekmesi (Session #20) |
+| Çoklu Standart (ASPE/BS/ASHRAE) | ✅ **Var** | `PipeSizer` + `StandardSelectionService` — 4 norm (Session #21) |
+| Pompa/Hidrofor Kapasite | ✅ **Var** | `PumpSelectionService`, `WaterTankService`, `DepoHidroforDialog` |
+| Genleşme Tankı | ✅ **Var** | `ThermalExpansionService` (TS EN 13831) |
+| Su Sayacı Seçimi | ✅ **Var** | `WaterMeterService` (TS EN 14154) |
+| Geri Akış Önleyici | ✅ **Var** | `BackflowPreventerService` (TS EN 1717) |
+| **Geri Besleme Döngüsü** | ⚠️ **Kısmi** | Manuel override çizime anlık yansımıyor; `AutoAnnotationService` var ama çift yönlü sync eksik |
+| Hesap Tablosu Spreadsheet Entegrasyonu | ⚠️ **Kısmi** | Tesisat ekipmanları ayrı dialog'larda; merkezi spreadsheet'e bağlı değil |
 
-*   **Bağımsız (Standalone) Hesap Tablosu Modu:** Mevcut `CalculationTableWindow` tamamen CAD verisine bağımlıdır. ADAPT/FCALC'daki gibi CAD çizimi olmadan, verilerin manuel olarak tabloya girilip ekipman seçimi ve boru çaplandırmasının yapılabildiği "Saf Hesaplama" modu eksiktir.
-*   **Gelişmiş Ekipman Kapasite Hesapları:** Pompa, hidrofor grubu, genleşme tankı ve boyler gibi kritik mekanik ekipmanların kapasite hesaplarının doğrudan ana hesap tablosu (spreadsheet) üzerinden interaktif ve dinamik olarak yönetilmesi eksiktir.
-*   **Geri Besleme Döngüsü (Update Drawing):** Hesap tablosunda manuel olarak 'override' edilen veya optimize edilen verilerin (örn. çap değişimi, vana tipi değişimi) çizimdeki tüm etiketlere (`PipeLabelEntity`) ve 3B modellere hatasız, anlık ve çift yönlü senkronizasyonu geliştirilmelidir.
-*   **Çoklu Standart Desteği:** Mevcut `PipeSizer` TS 1258 / DIN 1988 odaklıdır. Tablo seviyesinde farklı uluslararası standartların (ASPE, BS, ASHRAE vb.) seçilip hesap metodolojisinin anında değiştirilmesi özelliği eksiktir.
+---
 
 ## 3. Mühendislik ve Kullanılabilirlik (Genel)
 
-*   **Zengin Raporlama:** Hesap tablolarının teknik dosya formatında (PDF/Excel) daha detaylı, antetli ve mühendislik imzasına uygun formatta dışa aktarımı geliştirilmelidir.
-*   **Çapraz Kontrol (Validation Gate):** Hesaplama öncesinde sistemdeki açık uçlar, tanımsız çaplar veya mantıksız bağlantılar için "Sistem Doğrulama Sihirbazı" eksiktir.
+| Özellik | Durum | Not |
+|---|---|---|
+| Kolon Şeması (Riser Diagram) | ✅ **Var** | `RiserDiagramExportDialog` — gerçek 3D model verisi (Session #28) |
+| PDF Teknik Rapor | ✅ **Var** | `PdfExportService` — SkiaSharp, 2-sayfalı A4 (Session #28) |
+| Topoloji Analizi | ✅ **Var** | `NetworkTopologyAnalysisService` — döngü/açık uç/kritik yol (Session #28) |
+| Sistem Doğrulama | ✅ **Var** | `DomainGuardService` + `NetworkTopologyDialog` |
+| Vana Kütüphanesi | ✅ **Var** | `ValveLibraryDialog` — boru üstüne snap+split (TS EN 1074, Session #28) |
+| **PDF Antetli Rapor** | ❌ Eksik | Firma logosu + mühendis imzası + proje bilgileri bloğu yok |
+| **Basınç Düşümü Haritası** | ❌ Eksik | Viewport overlay — boru hattında renk gradyanı ile basınç dağılımı |
+| **Çizim ↔ Hesap Senkronu** | ❌ Eksik | Çap override → etiket anlık güncellenmesi tam değil |
+
+---
+
+## 4. Bir Sonraki Session (#29) Öncelikleri
+
+Öncelik sırasına göre:
+
+| # | Özellik | Zorluk | Standart |
+|---|---------|--------|----------|
+| 1 | **Basınç Düşümü Haritası** | Orta | — |
+| 2 | **Hesap Tablosu ↔ Çizim Senkronizasyonu** | Orta | — |
+| 3 | **PDF Antetli Rapor** | Düşük | — |
+| 4 | **3D MEP-MEP Çakışma Tespiti** | Orta | — |
+| 5 | **Doğalgaz Hesap → Hesap Tablosu** | Düşük | TS EN 1775 |
+
+---
+
+## 5. Uzun Vadeli Eksiklikler (Yol Haritası)
+
+| Özellik | Öncelik | Açıklama |
+|---|---|---|
+| Parametrik BIM Nesneleri | Orta | U-value, malzeme katmanı, çift tık özellik penceresi |
+| Akıllı DWG→BIM Dönüşüm | Yüksek | Mimari plan üzerinden otomatik duvar/kat tespiti |
+| Geniş Mimari Kütüphane | Düşük | Kolon/çatı/döşeme/mobilya |
+| Saf ADAPT/FCALC Modu | Orta | Tam bağımsız spreadsheet hesap modu |
+| Çoklu Proje (MDI) | Orta | Birden fazla proje sekmesi aynı anda |
+| Bulut Senkronizasyonu | Düşük | Proje dosyası cloud backup |

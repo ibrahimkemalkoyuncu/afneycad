@@ -614,4 +614,104 @@ AfneyCAD karşılığı — **Kolon Araçları sekmesi:**
 
 ---
 
-*Son güncelleme: 2026-05-21 | AfneyCAD v2.8.0 — Session #26: Antet + Sistem Katman + DXF Çıktı*
+---
+
+## Session #27 — Entity Özellikleri + Excel/DWG Export + Doğalgaz + Duvar Rotalama
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | EntityPropertiesDialog | ✅ | Seçili entity'nin tüm özelliklerini düzenle — Katman, Renk, Çap, Sistem Tipi |
+| 2 | GasCalcDialog (TS EN 1775) | ✅ | Doğalgaz boru hesabı — segment tablosu, Reynolds, Darcy-Weisbach, basınç kaybı |
+| 3 | GasCalcSheetService | ✅ | TS EN 1775 / TS 7363 düşük basınç boru boyutlandırma motoru |
+| 4 | RainWaterCalcDialog | ✅ | TS EN 12056-3 yağmur suyu hesabı — çatı alanı, yoğunluk, gider DN seçimi |
+| 5 | UserFixtureCatalogDialog | ✅ | Vitrifiye kataloğunu CRUD yönet — Ekle/Sil/Çoğalt + JSON İçe/Dışa Aktar |
+| 6 | FixtureLibraryService — mutations | ✅ | `AddOrUpdate`, `Delete`, `ImportJson`, `ExportJson`, `ResetToDefaults` |
+| 7 | WallParallelRouteDialog | ✅ | Duvara paralel boru rotalama — otomatik layer tespiti + manuel koordinat modu |
+| 8 | WallParallelRoutingService | ✅ | Mimari duvar boyunca boru yerleştirme motoru |
+| 9 | FixtureLibraryDialog — CadDatabase entegrasyonu | ✅ | "+ Çizime Ekle" butonu aktif, veritabanına entity yazma |
+| 10 | Excel/DWG Export geliştirmeleri | ✅ | ClosedXML ile geliştirilmiş BOM export |
+
+### OtoNET/FINE MEP Karşılıkları (Session #27)
+
+| OtoNET/FINE MEP | AfneyCAD | Dialog |
+|---|---|---|
+| Nesne Özellikleri (çift tık) | **Entity Özellikleri** | `EntityPropertiesDialog` |
+| Doğalgaz Hesabı modülü | **⛽ Doğalgaz Hesabı** | `GasCalcDialog` |
+| Yağmur Suyu hesap modülü | **🌧 Yağmur Suyu** | `RainWaterCalcDialog` |
+| Armatür katalog düzenleme | **📚 Katalog** | `UserFixtureCatalogDialog` |
+| Duvara paralel boru | **Parallel boru rotalama** | `WallParallelRouteDialog` |
+
+### Bir Sonraki Session Öncelikleri (#28)
+
+1. **Vana Kütüphanesi** — boru üstüne vana yerleştirme, pipe-split (TS EN 1074)
+2. **RiserEngine gerçek veri** — hardcoded veriden kurtulup DB bağlantısı
+3. **PDF Rapor** — SkiaSharp ile sistem özeti + metraj cetveli
+
+---
+
+## Session #28 — Vana Kütüphanesi + RiserEngine + PDF Rapor + Tesisat Ekipmanları + Topoloji
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | ConnectReceptorsService — DB sync fix | ✅ | `HashSet<Guid>` + `newEntitiesMap` ile split-of-split hatası giderildi |
+| 2 | ValveLibraryDialog — boru üstüne yerleştirme | ✅ | Snap + pipe-split + TS EN 1074 standartlı katalog |
+| 3 | RiserDiagramExportDialog — gerçek model verisi | ✅ | `MechanicalKernel.GetRiserSchemas()` ile 3D model → 2D şema |
+| 4 | PdfExportService (SkiaSharp) | ✅ | 2-sayfalı A4 PDF: Sistem Özeti + Metraj Cetveli |
+| 5 | WaterTankService | ✅ | TS 1258 — günlük ihtiyaç, depo hacmi, Walther pik debisi, hidrofor seçimi |
+| 6 | WaterMeterService | ✅ | TS EN 14154 — DN/Qnom/Qmax/Δp katalog tablosu + standart sayaç önerisi |
+| 7 | ThermalExpansionService | ✅ | TS EN 13831 — Δv (IAPWS), genleşme hacmi, precharge basıncı, membran tank seçimi |
+| 8 | BackflowPreventerService | ✅ | TS EN 1717 — risk sınıfı 1-5 → cihaz tipi (DC/CA/BA/AA) + Δp |
+| 9 | NetworkTopologyAnalysisService | ✅ | DFS döngü tespiti, BFS bağlantısız bileşen, Dijkstra kritik yol |
+| 10 | MainWindow crash fix | ✅ | `Viewport.EntityDoubleClicked` wire-up `CreateNewDocument` öncesinden sonrasına taşındı |
+
+### Yeni Dialog'lar (Session #28)
+
+| Dialog | Açıklama | Standart |
+|---|---|---|
+| `ValveLibraryDialog` | Vana kütüphanesi — boruya snap+split ile yerleştirme | TS EN 1074 |
+| `PdfExportDialog` | Proje adı + içerik seçimi + PDF oluşturma | — |
+| `DepoHidroforDialog` | Su deposu hacmi + pik debi + hidrofor seçimi | TS 1258 |
+| `WaterMeterDialog` | Su sayacı DN seçimi — DN15..DN50 katalog | TS EN 14154 |
+| `ExpansionTankDialog` | Genleşme tankı — sistem hacmi + sıcaklık | TS EN 13831 |
+| `BackflowPreventerDialog` | Geri akış önleyici — risk sınıfı → cihaz tipi | TS EN 1717 |
+| `NetworkTopologyDialog` | Döngü / açık uç / kritik yol — "Kritik Yolu Seç" butonu | — |
+
+### OtoNET/FINE MEP Karşılıkları (Session #28)
+
+| OtoNET/FINE MEP | AfneyCAD | Dialog |
+|---|---|---|
+| Vana yerleştirme (boruya bağlı) | **🔧 Vana** → Tesisat tab'ı | `ValveLibraryDialog` |
+| Kolon şeması (3D model → 2D) | **📐 Kolon Şeması** | `RiserDiagramExportDialog` |
+| PDF teknik rapor | **📄 PDF Rapor** | `PdfExportDialog` |
+| Su deposu / Hidrofor seçimi | **🏗️ Depo/Hidrofor** | `DepoHidroforDialog` |
+| Su sayacı DN seçimi | **💧 Su Sayacı** | `WaterMeterDialog` |
+| Genleşme tankı hesabı | **♻ Genleşme** | `ExpansionTankDialog` |
+| Geri akış önleyici | **🛡 Geri Akış** | `BackflowPreventerDialog` |
+| Sistem topoloji raporu | **🔗 Topoloji** | `NetworkTopologyDialog` |
+
+### Bölüm 5 — Özellik Karşılaştırma Tablosu Güncellemesi
+
+Aşağıdaki satırlar Bölüm 5 tablosuna eklenmiştir:
+
+| Özellik | OtoNET/FINE MEP | AfneyCAD v3.0 |
+|---|---|---|
+| Vana Kütüphanesi + Yerleştirme | Var | **Var** (`ValveLibraryDialog`, pipe-split, TS EN 1074) |
+| PDF Teknik Rapor | Var | **Var** (`PdfExportService`, SkiaSharp, A4) |
+| Su Deposu / Hidrofor Seçimi | Var | **Var** (`WaterTankService`, Walther formülü, TS 1258) |
+| Su Sayacı Seçimi | Var | **Var** (`WaterMeterService`, DN15-50, TS EN 14154) |
+| Genleşme Tankı Hesabı | Var | **Var** (`ThermalExpansionService`, IAPWS-IF97, TS EN 13831) |
+| Geri Akış Önleyici | Var | **Var** (`BackflowPreventerService`, Sınıf 1-5, TS EN 1717) |
+| Topoloji Analizi | Var | **Var** (`NetworkTopologyAnalysisService`, DFS+BFS+Dijkstra) |
+| RiserDiagram — Gerçek Model | Var | **Var** (3D → `MechanicalKernel.GetRiserSchemas()` → 2D SVG) |
+
+### Bir Sonraki Session Öncelikleri (#29)
+
+1. **Basınç Düşümü Haritası** — Viewport overlay: boru hattında renk gradyanı ile basınç dağılımı
+2. **Hesap Tablosu ↔ Çizim Senkronizasyonu** — Çap/vana değişikliği çizimdeki etiketlere anlık yazar
+3. **Doğalgaz Hesap Tablosu entegrasyonu** — GasCalcDialog → CalculationTableWindow entegrasyonu
+4. **Antetli PDF** — Firma logosu + mühendis imzası + proje bilgileri bloğu
+5. **3D Çakışma Tespiti geliştirme** — MEP-MEP çakışması (boru-boru, boru-vana)
+
+---
+
+*Son güncelleme: 2026-05-30 | AfneyCAD v3.0.0 — Session #28: Vana · RiserEngine · PDF · Tesisat Ekipmanları · Topoloji*
