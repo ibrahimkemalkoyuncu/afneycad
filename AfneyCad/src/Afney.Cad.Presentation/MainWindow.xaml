@@ -463,6 +463,17 @@
                                         <TextBlock Text="Akıllı Bağlantı" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
+                                <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
+                                    <StackPanel>
+                                        <Button Click="OnValveLibrary" Style="{StaticResource RbnBtn}" ToolTip="Vana Kütüphanesi — Boru üstüne yerleştir (TS EN 1074)" Width="50">
+                                            <StackPanel>
+                                                <TextBlock Text="🔧" FontSize="14" HorizontalAlignment="Center" Margin="0,2"/>
+                                                <TextBlock Text="Vana" FontSize="9"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <TextBlock Text="Vanalar" Foreground="#888" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                                 <Border BorderBrush="#87CEEB" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
@@ -613,6 +624,7 @@
                                             <Button Content="📜 Lejant" Click="OnGenerateLegend" Style="{StaticResource RbnBtn}"/>
                                             <Button Content="📝 Metraj (BOQ)" Click="OnGenerateBOQ_Click" Style="{StaticResource RbnOk}"/>
                                             <Button Content="📋 Şartname" Click="OnSpecificationExport" Style="{StaticResource RbnBtn}"/>
+                                            <Button Content="📄 PDF Rapor" Click="OnPdfExport" Style="{StaticResource RbnBtn}" ToolTip="Sistem Özeti + Metraj PDF çıktısı"/>
                                         </StackPanel>
                                         <TextBlock Text="Listeler" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>

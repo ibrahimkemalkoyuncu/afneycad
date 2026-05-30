@@ -12,15 +12,17 @@ namespace Afney.Cad.Mechanical.Services;
 
 /*
    NE: Armatür Bağlantı Servisi (ConnectReceptorsService)
-   NEDEN: FineSANI'deki "Connect Receptors" özelliğini karşılamak için.
-          Veritabanındaki tüm (veya seçili) armatürleri otomatik algılayıp, her birinin
-          portuna uygun sistem tipindeki en yakın boruya akıllıca bağlar.
+   NEDEN: Veritabanındaki tüm (veya seçili) armatürleri otomatik algılayıp,
+          her birinin portuna uygun sistem tipindeki en yakın boruya akıllıca bağlar.
 
-   NASIL (Mühendislik Detayı — TS 1258 / DIN 1988):
+   NASIL (TS 1258 / DIN 1988):
    1. Her armatürün portları (ColdWater, HotWater, Drainage) listelenir.
    2. Her port için veritabanındaki borular sistem tipi filtresiyle sorgulanır.
-   3. En yakın boru bulunarak AutoBranchingService üzerinden bağlantı kurulur.
-   4. Sonuçlar Transaction-safe olarak döndürülür (Add + Remove listesi).
+   3. En yakın boru seçilir, AutoBranching ile T-parçası ve branşman oluşturulur.
+   4. Bölünen "DB'de orijinal" borular ToRemove'a eklenir.
+      Henüz DB'ye eklenmemiş "yeni oluşmuş" borular bölündüğünde NewEntities'den çıkarılır.
+      Böylece MainWindow'a dönen sonuç tutarlı olur: sadece gerçekten DB'de olan
+      entity'ler ToRemove'da, sadece gerçekten yeni olanlar NewEntities'de.
 */
 public class ConnectReceptorsService
 {
@@ -28,8 +30,6 @@ public class ConnectReceptorsService
     private readonly MechanicalKernel _kernel;
     private readonly AutoBranchingService _branching;
 
-    // Maksimum branşman mesafesi (mm): Bu mesafeyi aşan boru-armatür çiftleri bağlanmaz.
-    // TS 1258 §8.2: Yatay branşman maksimum 3m = 3000mm
     public double MaxBranchDistanceMM { get; set; } = 3000.0;
 
     public ConnectReceptorsService(CadDatabase database, MechanicalKernel kernel)
@@ -39,169 +39,138 @@ public class ConnectReceptorsService
         _branching = new AutoBranchingService(database, kernel);
     }
 
-    /*
-       NE: Bağlantı Sonucu
-       NEDEN: Hangi armatürlerin bağlandığını, hangi yeni nesnelerin oluştuğunu
-              ve hangi nesnelerin kaldırılması gerektiğini raporlamak için.
-    */
     public class ConnectResult
     {
-        public List<CadEntity> NewEntities   { get; set; } = new();
-        public List<CadEntity> ToRemove      { get; set; } = new();  // Bölünen eski borular
-        public int ConnectedCount            { get; set; } = 0;
-        public int SkippedCount              { get; set; } = 0;
-        public List<string> SkipReasons      { get; set; } = new();
+        public List<CadEntity> NewEntities  { get; set; } = [];
+        public List<CadEntity> ToRemove     { get; set; } = [];
+        public int ConnectedCount           { get; set; }
+        public int SkippedCount             { get; set; }
+        public List<string> SkipReasons     { get; set; } = [];
     }
 
-    /*
-       NE: Tüm Armatürleri Bağla (ConnectAll)
-       NEDEN: Tek komutla veritabanındaki tüm bağlantısız armatürleri uygun borulara bağlamak için.
-       
-       ALGORITMA:
-       1. DB'deki tüm SanitaryFixtureEntity nesneleri alınır.
-       2. Her armatür için her port kontrol edilir (ColdWater, HotWater, Drainage).
-       3. Port'un sistem tipine uyan borular filtrelenir + mesafe sınırı uygulanır.
-       4. En yakın boru seçilir, AutoBranching ile bağlantı kurulur.
-    */
     public ConnectResult ConnectAll()
     {
         var fixtures = _database.GetAllEntities()
             .OfType<SanitaryFixtureEntity>()
             .ToList();
-
         return ConnectFixtures(fixtures);
     }
 
-    /*
-       NE: Seçili Armatürleri Bağla (ConnectSelected)
-       NEDEN: Kullanıcının seçtiği armatürleri bağlayarak bölgesel kontrol sağlamak için.
-    */
     public ConnectResult ConnectSelected(IEnumerable<SanitaryFixtureEntity> fixtures)
-    {
-        return ConnectFixtures(fixtures.ToList());
-    }
+        => ConnectFixtures(fixtures.ToList());
 
-    // ── Core Implementation ──────────────────────────────────────────────────────
+    // ── Core ────────────────────────────────────────────────────────────────────
 
     private ConnectResult ConnectFixtures(List<SanitaryFixtureEntity> fixtures)
     {
         var result = new ConnectResult();
-        if (!fixtures.Any()) return result;
+        if (fixtures.Count == 0) return result;
 
-        // Borular listesini bir kez al (performans için)
-        var allPipes = _database.GetAllEntities()
-            .OfType<PipeEntity>()
-            .ToList();
-
-        if (!allPipes.Any())
+        var allPipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
+        if (allPipes.Count == 0)
         {
             result.SkipReasons.Add("Veritabanında boru bulunamadı. Önce tesisat çizin.");
             return result;
         }
 
-        // Her armatür için bağlantı kur
+        // Hangi boru ID'lerinin gerçekten DB'de olduğunu takip et.
+        // Bölünen yeni borular bu sette olmaz → ToRemove'a gitmez, NewEntities'den silinir.
+        var dbEntityIds = new HashSet<Guid>(allPipes.Select(p => p.Id));
+
+        // Yeni oluşturulan tüm entity'leri ID → entity eşlemesiyle tut.
+        // Bir entity hem oluşturulup hem sonradan bölünürse dict'ten silinerek temizlenir.
+        var newEntitiesMap = new Dictionary<Guid, CadEntity>();
+
         foreach (var fixture in fixtures)
         {
-            var ports = fixture.GetPorts();
-            foreach (var port in ports)
+            foreach (var port in fixture.GetPorts())
             {
-                // 1. Port'un sistem tipini belirle
                 var targetSystem = PortNameToSystemType(port.Name);
                 if (targetSystem == MechanicalSystemType.Undefined)
                 {
-                    result.SkipReasons.Add($"{fixture.FixtureType} / Port '{port.Name}': Sistem tipi belirlenemedi.");
+                    result.SkipReasons.Add($"{fixture.FixtureType}/{port.Name}: sistem tipi belirlenemedi.");
                     result.SkippedCount++;
                     continue;
                 }
 
-                // 2. Uygun boruları filtrele (sistem tipi + mesafe)
                 var candidate = FindNearestCompatiblePipe(port.Position, targetSystem, allPipes);
                 if (candidate == null)
                 {
-                    result.SkipReasons.Add($"{fixture.FixtureType} / Port '{port.Name}': {MaxBranchDistanceMM/1000:F1}m yarıçapında {targetSystem} hattı bulunamadı.");
+                    result.SkipReasons.Add(
+                        $"{fixture.FixtureType}/{port.Name}: {MaxBranchDistanceMM / 1000:F1}m yarıçapında {targetSystem} hattı bulunamadı.");
                     result.SkippedCount++;
                     continue;
                 }
 
-                // 3. Branşman bağlantısını kur (AutoBranchingService delegate)
                 try
                 {
                     var branchResult = _branching.CreateBranchConnectionPublic(port.Position, candidate, port);
-
-                    if (branchResult.NewEntities.Any())
+                    if (!branchResult.NewEntities.Any())
                     {
-                        result.NewEntities.AddRange(branchResult.NewEntities);
-                        result.ToRemove.AddRange(branchResult.RemovedEntities);
-                        result.ConnectedCount++;
-
-                        // Bölünen boruyu aktif listeden kaldır
-                        // (Bir sonraki portun aynı boruyu tekrar hedef almaması için)
-                        allPipes.Remove(candidate);
-
-                        // Yeni oluşan paralel boru segmentlerini listeye ekle
-                        var newSegments = branchResult.NewEntities.OfType<PipeEntity>()
-                            .Where(p => IsSameDirection(p, candidate))
-                            .ToList();
-                        allPipes.AddRange(newSegments);
-
-                        Serilog.Log.Information(
-                            "[ConnectReceptors] {Fixture} / {Port} → {System} BranchOK ({Count} yeni parça)",
-                            fixture.FixtureType, port.Name, targetSystem, branchResult.NewEntities.Count);
-                    }
-                    else
-                    {
-                        result.SkipReasons.Add($"{fixture.FixtureType} / Port '{port.Name}': Branşman noktası boru üzerinde değil.");
+                        result.SkipReasons.Add($"{fixture.FixtureType}/{port.Name}: branşman noktası boru üzerinde değil.");
                         result.SkippedCount++;
+                        continue;
                     }
+
+                    // 1. Candidate artık bölündü → working listeden çıkar
+                    allPipes.Remove(candidate);
+
+                    // 2. Candidate DB'deydi → ToRemove; yoksa (daha önce yeni oluşmuştu) → NewEntities'den sil
+                    if (dbEntityIds.Contains(candidate.Id))
+                        result.ToRemove.Add(candidate);
+                    else
+                        newEntitiesMap.Remove(candidate.Id);
+
+                    // 3. Tüm yeni entity'leri kaydet
+                    foreach (var ent in branchResult.NewEntities)
+                        newEntitiesMap[ent.Id] = ent;
+
+                    // 4. Yeni boru segmentlerini (aynı yönde olanlar) working listesine ekle
+                    var newSegments = branchResult.NewEntities
+                        .OfType<PipeEntity>()
+                        .Where(p => IsSameDirection(p, candidate))
+                        .ToList();
+                    allPipes.AddRange(newSegments);
+
+                    result.ConnectedCount++;
+                    Serilog.Log.Information(
+                        "[ConnectReceptors] {F}/{P} → {S} OK ({N} yeni parça)",
+                        fixture.FixtureType, port.Name, targetSystem, branchResult.NewEntities.Count);
                 }
                 catch (Exception ex)
                 {
-                    result.SkipReasons.Add($"{fixture.FixtureType} / Port '{port.Name}': Hata — {ex.Message}");
+                    result.SkipReasons.Add($"{fixture.FixtureType}/{port.Name}: {ex.Message}");
                     result.SkippedCount++;
                 }
             }
         }
 
+        result.NewEntities = [.. newEntitiesMap.Values];
+
         Serilog.Log.Information(
-            "[ConnectReceptors] Tamamlandı: {Ok} bağlantı başarılı, {Skip} atlandı.",
-            result.ConnectedCount, result.SkippedCount);
+            "[ConnectReceptors] Tamamlandı: {Ok} bağlantı, {Skip} atlandı, {New} yeni entity, {Rem} kaldırılacak.",
+            result.ConnectedCount, result.SkippedCount, result.NewEntities.Count, result.ToRemove.Count);
 
         return result;
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
-    /*
-       NE: En Yakın Uyumlu Boruyu Bul (FindNearestCompatiblePipe)
-       NEDEN: Port konumuna en yakın ve sistem tipine uygun boruyu MaxBranchDistance içinden seçmek için.
-    */
     private PipeEntity? FindNearestCompatiblePipe(
-        Vector3D portPos,
-        MechanicalSystemType targetSystem,
-        List<PipeEntity> pipes)
+        Vector3D portPos, MechanicalSystemType targetSystem, List<PipeEntity> pipes)
     {
         PipeEntity? best = null;
         double minDist = double.MaxValue;
-
         foreach (var pipe in pipes)
         {
             if (pipe.SystemType != targetSystem) continue;
-
             double dist = DistanceToSegment(portPos, pipe.StartPoint, pipe.EndPoint);
-            if (dist < minDist && dist <= MaxBranchDistanceMM)
-            {
-                minDist = dist;
-                best = pipe;
-            }
+            if (dist < minDist && dist <= MaxBranchDistanceMM) { minDist = dist; best = pipe; }
         }
-
         return best;
     }
 
-    /*
-       NE: Nokta - Segment Mesafesi
-    */
-    private double DistanceToSegment(Vector3D p, Vector3D s, Vector3D e)
+    private static double DistanceToSegment(Vector3D p, Vector3D s, Vector3D e)
     {
         var v = e - s;
         var w = p - s;
@@ -211,26 +180,20 @@ public class ConnectReceptorsService
         double b = c1 / c2;
         if (b < 0) return p.DistanceTo(s);
         if (b > 1) return p.DistanceTo(e);
-        return p.DistanceTo(s + (v * b));
+        return p.DistanceTo(s + v * b);
     }
 
-    /*
-       NE: Port Adından Sistem Tipi Belirle
-    */
-    private MechanicalSystemType PortNameToSystemType(string portName) => portName switch
+    private static MechanicalSystemType PortNameToSystemType(string portName) => portName switch
     {
-        "ColdWater"                        => MechanicalSystemType.DomesticColdWater,
-        "HotWater"                         => MechanicalSystemType.DomesticHotWater,
-        "Drainage"  or "Waste"             => MechanicalSystemType.WasteWater,
-        _                                  => MechanicalSystemType.Undefined
+        "ColdWater"             => MechanicalSystemType.DomesticColdWater,
+        "HotWater"              => MechanicalSystemType.DomesticHotWater,
+        "Drainage" or "Waste"   => MechanicalSystemType.WasteWater,
+        _                       => MechanicalSystemType.Undefined
     };
 
-    /*
-       NE: Boru Yönlerinin Eşitliğini Kontrol Et
-    */
-    private bool IsSameDirection(PipeEntity p, PipeEntity reference)
+    private static bool IsSameDirection(PipeEntity p, PipeEntity reference)
     {
-        var d1 = (p.EndPoint         - p.StartPoint).Normalize();
+        var d1 = (p.EndPoint - p.StartPoint).Normalize();
         var d2 = (reference.EndPoint - reference.StartPoint).Normalize();
         return Math.Abs(Math.Abs(d1.Dot(d2)) - 1.0) < 0.01;
     }

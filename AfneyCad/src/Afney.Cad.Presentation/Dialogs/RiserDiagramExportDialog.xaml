@@ -1,25 +1,86 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.RiserDiagramExportDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="📐 Kolon Şeması (Riser Diagram) — AfneyCAD" Height="500" Width="650"
+        Title="📐 Kolon Şeması (Riser Diagram) — AfneyCAD" Height="540" Width="680"
         WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White">
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="KOLON ŞEMASI OLUŞTURMA" FontSize="18" FontWeight="Bold" Foreground="#AADDFF" Margin="0,0,0,15"/>
-        <StackPanel Grid.Row="1">
-            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Kat Sayısı:" Width="120"/><TextBox x:Name="FloorCountInput" Width="60" Text="5" Background="#333" Foreground="White"/></StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Kat Yüks. (mm):" Width="120"/><TextBox x:Name="FloorHeightInput" Width="60" Text="3000" Background="#333" Foreground="White"/></StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Branş DN:" Width="120"/><TextBox x:Name="BranchDNInput" Width="60" Text="32" Background="#333" Foreground="White"/></StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,10">
-                <Button Content="🖼️ SVG Oluştur ve Aç" Click="ExportSvg_Click" Width="180" Height="32" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="12">
+        <!-- Başlık -->
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="📐 Kolon Şeması Oluşturma" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  3D Model → 2D Riser Diagram SVG" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
+        </Border>
+
+        <!-- Alt buton çubuğu -->
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="🖼️ SVG Oluştur ve Aç" Width="160" Margin="0,0,8,0"
+                        Click="ExportSvg_Click" Background="#1B5E20"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <StackPanel>
+            <!-- Modelden Tespit -->
+            <Border Background="#252535" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="3D MODELDEN TESPİT" Foreground="#90CAF9" FontWeight="Bold" FontSize="11" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Kolon:" Margin="0,0,8,0"/>
+                        <ComboBox Grid.Column="1" x:Name="RiserCombo" SelectionChanged="RiserCombo_SelectionChanged"/>
+                        <Button Grid.Column="2" Content="🔄 Yenile" Width="70" Margin="8,0,0,0" Click="RefreshRisers_Click" Background="#4A148C"/>
+                    </Grid>
+                    <TextBlock x:Name="RiserInfoText" Text="— Kolon bulunamadı; manuel mod aktif —"
+                               Foreground="#667" FontSize="10" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Manuel Fallback -->
+            <Border x:Name="ManualPanel" Background="#252535" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="MANUEL GİRİŞ (Kolon tespit edilemediğinde)" Foreground="#90CAF9" FontWeight="Bold" FontSize="11" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="80"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Kat Sayısı:"/>
+                        <TextBox   Grid.Row="0" Grid.Column="1" x:Name="FloorCountInput" Text="5" Margin="0,2,0,2"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Kat Yüksekliği (mm):" Margin="0,4,0,0"/>
+                        <TextBox   Grid.Row="1" Grid.Column="1" x:Name="FloorHeightInput" Text="3000" Margin="0,4,0,2"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Branş DN (mm):" Margin="0,4,0,0"/>
+                        <TextBox   Grid.Row="2" Grid.Column="1" x:Name="BranchDNInput" Text="32" Margin="0,4,0,2"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </StackPanel>
-        <TextBlock Grid.Row="2" x:Name="StatusText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,10"/>
-        <Button Grid.Row="3" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
-    </Grid>
+    </DockPanel>
 </Window>

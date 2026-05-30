@@ -2880,6 +2880,20 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnValveLibrary(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.ValveLibraryDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+                Viewport.InvalidateViewport();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Vana kütüphanesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnManageCatalog(object sender, RoutedEventArgs e)
         {
             try
@@ -3169,11 +3183,24 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnPdfExport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.PdfExportDialog(_database) { Owner = this };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"PDF çıktı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnRiserDiagramExport(object sender, RoutedEventArgs e)
         {
             try
             {
-                var dialog = new Dialogs.RiserDiagramExportDialog(_database);
+                var dialog = new Dialogs.RiserDiagramExportDialog(_database, _mechanicalKernel);
                 dialog.Owner = this;
                 dialog.ShowDialog();
             }
