@@ -95,11 +95,11 @@ namespace Afney.Cad.Presentation
             };
             // ─────────────────────────────────────────────────────────────────────
 
-            // Çift tıkla → Entity Properties
-            Viewport.EntityDoubleClicked += OnEntityDoubleClicked;
-
             // İlk sekmeyi (Boş Proje) oluştur
             CreateNewDocument("Boş Proje");
+
+            // Çift tıkla → Entity Properties (ActiveContext hazır olduktan sonra bağla)
+            Viewport.EntityDoubleClicked += OnEntityDoubleClicked;
 
             // Auto-Save Servisini Bağla (Aktif context'in db'si üzerine her 5 dakikada bir)
             _autoSaveService = new Afney.Cad.Presentation.Services.AutoSaveService(ActiveContext.Database, TimeSpan.FromMinutes(5));
