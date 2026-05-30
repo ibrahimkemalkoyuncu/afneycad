@@ -42,6 +42,7 @@ namespace Afney.Cad.Presentation
         private System.Collections.ObjectModel.ObservableCollection<CadDocumentContext> _documents = new System.Collections.ObjectModel.ObservableCollection<CadDocumentContext>();
         private CadDocumentContext? _activeContext;
         private Afney.Cad.Presentation.Services.AutoSaveService? _autoSaveService;
+        private readonly Afney.Cad.Mechanical.Services.PressureMapService _pressureMapService = new();
 
         public CadDocumentContext ActiveContext
         {
@@ -2825,18 +2826,19 @@ namespace Afney.Cad.Presentation
                 var dialog = new Dialogs.CalculationTableWindow(_database, pressureService);
                 dialog.Owner = this;
 
-                // DN değişince boru etiketlerini ve izometrik şemayı güncelle
+                // DN değişince → DrawingSyncService ile o borunun etiketini güncelle
+                var syncService = new Afney.Cad.Mechanical.Services.DrawingSyncService(_database);
                 dialog.PipeDN_Changed += (pipeId, newDN) =>
                 {
                     try
                     {
-                        var labeler = new Afney.Cad.Mechanical.Services.AutoPipeLabeler(_database);
-                        labeler.LabelAllPipes();
+                        syncService.SyncPipeLabel(pipeId, newDN);
                         _activeContext?.Viewport.InvalidateViewport();
+                        StatusText.Text = $"✓ Çizim güncellendi: {pipeId} → DN{newDN:F0}";
                     }
                     catch (Exception labelEx)
                     {
-                        Serilog.Log.Warning(labelEx, "AutoPipeLabeler DN güncellemesi sırasında hata.");
+                        Serilog.Log.Warning(labelEx, "DrawingSyncService DN güncellemesi sırasında hata.");
                     }
                 };
 
@@ -3180,6 +3182,38 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"Şartname hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnPressureMapToggle(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_pressureMapService.IsActive)
+                {
+                    _pressureMapService.Restore(_database);
+                    if (BtnPressureMap != null)
+                        BtnPressureMap.Background = System.Windows.Media.Brushes.SteelBlue;
+                    StatusText.Text = "Basınç haritası kapatıldı.";
+                }
+                else
+                {
+                    int count = _pressureMapService.Apply(_database);
+                    if (count == 0)
+                    {
+                        StatusText.Text = "⚠ Basınç verisi yok — önce hesaplama yapın (Hesapla / Sistem Analizi).";
+                        return;
+                    }
+                    var summary = _pressureMapService.GetSummary(_database);
+                    if (BtnPressureMap != null)
+                        BtnPressureMap.Background = System.Windows.Media.Brushes.OrangeRed;
+                    StatusText.Text = $"🌡️ Basınç Haritası: max={summary.MaxPressureDropM:F4} mSS · ort={summary.AvgPressureDropM:F4} mSS · {summary.CriticalPipeCount} kritik boru";
+                }
+                Viewport.InvalidateViewport();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

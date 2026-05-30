@@ -571,6 +571,7 @@
                                             <Button Content="🛡️ Check System" Click="OnAuditSystem" Style="{StaticResource RbnWarn}" ToolTip="Açık uçları ve ters debileri bulur"/>
                                             <Button Content="💥 Çakışma Analizi" Click="OnClashDetectionClick" Style="{StaticResource RbnWarn}" ToolTip="3D Mimar-Tesisat BoundingBox çakışma analizi" Margin="4,0,0,0"/>
                                             <Button Content="🔗 Topoloji" Click="OnNetworkTopology" Style="{StaticResource RbnWarn}" ToolTip="Döngü · Açık Uç · Kritik Yol analizi" Margin="4,0,0,0"/>
+                                            <Button x:Name="BtnPressureMap" Content="🌡️ Basınç Haritası" Click="OnPressureMapToggle" Style="{StaticResource RbnBtn}" ToolTip="Boru hattında basınç düşümü ısı haritası — yeşil&gt;sarı&gt;kırmızı" Margin="4,0,0,0"/>
                                         </StackPanel>
                                         <TextBlock Text="Validasyon &amp; Çakışma" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>

@@ -23,16 +23,32 @@ public class PdfExportService
 
     public PdfExportService(CadDatabase database) { _database = database; }
 
+    // ── Antet Bilgileri ──────────────────────────────────────────────────────────
+
+    public class TitleBlockInfo
+    {
+        public string FirmaAdi       { get; set; } = "";
+        public string MuhendisAdi    { get; set; } = "";
+        public string MuhendisUnvan  { get; set; } = "İnş. Müh.";
+        public string ProjeNo        { get; set; } = "";
+        public string ProjeAdi       { get; set; } = "";
+        public string Revizyon       { get; set; } = "Rev.0";
+        public string Tarih          { get; set; } = DateTime.Now.ToString("dd.MM.yyyy");
+        public string Adres          { get; set; } = "";
+        public string OnayCizdiren   { get; set; } = "";
+        public string OnayKontrolEden { get; set; } = "";
+    }
+
     // ── Public API ───────────────────────────────────────────────────────────────
 
-    public string ExportReport(string projectName = "AfneyCAD Projesi")
+    public string ExportReport(string projectName = "AfneyCAD Projesi", TitleBlockInfo? titleBlock = null)
     {
         string path = Path.Combine(Path.GetTempPath(), $"AfneyCAD_Rapor_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
         using var stream = new SKFileWStream(path);
         using var doc    = SKDocument.CreatePdf(stream);
 
-        DrawReportPage(doc, projectName);
-        DrawBoqPage(doc);
+        DrawReportPage(doc, projectName, titleBlock);
+        DrawBoqPage(doc, titleBlock);
 
         doc.Close();
         return path;
@@ -40,12 +56,13 @@ public class PdfExportService
 
     // ── Sayfa 1: Sistem Özeti ────────────────────────────────────────────────────
 
-    private void DrawReportPage(SKDocument doc, string projectName)
+    private void DrawReportPage(SKDocument doc, string projectName, TitleBlockInfo? tb)
     {
         using var canvas = doc.BeginPage(PageW, PageH);
 
         float y = Margin;
         y = DrawHeader(canvas, projectName, y);
+        if (tb != null) y = DrawTitleBlock(canvas, tb, y);
         y += 14;
 
         // Sistem Özet Tablosu
@@ -93,12 +110,13 @@ public class PdfExportService
 
     // ── Sayfa 2: Metraj Cetveli ──────────────────────────────────────────────────
 
-    private void DrawBoqPage(SKDocument doc)
+    private void DrawBoqPage(SKDocument doc, TitleBlockInfo? tb = null)
     {
         using var canvas = doc.BeginPage(PageW, PageH);
 
         float y = Margin;
         y = DrawHeader(canvas, "Metraj Cetveli", y);
+        if (tb != null) y = DrawTitleBlock(canvas, tb, y);
         y += 10;
 
         // Tablo Başlıkları
@@ -203,6 +221,43 @@ public class PdfExportService
         for (int i = 0; i < cells.Length; i++)
             c.DrawText(cells[i], cols[i] + 3, y + 12, font, paint);
         return y + 16;
+    }
+
+    private static float DrawTitleBlock(SKCanvas c, TitleBlockInfo tb, float y)
+    {
+        // İnce kenarlıklı antet kutusu
+        float bx = Margin, bw = PageW - 2 * Margin, bh = 56f;
+        using var border = new SKPaint { Color = new SKColor(80, 120, 180), StrokeWidth = 0.8f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        using var bg     = new SKPaint { Color = new SKColor(18, 30, 50), IsAntialias = true };
+        c.DrawRect(bx, y, bw, bh, bg);
+        c.DrawRect(bx, y, bw, bh, border);
+
+        // Sol sütun: Firma + Mühendis
+        using var boldPaint = new SKPaint { Color = new SKColor(144, 202, 249), IsAntialias = true,
+            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+        using var normPaint = new SKPaint { Color = new SKColor(200, 210, 220), IsAntialias = true };
+        using var bf = new SKFont(boldPaint.Typeface, 9);
+        using var nf = new SKFont(normPaint.Typeface, 8);
+
+        c.DrawText(tb.FirmaAdi,    bx + 6, y + 14, bf, boldPaint);
+        c.DrawText($"Müh: {tb.MuhendisAdi} ({tb.MuhendisUnvan})", bx + 6, y + 26, nf, normPaint);
+        c.DrawText($"Adres: {tb.Adres}",    bx + 6, y + 37, nf, normPaint);
+
+        // Orta sütun: Proje
+        float mx = bx + bw * 0.42f;
+        c.DrawText(tb.ProjeAdi,   mx, y + 14, bf, boldPaint);
+        c.DrawText($"Proje No: {tb.ProjeNo}", mx, y + 26, nf, normPaint);
+
+        // Sağ sütun: Rev + Tarih + İmza
+        float rx = bx + bw * 0.72f;
+        using var divPaint = new SKPaint { Color = new SKColor(80, 120, 180), StrokeWidth = 0.5f, Style = SKPaintStyle.Stroke };
+        c.DrawLine(rx - 4, y, rx - 4, y + bh, divPaint);
+        c.DrawText($"Rev: {tb.Revizyon}",        rx, y + 12, nf, normPaint);
+        c.DrawText($"Tarih: {tb.Tarih}",         rx, y + 23, nf, normPaint);
+        c.DrawText($"Çizen: {tb.OnayCizdiren}",  rx, y + 34, nf, normPaint);
+        c.DrawText($"Kont.: {tb.OnayKontrolEden}", rx, y + 45, nf, normPaint);
+
+        return y + bh + 8;
     }
 
     private static void DrawFooter(SKCanvas c, int page)
