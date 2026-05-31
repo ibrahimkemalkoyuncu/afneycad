@@ -1,73 +1,63 @@
 # AfneyCAD Geliştirme ve Eksiklik Analizi (Gap Analysis)
 
-> **Son güncelleme:** 2026-05-30 — Session #28 sonrası durum  
+> **Son güncelleme:** 2026-05-31 — Session #30 sonrası durum  
 > Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
 
 ---
 
-## 1. AutoBUILD (Mimari BIM Modelleme) Eksiklikleri
+## 1. AutoBUILD (Mimari BIM Modelleme)
 
 | Özellik | Durum | Not |
 |---|---|---|
-| IFC Import (Revit/ArchiCAD) | ✅ **Var** | `IfcImportService` — duvar/döşeme/pencere/kapı, IFC 2x3+4 (Session #20) |
+| IFC Import (Revit/ArchiCAD) | ✅ **Var** | `IfcImportService` — IFC 2x3+4 (Session #20) |
 | IFC Export | ✅ **Var** | `IfcExportService` |
-| Parametrik BIM Nesneleri | ❌ Eksik | `ArchitecturalObstacle` sadece geometrik engel; U-value, malzeme katmanı yok |
-| Akıllı Altlık / DWG→BIM | ❌ Eksik | 2B DWG üzerinden otomatik duvar→3B BIM dönüşümü yok |
-| Geniş Mimari Kütüphane | ❌ Eksik | Kolon / çatı / döşeme / mobilya kütüphanesi ve yerleşim araçları yok |
+| Parametrik BIM Nesneleri | ✅ **Var** | `ArchitecturalObstacle` + `BimMaterialLayer` — U-değeri (ISO 6946), yangın (TS EN 13501-1), ses yalıtımı · `BimPropertiesDialog` (Session #30) |
+| Akıllı DWG→BIM Dönüşüm | ✅ **Var** | `SmartBimConverterService` + `SmartBimConverterDialog` — LineEntity → ArchitecturalObstacle (Session #30) |
+| Geniş Mimari Kütüphane | ✅ **Var** | `ArchitecturalLibraryService` — 20+ nesne: kolon/döşeme/çatı/mobilya/ekipman · `ArchitecturalLibraryDialog` (Session #30) |
 
 ---
 
-## 2. ADAPT/FCALC (Hidrolik Hesaplama Motoru) Eksiklikleri
+## 2. ADAPT/FCALC (Hidrolik Hesaplama Motoru)
 
 | Özellik | Durum | Not |
 |---|---|---|
-| Bağımsız Hesap Modu (CAD'siz) | ✅ **Var** | `CalculationTableWindow` — Manuel Giriş sekmesi (Session #20) |
+| Bağımsız Hesap Modu (CAD'siz) | ✅ **Var** | Manuel Giriş sekmesi + JSON kaydet/yükle + Excel export (Session #30) |
 | Çoklu Standart (ASPE/BS/ASHRAE) | ✅ **Var** | `PipeSizer` + `StandardSelectionService` — 4 norm (Session #21) |
-| Pompa/Hidrofor Kapasite | ✅ **Var** | `PumpSelectionService`, `WaterTankService`, `DepoHidroforDialog` |
+| Pompa/Hidrofor Kapasite | ✅ **Var** | `WaterTankService`, `DepoHidroforDialog` |
 | Genleşme Tankı | ✅ **Var** | `ThermalExpansionService` (TS EN 13831) |
 | Su Sayacı Seçimi | ✅ **Var** | `WaterMeterService` (TS EN 14154) |
 | Geri Akış Önleyici | ✅ **Var** | `BackflowPreventerService` (TS EN 1717) |
-| **Geri Besleme Döngüsü** | ⚠️ **Kısmi** | Manuel override çizime anlık yansımıyor; `AutoAnnotationService` var ama çift yönlü sync eksik |
-| Hesap Tablosu Spreadsheet Entegrasyonu | ⚠️ **Kısmi** | Tesisat ekipmanları ayrı dialog'larda; merkezi spreadsheet'e bağlı değil |
+| Geri Besleme Döngüsü | ✅ **Var** | `DrawingSyncService` — PipeDN_Changed → Ø etiketi anında güncelleme (Session #29) |
+| Doğalgaz Hesap Föyü | ✅ **Var** | CalculationTableWindow ⛽ sekmesi + HTML export (Session #30) |
+| Hesap Tablosu Spreadsheet Entegrasyonu | ⚠️ **Kısmi** | Tesisat ekipmanları bağımsız dialog'larda; merkezi tabloya bağlama eksik |
 
 ---
 
-## 3. Mühendislik ve Kullanılabilirlik (Genel)
+## 3. Mühendislik ve Kullanılabilirlik
 
 | Özellik | Durum | Not |
 |---|---|---|
-| Kolon Şeması (Riser Diagram) | ✅ **Var** | `RiserDiagramExportDialog` — gerçek 3D model verisi (Session #28) |
-| PDF Teknik Rapor | ✅ **Var** | `PdfExportService` — SkiaSharp, 2-sayfalı A4 (Session #28) |
-| Topoloji Analizi | ✅ **Var** | `NetworkTopologyAnalysisService` — döngü/açık uç/kritik yol (Session #28) |
-| Sistem Doğrulama | ✅ **Var** | `DomainGuardService` + `NetworkTopologyDialog` |
-| Vana Kütüphanesi | ✅ **Var** | `ValveLibraryDialog` — boru üstüne snap+split (TS EN 1074, Session #28) |
-| **PDF Antetli Rapor** | ❌ Eksik | Firma logosu + mühendis imzası + proje bilgileri bloğu yok |
-| **Basınç Düşümü Haritası** | ❌ Eksik | Viewport overlay — boru hattında renk gradyanı ile basınç dağılımı |
-| **Çizim ↔ Hesap Senkronu** | ❌ Eksik | Çap override → etiket anlık güncellenmesi tam değil |
+| Kolon Şeması | ✅ **Var** | `RiserDiagramExportDialog` — gerçek 3D model (Session #28) |
+| PDF Antetli Rapor | ✅ **Var** | `PdfExportService` + `TitleBlockInfo` — firma/mühendis/imza (Session #29) |
+| Topoloji Analizi | ✅ **Var** | `NetworkTopologyAnalysisService` — DFS/BFS/Dijkstra (Session #28) |
+| Basınç Düşümü Haritası | ✅ **Var** | `PressureMapService` — yeşil→sarı→kırmızı toggle (Session #29) |
+| Çizim ↔ Hesap Senkronu | ✅ **Var** | `DrawingSyncService` (Session #29) |
+| 3D MEP-MEP Çakışma | ✅ **Var** | `ClashDetectionService` — pipe-pipe 3D mesafe + valve BBox (Session #30) |
+| MDI Çoklu Proje | ✅ **Var** | `DocumentTabs` + `CreateNewDocument` + + sekme butonu + sayaç (Session #30) |
+| Vana Kütüphanesi | ✅ **Var** | `ValveLibraryDialog` — boru üstüne snap+split (Session #28) |
 
 ---
 
-## 4. Bir Sonraki Session (#29) Öncelikleri
-
-Öncelik sırasına göre:
-
-| # | Özellik | Zorluk | Standart |
-|---|---------|--------|----------|
-| 1 | **Basınç Düşümü Haritası** | Orta | — |
-| 2 | **Hesap Tablosu ↔ Çizim Senkronizasyonu** | Orta | — |
-| 3 | **PDF Antetli Rapor** | Düşük | — |
-| 4 | **3D MEP-MEP Çakışma Tespiti** | Orta | — |
-| 5 | **Doğalgaz Hesap → Hesap Tablosu** | Düşük | TS EN 1775 |
-
----
-
-## 5. Uzun Vadeli Eksiklikler (Yol Haritası)
+## 4. Uzun Vadeli Yol Haritası (Kalan İstekler)
 
 | Özellik | Öncelik | Açıklama |
 |---|---|---|
-| Parametrik BIM Nesneleri | Orta | U-value, malzeme katmanı, çift tık özellik penceresi |
-| Akıllı DWG→BIM Dönüşüm | Yüksek | Mimari plan üzerinden otomatik duvar/kat tespiti |
-| Geniş Mimari Kütüphane | Düşük | Kolon/çatı/döşeme/mobilya |
-| Saf ADAPT/FCALC Modu | Orta | Tam bağımsız spreadsheet hesap modu |
-| Çoklu Proje (MDI) | Orta | Birden fazla proje sekmesi aynı anda |
-| Bulut Senkronizasyonu | Düşük | Proje dosyası cloud backup |
+| Hesap Tablosu Ekipman Entegrasyonu | Orta | WaterTank/WaterMeter/ExpansionTank → merkezi spreadsheet'e veri akışı |
+| Bulut Senkronizasyonu | Düşük | Proje dosyası cloud backup (Azure/GDrive) |
+| Real-time Çakışma Vurgusu | Orta | ClashDetection → viewport'ta kırmızı overlay |
+| Boru Ağı Animasyonu | Düşük | Akış yönü ve hız animasyonu |
+| Mobil Görüntüleyici | Düşük | Web/mobil read-only görüntüleme |
+
+---
+
+*Tüm Eksiklikler.md §1–3 maddeleri Session #30 itibarıyla tamamlanmıştır.*

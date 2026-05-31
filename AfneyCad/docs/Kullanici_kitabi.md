@@ -714,4 +714,67 @@ Aşağıdaki satırlar Bölüm 5 tablosuna eklenmiştir:
 
 ---
 
-*Son güncelleme: 2026-05-30 | AfneyCAD v3.0.0 — Session #28: Vana · RiserEngine · PDF · Tesisat Ekipmanları · Topoloji*
+---
+
+## Session #29 — Basınç Haritası + Çizim Sync + Antetli PDF
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | PressureMapService | ✅ | Boru `PressureDrop` → yeşil/sarı/kırmızı gradyan; toggle ile entity.Color geçici override |
+| 2 | DrawingSyncService | ✅ | `CalculationTableWindow.PipeDN_Changed` → Ø etiketi anında güncelleme (geri besleme döngüsü) |
+| 3 | PdfExportService.TitleBlockInfo | ✅ | Firma / mühendis / proje no / imza / revizyon antet bloğu |
+| 4 | PdfExportDialog | ✅ | Firma, Mühendis, Proje No, Adres, Çizen, Kontrol alanları |
+
+### OtoNET Karşılıkları (Session #29)
+
+| OtoNET/FINE MEP | AfneyCAD |
+|---|---|
+| Hesap tablosunda çap değiştir → çizimde güncellenir | `DrawingSyncService` — `PipeDN_Changed` event |
+| Basınç düşümü haritası | `PressureMapService` — 🌡️ buton toggle |
+| Antetli teknik rapor | `PdfExportDialog` — TitleBlockInfo alanları |
+
+---
+
+## Session #30 — Tüm Eksiklikler Tamamlandı
+
+| # | Özellik | Durum | Standart/Detay |
+|---|---------|-------|----------------|
+| 1 | 3D MEP-MEP Çakışma Tespiti | ✅ | `ClashDetectionService` — 3D segment mesafe (GCD) + ValveEntity BBox; eski 2D yerine tam 3D |
+| 2 | Doğalgaz Hesap Föyü Entegrasyonu | ✅ | `CalculationTableWindow` ⛽ sekmesi — giriş/min.basınç, DB boruları, HTML export (TS EN 1775) |
+| 3 | Parametrik BIM Nesneleri | ✅ | `ArchitecturalObstacle` + `BimMaterialLayer`: U-değeri (ISO 6946), yangın (TS EN 13501-1), ses yalıtımı |
+| 4 | BimPropertiesDialog | ✅ | Malzeme katmanı tablosu, U hesaplama, yangın sınıfı, 3 şablon (dış duvar/iç bölme/döşeme) |
+| 5 | Akıllı DWG→BIM Dönüşüm | ✅ | `SmartBimConverterService` — LineEntity/LwPolyline → ArchitecturalObstacle; layer auto-detect |
+| 6 | SmartBimConverterDialog | ✅ | Layer tarama, çoklu seçim, kalınlık/yükseklik, nesne tipi |
+| 7 | Geniş Mimari Kütüphane | ✅ | `ArchitecturalLibraryService` — 20+ nesne: 4 kolon, 3 döşeme, 3 çatı, 9 mobilya, 2 ekipman |
+| 8 | ArchitecturalLibraryDialog | ✅ | Kategori filtreli DataGrid + detay paneli + "BIM Ekle" |
+| 9 | MDI + Sekme UI | ✅ | "+" yeni sekme butonu + "n/toplam" sayaç göstergesi |
+| 10 | ADAPT/FCALC Saf Mod | ✅ | JSON kaydet/yükle + Excel (.xlsx) export (ClosedXML) — Manuel giriş sekmesi |
+
+### OtoNET/FINE MEP Karşılıkları (Session #30)
+
+| OtoNET/FINE MEP | AfneyCAD | Dialog |
+|---|---|---|
+| Nesne özellikleri (U-değeri, yangın) | **🏢 BIM Özellik** | `BimPropertiesDialog` |
+| DWG altlıktan BIM dönüşüm | **🧱 DWG→BIM** | `SmartBimConverterDialog` |
+| Mimari kütüphane (kolon/döşeme) | **🏗️ Mimari Ktph.** | `ArchitecturalLibraryDialog` |
+| Doğalgaz boru hesabı | **⛽ Doğalgaz sekmesi** | `CalculationTableWindow` |
+| AutoBUILD çakışma analizi | **💥 Çakışma Analizi** | `ClashDetectionService` (3D) |
+| Çoklu proje | **+ sekme** | `DocumentTabs` MDI |
+| FCALC veri kaydetme | **JSON kaydet/yükle** | Manuel giriş sekmesi |
+| FCALC Excel çıktı | **📊 Excel export** | Manuel giriş sekmesi → ClosedXML |
+
+### Bölüm 5 — Tamamlanan Özellik Tablosu Güncellemesi
+
+| Özellik | OtoNET/FINE MEP | AfneyCAD v3.1 |
+|---|---|---|
+| Parametrik BIM (U-değeri/Yangın) | Var | **Var** (`BimMaterialLayer`, ISO 6946, TS EN 13501-1) |
+| DWG→BIM otomatik dönüşüm | Var | **Var** (`SmartBimConverterService`) |
+| Mimari kütüphane (20+ nesne) | Var | **Var** (`ArchitecturalLibraryService`) |
+| Doğalgaz hesap föyü (TS EN 1775) | Var | **Var** (CalculationTableWindow ⛽ sekmesi) |
+| 3D MEP-MEP çakışma | Var | **Var** (`ClashDetectionService` — 3D GCD + valve) |
+| MDI Çoklu Proje | Var | **Var** (DocumentTabs + + butonu + sayaç) |
+| Hesap tablosu kaydet/yükle | Var | **Var** (JSON + Excel ClosedXML) |
+
+---
+
+*Son güncelleme: 2026-05-31 | AfneyCAD v3.1.0 — Session #30: Tüm Eksiklikler Tamamlandı*
