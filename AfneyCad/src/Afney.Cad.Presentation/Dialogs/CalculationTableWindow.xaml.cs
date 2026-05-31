@@ -16,6 +16,7 @@ namespace Afney.Cad.Presentation.Dialogs
         private CalculationTable? _currentTable;
         private WasteWaterCalcTable? _wasteTable;
         private readonly ObservableCollection<ManualCalcRow> _manualRows = new();
+        private GasCalcSheetService.CalcSheetResult? _gasResult;
 
         // DN sütunu değiştiğinde MainWindow bu event ile AutoPipeLabeler'ı tetikler
         public event Action<string, double>? PipeDN_Changed;
@@ -35,6 +36,7 @@ namespace Afney.Cad.Presentation.Dialogs
         {
             if (MainTabControl.SelectedIndex == 1 && _wasteTable == null)
                 LoadWasteWaterTable();
+            // Sekme 2 = Doğalgaz (otomatik yüklemez — kullanıcı Hesapla'ya basar)
         }
 
         // ── SEKME 1: TEMİZ SU ─────────────────────────────────────────────────
@@ -134,7 +136,73 @@ namespace Afney.Cad.Presentation.Dialogs
             return 0.5;
         }
 
-        // ── SEKME 3: MANUEL GİRİŞ ─────────────────────────────────────────────
+        // ── SEKME 3: DOĞALGAZ ────────────────────────────────────────────────────
+
+        private void GasCalc_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                double supply = double.TryParse(GasSupplyPressure?.Text ?? "21", out double sv) ? sv : 21.0;
+                double minP   = double.TryParse(GasMinPressure?.Text ?? "17", out double mp) ? mp : 17.0;
+
+                var opts = new GasCalcSheetService.CalcOptions
+                {
+                    SupplyPressureMbar = supply,
+                    MinDevicePressure  = minP
+                };
+
+                // DB'deki Gaz borularından segment listesi oluştur
+                var gasPipes = _database.GetAllEntities()
+                    .OfType<Afney.Cad.Mechanical.Entities.PipeEntity>()
+                    .Where(p => p.SystemType == Afney.Cad.Mechanical.Enums.MechanicalSystemType.Gas)
+                    .ToList();
+
+                // Her boru bir segment olarak girilir
+                var segments = gasPipes
+                    .Select((p, i) => (
+                        $"S-{i + 1}",
+                        (p.EndPoint - p.StartPoint).Length() / 1000.0,
+                        new double[] { 0 }  // Tüm cihazlar bu segmentten geçer
+                    )).ToList();
+
+                // Cihazlar: DB'deki vitrifiyelerden değil, genel yaklaşım
+                var devices = new List<GasCalcSheetService.GasDevice>
+                {
+                    new() { Name = "Ortalama Cihaz Yükü", NominalPowerKw = 24.0, LoadFactor = 0.85 }
+                };
+
+                var svc = new GasCalcSheetService();
+                _gasResult = svc.Calculate(devices, segments, opts);
+
+                GasCalcGrid.ItemsSource = _gasResult.Rows;
+                GasSummaryText.Text =
+                    $"Toplam: {_gasResult.Rows.Count} segment | {_gasResult.TotalLengthM:F1} m | " +
+                    $"Q={_gasResult.TotalFlowM3h:F3} m³/h | ΔP={_gasResult.TotalPressureDrop:F3} mbar | " +
+                    $"Uyarı: {(_gasResult.WarningCount > 0 ? $"{_gasResult.WarningCount} ⚠" : "Yok ✓")}";
+                GasStatusText.Text = $"Doğalgaz hesabı tamamlandı — {DateTime.Now:HH:mm:ss}";
+            }
+            catch (Exception ex)
+            {
+                GasStatusText.Text = $"Hata: {ex.Message}";
+            }
+        }
+
+        private void GasExportHtml_Click(object sender, RoutedEventArgs e)
+        {
+            if (_gasResult == null) { GasCalc_Click(sender, e); return; }
+            try
+            {
+                var svc = new GasCalcSheetService();
+                string html = svc.ExportToHtml(_gasResult);
+                string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"GazHesap_{DateTime.Now:yyyyMMdd_HHmm}.html");
+                System.IO.File.WriteAllText(path, html, System.Text.Encoding.UTF8);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+                GasStatusText.Text = $"HTML rapor açıldı: {path}";
+            }
+            catch (Exception ex) { GasStatusText.Text = $"Hata: {ex.Message}"; }
+        }
+
+        // ── SEKME 4: MANUEL GİRİŞ ─────────────────────────────────────────────
 
         private void ManualAddRow_Click(object sender, RoutedEventArgs e)
         {
@@ -208,6 +276,101 @@ namespace Afney.Cad.Presentation.Dialogs
 
             // DataGrid'i yenile (INotifyPropertyChanged olmadığı için)
             ManualGrid.Items.Refresh();
+        }
+
+        // ── MANUEL ADAPT/FCALC SAVE/LOAD/EXPORT ───────────────────────────────
+
+        private void ManualSaveJson_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ManualGrid.CommitEdit(DataGridEditingUnit.Row, true);
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Hesap Tablosunu Kaydet",
+                    Filter = "JSON Dosyası|*.json",
+                    FileName = $"HesapTablosu_{DateTime.Now:yyyyMMdd}"
+                };
+                if (dlg.ShowDialog() != true) return;
+                string json = System.Text.Json.JsonSerializer.Serialize(_manualRows,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                System.IO.File.WriteAllText(dlg.FileName, json, System.Text.Encoding.UTF8);
+                StatusText.Text = $"✓ Kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+            }
+            catch (Exception ex) { StatusText.Text = $"Kayıt hatası: {ex.Message}"; }
+        }
+
+        private void ManualLoadJson_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "Hesap Tablosunu Yükle",
+                    Filter = "JSON Dosyası|*.json"
+                };
+                if (dlg.ShowDialog() != true) return;
+                string json = System.IO.File.ReadAllText(dlg.FileName, System.Text.Encoding.UTF8);
+                var rows = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<ManualCalcRow>>(json);
+                if (rows == null) return;
+                _manualRows.Clear();
+                foreach (var r in rows) _manualRows.Add(r);
+                RecalcManual();
+                StatusText.Text = $"✓ Yüklendi: {rows.Count} hat — {System.IO.Path.GetFileName(dlg.FileName)}";
+            }
+            catch (Exception ex) { StatusText.Text = $"Yükleme hatası: {ex.Message}"; }
+        }
+
+        private void ManualExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ManualGrid.CommitEdit(DataGridEditingUnit.Row, true);
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Excel Olarak Kaydet",
+                    Filter = "Excel Dosyası|*.xlsx",
+                    FileName = $"HesapTablosu_{DateTime.Now:yyyyMMdd}"
+                };
+                if (dlg.ShowDialog() != true) return;
+
+                using var wb = new ClosedXML.Excel.XLWorkbook();
+                var ws = wb.Worksheets.Add("Manuel Hesap");
+
+                // Başlıklar
+                string[] headers = ["Hat No", "Açıklama", "Sistem", "Uzunluk (m)", "DU/LU", "DN (mm)", "Q (lt/s)", "v (m/s)", "Eğim (%)", "Doluluk (%)", "Not"];
+                for (int c = 0; c < headers.Length; c++)
+                {
+                    ws.Cell(1, c + 1).Value = headers[c];
+                    ws.Cell(1, c + 1).Style.Font.Bold = true;
+                    ws.Cell(1, c + 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#1565C0");
+                    ws.Cell(1, c + 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                }
+
+                int row = 2;
+                foreach (var r in _manualRows)
+                {
+                    ws.Cell(row, 1).Value  = r.LineNo;
+                    ws.Cell(row, 2).Value  = r.Description;
+                    ws.Cell(row, 3).Value  = r.SystemType;
+                    ws.Cell(row, 4).Value  = r.LengthM;
+                    ws.Cell(row, 5).Value  = r.LoadValue;
+                    ws.Cell(row, 6).Value  = r.DiameterDN;
+                    ws.Cell(row, 7).Value  = r.FlowLps;
+                    ws.Cell(row, 8).Value  = r.VelocityMs;
+                    ws.Cell(row, 9).Value  = r.SlopePct;
+                    ws.Cell(row, 10).Value = r.FillingRatioPct;
+                    ws.Cell(row, 11).Value = r.Note;
+                    if (!string.IsNullOrEmpty(r.Note))
+                        ws.Cell(row, 11).Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#FF9800");
+                    row++;
+                }
+                ws.Columns().AdjustToContents();
+                wb.SaveAs(dlg.FileName);
+                StatusText.Text = $"✓ Excel kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = dlg.FileName, UseShellExecute = true });
+            }
+            catch (Exception ex) { StatusText.Text = $"Excel hatası: {ex.Message}"; }
         }
 
         // ── EXPORT ────────────────────────────────────────────────────────────

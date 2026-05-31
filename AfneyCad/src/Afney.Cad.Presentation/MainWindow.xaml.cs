@@ -290,6 +290,10 @@ namespace Afney.Cad.Presentation
         */
         private void OnTabChanged(object sender, SelectionChangedEventArgs e)
         {
+            // Sekme sayacını güncelle
+            if (TxtTabCount != null)
+                TxtTabCount.Text = _documents.Count > 1 ? $"{DocumentTabs.SelectedIndex + 1}/{_documents.Count}" : "";
+
             if (DocumentTabs.SelectedItem is TabItem tab && tab.Tag is CadDocumentContext ctx)
             {
                 _activeContext = ctx;
@@ -2672,6 +2676,54 @@ namespace Afney.Cad.Presentation
            NE: IFC Dosyası İçeri Aktar
            NEDEN: Revit/ArchiCAD'den gelen mimari modeli AfneyCAD'e altlık olarak çekmek için.
         */
+        private void OnBimProperties(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Seçili mimari engel varsa onun özelliklerini aç, yoksa ilk engeli kullan
+                var obstacle = _mechanicalKernel.ArchitecturalObstacles.FirstOrDefault();
+                if (obstacle == null)
+                {
+                    obstacle = new Afney.Cad.Mechanical.Models.ArchitecturalObstacle
+                    {
+                        Name = "Yeni BIM Nesnesi",
+                        Type = Afney.Cad.Mechanical.Models.ObstacleType.Wall,
+                        Height = 3000
+                    };
+                    _mechanicalKernel.ArchitecturalObstacles.Add(obstacle);
+                }
+                var dialog = new Dialogs.BimPropertiesDialog(obstacle) { Owner = this };
+                if (dialog.ShowDialog() == true)
+                    StatusText.Text = $"✓ BIM özellikleri kaydedildi — U={obstacle.UValue:F3} W/m²K";
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnSmartBimConvert(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.SmartBimConverterDialog(_database, _mechanicalKernel) { Owner = this };
+                if (dialog.ShowDialog() == true)
+                {
+                    StatusText.Text = $"✓ DWG→BIM dönüşüm tamamlandı — {_mechanicalKernel.ArchitecturalObstacles.Count} nesne";
+                    Viewport.InvalidateViewport();
+                }
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnArchitecturalLibrary(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Dialogs.ArchitecturalLibraryDialog(_mechanicalKernel) { Owner = this };
+                dialog.ShowDialog();
+                StatusText.Text = $"Mimari kütüphane — {_mechanicalKernel.ArchitecturalObstacles.Count} BIM nesnesi mevcut.";
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnIfcImportCommand(object sender, RoutedEventArgs e)
         {
             try

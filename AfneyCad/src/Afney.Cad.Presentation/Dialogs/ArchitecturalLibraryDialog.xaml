@@ -1,0 +1,103 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.ArchitecturalLibraryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🏗️ Mimari Kütüphane — AfneyCAD" Height="520" Width="720"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="RowBackground" Value="#252535"/><Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🏗️ Mimari Kütüphane" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  Kolon · Döşeme · Çatı · Mobilya · Ekipman" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="+ BIM Ekle" Width="110" Margin="0,0,8,0"
+                        Click="Insert_Click" Background="#1B5E20" x:Name="BtnInsert" IsEnabled="False"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="200"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Katalog -->
+            <StackPanel Grid.Column="0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="Kategori:" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="CategoryCombo" Width="150" SelectionChanged="Category_Changed"/>
+                </StackPanel>
+                <DataGrid x:Name="ItemGrid" AutoGenerateColumns="False"
+                          SelectionChanged="ItemGrid_SelectionChanged"
+                          MouseDoubleClick="ItemGrid_DoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Kod"        Binding="{Binding Id}"          Width="75"/>
+                        <DataGridTextColumn Header="Nesne Adı"  Binding="{Binding NameTR}"       Width="*"/>
+                        <DataGridTextColumn Header="G×D (mm)"   Binding="{Binding SizeLabel}"    Width="90"/>
+                        <DataGridTextColumn Header="Y (mm)"     Binding="{Binding Height}"       Width="60"/>
+                        <DataGridTextColumn Header="U W/m²K"    Binding="{Binding ULabel}"       Width="70"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#333"/>
+
+            <!-- Detay -->
+            <Border Grid.Column="2" Background="#252535" CornerRadius="4" Padding="10">
+                <StackPanel>
+                    <TextBlock Text="NESNE DETAYI" Foreground="#90CAF9" FontWeight="Bold" FontSize="11" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="DtlName" Text="—" FontSize="12" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="DtlId"   Text="" Foreground="#667" FontSize="10" Margin="0,0,0,8"/>
+                    <Separator Background="#444" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Genişlik (mm):" Foreground="#90CAF9" FontSize="11"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="DtlWidth" Text="—" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Derinlik (mm):" Foreground="#90CAF9" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="DtlDepth" Text="—" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Yükseklik (mm):" Foreground="#90CAF9" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="DtlHeight" Text="—" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="U-Değeri:" Foreground="#90CAF9" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="DtlU" Text="—" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Yangın (REI):" Foreground="#90CAF9" FontSize="11" Margin="0,4,0,0"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" x:Name="DtlFire" Text="—" FontSize="11" Margin="0,4,0,0"/>
+                    </Grid>
+                    <Separator Background="#444" Margin="0,8,0,8"/>
+                    <TextBlock Text="Açıklama:" Foreground="#90CAF9" FontSize="11"/>
+                    <TextBlock x:Name="DtlDesc" Text="—" Foreground="#AAA" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

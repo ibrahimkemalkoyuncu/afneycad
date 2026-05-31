@@ -1,0 +1,136 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.BimPropertiesDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🏢 BIM Nesne Özellikleri — AfneyCAD" Height="580" Width="680"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="CanUserAddRows" Value="True"/><Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🏢 BIM Nesne Özellikleri" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  ISO 6946 · TS EN 13501-1 · TS EN ISO 717" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center"/>
+                <TextBlock x:Name="UValueResult" Grid.Column="1" Foreground="#FFA040" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <Button Grid.Column="2" Content="💾 Kaydet" Width="100" Margin="0,0,8,0" Click="Save_Click" Background="#1B5E20"/>
+                <Button Grid.Column="3" Content="İptal" Width="80" Click="Cancel_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+            <!-- Sol: Genel Özellikler -->
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="GENEL" Foreground="#90CAF9" FontWeight="Bold" FontSize="10" Margin="0,0,0,6"/>
+                <TextBlock Text="Ad:"/>
+                <TextBox x:Name="TxtName" Margin="0,2,0,6"/>
+                <TextBlock Text="Tip:"/>
+                <ComboBox x:Name="CboType" Margin="0,2,0,6">
+                    <ComboBoxItem Content="Duvar" IsSelected="True"/>
+                    <ComboBoxItem Content="Döşeme"/>
+                    <ComboBoxItem Content="Çatı"/>
+                    <ComboBoxItem Content="Kolon"/>
+                    <ComboBoxItem Content="Kapı"/>
+                    <ComboBoxItem Content="Pencere"/>
+                </ComboBox>
+                <TextBlock Text="Yükseklik (mm):"/>
+                <TextBox x:Name="TxtHeight" Text="3000" Margin="0,2,0,6"/>
+
+                <Separator Background="#444" Margin="0,6,0,6"/>
+                <TextBlock Text="ISI &amp; YANGIN" Foreground="#90CAF9" FontWeight="Bold" FontSize="10" Margin="0,0,0,6"/>
+                <TextBlock Text="U-Değeri Override (W/m²K):"/>
+                <TextBox x:Name="TxtUValue" Margin="0,2,0,6" ToolTip="Boş bırakırsanız malzeme katmanlarından hesaplanır"/>
+                <TextBlock Text="Yangın Sınıfı:"/>
+                <ComboBox x:Name="CboFireClass" Margin="0,2,0,6">
+                    <ComboBoxItem Content="A1"/><ComboBoxItem Content="A2"/>
+                    <ComboBoxItem Content="B"/><ComboBoxItem Content="C"/>
+                    <ComboBoxItem Content="D"/><ComboBoxItem Content="E"/>
+                    <ComboBoxItem Content="F"/><ComboBoxItem Content="Tanımsız" IsSelected="True"/>
+                </ComboBox>
+                <TextBlock Text="Yangın Direnci (REI, dk.):"/>
+                <TextBox x:Name="TxtFireMinutes" Text="0" Margin="0,2,0,6"/>
+                <TextBlock Text="Ses Azaltma Indeksi (dB):"/>
+                <TextBox x:Name="TxtSoundDb" Text="0" Margin="0,2,0,6"/>
+            </StackPanel>
+
+            <!-- Sağ: Malzeme Katmanları -->
+            <StackPanel Grid.Column="2">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="MALZEME KATMANLARI (dıştan içe — ISO 6946)" Foreground="#90CAF9" FontWeight="Bold" FontSize="10" VerticalAlignment="Center"/>
+                    <Button Content="+ Katman" Width="80" Margin="8,0,0,0" Click="AddLayer_Click" Background="#4A148C"/>
+                    <Button Content="Sil" Width="50" Margin="4,0,0,0" Click="DeleteLayer_Click" Background="#8B3A3A"/>
+                    <Button Content="🔄 U-Değeri" Width="90" Margin="4,0,0,0" Click="CalcU_Click" Background="#006064"/>
+                </StackPanel>
+
+                <DataGrid x:Name="LayerGrid" Height="240" AutoGenerateColumns="False"
+                          IsReadOnly="False" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Malzeme"         Binding="{Binding MaterialName}"       Width="*"/>
+                        <DataGridTextColumn Header="Kalınlık (mm)"   Binding="{Binding ThicknessMm}"        Width="90"/>
+                        <DataGridTextColumn Header="λ (W/mK)"        Binding="{Binding ThermalConductivity}" Width="80"/>
+                        <DataGridTextColumn Header="R (m²K/W)"       Binding="{Binding ThermalResistance, StringFormat=F4}" Width="85" IsReadOnly="True"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Border Background="#1B2B3B" CornerRadius="4" Padding="8" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="HESAP SONUÇLARI" Foreground="#90CAF9" FontWeight="Bold" FontSize="10" Margin="0,0,0,4"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="ResTotalThick" Text="Toplam Kalınlık: —" FontSize="11"/>
+                                <TextBlock x:Name="ResUValue"     Text="U-Değeri: —" FontSize="11" Foreground="#FFA040" FontWeight="Bold" Margin="0,3,0,0"/>
+                                <TextBlock x:Name="ResRValue"     Text="R-Değeri: —" FontSize="11" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="ResFireRating" Text="Yangın: —" FontSize="11"/>
+                                <TextBlock x:Name="ResSoundDb"    Text="Ses: —" FontSize="11" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Örnek Yapılar -->
+                <TextBlock Text="Hızlı Şablonlar:" Foreground="#777" FontSize="10" Margin="0,8,0,4"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Dış Duvar 30cm" Width="120" Click="TemplateExtWall_Click" Background="#455A64" Margin="0,0,4,0"/>
+                    <Button Content="İç Bölme 10cm" Width="120" Click="TemplateIntWall_Click" Background="#455A64" Margin="0,0,4,0"/>
+                    <Button Content="Döşeme 25cm" Width="110" Click="TemplateSlab_Click" Background="#455A64"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>

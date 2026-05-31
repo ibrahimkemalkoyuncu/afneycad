@@ -1,0 +1,74 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.SmartBimConverterDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🧱 DWG → BIM Dönüştürücü — AfneyCAD" Height="500" Width="580"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🧱 DWG → BIM Dönüştürücü" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  Mimari çizimden otomatik BIM nesnesi" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Content="🔍 Layer Tara" Width="110" Margin="0,0,8,0" Click="Scan_Click" Background="#4A148C"/>
+                <Button Grid.Column="2" Content="🧱 Dönüştür" Width="100" Margin="0,0,8,0" Click="Convert_Click" Background="#1B5E20"/>
+                <Button Grid.Column="3" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <StackPanel>
+            <!-- Parametreler -->
+            <Border Background="#252535" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Nesne Tipi:"/>
+                    <ComboBox  Grid.Row="0" Grid.Column="1" x:Name="CboObstacleType" Margin="0,2">
+                        <ComboBoxItem Content="Duvar" IsSelected="True"/>
+                        <ComboBoxItem Content="Döşeme"/>
+                        <ComboBoxItem Content="Çatı"/>
+                        <ComboBoxItem Content="Kolon"/>
+                    </ComboBox>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Varsayılan Kalınlık (mm):" Margin="0,4,0,0"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtThickness" Text="200" Margin="0,4,0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Varsayılan Yükseklik (mm):" Margin="0,4,0,0"/>
+                    <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtHeight" Text="3000" Margin="0,4,0,2"/>
+                </Grid>
+            </Border>
+
+            <!-- Layer seçimi -->
+            <TextBlock Text="Dönüştürülecek Layer'lar (çoklu seçim):" Foreground="#90CAF9" Margin="0,0,0,4"/>
+            <ListBox x:Name="LayerList" Height="200" SelectionMode="Multiple"/>
+
+            <!-- Log -->
+            <TextBlock x:Name="LogText" Foreground="#667" FontSize="10" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        </StackPanel>
+    </DockPanel>
+</Window>

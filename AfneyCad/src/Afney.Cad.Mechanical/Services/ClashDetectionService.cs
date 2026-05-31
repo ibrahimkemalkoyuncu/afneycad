@@ -60,7 +60,7 @@ public class ClashDetectionService
             }
         }
 
-        // 2. Boru vs Boru (FineSANI Professional Özelliği)
+        // 2. Boru vs Boru — 3D segment mesafe kontrolü
         var pipes = physicalEntities.OfType<PipeEntity>().ToList();
         for (int i = 0; i < pipes.Count; i++)
         {
@@ -68,23 +68,49 @@ public class ClashDetectionService
             {
                 var p1 = pipes[i];
                 var p2 = pipes[j];
-
-                // Eğer borular zaten birbirine bağlıysa (Tee vb.) çakışma değildir
                 if (IsConnected(p1, p2)) continue;
 
-                if (LineIntersectsLine(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint))
+                double minClearance = (p1.InnerDiameter + p2.InnerDiameter) / 2.0 + 25.0; // +25mm boşluk
+                double dist = SegmentToSegmentDistance(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
+
+                if (dist < minClearance)
                 {
+                    bool isCrossing = LineIntersectsLine(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
                     results.Add(new ClashResult
                     {
-                        Type = ClashType.MechanicalVsMechanical,
+                        Type     = ClashType.MechanicalVsMechanical,
                         EntityA_Id = p1.Id,
                         EntityB_Id = p2.Id,
                         Position = CalculateIntersectionPoint(p1, p2),
-                        Severity = ClashSeverity.Warning,
-                        Message = $"{p1.SystemType} ve {p2.SystemType} hatları çakışıyor."
+                        Severity = isCrossing ? ClashSeverity.Critical : ClashSeverity.Warning,
+                        Message  = $"{p1.SystemType}↔{p2.SystemType}: {(isCrossing ? "Kesişiyor" : $"Aralık {dist:F0}mm < {minClearance:F0}mm")}"
                     });
                     p1.HasHydraulicViolation = true;
                     p2.HasHydraulicViolation = true;
+                }
+            }
+        }
+
+        // 3. Vana vs Boru — ValveEntity BoundingBox kontrolü
+        var valves = mechanicalEntities.OfType<ValveEntity>().ToList();
+        foreach (var valve in valves)
+        {
+            var vBox = valve.GetBoundingBox();
+            foreach (var pipe in pipes)
+            {
+                if (pipe.SystemType == valve.SystemType) continue; // Aynı sistemde bağlı olabilir
+                var pBox = pipe.GetBoundingBox();
+                if (vBox.Intersects(pBox))
+                {
+                    results.Add(new ClashResult
+                    {
+                        Type      = ClashType.MechanicalVsMechanical,
+                        EntityA_Id = valve.Id,
+                        EntityB_Id = pipe.Id,
+                        Position  = valve.Position,
+                        Severity  = ClashSeverity.Warning,
+                        Message   = $"Vana ({valve.ValveType}) ↔ {pipe.SystemType} borusu — sınır kutusu çakışması."
+                    });
                 }
             }
         }
@@ -161,6 +187,36 @@ public class ClashDetectionService
         }
         
         return false;
+    }
+
+    // 3D segment-to-segment minimum mesafe (GCD algoritması)
+    private static double SegmentToSegmentDistance(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4)
+    {
+        var d1 = p2 - p1;
+        var d2 = p4 - p3;
+        var r  = p1 - p3;
+
+        double a = d1.Dot(d1), e = d2.Dot(d2);
+        double f = d2.Dot(r);
+
+        double s, t;
+        if (a <= 1e-10 && e <= 1e-10) return r.Length();
+        if (a <= 1e-10) { s = 0; t = Math.Clamp(f / e, 0, 1); }
+        else
+        {
+            double c2 = d1.Dot(r);
+            if (e <= 1e-10) { t = 0; s = Math.Clamp(-c2 / a, 0, 1); }
+            else
+            {
+                double b2 = d1.Dot(d2);
+                double denom = a * e - b2 * b2;
+                s = denom != 0 ? Math.Clamp((b2 * f - c2 * e) / denom, 0, 1) : 0;
+                t = (b2 * s + f) / e;
+                if (t < 0) { t = 0; s = Math.Clamp(-c2 / a, 0, 1); }
+                else if (t > 1) { t = 1; s = Math.Clamp((b2 - c2) / a, 0, 1); }
+            }
+        }
+        return (p1 + d1 * s - (p3 + d2 * t)).Length();
     }
 
     private bool LineIntersectsLine(Vector3D a, Vector3D b, Vector3D c, Vector3D d)

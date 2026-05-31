@@ -646,6 +646,9 @@
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="📥 IFC İçeri" Click="OnIfcImportCommand" Style="{StaticResource RbnBtn}" ToolTip="Mimari IFC dosyasını altlık olarak aktar"/>
+                                            <Button Content="🏢 BIM Özellik" Click="OnBimProperties" Style="{StaticResource RbnBtn}" ToolTip="Seçili mimari nesnenin BIM özelliklerini düzenle (U-değeri, yangın, ses)"/>
+                                            <Button Content="🧱 DWG→BIM" Click="OnSmartBimConvert" Style="{StaticResource RbnBtn}" ToolTip="Mimari layerlardaki çizgileri BIM nesnesine dönüştür"/>
+                                            <Button Content="🏗️ Mimari Ktph." Click="OnArchitecturalLibrary" Style="{StaticResource RbnBtn}" ToolTip="Kolon/Döşeme/Çatı/Mobilya kütüphanesi — BIM nesne ekle"/>
                                             <Button Content="📤 DXF Dışarı" Click="OnExportDxfCommand" Style="{StaticResource RbnAccent}" ToolTip="Çizimi DXF R12 formatında dışa aktar"/>
                                             <Button Content="💾 DWG Kaydet" Click="OnExportDwgCommand" Style="{StaticResource RbnBtn}" ToolTip="Çizimi DWG formatında kaydet (ACadSharp)"/>
                                             <Button Content="📊 Excel (.xlsx)" Click="OnExportExcel" Style="{StaticResource RbnBtn}" ToolTip="Metraj + Hesap Föyleri Excel olarak dışa aktar"/>
@@ -916,7 +919,16 @@
 
             <!-- 3. CENTER: VIEWPORT -->
             <Border Grid.Column="3" Background="#15191C" CornerRadius="0" Margin="0" BorderThickness="0">
-                <TabControl x:Name="DocumentTabs" Background="Transparent" BorderThickness="0" Padding="0" 
+                <DockPanel>
+                    <!-- Sekme Araç Çubuğu: + Yeni / Kopyala -->
+                    <Border DockPanel.Dock="Top" Background="#2D2D2D" Padding="4,2">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="＋" Click="OnNewFile" ToolTip="Yeni Sekme (boş proje)" Width="26" Height="20" Background="#3E3E42" Foreground="#90CAF9" BorderThickness="0" FontSize="12" Cursor="Hand" Margin="0,0,2,0"/>
+                            <Button Content="📂" Click="OnOpenFile" ToolTip="Dosya Aç..." Width="26" Height="20" Background="#3E3E42" Foreground="White" BorderThickness="0" FontSize="11" Cursor="Hand" Margin="0,0,2,0"/>
+                            <TextBlock x:Name="TxtTabCount" Text="" Foreground="#555" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                <TabControl x:Name="DocumentTabs" Background="Transparent" BorderThickness="0" Padding="0"
                             SelectionChanged="OnTabChanged">
                     <TabControl.Resources>
                         <Style TargetType="TabItem">
@@ -970,6 +982,7 @@
                     </TabControl.Resources>
                     <!-- Sekmeler kod tarafından eklenecek -->
                 </TabControl>
+                </DockPanel>
             </Border>
 
             <GridSplitter Grid.Column="4" Width="4" Background="#1E1E1E" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>

@@ -212,4 +212,36 @@ public class GasCalcSheetService
 
         return Calculate(devices, segments, opts);
     }
+
+    // ── HTML Rapor ────────────────────────────────────────────────────────────────
+    public string ExportToHtml(CalcSheetResult result)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'>");
+        sb.Append("<title>Doğalgaz Hesap Föyü</title>");
+        sb.Append("<style>body{font-family:Arial;background:#1e1e2e;color:#ddd;padding:20px}");
+        sb.Append("table{border-collapse:collapse;width:100%}th{background:#0d3060;color:#90caf9;padding:6px}");
+        sb.Append("td{padding:5px;border:1px solid #333}tr:nth-child(even){background:#252535}");
+        sb.Append(".warn{color:#ff9800}.ok{color:#4caf50}.summary{background:#1b2b3b;padding:12px;border-radius:4px;margin:12px 0}</style>");
+        sb.Append("</head><body>");
+        sb.Append("<h2>⛽ Doğalgaz Boru Hesap Föyü</h2>");
+        sb.Append($"<p>Tarih: {DateTime.Now:dd.MM.yyyy HH:mm} | Standart: TS EN 1775 / TS 7363</p>");
+        sb.Append($"<div class='summary'><b>Özet:</b> {result.Summary}</div>");
+
+        sb.Append("<table><tr><th>Segment</th><th>L (m)</th><th>L_ekv (m)</th><th>Q (m³/h)</th>");
+        sb.Append("<th>DN (mm)</th><th>v (m/s)</th><th>ΔP (mbar)</th><th>P_kalan (mbar)</th><th>Durum</th></tr>");
+        foreach (var r in result.Rows)
+        {
+            string cls = r.IsOk ? "ok" : "warn";
+            sb.Append($"<tr><td>{r.SegmentName}</td><td>{r.LengthM:F2}</td><td>{r.EquivLengthM:F2}</td>");
+            sb.Append($"<td>{r.FlowM3h:F3}</td><td>{r.DiameterMm:F0}</td><td class='{cls}'>{r.VelocityMs:F2}</td>");
+            sb.Append($"<td>{r.PressureDropMbar:F3}</td><td class='{cls}'>{r.RemainingPressureMbar:F2}</td>");
+            sb.Append($"<td class='{cls}'>{(r.IsOk ? "✓" : "⚠ " + r.Warnings)}</td></tr>");
+        }
+        sb.Append("</table>");
+        sb.Append("<h3>Notlar</h3><ul>");
+        foreach (var n in result.Notes) sb.Append($"<li>{n}</li>");
+        sb.Append("</ul></body></html>");
+        return sb.ToString();
+    }
 }

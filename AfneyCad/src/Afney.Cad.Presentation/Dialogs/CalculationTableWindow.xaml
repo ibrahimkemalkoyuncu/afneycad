@@ -121,7 +121,53 @@
                 </Grid>
             </TabItem>
 
-            <!-- ===== SEKME 3: MANUEL GİRİŞ (CAD gerektirmez) ===== -->
+            <!-- ===== SEKME 3: DOĞALGAZ (TS EN 1775) ===== -->
+            <TabItem Header="⛽ Doğalgaz (TS EN 1775)">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Parametreler -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,6,0,6">
+                        <TextBlock Text="Giriş Basıncı (mbar):" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="GasSupplyPressure" Text="21" Width="50" Background="#2D2D3F" Foreground="White" BorderBrush="#555" Height="26" VerticalContentAlignment="Center" Padding="4,0" Margin="0,0,12,0"/>
+                        <TextBlock Text="Min. Cihaz Basıncı (mbar):" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="GasMinPressure" Text="17" Width="50" Background="#2D2D3F" Foreground="White" BorderBrush="#555" Height="26" VerticalContentAlignment="Center" Padding="4,0" Margin="0,0,12,0"/>
+                        <Button Content="⛽ Hesapla" Click="GasCalc_Click" Width="90" Height="26" Background="#E65100" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
+                        <Button Content="📤 HTML" Click="GasExportHtml_Click" Width="80" Height="26" Background="#005A9C" Foreground="White" BorderThickness="0"/>
+                    </StackPanel>
+
+                    <!-- Özet -->
+                    <TextBlock Grid.Row="1" x:Name="GasSummaryText" Foreground="#AAA" FontSize="12" Margin="0,0,0,4"/>
+
+                    <!-- Tablo -->
+                    <DataGrid Grid.Row="2" x:Name="GasCalcGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                              CanUserAddRows="False"
+                              Background="#252535" Foreground="White" HeadersVisibility="Column"
+                              GridLinesVisibility="All" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
+                              BorderBrush="#555">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Segment"       Binding="{Binding SegmentName}"                        Width="100"/>
+                            <DataGridTextColumn Header="L (m)"         Binding="{Binding LengthM, StringFormat=F2}"            Width="65"/>
+                            <DataGridTextColumn Header="L_ekv (m)"     Binding="{Binding EquivLengthM, StringFormat=F2}"       Width="70"/>
+                            <DataGridTextColumn Header="Q (m³/h)"      Binding="{Binding FlowM3h, StringFormat=F3}"            Width="75"/>
+                            <DataGridTextColumn Header="DN (mm)"       Binding="{Binding DiameterMm, StringFormat=F0}"         Width="65"/>
+                            <DataGridTextColumn Header="v (m/s)"       Binding="{Binding VelocityMs, StringFormat=F2}"         Width="65"/>
+                            <DataGridTextColumn Header="ΔP (mbar)"     Binding="{Binding PressureDropMbar, StringFormat=F3}"   Width="75"/>
+                            <DataGridTextColumn Header="P_kalan (mbar)" Binding="{Binding RemainingPressureMbar, StringFormat=F2}" Width="90"/>
+                            <DataGridTextColumn Header="Uyarı"         Binding="{Binding Warnings}"                           Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="3" x:Name="GasStatusText" Foreground="#777" FontSize="11" Margin="0,6,0,0"/>
+                </Grid>
+            </TabItem>
+
+            <!-- ===== SEKME 4: MANUEL GİRİŞ (CAD gerektirmez) ===== -->
             <TabItem Header="✏ Manuel Giriş">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -131,14 +177,24 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,6,0,6">
-                        <TextBlock Text="CAD çizimi olmadan borular ve armatürler için manuel hesap girişi yapın."
-                                   Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <Button Content="+ Satır Ekle" Click="ManualAddRow_Click" Width="90" Height="26"
-                                Background="#2E8B57" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
-                        <Button Content="Sil" Click="ManualDeleteRow_Click" Width="60" Height="26"
-                                Background="#8B3A3A" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
-                        <Button Content="Hesapla" Click="ManualCalc_Click" Width="80" Height="26"
-                                Background="#005A9C" Foreground="White" BorderThickness="0"/>
+                        <TextBlock Text="ADAPT/FCALC Saf Hesap Modu — CAD gerektirmez"
+                                   Foreground="#90CAF9" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <Button Content="+ Satır" Click="ManualAddRow_Click" Width="70" Height="26"
+                                Background="#2E8B57" Foreground="White" BorderThickness="0" Margin="0,0,4,0"/>
+                        <Button Content="Sil" Click="ManualDeleteRow_Click" Width="50" Height="26"
+                                Background="#8B3A3A" Foreground="White" BorderThickness="0" Margin="0,0,4,0"/>
+                        <Button Content="▶ Hesapla" Click="ManualCalc_Click" Width="80" Height="26"
+                                Background="#005A9C" Foreground="White" BorderThickness="0" Margin="0,0,8,0"/>
+                        <Rectangle Width="1" Fill="#555" Margin="0,3,8,3"/>
+                        <Button Content="💾 JSON Kaydet" Click="ManualSaveJson_Click" Width="100" Height="26"
+                                Background="#455A64" Foreground="White" BorderThickness="0" Margin="0,0,4,0"
+                                ToolTip="Hesap tablosunu JSON dosyasına kaydet"/>
+                        <Button Content="📂 JSON Yükle" Click="ManualLoadJson_Click" Width="100" Height="26"
+                                Background="#455A64" Foreground="White" BorderThickness="0" Margin="0,0,4,0"
+                                ToolTip="Kaydedilmiş JSON hesap tablosunu yükle"/>
+                        <Button Content="📊 Excel" Click="ManualExportExcel_Click" Width="75" Height="26"
+                                Background="#1B5E20" Foreground="White" BorderThickness="0"
+                                ToolTip="Hesap tablosunu Excel (.xlsx) olarak dışa aktar"/>
                     </StackPanel>
 
                     <DataGrid Grid.Row="1" x:Name="ManualGrid" AutoGenerateColumns="False" IsReadOnly="False"
