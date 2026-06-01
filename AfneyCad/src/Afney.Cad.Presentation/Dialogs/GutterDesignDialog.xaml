@@ -1,0 +1,121 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.GutterDesignDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🌧️ Yağmur Oluğu Tasarımı — TS EN 12056-3" Height="580" Width="720"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="CanUserAddRows" Value="False"/><Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#01579B"/><Setter Property="Foreground" Value="#80D8FF"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#01579B" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🌧️ Yağmur Oluğu Tasarımı" FontSize="14" FontWeight="Bold" Foreground="#80D8FF"/>
+                <TextBlock Text="  Oluk + Dere Borusu Boyutlandırma  TS EN 12056-3 / TS EN 1253" FontSize="10" Foreground="#4FC3F7" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Content="🌧️ Hesapla" Width="100" Margin="0,0,8,0" Click="Calculate_Click" Background="#01579B"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Parametreler -->
+            <Border Grid.Row="0" Background="#1B2B3B" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="Şehir:" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="CboCity" Width="160" SelectionChanged="City_Changed"/>
+                        <TextBlock Text="  Yağış (l/s·m²):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtRainfall" Text="0.025" Width="60"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="Oluk Eğimi (%):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtSlope" Text="0.5" Width="50"/>
+                        <TextBlock Text="  Manning n:" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtManning" Text="0.013" Width="60"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Çatı Bölümü Ekleme -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Content="+ Çatı Bölümü" Width="110" Click="AddSection_Click" Background="#01579B" Margin="0,0,4,0"/>
+                <Button Content="Sil" Width="60" Click="DeleteSection_Click" Background="#8B3A3A" Margin="0,0,4,0"/>
+                <Button Content="📋 Şablon" Width="90" Click="Template_Click" Background="#455A64" Margin="0,0,8,0"/>
+                <ComboBox x:Name="CboSurface" Width="200"/>
+            </StackPanel>
+
+            <!-- Çatı bölümleri tablosu -->
+            <DataGrid Grid.Row="2" x:Name="SectionGrid" AutoGenerateColumns="False" IsReadOnly="False" Margin="0,0,0,8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Bölüm Adı"    Binding="{Binding Name}"         Width="130"/>
+                    <DataGridTextColumn Header="Alan (m²)"    Binding="{Binding AreaM2}"        Width="80"/>
+                    <DataGridTextColumn Header="Yüzey Tipi"   Binding="{Binding SurfaceType}"   Width="*"/>
+                    <DataGridTextColumn Header="C Katsayısı"  Binding="{Binding RunoffCoeff, StringFormat=F2}"    Width="85" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Eff. Alan (m²)" Binding="{Binding EffectiveAreaM2, StringFormat=F1}" Width="90" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Sonuçlar -->
+            <Border Grid.Row="3" Background="#01579B" CornerRadius="4" Padding="10">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock x:Name="ResFlow"    Text="Q = —" FontSize="14" FontWeight="Bold" Foreground="#80D8FF"/>
+                        <TextBlock Text="Tasarım Debisi" Foreground="#4FC3F7" FontSize="9"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock x:Name="ResGutter"  Text="Oluk: —" FontSize="13" FontWeight="Bold" Foreground="#FFE082"/>
+                        <TextBlock Text="Yağmur Oluğu" Foreground="#4FC3F7" FontSize="9"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock x:Name="ResDown"    Text="Dere: —" FontSize="13" FontWeight="Bold" Foreground="#A5D6A7"/>
+                        <TextBlock Text="Dere Boruları" Foreground="#4FC3F7" FontSize="9"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="3">
+                        <TextBlock x:Name="ResSpacing" Text="Aralık: —" FontSize="13" FontWeight="Bold" Foreground="#EF9A9A"/>
+                        <TextBlock Text="Dere Aralığı" Foreground="#4FC3F7" FontSize="9"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

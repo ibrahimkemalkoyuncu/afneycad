@@ -58,7 +58,7 @@ public class PressureDropService
         }
 
         // 2. Sürtünme Katsayısı (f) - Colebrook-White (Swamee-Jain)
-        double eps = _settings.PipeRoughness / 1000.0; // mm -> m
+        double eps = _settings.EffectiveRoughness / 1000.0; // mm -> m (yaşlanma modeli dahil)
         double f = 0.25 / Math.Pow(Math.Log10((eps / (3.7 * dMe)) + (5.74 / Math.Pow(Re, 0.9))), 2);
 
         // 3. Darcy-Weisbach: hf = f * (L/D) * (v²/2g)

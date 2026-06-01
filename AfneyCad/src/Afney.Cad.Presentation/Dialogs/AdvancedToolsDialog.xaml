@@ -1,0 +1,191 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.AdvancedToolsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🔧 İleri Tesisat Araçları — AfneyCAD" Height="700" Width="820"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="RowBackground" Value="#252535"/><Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="#90CAF9"/><Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="Padding" Value="8,6"/><Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🔧 İleri Tesisat Araçları" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  Yağmur Oluğu · Genleşme Kompansatörü · Yaşlanma · Gürültü Analizi" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Button DockPanel.Dock="Bottom" Content="Kapat" Width="80" HorizontalAlignment="Right" Click="Close_Click" Background="#333" Margin="0,8,0,0"/>
+
+        <TabControl Background="#252535" BorderThickness="0">
+
+            <!-- ───── SEKME 1: YAĞMUR OLUĞU ───── -->
+            <TabItem Header="🌧️ Yağmur Oluğu">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+                    <StackPanel>
+                        <GroupBox Header="Tasarım Parametreleri">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Şehir:" Margin="0,3"/>
+                                <ComboBox  Grid.Row="0" Grid.Column="1" x:Name="GtrCity" SelectionChanged="GtrCity_Changed" Margin="0,3"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Yağış (l/s·m²):" Margin="0,3"/>
+                                <TextBox   Grid.Row="0" Grid.Column="4" x:Name="GtrRain" Text="0.025" Margin="0,3"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Çatı Alanı (m²):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="1" Grid.Column="1" x:Name="GtrArea" Text="100" Margin="0,4,0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="Yüzey Tipi:" Margin="0,4,0,0"/>
+                                <ComboBox  Grid.Row="1" Grid.Column="4" x:Name="GtrSurface" Margin="0,4,0,2"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Oluk Eğimi (%):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="2" Grid.Column="1" x:Name="GtrSlope" Text="0.5" Margin="0,4,0,2"/>
+                                <Button    Grid.Row="2" Grid.Column="3" Content="🌧️ Hesapla" Click="GtrCalc_Click" Background="#01579B" Margin="0,4,0,2"/>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Header="Sonuçlar">
+                            <StackPanel>
+                                <TextBlock x:Name="GtrResult" Text="—" Foreground="#80D8FF" FontSize="13" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="GtrNotes"  Text="" Foreground="#AAA" FontSize="11" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ───── SEKME 2: GENLEŞME KOMPANSATÖRÜ ───── -->
+            <TabItem Header="🔀 Genleşme Kompansatörü">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+                    <StackPanel>
+                        <GroupBox Header="Boru Parametreleri (TS EN 13480)">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Malzeme:" Margin="0,3"/>
+                                <ComboBox  Grid.Row="0" Grid.Column="1" x:Name="ExpMaterial" Margin="0,3"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Boru Çapı DN (mm):" Margin="0,3"/>
+                                <TextBox   Grid.Row="0" Grid.Column="4" x:Name="ExpDN" Text="50" Margin="0,3"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Boru Uzunluğu (m):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="1" Grid.Column="1" x:Name="ExpLength" Text="10" Margin="0,4,0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="Montaj Sıcaklığı (°C):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="1" Grid.Column="4" x:Name="ExpTInst" Text="20" Margin="0,4,0,2"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Çalışma Sıcaklığı (°C):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="2" Grid.Column="1" x:Name="ExpTOper" Text="80" Margin="0,4,0,2"/>
+                                <Button    Grid.Row="2" Grid.Column="3" Content="🔀 Hesapla" Click="ExpCalc_Click" Background="#4A148C" Margin="0,4,0,2"/>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Header="Genleşme ve Kompansatör Boyutları">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Toplam Genleşme (mm):" Foreground="#90CAF9" Margin="0,3"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ExpDeltaL" Text="—" FontWeight="Bold" Foreground="#FFA040" Margin="0,3"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="U-Dirsek Kol Boyu:" Foreground="#90CAF9" Margin="0,3"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ExpULoop" Text="—" Margin="0,3"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Z-Dirsek Offset:" Foreground="#90CAF9" Margin="0,3"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ExpZLoop" Text="—" Margin="0,3"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="L-Dirsek Kol:" Foreground="#90CAF9" Margin="0,3"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ExpLLoop" Text="—" Margin="0,3"/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Öneri:" Foreground="#FFA040" FontWeight="Bold" Margin="0,6,0,0"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ExpRec" Text="—" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="#FFCC80"/>
+                            </Grid>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ───── SEKME 3: BORU YAŞLANMASI ───── -->
+            <TabItem Header="⏳ Boru Yaşlanması">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+                    <StackPanel>
+                        <GroupBox Header="Yaşlanma Modeli (Colebrook-White — AWWA M11)">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Boru Yaşı (yıl):" Margin="0,3"/>
+                                <TextBox   Grid.Row="0" Grid.Column="1" x:Name="AgAge" Text="0" Margin="0,3"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Malzeme:" Margin="0,3"/>
+                                <ComboBox  Grid.Row="0" Grid.Column="4" x:Name="AgMaterial" Margin="0,3"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Başlangıç Pürüzlülüğü (mm):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="1" Grid.Column="1" x:Name="AgRough" Text="0.007" Margin="0,4,0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="Yaşlanma Hızı (mm/yıl):" Margin="0,4,0,0"/>
+                                <TextBox   Grid.Row="1" Grid.Column="4" x:Name="AgRate" Text="0.003" Margin="0,4,0,2"/>
+                                <Button    Grid.Row="2" Grid.Column="0" Content="⏳ Hesapla" Click="AgCalc_Click" Background="#37474F" Margin="0,4,0,2"/>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Header="Pürüzlülük ve Basınç Kaybı Artışı">
+                            <StackPanel>
+                                <TextBlock x:Name="AgResult" Text="—" Foreground="#90CAF9" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                <DataGrid x:Name="AgGrid" Height="200" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Yıl"             Binding="{Binding Year}"           Width="60"/>
+                                        <DataGridTextColumn Header="Pürüzlülük (mm)" Binding="{Binding Roughness, StringFormat=F5}" Width="120"/>
+                                        <DataGridTextColumn Header="f (Darcy)"       Binding="{Binding FrictionFactor, StringFormat=F5}" Width="100"/>
+                                        <DataGridTextColumn Header="ΔP Artışı (%)"   Binding="{Binding DropIncreasePct, StringFormat=F1}" Width="100"/>
+                                        <DataGridTextColumn Header="Durum"           Binding="{Binding Status}"         Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ───── SEKME 4: GÜRÜLTÜ ANALİZİ ───── -->
+            <TabItem Header="🔊 Gürültü Analizi">
+                <DockPanel Margin="8">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <ComboBox x:Name="NoiseMaterial" Width="200" Margin="0,0,8,0"/>
+                        <Button Content="🔊 DB Borularını Analiz Et" Width="180" Click="NoiseAnalyze_Click" Background="#311B92"/>
+                        <TextBlock x:Name="NoiseSummary" Foreground="#90CAF9" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <DataGrid x:Name="NoiseGrid" AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Boru"           Binding="{Binding PipeInfo}"     Width="140"/>
+                            <DataGridTextColumn Header="v (m/s)"        Binding="{Binding VelocityMs, StringFormat=F2}"  Width="70"/>
+                            <DataGridTextColumn Header="Q (m³/s)"       Binding="{Binding FlowM3s, StringFormat=F5}"     Width="85"/>
+                            <DataGridTextColumn Header="Gürültü (dB)"   Binding="{Binding NoiseLevelDb, StringFormat=F1}" Width="90"/>
+                            <DataGridTextColumn Header="Sınıf"          Binding="{Binding NoiseClass}"   Width="130"/>
+                            <DataGridTextColumn Header="Not"            Binding="{Binding Note}"         Width="*"/>
+                        </DataGrid.Columns>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasWarning}" Value="True">
+                                        <Setter Property="Background" Value="#3B1A1A"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+        </TabControl>
+    </DockPanel>
+</Window>

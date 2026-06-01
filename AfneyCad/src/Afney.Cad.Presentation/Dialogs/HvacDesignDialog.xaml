@@ -1,0 +1,125 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.HvacDesignDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🌬️ Havalandırma Tesisat Tasarımı — TS EN 13779" Height="660" Width="860"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="CanUserAddRows" Value="False"/><Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#006064"/><Setter Property="Foreground" Value="#80DEEA"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#003A3A" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🌬️ Havalandırma Tesisat Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#80DEEA"/>
+                <TextBlock Text="  Kanal Boyutlandırma · Fan Seçimi · Hava Kalitesi (TS EN 13779)" FontSize="10" Foreground="#4DB6AC" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Content="🌬️ Hesapla" Width="100" Margin="0,0,8,0" Click="Calculate_Click" Background="#006064"/>
+                <Button Grid.Column="2" Content="📊 Excel" Width="80" Margin="0,0,8,0" Click="ExportExcel_Click" Background="#1B5E20"/>
+                <Button Grid.Column="3" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Parametreler -->
+            <Border Grid.Row="0" Background="#1B2B3B" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="Maks. Ana Kanal Hızı (m/s):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtMaxV" Text="6" Width="50"/>
+                        <TextBlock Text="  Maks. Branş Hızı (m/s):" Margin="16,0,8,0"/>
+                        <TextBox x:Name="TxtBranchV" Text="4" Width="50"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="Kanal Tipi:" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="CboDuctType" Width="150">
+                            <ComboBoxItem Content="Dairesel" IsSelected="True"/>
+                            <ComboBoxItem Content="Dikdörtgen"/>
+                        </ComboBox>
+                        <TextBlock Text="  Tahmini Hat Uzunluğu (m):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtLength" Text="20" Width="50"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Zon ekleme -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Content="+ Zon Ekle" Width="90" Click="AddZone_Click" Background="#006064" Margin="0,0,4,0"/>
+                <Button Content="Sil" Width="60" Click="DeleteZone_Click" Background="#8B3A3A" Margin="0,0,4,0"/>
+                <Button Content="📋 Şablon" Width="90" Click="AddTemplate_Click" Background="#455A64" Margin="0,0,8,0"/>
+                <ComboBox x:Name="CboZoneType" Width="160"/>
+            </StackPanel>
+
+            <!-- Zon girişi -->
+            <DataGrid Grid.Row="2" x:Name="ZoneGrid" AutoGenerateColumns="False" IsReadOnly="False" Height="220" Margin="0,0,0,8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Zon / Oda Adı"  Binding="{Binding Name}"         Width="130"/>
+                    <DataGridTextColumn Header="Alan (m²)"      Binding="{Binding FloorAreaM2}"   Width="75"/>
+                    <DataGridTextColumn Header="Yükseklik (m)"  Binding="{Binding HeightM}"       Width="80"/>
+                    <DataGridTextColumn Header="Hava Değişimi (n/h)" Binding="{Binding AirChanges}" Width="110"/>
+                    <DataGridTextColumn Header="Debi (m³/h)"    Binding="{Binding AirFlowM3h, StringFormat=F1}" Width="80" IsReadOnly="True"/>
+                    <DataGridCheckBoxColumn Header="Egzoz?"     Binding="{Binding IsExhaust}"     Width="60"/>
+                    <DataGridTextColumn Header="Açıklama"       Binding="{Binding ZoneType}"      Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Sonuç -->
+            <Border Grid.Row="3" Background="#003A3A" CornerRadius="4" Padding="10">
+                <StackPanel>
+                    <TextBlock x:Name="SummaryText" Text="Henüz hesap yapılmadı." Foreground="#80DEEA" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <DataGrid x:Name="ResultGrid" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="180">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Zon"          Binding="{Binding ZoneName}"              Width="110"/>
+                            <DataGridTextColumn Header="Q (m³/h)"     Binding="{Binding AirFlowM3h, StringFormat=F1}"     Width="75"/>
+                            <DataGridTextColumn Header="v (m/s)"      Binding="{Binding VelocityMs, StringFormat=F2}"     Width="65"/>
+                            <DataGridTextColumn Header="Ø (mm)"       Binding="{Binding DiameterMm, StringFormat=F0}"     Width="65"/>
+                            <DataGridTextColumn Header="G×Y (mm)"     Binding="{Binding RectLabel}"             Width="90"/>
+                            <DataGridTextColumn Header="ΔP (Pa/m)"    Binding="{Binding FrictionPaPer1m, StringFormat=F3}" Width="80"/>
+                            <DataGridTextColumn Header="Not"          Binding="{Binding Note}"                  Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

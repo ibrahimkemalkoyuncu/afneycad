@@ -43,6 +43,22 @@ public class MechanicalProjectSettings
     // Konutlar için genelde 5 mSS (0.5 bar) veya 10 mSS (1 bar) kabul edilir.
     public double RequiredResidualPressure { get; set; } = 5.0; 
 
+    // ── Yaşlanma Katsayısı (Colebrook-White dinamik pürüzlülük) ─────────────────
+    // NE: Boru Yaşı (yıl) — Pürüzlülük artışını modellemek için
+    // NEDEN: Eski borular kireç/korozyon ile pürüzlülüğü artar → basınç kaybı artar
+    // Referans: AWWA M11, Williams-Hazen yaşlanma modeli
+    public int    PipeAgeYears           { get; set; } = 0;
+    // Ek pürüzlülük artışı = AgeYears × AgingRatePerYear (mm/yıl)
+    // Çelik: 0.003, Galvaniz: 0.005, PP-R/PVC: 0 (plastik yaşlanmaz)
+    public double AgingRateMmPerYear     { get; set; } = 0.003;
+    public bool   EnableAgingModel       { get; set; } = false;
+
+    /// <summary>Yaşlanma modeli aktifse dinamik pürüzlülüğü döndürür.</summary>
+    public double EffectiveRoughness =>
+        EnableAgingModel
+        ? PipeRoughness + AgingRateMmPerYear * PipeAgeYears
+        : PipeRoughness;
+
     // NE: Fabrika Ayarlarına Dön
     public static MechanicalProjectSettings CreateDefault() => new MechanicalProjectSettings();
 }

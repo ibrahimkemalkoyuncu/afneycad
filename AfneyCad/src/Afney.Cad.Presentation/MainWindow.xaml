@@ -508,6 +508,24 @@
                                         <TextBlock Text="Doğalgaz" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
+                                <Border BorderBrush="#FF6D00" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="🔥 Isıtma Tasarımı" Click="OnHeatingDesign" Style="{StaticResource RbnBtn}" ToolTip="Isı kaybı (TS 825) · Radyatör seçimi · Kazan · Pompa (TS EN 12831)"/>
+                                        <TextBlock Text="Isıtma" Foreground="#FF6D00" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#00BCD4" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="🌬️ Havalandırma" Click="OnHvacDesign" Style="{StaticResource RbnBtn}" ToolTip="Kanal boyutlandırma · Fan seçimi · Hava debisi (TS EN 13779)"/>
+                                        <TextBlock Text="HVAC" Foreground="#00BCD4" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#607D8B" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="🔧 İleri Araçlar" Click="OnAdvancedTools" Style="{StaticResource RbnBtn}" ToolTip="Yağmur Oluğu · Genleşme Kompansatörü · Boru Yaşlanması · Gürültü Analizi"/>
+                                        <TextBlock Text="İleri" Foreground="#90A4AE" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                                 <Border BorderBrush="#444" BorderThickness="0,0,1,0" Margin="0,0,4,0" Padding="4,2,8,2">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Height="40">

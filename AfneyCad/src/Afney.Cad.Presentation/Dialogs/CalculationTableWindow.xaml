@@ -167,7 +167,34 @@
                 </Grid>
             </TabItem>
 
-            <!-- ===== SEKME 4: MANUEL GİRİŞ (CAD gerektirmez) ===== -->
+            <!-- ===== SEKME 4: EKİPMANLAR (Merkezi Spreadsheet) ===== -->
+            <TabItem Header="🛠️ Ekipmanlar">
+                <DockPanel Margin="8">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                        <Button Content="🔄 DB'den Yükle" Click="EquipLoad_Click" Width="120" Height="26"
+                                Background="#1565C0" Foreground="White" BorderThickness="0" Margin="0,0,6,0"
+                                ToolTip="Veritabanındaki ekipman hesaplarını buraya yükle"/>
+                        <Button Content="📊 Excel" Click="EquipExcel_Click" Width="80" Height="26"
+                                Background="#1B5E20" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="EquipStatusText" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <DataGrid x:Name="EquipGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              Background="#252535" Foreground="White" HeadersVisibility="Column"
+                              GridLinesVisibility="All" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
+                              BorderBrush="#555">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Ekipman Tipi"    Binding="{Binding Type}"        Width="140"/>
+                            <DataGridTextColumn Header="Açıklama"         Binding="{Binding Description}" Width="*"/>
+                            <DataGridTextColumn Header="Kapasite"         Binding="{Binding Capacity}"    Width="120"/>
+                            <DataGridTextColumn Header="Birim"            Binding="{Binding Unit}"        Width="70"/>
+                            <DataGridTextColumn Header="Standart"         Binding="{Binding Standard}"    Width="120"/>
+                            <DataGridTextColumn Header="Öneri"            Binding="{Binding Recommendation}" Width="200"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ===== SEKME 5: MANUEL GİRİŞ (CAD gerektirmez) ===== -->
             <TabItem Header="✏ Manuel Giriş">
                 <Grid>
                     <Grid.RowDefinitions>

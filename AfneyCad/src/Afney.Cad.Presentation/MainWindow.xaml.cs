@@ -3046,6 +3046,24 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnHeatingDesign(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.HeatingDesignDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnHvacDesign(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.HvacDesignDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnAdvancedTools(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.AdvancedToolsDialog(_database) { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnGasCalc(object sender, RoutedEventArgs e)
         {
             try

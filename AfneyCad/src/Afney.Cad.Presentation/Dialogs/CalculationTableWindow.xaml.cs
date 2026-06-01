@@ -18,6 +18,17 @@ namespace Afney.Cad.Presentation.Dialogs
         private readonly ObservableCollection<ManualCalcRow> _manualRows = new();
         private GasCalcSheetService.CalcSheetResult? _gasResult;
 
+        // Ekipman spreadsheet row view-model
+        private class EquipRow
+        {
+            public string Type           { get; set; } = "";
+            public string Description    { get; set; } = "";
+            public string Capacity       { get; set; } = "";
+            public string Unit           { get; set; } = "";
+            public string Standard       { get; set; } = "";
+            public string Recommendation { get; set; } = "";
+        }
+
         // DN sütunu değiştiğinde MainWindow bu event ile AutoPipeLabeler'ı tetikler
         public event Action<string, double>? PipeDN_Changed;
 
@@ -276,6 +287,116 @@ namespace Afney.Cad.Presentation.Dialogs
 
             // DataGrid'i yenile (INotifyPropertyChanged olmadığı için)
             ManualGrid.Items.Refresh();
+        }
+
+        // ── SEKME 4: EKİPMAN SPREADSHEET ─────────────────────────────────────────
+
+        private void EquipLoad_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var rows = new System.Collections.Generic.List<EquipRow>();
+
+                // Su deposu / Hidrofor
+                var tankSvc = new WaterTankService(_database);
+                var fixCount = _database.GetAllEntities()
+                    .OfType<Afney.Cad.Mechanical.Entities.SanitaryFixtureEntity>().Count();
+                if (fixCount > 0)
+                {
+                    var tank = tankSvc.Calculate(Math.Max(fixCount * 3, 10));
+                    rows.Add(new EquipRow
+                    {
+                        Type           = "Su Deposu",
+                        Description    = $"Günlük ihtiyaç: {tank.DailyDemandL:F0} L/gün",
+                        Capacity       = $"{tank.TankVolumeM3:F2} m³",
+                        Unit           = "m³",
+                        Standard       = "TS 1258",
+                        Recommendation = tank.RecommendedTank
+                    });
+                    rows.Add(new EquipRow
+                    {
+                        Type           = "Hidrofor / Pompa",
+                        Description    = $"Pik debi: {tank.PeakFlowLs:F3} l/s",
+                        Capacity       = $"{tank.PumpFlowM3h:F2} m³/h @ {tank.PumpHeadM:F0} m",
+                        Unit           = "m³/h",
+                        Standard       = "TS 1258",
+                        Recommendation = tank.RecommendedPump
+                    });
+                }
+
+                // Su sayacı
+                var meterSvc = new WaterMeterService(_database);
+                var meter = meterSvc.Calculate();
+                rows.Add(new EquipRow
+                {
+                    Type           = "Su Sayacı",
+                    Description    = $"Pik debi: {meter.PeakFlowM3h:F2} m³/h",
+                    Capacity       = $"DN {meter.RecommendedDN}",
+                    Unit           = "DN",
+                    Standard       = "TS EN 14154",
+                    Recommendation = meter.MeterModel
+                });
+
+                // Genleşme tankı (ısıtma sistemi varsa — varsayılan 100L sistem hacmi)
+                var expSvc = new ThermalExpansionService { SystemVolumeL = 100, StaticHeadM = 5 };
+                var exp = expSvc.Calculate();
+                rows.Add(new EquipRow
+                {
+                    Type           = "Genleşme Tankı",
+                    Description    = $"Δv={exp.DeltaV:F4}, precharge={exp.PrechargeBar:F2} bar",
+                    Capacity       = $"{exp.TankVolumeL:F1} L",
+                    Unit           = "L",
+                    Standard       = "TS EN 13831",
+                    Recommendation = exp.RecommendedTank
+                });
+
+                // Geri akış önleyici
+                var bfSvc = new BackflowPreventerService();
+                var bf = bfSvc.Select(2, meter.PeakFlowLs, meter.RecommendedDN);
+                rows.Add(new EquipRow
+                {
+                    Type           = "Geri Akış Önleyici",
+                    Description    = $"Risk Sınıf 2 — {bf.DeviceName}",
+                    Capacity       = $"DN {meter.RecommendedDN}",
+                    Unit           = "DN",
+                    Standard       = bf.Standard,
+                    Recommendation = $"{bf.DeviceType} tipi — Δp={bf.PressureLossBar:F3} bar"
+                });
+
+                EquipGrid.ItemsSource = rows;
+                EquipStatusText.Text = $"✓ {rows.Count} ekipman yüklendi — {DateTime.Now:HH:mm:ss}";
+            }
+            catch (Exception ex) { EquipStatusText.Text = $"Hata: {ex.Message}"; }
+        }
+
+        private void EquipExcel_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var rows = (EquipGrid.ItemsSource as System.Collections.Generic.List<EquipRow>);
+                if (rows == null || rows.Count == 0) { EquipLoad_Click(sender, e); rows = EquipGrid.ItemsSource as System.Collections.Generic.List<EquipRow>; }
+                if (rows == null) return;
+
+                var dlg = new Microsoft.Win32.SaveFileDialog { Title = "Ekipman Listesi Excel", Filter = "Excel|*.xlsx", FileName = $"EkipmanListesi_{DateTime.Now:yyyyMMdd}" };
+                if (dlg.ShowDialog() != true) return;
+
+                using var wb = new ClosedXML.Excel.XLWorkbook();
+                var ws = wb.Worksheets.Add("Ekipmanlar");
+                string[] h = ["Ekipman Tipi", "Açıklama", "Kapasite", "Birim", "Standart", "Öneri"];
+                for (int c = 0; c < h.Length; c++) { ws.Cell(1, c+1).Value = h[c]; ws.Cell(1, c+1).Style.Font.Bold = true; ws.Cell(1, c+1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#1565C0"); ws.Cell(1, c+1).Style.Font.FontColor = ClosedXML.Excel.XLColor.White; }
+                int row = 2;
+                foreach (var r in rows)
+                {
+                    ws.Cell(row, 1).Value = r.Type; ws.Cell(row, 2).Value = r.Description;
+                    ws.Cell(row, 3).Value = r.Capacity; ws.Cell(row, 4).Value = r.Unit;
+                    ws.Cell(row, 5).Value = r.Standard; ws.Cell(row, 6).Value = r.Recommendation; row++;
+                }
+                ws.Columns().AdjustToContents();
+                wb.SaveAs(dlg.FileName);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = dlg.FileName, UseShellExecute = true });
+                EquipStatusText.Text = $"✓ Excel kaydedildi.";
+            }
+            catch (Exception ex) { EquipStatusText.Text = $"Hata: {ex.Message}"; }
         }
 
         // ── MANUEL ADAPT/FCALC SAVE/LOAD/EXPORT ───────────────────────────────
