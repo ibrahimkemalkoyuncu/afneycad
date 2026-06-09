@@ -1,6 +1,6 @@
 # AfneyCAD Geliştirme ve Eksiklik Analizi (Gap Analysis)
 
-> **Son güncelleme:** 2026-05-31 — Session #30 sonrası durum  
+> **Son güncelleme:** 2026-06-09 — Session #31 sonrası durum  
 > Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
 
 ---
@@ -29,7 +29,7 @@
 | Geri Akış Önleyici | ✅ **Var** | `BackflowPreventerService` (TS EN 1717) |
 | Geri Besleme Döngüsü | ✅ **Var** | `DrawingSyncService` — PipeDN_Changed → Ø etiketi anında güncelleme (Session #29) |
 | Doğalgaz Hesap Föyü | ✅ **Var** | CalculationTableWindow ⛽ sekmesi + HTML export (Session #30) |
-| Hesap Tablosu Spreadsheet Entegrasyonu | ⚠️ **Kısmi** | Tesisat ekipmanları bağımsız dialog'larda; merkezi tabloya bağlama eksik |
+| Hesap Tablosu Spreadsheet Entegrasyonu | ✅ **Var** | `CalculationTableWindow` Ekipmanlar sekmesi — WaterTank+WaterMeter+ExpansionTank+BackflowPreventer → Excel (Session #31) |
 
 ---
 
@@ -48,16 +48,28 @@
 
 ---
 
-## 4. Uzun Vadeli Yol Haritası (Kalan İstekler)
+## 4. Session #31 — Fine MEP Karşılaştırma Tamamlananlar
+
+| Özellik | Durum | Not |
+|---|---|---|
+| Isıtma Yük Hesabı (TS 825) | ✅ **Var** | `HeatingSystemService` — 18 şehir, 24 radyatör katalogu, 60/40°C düzeltme · `HeatingDesignDialog` |
+| HVAC Kanal Boyutlandırma (TS EN 13779) | ✅ **Var** | `DuctSizingService` — eşit sürtünme, 18 zone tipi · `HvacDesignDialog` |
+| Yağmur Oluğu Boyutlandırma (TS EN 12056-3) | ✅ **Var** | `GutterSizingService` — 16 şehir i değeri, Manning yarım daire, DN50-DN160 |
+| Genleşme Kompansatörü (TS EN 13480) | ✅ **Var** | `ExpansionLoopService` — 8 malzeme alfa, U/Z/L-dirsek kol boyu |
+| Boru Yaşlanma Modeli (AWWA M11) | ✅ **Var** | `MechanicalProjectSettings.EffectiveRoughness` → `PressureDropService` |
+| Gürültü Analizi (TS EN 14366 / DIN 4109) | ✅ **Var** | `PipeNoiseService` — Lw modeli, 3 DIN sınıfı, per-segment uyarı |
+
+---
+
+## 5. Uzun Vadeli Yol Haritası (Kalan İstekler)
 
 | Özellik | Öncelik | Açıklama |
 |---|---|---|
-| Hesap Tablosu Ekipman Entegrasyonu | Orta | WaterTank/WaterMeter/ExpansionTank → merkezi spreadsheet'e veri akışı |
-| Bulut Senkronizasyonu | Düşük | Proje dosyası cloud backup (Azure/GDrive) |
-| Real-time Çakışma Vurgusu | Orta | ClashDetection → viewport'ta kırmızı overlay |
-| Boru Ağı Animasyonu | Düşük | Akış yönü ve hız animasyonu |
+| Real-time Çakışma Vurgusu | Yüksek | ClashDetection → viewport'ta kırmızı overlay (gerçek zamanlı) |
+| Bulut Senkronizasyonu | Orta | Proje dosyası cloud backup (Azure/GDrive) |
+| Boru Ağı Animasyonu | Düşük | Akış yönü ve hız animasyonu (SkiaSharp) |
 | Mobil Görüntüleyici | Düşük | Web/mobil read-only görüntüleme |
 
 ---
 
-*Tüm Eksiklikler.md §1–3 maddeleri Session #30 itibarıyla tamamlanmıştır.*
+*Tüm Eksiklikler.md §1–4 maddeleri Session #31 itibarıyla tamamlanmıştır.*

@@ -777,4 +777,74 @@ Aşağıdaki satırlar Bölüm 5 tablosuna eklenmiştir:
 
 ---
 
-*Son güncelleme: 2026-05-31 | AfneyCAD v3.1.0 — Session #30: Tüm Eksiklikler Tamamlandı*
+---
+
+## Session #31 — Isıtma + HVAC + 6 Fine MEP Eksikliği Tamamlandı
+
+| # | Özellik | Durum | Standart/Detay |
+|---|---------|-------|----------------|
+| 1 | HeatingSystemService | ✅ | TS 825 / TS EN 12831 — 24 radyatör katalogu, 18 şehir tasarım sıcaklığı, kazan+pompa önerisi |
+| 2 | HeatingDesignDialog | ✅ | 3 sekme: Şehir/Bina · Oda Tablosu · Sonuçlar — Excel + HTML export |
+| 3 | DuctSizingService | ✅ | TS EN 13779 — eşit sürtünme yöntemi, Darcy-Weisbach, 18 zone tipi DefaultAirChanges |
+| 4 | HvacDesignDialog | ✅ | Zone tablosu, dikdörtgen/yuvarlak kanal seçimi, uzunluk tahmini, Excel export |
+| 5 | GutterSizingService | ✅ | TS EN 12056-3 — 16 şehir yağış yoğunluğu, 8 yüzey C katsayısı, Manning yarım daire, DN50-DN160 |
+| 6 | ExpansionLoopService | ✅ | TS EN 13480 / ASME B31.1 — 8 malzeme alfa, ΔL hesabı, U/Z/L-dirsek kol boyu |
+| 7 | PipeNoiseService | ✅ | TS EN 14366 / DIN 4109 — Lw modeli, 3 DIN sınıfı, uyarı per-segment |
+| 8 | MechanicalProjectSettings — Yaşlanma | ✅ | AWWA M11 — PipeAgeYears, AgingRateMmPerYear, EffectiveRoughness → PressureDropService |
+| 9 | AdvancedToolsDialog (4 sekme) | ✅ | Yağmur Oluğu · Genleşme Kompansatörü · Boru Yaşlanması · Gürültü Analizi |
+| 10 | CalculationTableWindow — Ekipmanlar sekmesi | ✅ | WaterTank + WaterMeter + ExpansionTank + BackflowPreventer → ClosedXML Excel export |
+| 11 | CalculationTableWindow — Doğalgaz sekmesi | ✅ | TS EN 1775 — DB boruları, HTML export; GasCalcSheetService.ExportToHtml eklendi |
+
+### Yeni Dialog'lar (Session #31)
+
+| Dialog | Açıklama | Standart |
+|---|---|---|
+| `HeatingDesignDialog` | Isıtma yük hesabı — oda tablosu, radyatör/kazan seçimi, Excel/HTML | TS 825, TS EN 12831 |
+| `HvacDesignDialog` | Havalandırma kanal boyutlandırma — zone tablosu, Excel | TS EN 13779 |
+| `GutterDesignDialog` | Yağmur oluğu — çatı bölümü tablosu, şehir yağışı, DN seçimi | TS EN 12056-3 |
+| `AdvancedToolsDialog` | 4 sekmeli ileri araçlar: Yağmur Oluğu · Kompansatör · Yaşlanma · Gürültü | TS EN 12056-3, TS EN 13480, TS EN 14366 |
+
+### Yeni Servisler (Session #31)
+
+| Servis | Algoritma | Standart |
+|---|---|---|
+| `HeatingSystemService` | Q = ΣU·A·ΔT + infiltrasyon; radyatör 60/40°C düzeltme (×0.69) | TS 825, TS EN 12831 |
+| `DuctSizingService` | Eşit sürtünme yöntemi; Darcy-Weisbach (λ=0.02) | TS EN 13779 |
+| `GutterSizingService` | Q = C·i·A; Manning yarım daire; akış oranı ≤0.5 | TS EN 12056-3 Ek NA |
+| `ExpansionLoopService` | ΔL = α·L·ΔT; L_u = C·√(D·ΔL) U-dirsek; Z/L offset | TS EN 13480, ASME B31.1 |
+| `PipeNoiseService` | L_w = K_base + 10·log(Q²/D) + ΔL_v + 1.5 fitting | TS EN 14366, DIN 4109 |
+
+### OtoNET/FINE MEP Karşılıkları (Session #31)
+
+| OtoNET/FINE MEP | AfneyCAD | Dialog |
+|---|---|---|
+| Isıtma yük hesabı (TS 825) | **Isıtma Tasarımı** | `HeatingDesignDialog` |
+| HVAC kanal hesabı (TS EN 13779) | **Havalandırma** | `HvacDesignDialog` |
+| Yağmur oluğu boyutlandırma | **İleri Araçlar → Yağmur Oluğu** | `AdvancedToolsDialog` |
+| Genleşme kompansatörü | **İleri Araçlar → Genleşme** | `AdvancedToolsDialog` |
+| Boru yaşlanma modeli (AWWA M11) | **İleri Araçlar → Yaşlanma** | `AdvancedToolsDialog` |
+| Gürültü analizi (DIN 4109) | **İleri Araçlar → Gürültü** | `AdvancedToolsDialog` |
+| Merkezi ekipman spreadsheet | **Ekipmanlar sekmesi** | `CalculationTableWindow` |
+
+### Bölüm 5 — Tamamlanan Özellik Tablosu Güncellemesi
+
+| Özellik | OtoNET/FINE MEP | AfneyCAD v3.2 |
+|---|---|---|
+| Isıtma Yük Hesabı | Var | **Var** (`HeatingSystemService`, 18 şehir, 24 radyatör, TS 825) |
+| HVAC Kanal Boyutlandırma | Var | **Var** (`DuctSizingService`, TS EN 13779, eşit sürtünme) |
+| Yağmur Oluğu Boyutlandırma | Var | **Var** (`GutterSizingService`, TS EN 12056-3, 16 şehir) |
+| Genleşme Kompansatörü | Var | **Var** (`ExpansionLoopService`, TS EN 13480, U/Z/L dirsek) |
+| Boru Yaşlanma Modeli | Var | **Var** (`MechanicalProjectSettings.EffectiveRoughness`, AWWA M11) |
+| Gürültü Analizi | Var | **Var** (`PipeNoiseService`, TS EN 14366, DIN 4109 sınıfı) |
+| Merkezi Ekipman Spreadsheet | Var | **Var** (`CalculationTableWindow` Ekipmanlar sekmesi + Excel) |
+
+### Bir Sonraki Session Öncelikleri (#32)
+
+1. **Real-time Çakışma Vurgusu** — `ClashDetectionService` → viewport'ta kırmızı overlay
+2. **Bulut Senkronizasyonu** — Azure/GDrive proje yedekleme
+3. **Boru Ağı Animasyonu** — akış yönü ve hız animasyonu (SkiaSharp)
+4. **Mobil Görüntüleyici** — web/mobil read-only görüntüleme
+
+---
+
+*Son güncelleme: 2026-06-09 | AfneyCAD v3.2.0 — Session #31: Fine MEP Tam Eşdeğerlik*
