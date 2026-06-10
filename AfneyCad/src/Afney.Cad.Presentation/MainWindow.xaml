@@ -672,6 +672,7 @@
                                             <Button Content="💾 DWG Kaydet" Click="OnExportDwgCommand" Style="{StaticResource RbnBtn}" ToolTip="Çizimi DWG formatında kaydet (ACadSharp)"/>
                                             <Button Content="📊 Excel (.xlsx)" Click="OnExportExcel" Style="{StaticResource RbnBtn}" ToolTip="Metraj + Hesap Föyleri Excel olarak dışa aktar"/>
                                             <Button Content="🖼️ PNG Kaydet" Click="OnExportPng" Style="{StaticResource RbnBtn}" ToolTip="Viewport'u yüksek çözünürlüklü PNG olarak kaydet"/>
+                                            <Button Content="🌐 Mobil HTML" Click="OnExportHtmlViewer" Style="{StaticResource RbnBtn}" ToolTip="Projeyi web/mobil görüntüleyici olarak dışa aktar (tek HTML dosyası)"/>
                                         </StackPanel>
                                         <TextBlock Text="Dışa/İçeri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
@@ -680,8 +681,10 @@
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="🖨️ Yazdır" Click="OnPrintViewport" Style="{StaticResource RbnOk}" ToolTip="Çizimi A3/A4 yazıcıya gönder"/>
+                                            <Button x:Name="BtnFlowAnim" Content="▶ Akış Animasyonu" Click="OnFlowAnimationToggle" Style="{StaticResource RbnBtn}" ToolTip="Boru ağındaki akış yönü ve hız animasyonu — tekrar tıkla durdur" Margin="4,0,0,0"/>
+                                            <Button Content="☁️ Yedekle" Click="OnCloudBackup" Style="{StaticResource RbnBtn}" ToolTip="Projeyi OneDrive/GDrive klasörüne yedekle" Margin="4,0,0,0"/>
                                         </StackPanel>
-                                        <TextBlock Text="Baskı" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                        <TextBlock Text="Baskı &amp; Yedek" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border BorderBrush="#22BBCC" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">

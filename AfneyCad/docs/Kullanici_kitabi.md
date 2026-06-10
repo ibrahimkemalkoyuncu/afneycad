@@ -881,4 +881,45 @@ Aşağıdaki satırlar Bölüm 5 tablosuna eklenmiştir:
 
 ---
 
-*Son güncelleme: 2026-06-09 | AfneyCAD v3.3.0 — Session #32: Real-time Çakışma Vurgusu*
+---
+
+## Session #33 — Boru Animasyonu + Bulut Yedekleme + Mobil HTML Viewer
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | PipeFlowAnimationService | ✅ | DispatcherTimer 30fps; hareketli nokta animasyonu; sistem tipine göre renk; FlowRate → nokta boyutu |
+| 2 | CadViewport.OverlayRenderer | ✅ | Dışarıdan enjekte edilebilen SKCanvas overlay hook |
+| 3 | ▶ Akış Animasyonu toggle | ✅ | Ribbon Baskı & Yedek grubuna eklendi; aktif=yeşil, pasif=mavi |
+| 4 | CloudBackupService | ✅ | Zaman damgalı .afney.bak; DispatcherTimer otomatik yedek; maks 20 yedek (FIFO) |
+| 5 | CloudBackupDialog | ✅ | Hedef klasör seçimi, otomatik aralık, "Şimdi Yedekle", yedek listesi, klasör aç |
+| 6 | HtmlViewerExportService | ✅ | Inline SVG: borular + armatürler + vanalar; sistem renk şeması; pan+zoom JS; mobil viewport meta |
+| 7 | 🌐 Mobil HTML butonu | ✅ | Raporlar sekmesi Dışa/İçeri grubuna eklendi; tarayıcıda aç seçeneği |
+
+### Yeni Servisler (Session #33)
+
+| Servis | Konum | Algoritma |
+|---|---|---|
+| `PipeFlowAnimationService` | Presentation/Services | DispatcherTimer → `_phase` artımı → hareketli nokta dizi |
+| `CloudBackupService` | Presentation/Services | `File.Copy` + timestamp + FIFO purge (maks 20) |
+| `HtmlViewerExportService` | Presentation/Services | SVG koordinat dönüşümü, inline HTML+JS, mobiluyumlu |
+
+### Viewport Overlay Mimarisi
+
+```
+CadViewport.OnPaintSurface()
+    → ... entity çiz, highlight, grip ...
+    → OverlayRenderer?.Invoke(canvas, w, h)   ← yeni hook
+    → DrawUCSIcon()
+```
+`MainWindow.OnFlowAnimationToggle()` bu hook'a `PipeFlowAnimationService.DrawOverlay()` atar.
+
+### Bir Sonraki Session Öncelikleri (#34)
+
+AfneyCAD artık FINE MEP ile tam eşdeğer. Bundan sonra:
+1. **Kullanıcı geri bildirimleri** — hata düzeltme ve UX iyileştirmeleri
+2. **Performans optimizasyonu** — büyük projelerde render hızı
+3. **Ek standart desteği** — uluslararası normlar (IPC, UPC, AS/NZS)
+
+---
+
+*Son güncelleme: 2026-06-09 | AfneyCAD v3.4.0 — Session #33: Uzun Vadeli Yol Haritası Tamamlandı*

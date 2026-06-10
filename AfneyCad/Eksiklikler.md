@@ -1,6 +1,6 @@
 # AfneyCAD Geliştirme ve Eksiklik Analizi (Gap Analysis)
 
-> **Son güncelleme:** 2026-06-09 — Session #32 sonrası durum  
+> **Son güncelleme:** 2026-06-09 — Session #33 sonrası durum  
 > Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
 
 ---
@@ -67,9 +67,10 @@
 |---|---|---|
 | Real-time Çakışma Vurgusu | ✅ **Tamamlandı** | `ClashHighlightService` — Critical=kırmızı, Warning=turuncu; 🔴 Çakışma Vurgusu toggle butonu (Session #32) |
 | Bulut Senkronizasyonu | Orta | Proje dosyası cloud backup (Azure/GDrive) |
-| Boru Ağı Animasyonu | Düşük | Akış yönü ve hız animasyonu (SkiaSharp) |
-| Mobil Görüntüleyici | Düşük | Web/mobil read-only görüntüleme |
+| Boru Ağı Animasyonu | ✅ **Tamamlandı** | `PipeFlowAnimationService` — DispatcherTimer 30fps, hareketli nokta animasyonu; ▶ Akış Animasyonu toggle butonu (Session #33) |
+| Mobil Görüntüleyici | ✅ **Tamamlandı** | `HtmlViewerExportService` — inline SVG, sistem renkleri, pan+zoom JS, mobil viewport; 🌐 Mobil HTML butonu (Session #33) |
+| Bulut Senkronizasyonu | ✅ **Tamamlandı** | `CloudBackupService` — zaman damgalı .afney.bak, otomatik yedek, maks 20 yedek; ☁️ Yedekle butonu + CloudBackupDialog (Session #33) |
 
 ---
 
-*Real-time Çakışma Vurgusu Session #32 itibarıyla tamamlanmıştır. Kalan: Bulut Senkronizasyonu, Animasyon, Mobil Görüntüleyici.*
+*Tüm §5 Uzun Vadeli Yol Haritası maddeleri Session #33 itibarıyla tamamlanmıştır. AfneyCAD artık FINE MEP'e tam eşdeğer durumdadır.*

@@ -44,6 +44,9 @@ namespace Afney.Cad.Presentation
         private Afney.Cad.Presentation.Services.AutoSaveService? _autoSaveService;
         private readonly Afney.Cad.Mechanical.Services.PressureMapService _pressureMapService = new();
         private readonly Afney.Cad.Mechanical.Services.ClashHighlightService _clashHighlightService = new();
+        private readonly Afney.Cad.Presentation.Services.PipeFlowAnimationService _flowAnimService = new();
+        private readonly Afney.Cad.Presentation.Services.CloudBackupService _cloudBackupService = new();
+        private readonly Afney.Cad.Presentation.Services.HtmlViewerExportService _htmlViewerService = new();
 
         public CadDocumentContext ActiveContext
         {
@@ -3515,6 +3518,78 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"PNG export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ── Akış Animasyonu Toggle ──────────────────────────────────────────────────
+
+        private void OnFlowAnimationToggle(object sender, RoutedEventArgs e)
+        {
+            if (_flowAnimService.IsRunning)
+            {
+                _flowAnimService.Stop();
+                Viewport.OverlayRenderer = null;
+                if (BtnFlowAnim != null) BtnFlowAnim.Background = System.Windows.Media.Brushes.SteelBlue;
+                StatusText.Text = "▶ Akış animasyonu durduruldu.";
+            }
+            else
+            {
+                // OverlayRenderer hook'unu bağla
+                Viewport.OverlayRenderer = (canvas, w, h) =>
+                    _flowAnimService.DrawOverlay(canvas, w, h,
+                        (wx, wy) => { var p = Viewport.WorldToScreen(new Afney.Cad.Geometry.Primitives.Vector3D(wx, wy, 0)); return ((float)p.X, (float)p.Y); },
+                        _activeContext?.Viewport != null ? 100.0 : 100.0);
+
+                _flowAnimService.Start(_database, () => Dispatcher.InvokeAsync(() => Viewport.InvalidateViewport()));
+                if (BtnFlowAnim != null) BtnFlowAnim.Background = System.Windows.Media.Brushes.DarkGreen;
+                StatusText.Text = "▶ Akış animasyonu aktif — borulardaki akış yönü ve hız görselleştiriliyor.";
+            }
+        }
+
+        // ── Bulut Yedekleme ─────────────────────────────────────────────────────────
+
+        private void OnCloudBackup(object sender, RoutedEventArgs e)
+        {
+            string projName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD_Proje";
+            string sourceFile = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "AfneyCAD", "AutoSave", "autosave.afney.bak");
+
+            var dialog = new Dialogs.CloudBackupDialog(_cloudBackupService, projName, sourceFile) { Owner = this };
+            dialog.ShowDialog();
+        }
+
+        // ── Mobil HTML Viewer Export ────────────────────────────────────────────────
+
+        private void OnExportHtmlViewer(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title      = "Mobil HTML Görüntüleyici Olarak Kaydet",
+                    Filter     = "HTML Dosyası (*.html)|*.html",
+                    FileName   = $"AfneyCAD_{(_mechanicalKernel?.Metadata?.ProjectName ?? "proje")}_{DateTime.Now:yyyyMMdd}.html",
+                    DefaultExt = ".html"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    string projName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Proje";
+                    string html = _htmlViewerService.Export(_database, projName);
+                    System.IO.File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    StatusText.Text = $"🌐 HTML Viewer kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+
+                    if (MessageBox.Show($"HTML başarıyla oluşturuldu.\n{dlg.FileName}\n\nTarayıcıda açılsın mı?",
+                        "Mobil HTML Viewer", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"HTML export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

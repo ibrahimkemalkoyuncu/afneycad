@@ -377,9 +377,15 @@ namespace Afney.Cad.Presentation.Views;
 
             if (_isSelecting) DrawSelectionBox(canvas);
 
+            // Custom overlay (flow animation, clash highlight, vb.)
+            OverlayRenderer?.Invoke(canvas, e.Info.Width / density, e.Info.Height / density);
+
             // UCS İkonu — Sol Alt Köşe
             DrawUCSIcon(canvas, e.Info.Width / density, e.Info.Height / density);
         }
+
+        // Dışarıdan eklenen overlay render callback (PipeFlowAnimationService vb. kullanır)
+        public Action<SkiaSharp.SKCanvas, float, float>? OverlayRenderer { get; set; }
 
         /*
            NE: Sonsuz Grid Çizme
