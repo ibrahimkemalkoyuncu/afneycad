@@ -43,6 +43,7 @@ namespace Afney.Cad.Presentation
         private CadDocumentContext? _activeContext;
         private Afney.Cad.Presentation.Services.AutoSaveService? _autoSaveService;
         private readonly Afney.Cad.Mechanical.Services.PressureMapService _pressureMapService = new();
+        private readonly Afney.Cad.Mechanical.Services.ClashHighlightService _clashHighlightService = new();
 
         public CadDocumentContext ActiveContext
         {
@@ -3278,6 +3279,40 @@ namespace Afney.Cad.Presentation
                     if (BtnPressureMap != null)
                         BtnPressureMap.Background = System.Windows.Media.Brushes.OrangeRed;
                     StatusText.Text = $"🌡️ Basınç Haritası: max={summary.MaxPressureDropM:F4} mSS · ort={summary.AvgPressureDropM:F4} mSS · {summary.CriticalPipeCount} kritik boru";
+                }
+                Viewport.InvalidateViewport();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnClashHighlightToggle(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_clashHighlightService.IsActive)
+                {
+                    _clashHighlightService.Restore(_database);
+                    if (BtnClashHighlight != null)
+                        BtnClashHighlight.Background = System.Windows.Media.Brushes.SteelBlue;
+                    StatusText.Text = "Çakışma vurgusu kapatıldı.";
+                }
+                else
+                {
+                    var obstacles = _mechanicalKernel?.ArchitecturalObstacles ?? [];
+                    var summary = _clashHighlightService.Apply(_database, obstacles);
+                    if (summary.TotalClashes == 0)
+                    {
+                        StatusText.Text = "✅ Çakışma bulunamadı — tüm tesisat elemanları temiz.";
+                    }
+                    else
+                    {
+                        if (BtnClashHighlight != null)
+                            BtnClashHighlight.Background = System.Windows.Media.Brushes.Red;
+                        StatusText.Text = $"🔴 Çakışma Vurgusu: {summary.TotalClashes} çakışma · {summary.CriticalCount} kritik (kırmızı) · {summary.WarningCount} uyarı (turuncu) · {summary.AffectedEntities} etkilenen eleman";
+                    }
                 }
                 Viewport.InvalidateViewport();
             }

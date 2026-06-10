@@ -1,6 +1,6 @@
 # AfneyCAD Geliştirme ve Eksiklik Analizi (Gap Analysis)
 
-> **Son güncelleme:** 2026-06-09 — Session #31 sonrası durum  
+> **Son güncelleme:** 2026-06-09 — Session #32 sonrası durum  
 > Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
 
 ---
@@ -65,11 +65,11 @@
 
 | Özellik | Öncelik | Açıklama |
 |---|---|---|
-| Real-time Çakışma Vurgusu | Yüksek | ClashDetection → viewport'ta kırmızı overlay (gerçek zamanlı) |
+| Real-time Çakışma Vurgusu | ✅ **Tamamlandı** | `ClashHighlightService` — Critical=kırmızı, Warning=turuncu; 🔴 Çakışma Vurgusu toggle butonu (Session #32) |
 | Bulut Senkronizasyonu | Orta | Proje dosyası cloud backup (Azure/GDrive) |
 | Boru Ağı Animasyonu | Düşük | Akış yönü ve hız animasyonu (SkiaSharp) |
 | Mobil Görüntüleyici | Düşük | Web/mobil read-only görüntüleme |
 
 ---
 
-*Tüm Eksiklikler.md §1–4 maddeleri Session #31 itibarıyla tamamlanmıştır.*
+*Real-time Çakışma Vurgusu Session #32 itibarıyla tamamlanmıştır. Kalan: Bulut Senkronizasyonu, Animasyon, Mobil Görüntüleyici.*

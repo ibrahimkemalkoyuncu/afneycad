@@ -847,4 +847,38 @@ Aşağıdaki satırlar Bölüm 5 tablosuna eklenmiştir:
 
 ---
 
-*Son güncelleme: 2026-06-09 | AfneyCAD v3.2.0 — Session #31: Fine MEP Tam Eşdeğerlik*
+---
+
+## Session #32 — Real-time Çakışma Vurgusu
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | ClashHighlightService | ✅ | Çakışan entity'lere renk override: Critical=#FF2200 (kırmızı), Warning=#FF8800 (turuncu) |
+| 2 | 🔴 Çakışma Vurgusu butonu | ✅ | Ribbon → Validasyon & Çakışma grubuna eklendi; toggle ile açılır/kapanır |
+| 3 | Durum çubuğu özet | ✅ | Toplam çakışma · kritik sayısı · uyarı sayısı · etkilenen eleman bilgisi |
+
+### Nasıl Çalışır
+
+1. Ribbon → Validasyon & Çakışma → **🔴 Çakışma Vurgusu** butonuna tıklayın
+2. `ClashHighlightService.Apply()` çalışır:
+   - Mevcut mimari engeller (`MechanicalKernel.ArchitecturalObstacles`) ile tüm boru/dirsek/T-parçaları karşılaştırılır
+   - Çakışan entity'lerin orijinal renkleri saklanır
+   - Critical çakışmalar **kırmızı** (#FF2200), Warning çakışmalar **turuncu** (#FF8800) ile işaretlenir
+3. Durum çubuğunda özet: "🔴 Çakışma Vurgusu: N çakışma · M kritik · K uyarı"
+4. Tekrar tıklayarak vurguyu kapatın → orijinal renkler geri yüklenir
+
+### OtoNET/FINE MEP Karşılığı
+
+| OtoNET/FINE MEP | AfneyCAD |
+|---|---|
+| Çakışma raporunda kırmızı vurgulama | **🔴 Çakışma Vurgusu** — viewport'ta gerçek zamanlı renk override |
+
+### Bir Sonraki Session Öncelikleri (#33)
+
+1. **Bulut Senkronizasyonu** — Azure/GDrive proje yedekleme
+2. **Boru Ağı Animasyonu** — akış yönü ve hız animasyonu (SkiaSharp)
+3. **Mobil Görüntüleyici** — web/mobil read-only görüntüleme
+
+---
+
+*Son güncelleme: 2026-06-09 | AfneyCAD v3.3.0 — Session #32: Real-time Çakışma Vurgusu*
