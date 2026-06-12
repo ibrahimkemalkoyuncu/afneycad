@@ -1,6 +1,6 @@
 # AfneyCAD Geliştirme ve Eksiklik Analizi (Gap Analysis)
 
-> **Son güncelleme:** 2026-06-09 — Session #33 sonrası durum  
+> **Son güncelleme:** 2026-06-13 — Session #34 sonrası durum  
 > Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
 
 ---
@@ -73,4 +73,16 @@
 
 ---
 
-*Tüm §5 Uzun Vadeli Yol Haritası maddeleri Session #33 itibarıyla tamamlanmıştır. AfneyCAD artık FINE MEP'e tam eşdeğer durumdadır.*
+---
+
+## 6. Session #34 — FINE SANİ Karşılaştırması Sonrası (Yeni Tamamlananlar)
+
+Session #34'te yapılan kapsamlı FINE SANİ karşılaştırması (uzman puanı: **5.7/10 → hedef 8.0/10**) sonucu belirlenen kritik eksikler tamamlandı.
+
+| Özellik | Durum | Not |
+|---|---|---|
+| Soğutma Yük Hesabı (ASHRAE / TS EN 12831-3) | ✅ **Tamamlandı** | `CoolingLoadService` — iletim, güneş kazancı, iç yükler, gizil yük; 18 şehir yaz verisi; Chiller/VRF seçimi · `CoolingDesignDialog` (Session #34) |
+| Üretici Ekipman Kataloğu | ✅ **Tamamlandı** | `ManufacturerCatalogService` — Grundfos/Wilo pompa Q/H eğrileri; Valsir/Wavin/Geberit boru sınıfları; Honeywell/Danfoss vanaları + Kv/ΔP · `ManufacturerCatalogDialog` (Session #34) |
+| 3D Axonometrik İzometrik Şema | ✅ **Tamamlandı** | `AxonometricExportService` — kabinetik axonometri; kat kesit çizgileri; DN etiket; HTML/SVG · `AxonometricExportDialog` (Session #34) |
+
+*Tüm kritik FINE SANİ eksikleri Session #34 itibarıyla tamamlanmıştır. Tahmini revize puan: 7.5–8.0 / 10.*

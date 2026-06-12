@@ -514,6 +514,12 @@
                                         <TextBlock Text="Isıtma" Foreground="#FF6D00" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
+                                <Border BorderBrush="#40C4FF" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <Button Content="❄️ Soğutma Tasarımı" Click="OnCoolingDesign" Style="{StaticResource RbnBtn}" ToolTip="Soğutma yük hesabı · Güneş kazancı · İç yükler · Chiller/VRF seçimi (ASHRAE / TS EN 12831-3)"/>
+                                        <TextBlock Text="Soğutma" Foreground="#40C4FF" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                                 <Border BorderBrush="#00BCD4" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
                                     <StackPanel>
                                         <Button Content="🌬️ Havalandırma" Click="OnHvacDesign" Style="{StaticResource RbnBtn}" ToolTip="Kanal boyutlandırma · Fan seçimi · Hava debisi (TS EN 13779)"/>
@@ -673,6 +679,8 @@
                                             <Button Content="📊 Excel (.xlsx)" Click="OnExportExcel" Style="{StaticResource RbnBtn}" ToolTip="Metraj + Hesap Föyleri Excel olarak dışa aktar"/>
                                             <Button Content="🖼️ PNG Kaydet" Click="OnExportPng" Style="{StaticResource RbnBtn}" ToolTip="Viewport'u yüksek çözünürlüklü PNG olarak kaydet"/>
                                             <Button Content="🌐 Mobil HTML" Click="OnExportHtmlViewer" Style="{StaticResource RbnBtn}" ToolTip="Projeyi web/mobil görüntüleyici olarak dışa aktar (tek HTML dosyası)"/>
+                                            <Button Content="📐 Axonometrik" Click="OnAxonometricExport" Style="{StaticResource RbnBtn}" ToolTip="3D izometrik boru şeması — kabinetik axonometri projeksiyon, HTML/SVG çıktısı"/>
+                                            <Button Content="📦 Üretici Kataloğu" Click="OnManufacturerCatalog" Style="{StaticResource RbnBtn}" ToolTip="Grundfos · Wilo · Valsir · Wavin · Geberit — pompa, boru ve vana kataloğu"/>
                                         </StackPanel>
                                         <TextBlock Text="Dışa/İçeri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>

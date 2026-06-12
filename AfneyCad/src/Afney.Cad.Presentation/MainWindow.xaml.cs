@@ -3593,6 +3593,34 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        // ── Soğutma Yük Hesabı ──────────────────────────────────────────────────────
+
+        private void OnCoolingDesign(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.CoolingDesignDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        // ── Axonometrik 3D İzometrik Export ─────────────────────────────────────────
+
+        private void OnAxonometricExport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string projName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD";
+                new Dialogs.AxonometricExportDialog(_database, projName) { Owner = this }.ShowDialog();
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        // ── Üretici Ekipman Kataloğu ─────────────────────────────────────────────────
+
+        private void OnManufacturerCatalog(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.ManufacturerCatalogDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnAutoSizing(object sender, RoutedEventArgs e)
         {
             try

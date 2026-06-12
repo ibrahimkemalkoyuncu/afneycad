@@ -1,5 +1,5 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v2.8.0 — 21 Mayıs 2026  
+**Sürüm:** v3.5.0 — 13 Haziran 2026  
 **Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
@@ -922,4 +922,38 @@ AfneyCAD artık FINE MEP ile tam eşdeğer. Bundan sonra:
 
 ---
 
-*Son güncelleme: 2026-06-09 | AfneyCAD v3.4.0 — Session #33: Uzun Vadeli Yol Haritası Tamamlandı*
+---
+
+## Session #34 — Soğutma Yük Hesabı + Üretici Kataloğu + 3D Axonometrik
+
+| # | Özellik | Durum | Standart/Detay |
+|---|---|---|---|
+| 1 | ❄️ Soğutma Yük Hesabı | ✅ | `CoolingLoadService` — ASHRAE HOF 2021 / TS EN 12831-3; iletim+güneş+iç yük+gizil; 18 şehir yaz tasarım verisi; Chiller/VRF seçimi |
+| 2 | ❄️ Soğutma Tasarım Dialog | ✅ | `CoolingDesignDialog` — bölge bazlı giriş (yön, SHGC, kişi, aydınlatma, ekipman); ofis/konut şablonu; HTML+Excel rapor |
+| 3 | 📦 Üretici Ekipman Kataloğu | ✅ | `ManufacturerCatalogService` — Grundfos UP/UPS/TPE + Wilo Star-RS/Top-S/VeroLine pompaları; Valsir/Wavin/Geberit boru sınıfları; Honeywell/Danfoss/Oventrop vanaları |
+| 4 | 📦 Katalog Dialog | ✅ | `ManufacturerCatalogDialog` — pompa Q/H filtresi, çalışma noktası interpolasyonu; boru malzeme/DN filtresi; vana Kv/ΔP hesabı; HTML katalog raporu |
+| 5 | 📐 3D Axonometrik İzometrik | ✅ | `AxonometricExportService` — kabinetik axonometri projeksiyon (X:30°, Y:150°, Z:90°); kat kesit çizgileri; DN+sistem etiketi; HTML/SVG çıktısı |
+| 6 | 📐 Axonometrik Export Dialog | ✅ | `AxonometricExportDialog` — kat sayısı, kat yüksekliği, format seçimi, otomatik tarayıcıda açma |
+| 7 | MainWindow entegrasyonu | ✅ | ❄️ Soğutma Tasarımı butonu (HVAC sekmesi); 📐 Axonometrik + 📦 Üretici Kataloğu butonları (Dışa/İçeri grubu) |
+
+### Yeni Servisler (Session #34)
+
+| Servis | Konum | Algoritma |
+|---|---|---|
+| `CoolingLoadService` | `Afney.Cad.Mechanical.Services` | CLTD iletim · SHGC güneş · ASHRAE kişi yükü tablosu · Δw gizil nem modeli |
+| `ManufacturerCatalogService` | `Afney.Cad.Mechanical.Services` | Q/H eğri interpolasyonu · Kv bazlı ΔP = 100×(Q/Kv)² |
+| `AxonometricExportService` | `Afney.Cad.Presentation.Services` | screen_x=(wx-wy)×cos30 · screen_y=-(wx+wy)×sin30-wz · SCALE=80px/m |
+
+### 4m FINE SANİ Karşılaştırma Sonrası Kalan Açıklar
+
+Session #34 öncesinde yapılan kapsamlı FINE SANİ karşılaştırması (puan: **5.7/10**) sonucunda belirlenen ve bu session'da kapatılan kritik eksikler:
+
+| Eksik (FINE SANİ Karşısında) | Durum | Session |
+|---|---|---|
+| Soğutma Yük Hesabı (ASHRAE/TS EN 12831-3) | ✅ Tamamlandı | #34 |
+| Üretici Ekipman Kataloğu (Grundfos, Wilo, Valsir…) | ✅ Tamamlandı | #34 |
+| 3D Axonometrik Boru Şeması (AxoModel benzeri) | ✅ Tamamlandı | #34 |
+
+---
+
+*Son güncelleme: 2026-06-13 | AfneyCAD v3.5.0 — Session #34: Soğutma + Üretici Kataloğu + Axonometrik*
