@@ -1018,4 +1018,44 @@ Session #34 öncesinde yapılan kapsamlı FINE SANİ karşılaştırması (puan:
 
 ---
 
-*Son güncelleme: 2026-06-14 | AfneyCAD v4.0.0 — Session #35: 14 Yeni Araç, FINE MEP Parité*
+---
+
+## Session #36 — Profesyonel UI Tasarımı: Dark CAD Teması + Office-Style Ribbon
+
+**Tarih:** 16 Haziran 2026  
+**Odak:** MainWindow.xaml tam yeniden tasarımı — görsel kalite ve kullanılabilirlik
+
+### Tasarım Değişiklikleri
+
+| Alan | Önceki | Sonraki |
+|---|---|---|
+| Arka plan | `#1A1A2E` karanlık | `#12141A` ultra koyu navy |
+| Panel arka plan | `#1E1E2E` | `#1A1C24` |
+| Accent rengi | `#1565C0` mavi | `#0A84FF` (Apple macOS mavi) |
+| Ribbon buton stili | `WrapPanel` + emoji+metin inline | `RbnLarge` 68×72px — ikon üstte, etiket altta |
+| Ribbon scroll | Wrap (taşıyor) | `ScrollViewer Horizontal` — her tab |
+| Sol panel | Yok / düz liste | 44px VS Code activity bar + 220px panel |
+| Status bar | Sadece komut + durum + zoom | ORTHO `ToggleButton` + OSNAP / POLAR göstergeleri |
+| Tab içeriği arka plan | `#1E1E2E` | `#1E2029` (daha yumuşak) |
+| Quick Access | Yok | Logo + v4.0 + Yeni/Aç/Kaydet kısayolları |
+| Sekme stili | Standart WPF tabitem | Özel template: aktif sekme mavi üst çizgi |
+
+### Yeni Stil Sistemi
+
+| Stil | Boyut | Kullanım |
+|---|---|---|
+| `RbnLarge` | 68×72px | Ana eylemler (Hesapla, Bağla, Onayla...) |
+| `RbnLargeAccent/Green/Orange/Red` | 68×72px | Renkli varyantlar |
+| `RbnMed` | ∞×44px | Orta öncelikli eylemler |
+| `RbnBtn` | ∞×28px | Kompakt ikincil eylemler |
+| `ActivityBtn` | 44×44px | VS Code aktivite çubuğu |
+| `ToolBtn` | 50×48px | Sol araç çubuğu — ikon + etiket |
+
+### Teknik
+
+- Build: `0 Hata, 0 Uyarı` ✅  
+- `BtnOrthoMode` → `ToggleButton` olarak status bar'a taşındı (OrthoToggled event bağlantısı korundu)  
+- `LetterSpacing` WPF desteklemediği için kaldırıldı  
+- Tüm `x:Name` ve `Click` handler'lar korundu  
+
+*Son güncelleme: 2026-06-16 | AfneyCAD v4.0.0 — Session #36: Profesyonel UI Tasarımı*
