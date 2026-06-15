@@ -155,59 +155,6 @@
             <Setter Property="Foreground" Value="#E74C3C"/>
         </Style>
 
-        <!-- ══ SOL ARAÇ ÇUBUĞU STİLLERİ ════════════════════════════════════════ -->
-        <Style x:Key="ToolBtn" TargetType="Button">
-            <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="Foreground"      Value="#9294A8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width"           Value="52"/>
-            <Setter Property="Height"          Value="50"/>
-            <Setter Property="Margin"          Value="4,2"/>
-            <Setter Property="Cursor"          Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                CornerRadius="8" Padding="2">
-                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <TextBlock x:Name="Icon" Text="{TemplateBinding Tag}"
-                                           FontSize="18" HorizontalAlignment="Center"
-                                           Foreground="{TemplateBinding Foreground}"/>
-                                <TextBlock Text="{TemplateBinding Content}"
-                                           FontSize="8" HorizontalAlignment="Center"
-                                           Foreground="{TemplateBinding Foreground}"
-                                           Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd"   Property="Background" Value="#222538"/>
-                                <Setter TargetName="Icon" Property="Foreground" Value="#E1E4EE"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#0A84FF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="ToolBtnAccent"  TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-            <Setter Property="Foreground" Value="#60BAFF"/>
-        </Style>
-        <Style x:Key="ToolBtnGreen"   TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-            <Setter Property="Foreground" Value="#2ECC71"/>
-        </Style>
-        <Style x:Key="ToolBtnOrange"  TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-            <Setter Property="Foreground" Value="#F39C12"/>
-        </Style>
-        <Style x:Key="ToolBtnRed"     TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-            <Setter Property="Foreground" Value="#E74C3C"/>
-        </Style>
-        <Style x:Key="ToolBtnPurple"  TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-            <Setter Property="Foreground" Value="#C084FC"/>
-        </Style>
-
         <!-- ══ AKTİVİTE ÇUBUĞU STİLİ (VS Code tarzı) ══════════════════════════ -->
         <Style x:Key="ActivityBtn" TargetType="Button">
             <Setter Property="Width"           Value="44"/>
@@ -1171,10 +1118,9 @@
                 <ColumnDefinition Width="44"/>   <!-- Col 0: Activity Bar -->
                 <ColumnDefinition Width="Auto"/> <!-- Col 1: Left Panel -->
                 <ColumnDefinition Width="4"/>    <!-- Col 2: Splitter -->
-                <ColumnDefinition Width="62"/>   <!-- Col 3: Tool Strip -->
-                <ColumnDefinition Width="*"/>    <!-- Col 4: Viewport -->
-                <ColumnDefinition Width="4"/>    <!-- Col 5: Splitter -->
-                <ColumnDefinition Width="Auto"/> <!-- Col 6: Right Panel -->
+                <ColumnDefinition Width="*"/>    <!-- Col 3: Viewport -->
+                <ColumnDefinition Width="4"/>    <!-- Col 4: Splitter -->
+                <ColumnDefinition Width="Auto"/> <!-- Col 5: Right Panel -->
             </Grid.ColumnDefinitions>
 
             <!-- ── Aktivite Çubuğu (VS Code tarzı) ─────────────────────────── -->
@@ -1236,125 +1182,8 @@
                           Background="#252836" HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"/>
 
-            <!-- ── Sol Araç Çubuğu ───────────────────────────────────────────── -->
-            <Border Grid.Column="3"
-                    Background="#1A1C24"
-                    BorderBrush="#252836" BorderThickness="0,0,1,0"
-                    Width="62">
-                <Border.Resources>
-                    <Style x:Key="ToolBtn" TargetType="Button">
-                        <Setter Property="Background"      Value="Transparent"/>
-                        <Setter Property="Foreground"      Value="#60637A"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Width"           Value="50"/>
-                        <Setter Property="Height"          Value="48"/>
-                        <Setter Property="Margin"          Value="4,2"/>
-                        <Setter Property="Cursor"          Value="Hand"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                            CornerRadius="8" Padding="2">
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <TextBlock x:Name="Icon" Text="{TemplateBinding Tag}"
-                                                       FontSize="17" HorizontalAlignment="Center"
-                                                       Foreground="{TemplateBinding Foreground}"/>
-                                            <TextBlock Text="{TemplateBinding Content}"
-                                                       FontSize="8" HorizontalAlignment="Center"
-                                                       Foreground="{TemplateBinding Foreground}"
-                                                       Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd"   Property="Background" Value="#1E2132"/>
-                                            <Setter TargetName="Icon" Property="Foreground" Value="#E1E4EE"/>
-                                            <Setter Property="Foreground" Value="#E1E4EE"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="#0A84FF"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                    <Style x:Key="ToolBtnAccent"  TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-                        <Setter Property="Foreground" Value="#0A84FF"/>
-                    </Style>
-                    <Style x:Key="ToolBtnGreen"   TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-                        <Setter Property="Foreground" Value="#2ECC71"/>
-                    </Style>
-                    <Style x:Key="ToolBtnOrange"  TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-                        <Setter Property="Foreground" Value="#F39C12"/>
-                    </Style>
-                    <Style x:Key="ToolBtnRed"     TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-                        <Setter Property="Foreground" Value="#E74C3C"/>
-                    </Style>
-                    <Style x:Key="ToolBtnPurple"  TargetType="Button" BasedOn="{StaticResource ToolBtn}">
-                        <Setter Property="Foreground" Value="#C084FC"/>
-                    </Style>
-                </Border.Resources>
-
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel>
-                        <!-- Çizim -->
-                        <Border Background="#12141A" Margin="5,8,5,2" CornerRadius="4" Padding="2,3">
-                            <TextBlock Text="ÇİZİM" FontSize="7" FontWeight="Bold"
-                                       Foreground="#35374A" HorizontalAlignment="Center"/>
-                        </Border>
-                        <Button Tag="✏" Content="Çizgi"   Click="OnLineCommand"    Style="{StaticResource ToolBtnAccent}" ToolTip="Çizgi Çiz (L)"/>
-                        <Button Tag="⬤" Content="Daire"   Click="OnCircleCommand"  Style="{StaticResource ToolBtnAccent}" ToolTip="Daire Çiz (C)"/>
-                        <Button Tag="✂" Content="Buda"    Click="OnTrimCommand"    Style="{StaticResource ToolBtnRed}"    ToolTip="Budama (TR)"/>
-                        <Button Tag="↔" Content="Uzat"    Click="OnExtendCommand"  Style="{StaticResource ToolBtnGreen}"  ToolTip="Uzatma (EX)"/>
-                        <Button Tag="⟺" Content="Ayna"    Click="OnMirrorCommand"  Style="{StaticResource ToolBtnOrange}" ToolTip="Aynalama (MI)"/>
-                        <Button Tag="⛏" Content="Patlat"  Click="OnExplodeCommand" Style="{StaticResource ToolBtnPurple}" ToolTip="Patlatma (X)"/>
-                        <Button Tag="↕" Content="Taşı"    Click="OnMoveCommand"    Style="{StaticResource ToolBtn}"       ToolTip="Taşı (M)"/>
-                        <Button Tag="⿻" Content="Kopyala" Click="OnCopyCommand"    Style="{StaticResource ToolBtn}"       ToolTip="Kopyala (CO)"/>
-
-                        <!-- Mekanik -->
-                        <Rectangle Height="1" Fill="#252836" Margin="8,6"/>
-                        <Border Background="#12141A" Margin="5,0,5,2" CornerRadius="4" Padding="2,3">
-                            <TextBlock Text="MEKANİK" FontSize="7" FontWeight="Bold"
-                                       Foreground="#35374A" HorizontalAlignment="Center"/>
-                        </Border>
-                        <Button Tag="🔵" Content="Boru"     Click="OnDrawPipeCommand"    Style="{StaticResource ToolBtnAccent}" ToolTip="Boru Çiz (P)"/>
-                        <Button Tag="🔧" Content="Cihaz"    Click="OnPlaceFixtureOnWall" Style="{StaticResource ToolBtnOrange}" ToolTip="Duvara Cihaz Yerleştir"/>
-                        <Button Tag="⬌" Content="Paralel"  Click="OnWallParallelRoute"  Style="{StaticResource ToolBtn}"       ToolTip="Duvara Paralel Boru"/>
-                        <Button Tag="⇉" Content="Çift Hat" Click="OnDoublePipeRoute"    Style="{StaticResource ToolBtnAccent}" ToolTip="Çift Hat Çiz"/>
-                        <Button Tag="🔗" Content="Bağla"    Click="OnConnectReceptors"   Style="{StaticResource ToolBtnGreen}"  ToolTip="Armatürleri Hatta Bağla"/>
-                        <Button Tag="📐" Content="Kolon"    Click="OnRiserConnection"    Style="{StaticResource ToolBtn}"       ToolTip="Kolon Bağlantısı"/>
-
-                        <!-- Otomasyon -->
-                        <Rectangle Height="1" Fill="#252836" Margin="8,6"/>
-                        <Border Background="#12141A" Margin="5,0,5,2" CornerRadius="4" Padding="2,3">
-                            <TextBlock Text="OTOMASYON" FontSize="7" FontWeight="Bold"
-                                       Foreground="#35374A" HorizontalAlignment="Center"/>
-                        </Border>
-                        <Button Tag="🤖" Content="Otonom"   Click="OnAutoDetectSpacesCommand" Style="{StaticResource ToolBtnAccent}" ToolTip="Tüm Mimariyi Tara"/>
-                        <Button Tag="🏠" Content="Mahal"    Click="OnDefineMahalCommand"      Style="{StaticResource ToolBtnGreen}"  ToolTip="Mahal Tanımla"/>
-                        <Button Tag="🔍" Content="Analiz"   Click="OnInspectMahalCommand"     Style="{StaticResource ToolBtn}"       ToolTip="Mahal Analizi"/>
-                        <Button Tag="🔗" Content="Auto-Con" Click="OnAutoBranchingClick"      Style="{StaticResource ToolBtnPurple}" ToolTip="Otomatik Şube Bağlantısı"/>
-
-                        <!-- Hesap -->
-                        <Rectangle Height="1" Fill="#252836" Margin="8,6"/>
-                        <Border Background="#12141A" Margin="5,0,5,2" CornerRadius="4" Padding="2,3">
-                            <TextBlock Text="HESAP" FontSize="7" FontWeight="Bold"
-                                       Foreground="#35374A" HorizontalAlignment="Center"/>
-                        </Border>
-                        <Button Tag="⚡" Content="Hesapla"  Click="OnRecalculatePlumbing" Style="{StaticResource ToolBtnOrange}" ToolTip="Tesisat Hesapla"/>
-                        <Button Tag="🛡" Content="Doğrula"  Click="OnAuditSystem"          Style="{StaticResource ToolBtnRed}"   ToolTip="Sistem Validasyonu"/>
-                        <Button Tag="📊" Content="Şema"     Click="OnRiserGenerateCommand" Style="{StaticResource ToolBtnPurple}" ToolTip="Kolon Şeması"/>
-                        <Button Tag="📋" Content="Spec"     Click="OnAnalyzeSpecClick"     Style="{StaticResource ToolBtnGreen}"  ToolTip="Keşif &amp; Şartname"/>
-                        <Button Tag="🗺" Content="İzo-Şema" Click="OnShowIsometricScheme"  Style="{StaticResource ToolBtnAccent}" ToolTip="İzometrik Şema"/>
-
-                        <Rectangle Height="8"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
             <!-- ── Viewport ──────────────────────────────────────────────────── -->
-            <Border Grid.Column="4" Background="#0E1014">
+            <Border Grid.Column="3" Background="#0E1014">
                 <DockPanel>
                     <!-- Sekme çubuğu -->
                     <Border DockPanel.Dock="Top" Background="#1A1C24"
@@ -1443,12 +1272,12 @@
                 </DockPanel>
             </Border>
 
-            <GridSplitter Grid.Column="5" Width="4"
+            <GridSplitter Grid.Column="4" Width="4"
                           Background="#252836" HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"/>
 
             <!-- ── Sağ Panel: Intelligence ───────────────────────────────────── -->
-            <controls:IntelligencePanel Grid.Column="6" x:Name="RightPanel"
+            <controls:IntelligencePanel Grid.Column="5" x:Name="RightPanel"
                                         Width="260" Visibility="Collapsed"/>
         </Grid>
 
