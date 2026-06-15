@@ -681,6 +681,7 @@
                                             <Button Content="🌐 Mobil HTML" Click="OnExportHtmlViewer" Style="{StaticResource RbnBtn}" ToolTip="Projeyi web/mobil görüntüleyici olarak dışa aktar (tek HTML dosyası)"/>
                                             <Button Content="📐 Axonometrik" Click="OnAxonometricExport" Style="{StaticResource RbnBtn}" ToolTip="3D izometrik boru şeması — kabinetik axonometri projeksiyon, HTML/SVG çıktısı"/>
                                             <Button Content="📦 Üretici Kataloğu" Click="OnManufacturerCatalog" Style="{StaticResource RbnBtn}" ToolTip="Grundfos · Wilo · Valsir · Wavin · Geberit — pompa, boru ve vana kataloğu"/>
+                                            <Button Content="🖨 Pafta Yerleşimi"  Click="OnPrintLayout"          Style="{StaticResource RbnBtn}" ToolTip="A3/A2 antetli pafta yerleşimi oluştur · SVG/HTML çıktısı"/>
                                         </StackPanel>
                                         <TextBlock Text="Dışa/İçeri" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
@@ -705,6 +706,29 @@
                                             <Button Content="⚙ Pompaj Grubu"   Click="OnPumpGroup"           Style="{StaticResource RbnBtn}" ToolTip="Paralel/seri pompa kombinasyonu Q-H analizi"/>
                                         </StackPanel>
                                         <TextBlock Text="İleri Analiz" Foreground="#666" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- ── SESSION 35: YENİ ARAÇLAR ── -->
+                                <Border BorderBrush="#69F0AE" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🚀 Yeni Proje"      Click="OnNewProjectWizard"    Style="{StaticResource RbnBtn}" ToolTip="Şablon sihirbazı — Konut/Otel/AVM/Hastane/Ofis"/>
+                                            <Button Content="📋 Revizyon"        Click="OnRevisionTracking"    Style="{StaticResource RbnBtn}" ToolTip="Rev.A/B/C değişiklik takibi · onay akışı · JSON kaydet"/>
+                                            <Button Content="💨 Fan Seçimi"      Click="OnFanSelection"        Style="{StaticResource RbnBtn}" ToolTip="Systemair · Halton · S&amp;P · EC motor — Q/ΔP/SFP/ses"/>
+                                            <Button Content="🌡️ Isı Pompası"    Click="OnHeatPump"            Style="{StaticResource RbnBtn}" ToolTip="Daikin · Vaillant · Mitsubishi — COP/SCOP/SEER (EN 14825)"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Session 35" Foreground="#69F0AE" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border BorderBrush="#69F0AE" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="4,2">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="🌡️ Yerden Isıtma"  Click="OnFloorHeating"        Style="{StaticResource RbnBtn}" ToolTip="TS EN 1264 — boru aralığı · devre · basınç kaybı · kolektör"/>
+                                            <Button Content="🔥 Sprinkler"      Click="OnSprinklerDesign"     Style="{StaticResource RbnBtn}" ToolTip="NFPA 13 — yoğunluk/alan metodu · boru boyutu · basınç"/>
+                                            <Button Content="⚡ EKB"            Click="OnEnergyPerformance"  Style="{StaticResource RbnBtn}" ToolTip="TS 825:2023 / EPBD — enerji sertifikası sınıf A-G"/>
+                                            <Button Content="💨 AHU Tasarım"    Click="OnAHUDesign"           Style="{StaticResource RbnBtn}" ToolTip="Hava İşleme Birimi — ısıtma/soğutma/nem/fan/SFP"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Enerji &amp; Yangın" Foreground="#69F0AE" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
 

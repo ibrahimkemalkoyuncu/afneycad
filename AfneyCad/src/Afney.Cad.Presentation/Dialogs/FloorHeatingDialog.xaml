@@ -1,0 +1,186 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.FloorHeatingDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🌡️ Yerden Isıtma — TS EN 1264 Boru Aralığı / Devre Hesabı"
+        Height="680" Width="1050"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White"
+        ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🌡️ Yerden Isıtma Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <TextBlock Text="  TS EN 1264 — Boru Aralığı · Devre Uzunluğu · Basınç Kaybı · Kolektör"
+                           FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="🖨 HTML Rapor" Width="110" Margin="0,0,8,0"
+                        Click="ExportHtml_Click" Background="#455A64"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sol: Sistem + Bölgeler -->
+            <DockPanel Grid.Column="0">
+                <Border Background="#0D1117" CornerRadius="4" Padding="12" DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="SİSTEM PARAMETRELERİ" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Besleme T (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtSupply" Text="35" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Dönüş T (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtReturn" Text="30" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Oda T (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtRoom" Text="20" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Boru Çapı (mm):" Margin="0,5"/>
+                            <ComboBox  Grid.Row="3" Grid.Column="1" x:Name="CboPipeDiam" Margin="0,5" SelectedIndex="0">
+                                <ComboBoxItem Content="16/2 (PEXa)"/>
+                                <ComboBoxItem Content="20/2 (PEXa)"/>
+                                <ComboBoxItem Content="16/2 (PE-RT)"/>
+                                <ComboBoxItem Content="20/2 (PE-RT)"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Maks Devre (m):" Margin="0,5"/>
+                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="TxtMaxCircuit" Text="100" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Zemin Kaplaması:" Margin="0,5"/>
+                            <ComboBox  Grid.Row="5" Grid.Column="1" x:Name="CboFloor" Margin="0,5" SelectedIndex="0">
+                                <ComboBoxItem Content="Seramik/Porselen"/>
+                                <ComboBoxItem Content="Mermer/Taş"/>
+                                <ComboBoxItem Content="Parke (İnce)"/>
+                                <ComboBoxItem Content="Laminat"/>
+                                <ComboBoxItem Content="Parke (Kalın)"/>
+                                <ComboBoxItem Content="Halı (İnce)"/>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Bölge giriş alanı -->
+                <Border Background="#0D1117" CornerRadius="4" Padding="12">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="BÖLGELER" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="+ Ekle" Margin="0,0,4,0" Click="AddZone_Click" Background="#1B5E20"/>
+                                <Button Grid.Column="1" Content="🗑 Sil" Margin="4,0,0,0" Click="RemoveZone_Click" Background="#6D0000"/>
+                            </Grid>
+                            <Button Content="🔢 Hesapla" Margin="0,6,0,0" Height="34" FontSize="13"
+                                    Click="Calculate_Click" Background="#0D47A1"/>
+                        </StackPanel>
+
+                        <DataGrid x:Name="ZoneGrid" AutoGenerateColumns="False"
+                                  Background="#252535" Foreground="White" CanUserAddRows="False"
+                                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#333"
+                                  RowBackground="#252535" AlternatingRowBackground="#2A2A3E">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+                                    <Setter Property="Padding" Value="4,3"/><Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Bölge"  Binding="{Binding Name}"         Width="90"/>
+                                <DataGridTextColumn Header="Alan m²" Binding="{Binding AreaM2}"       Width="60"/>
+                                <DataGridTextColumn Header="Yük W"  Binding="{Binding HeatingLoadW}"  Width="60"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </DockPanel>
+
+            <!-- Sağ: Sonuç tablosu + özet -->
+            <DockPanel Grid.Column="2">
+                <Border Background="#0D1117" CornerRadius="4" Padding="8" DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="4">
+                            <TextBlock Text="TOPLAM BORU" FontSize="9" Foreground="#90CAF9" FontWeight="Bold"/>
+                            <TextBlock x:Name="SumPipe" Text="— m" Foreground="#FFD740" FontSize="14" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="4">
+                            <TextBlock Text="TOPLAM DEBİ" FontSize="9" Foreground="#90CAF9" FontWeight="Bold"/>
+                            <TextBlock x:Name="SumFlow" Text="— L/sa" Foreground="#80DEEA" FontSize="14" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="4">
+                            <TextBlock Text="MAX BASINÇ" FontSize="9" Foreground="#90CAF9" FontWeight="Bold"/>
+                            <TextBlock x:Name="SumDP" Text="— kPa" Foreground="#EF9A9A" FontSize="14" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Margin="4">
+                            <TextBlock Text="KOLEKTÖRr" FontSize="9" Foreground="#90CAF9" FontWeight="Bold"/>
+                            <TextBlock x:Name="SumManifold" Text="—" Foreground="#A5D6A7" FontSize="12" FontWeight="Bold" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <TextBlock DockPanel.Dock="Top" Text="BÖLGE SONUÇLARI" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+                <DataGrid x:Name="ResultGrid" AutoGenerateColumns="False"
+                          Background="#252535" Foreground="White" CanUserAddRows="False" IsReadOnly="True"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#333"
+                          RowBackground="#252535" AlternatingRowBackground="#2A2A3E">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+                            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Bölge"          Binding="{Binding Zone.Name}"       Width="100"/>
+                        <DataGridTextColumn Header="Isı Akısı W/m²" Binding="{Binding HeatFluxWpm2,StringFormat=F1}" Width="100"/>
+                        <DataGridTextColumn Header="Aralık (mm)"    Binding="{Binding SpacingMm}"       Width="80"/>
+                        <DataGridTextColumn Header="Devre Sayısı"   Binding="{Binding CircuitCount}"    Width="90"/>
+                        <DataGridTextColumn Header="Devre Boyu (m)" Binding="{Binding CircuitLenM,StringFormat=F1}"  Width="100"/>
+                        <DataGridTextColumn Header="Toplam Boru (m)" Binding="{Binding TotalPipeLenM,StringFormat=F1}" Width="110"/>
+                        <DataGridTextColumn Header="Debi (L/sa)"    Binding="{Binding FlowLph,StringFormat=F1}"  Width="85"/>
+                        <DataGridTextColumn Header="ΔP (kPa)"       Binding="{Binding PressureDropKpa,StringFormat=F2}" Width="80"/>
+                        <DataGridTextColumn Header="Durum"          Binding="{Binding Status}"          Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

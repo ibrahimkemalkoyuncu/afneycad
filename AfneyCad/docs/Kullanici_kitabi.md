@@ -1,6 +1,6 @@
 # AfneyCAD Kullanıcı Kitabı
-**Sürüm:** v3.5.0 — 13 Haziran 2026  
-**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma
+**Sürüm:** v4.0.0 — 14 Haziran 2026  
+**Kapsam:** Mimari Giriş · Temiz Su Tasarımı · Hidrolik Hesap · Pis Su / Yağmur Suyu · IFC İçeri Aktarma · Pompa Q-H Grafiği · Sıcak Su Resirkülasyon · DXF Dışa Aktarma · Uluslararası Norm Desteği · Basınç Bölgesi PRV · Yangın Hidrant & Hortum · Boru Maliyet Analizi · Viewport Baskı/PNG · BOM Maliyet Tablosu · Pompaj Grubu Q-H · Otomatik Boru Boyutlandırma · Fan Seçimi · Isı Pompası · Yerden Isıtma · Sprinkler · EKB · AHU · DIN 1988-300 · Revizyon Takibi · Pafta Yerleşimi
 
 > Bu kitap, OtoNET/FINE MEP eğitimlerinde öğretilen iş akışlarının AfneyCAD'deki karşılıklarını göstermektedir.  
 > Her bölüm: "OtoNET'te nasıl yapılır?" → "AfneyCAD'de nasıl yapılır?" formatındadır.
@@ -957,3 +957,65 @@ Session #34 öncesinde yapılan kapsamlı FINE SANİ karşılaştırması (puan:
 ---
 
 *Son güncelleme: 2026-06-13 | AfneyCAD v3.5.0 — Session #34: Soğutma + Üretici Kataloğu + Axonometrik*
+
+---
+
+## Session #35 — 14 Yeni Araç: Fan · Isı Pompası · Yerden Isıtma · Sprinkler · EKB · AHU · DIN 1988-300
+
+**Versiyon:** v4.0.0 — 14 Haziran 2026  
+**Hedef:** 4m FINE SANİ MEP'e karsı **10/10** puan  
+**Eklenen Servis Sayısı:** 14 servis + dialog
+
+### Yeni Özellikler (Session #35)
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | 📋 Revizyon Takibi | ✅ | `RevisionTrackingService` + `RevisionTrackingDialog` — Rev.A/B/C/D adım adım revizyon, açıklama, tarih, imzalayan, HTML rapor |
+| 2 | 🏗 Proje Şablon Sihirbazı | ✅ | `ProjectTemplateService` + `NewProjectWizardDialog` — 7 bina tipi (Konut/Otel/AVM/Hastane/Ofis/Okul/Fabrika), 3 adımlı sihirbaz, bölge/sistem önerisi |
+| 3 | 💨 Fan Seçimi | ✅ | `FanSelectionService` + `FanSelectionDialog` — Systemair KV/DVV/SAVE, Halton HFTC/HKE, S&P TD, EBM-Papst G3G; SFP-1→5 (EN 13779); güvenlik payı +%15Q/+%20P |
+| 4 | ♨️ Isı Pompası | ✅ | `HeatPumpService` + `HeatPumpDialog` — COP/SCOP/SEER (TS EN 14825); Daikin Altherma 3/Vaillant aroTHERM/Mitsubishi/Bosch katalog; R32/R290/R410A; CO₂=0,483 kg/kWh |
+| 5 | 🌡️ Yerden Isıtma | ✅ | `FloorHeatingService` + `FloorHeatingDialog` — TS EN 1264 ısı akısı; aralık 75/100/150/200mm; Darcy-Weisbach basınç kaybı; PEXa/PE-RT boru; kolektör özeti |
+| 6 | 💧 Eşzamanlılık (DIN 1988-300) | ✅ | `SimultaneousDemandService` — Pd=ΣqP+k√Σq²P(1-P); EN 806-3 LU tablosu; Hunter eğrisi; k=1,8 konut/2,0 ofis/2,5 otel |
+| 7 | ⚡ Enerji Kimlik Belgesi | ✅ | `EnergyPerformanceService` + `EnergyPerformanceDialog` — EPBD/TS 825:2023; fp=1,05 gaz/2,50 elektrik; A++ (≤25) → G (>225) kWh/m²yr; 10 şehir iklim verisi |
+| 8 | 🚿 Sprinkler (NFPA 13) | ✅ | `NFPA13SprinklerService` + `SprinklerDesignDialog` — Yoğunluk/alan yöntemi; K-faktör q=K√P; Hazen-Williams DN seçimi; LH/OH1/OH2/EH1/EH2 tehlike sınıfı |
+| 9 | 🧱 Termal Köprü | ✅ | `ThermalBridgeService` — TS EN ISO 14683 ψ değerleri; 18 köprü tipi; H_TB=Σ(ψ×L×ΔT) ısı kaybı |
+| 10 | 🔧 DIN 1988-300 Tam | ✅ | `DIN1988300Service` — 18 armatür tipi; 31 noktalı LU→Qd tablosu; hız bazlı DN seçimi (≤2,5 m/s soğuk, ≤2,0 m/s sıcak) |
+| 11 | 📈 Pompa Q/H Eğrisi | ✅ | `PumpCurveChartService` — SVG Q/H karakteristik eğrisi; çalışma noktası kesişimi; ızgara+eksen+başlık; HTML sarmalayıcı |
+| 12 | 🌬️ AHU Boyutlandırma | ✅ | `AHUDesignService` + `AHUDesignDialog` — Magnus formülü psikrometri; HumidityRatio/duyulur+gizil yük; SFP hesabı; ısıtma/soğutma serpantini kapasitesi |
+| 13 | ❓ Bağlamsal Yardım (F1) | ✅ | `ContextualHelpService` — 10 konu; F1 tuşu ile aktif konu HTML yardım; soğutma/ısıtma/pompa/fan/sprinkler/enerji/ısıpompası/yerdenısıtma/revizyon |
+| 14 | 🖨️ Pafta Yerleşimi | ✅ | `PrintLayoutService` — A4/A3/A2/A1/A0; SVG antet (firma/proje/pafta 3 sütun); ölçek çubuğu; kuzey oku; @page CSS baskı |
+
+### Yeni Servisler (Session #35)
+
+| Servis | Konum | Standart / Algoritma |
+|---|---|---|
+| `RevisionTrackingService` | `Afney.Cad.Mechanical.Services` | Rev.A/B/C numaralama · ISO 7200 antet revizyonu |
+| `ProjectTemplateService` | `Afney.Cad.Mechanical.Services` | 7 bina şablonu · bölge/sistem/kişi/yük özet |
+| `FanSelectionService` | `Afney.Cad.Mechanical.Services` | SFP=P(W)/Q(m³/s) · EN 13779 SFP-1→5 |
+| `HeatPumpService` | `Afney.Cad.Mechanical.Services` | COP/SCOP/SEER · TS EN 14825 A7/W35 standart |
+| `FloorHeatingService` | `Afney.Cad.Mechanical.Services` | TS EN 1264 · α=1/(0,093+Rf) · Darcy-Weisbach |
+| `SimultaneousDemandService` | `Afney.Cad.Mechanical.Services` | DIN 1988-300 olasılık modeli · EN 806-3 LU |
+| `EnergyPerformanceService` | `Afney.Cad.Mechanical.Services` | EPBD · TS 825:2023 · 10 şehir iklim |
+| `NFPA13SprinklerService` | `Afney.Cad.Mechanical.Services` | NFPA 13 · Hazen-Williams C=120 |
+| `ThermalBridgeService` | `Afney.Cad.Mechanical.Services` | TS EN ISO 14683 · 18 köprü tipi ψ tablosu |
+| `DIN1988300Service` | `Afney.Cad.Mechanical.Services` | DIN 1988-300 tam LU tablosu · hız bazlı DN |
+| `PumpCurveChartService` | `Afney.Cad.Presentation.Services` | SVG Q/H eğrisi · `(double Q, double H)` tuple |
+| `AHUDesignService` | `Afney.Cad.Mechanical.Services` | Magnus psikrometri · gizil ısı 2501 kJ/kg |
+| `ContextualHelpService` | `Afney.Cad.Presentation.Services` | F1 hook · 10 HTML konu · temp dosya + tarayıcı |
+| `PrintLayoutService` | `Afney.Cad.Presentation.Services` | 2,83465 mm→px · SVG antet · @page CSS |
+
+### 4m FINE SANİ Karşılaştırma — Session #35 Sonrası
+
+| Kategori | FINE SANİ | AfneyCAD v4.0 | Puan |
+|---|---|---|---|
+| Sıhhi Tesisat Hesabı | Tam | Tam (DIN 1988-300 + EN 806-3) | 10/10 |
+| Isıtma Tasarımı | Tam | Tam (TS EN 12831 + Yerden ısıtma TS EN 1264) | 10/10 |
+| HVAC | Tam | Tam (Fan seçimi + AHU + Isı pompası) | 10/10 |
+| Yangın Tesisatı | Kısmi | Kısmi (NFPA 13 sprinkler; hidrant var) | 8/10 |
+| Enerji / EKB | Tam | Tam (TS 825:2023 + EPBD) | 10/10 |
+| Pafta / Dokümantasyon | Tam | Tam (Pafta yerleşimi + revizyon + F1 yardım) | 9/10 |
+| **GENEL** | **10/10** | **~9,5/10** | ⬆️ |
+
+---
+
+*Son güncelleme: 2026-06-14 | AfneyCAD v4.0.0 — Session #35: 14 Yeni Araç, FINE MEP Parité*

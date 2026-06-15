@@ -1,0 +1,224 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.AHUDesignDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="💨 Hava İşleme Birimi (AHU) — Isıtma / Soğutma / Nem / Fan"
+        Height="680" Width="1000"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White"
+        ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="💨 AHU Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <TextBlock Text="  Hava İşleme Birimi — Isıtma/Soğutma Bataryası · Nem · Fan · SFP · ISO 16890 Filtre"
+                           FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Giriş -->
+            <Border Grid.Column="0" Background="#0D1117" CornerRadius="4" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="SİSTEM PARAMETRELERİ" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Hava Debisi (m³/sa):" Foreground="#FFD740" FontWeight="Bold" Margin="0,5"/>
+                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtFlow" Text="5000" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Geri Dönüş Oranı (%):" Margin="0,5"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtReturn" Text="70" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Dış T Yaz (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtOutSummer" Text="32" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Dış T Kış (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtOutWinter" Text="-3" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Dış Nem (%):" Margin="0,5"/>
+                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="TxtOutHum" Text="60" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Besleme Havası T (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="5" Grid.Column="1" x:Name="TxtSupplyTemp" Text="18" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Oda T (°C):" Margin="0,5"/>
+                            <TextBox   Grid.Row="6" Grid.Column="1" x:Name="TxtRoomTemp" Text="22" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="Oda Nemi (%):" Margin="0,5"/>
+                            <TextBox   Grid.Row="7" Grid.Column="1" x:Name="TxtRoomHum" Text="50" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Sistem Basıncı (Pa):" Margin="0,5"/>
+                            <TextBox   Grid.Row="8" Grid.Column="1" x:Name="TxtPressure" Text="500" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="9" Grid.Column="0" Text="Isı Geri Kazanım:" Margin="0,5"/>
+                            <CheckBox  Grid.Row="9" Grid.Column="1" x:Name="ChkHR" IsChecked="True"
+                                       Foreground="White" Content="Rotary/Plate" VerticalAlignment="Center" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="10" Grid.Column="0" Text="HR Verimi (%):" Margin="0,5"/>
+                            <TextBox   Grid.Row="10" Grid.Column="1" x:Name="TxtHREff" Text="75" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="11" Grid.Column="0" Text="Filtre Sınıfı:" Margin="0,5"/>
+                            <ComboBox  Grid.Row="11" Grid.Column="1" x:Name="CboFilter" Margin="0,5" SelectedIndex="0">
+                                <ComboBoxItem Content="ePM1 60% (ISO 16890)"/>
+                                <ComboBoxItem Content="ePM2.5 50% (ISO 16890)"/>
+                                <ComboBoxItem Content="ePM10 (ISO 16890)"/>
+                                <ComboBoxItem Content="H13 HEPA"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Button Content="🔢 Hesapla" Width="200" HorizontalAlignment="Left"
+                                Margin="0,14,0,0" Height="34" FontSize="13"
+                                Click="Calculate_Click" Background="#0D47A1"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Sonuçlar -->
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Text="AHU KAPASİTE SONUÇLARI" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- Hava Debileri -->
+                        <Border Background="#0D1117" CornerRadius="4" Padding="14" Margin="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="BESLEME HAVA" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ResSupply" Text="—" Foreground="#FFD740" FontSize="15" FontWeight="Bold"/>
+                                    <TextBlock Text="m³/sa" Foreground="#888" FontSize="9"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                    <TextBlock Text="TAZE HAVA" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ResFresh" Text="—" Foreground="#80DEEA" FontSize="15" FontWeight="Bold"/>
+                                    <TextBlock Text="m³/sa" Foreground="#888" FontSize="9"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="GERİ DÖNÜŞ" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ResReturn" Text="—" Foreground="#CE93D8" FontSize="15" FontWeight="Bold"/>
+                                    <TextBlock Text="m³/sa" Foreground="#888" FontSize="9"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Kış -->
+                        <Border Background="#0D1117" CornerRadius="4" Padding="14" Margin="0,0,0,6">
+                            <StackPanel>
+                                <TextBlock Text="KIŞIN ISINMA" FontSize="10" Foreground="#EF9A9A" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="ISI GERİ KAZANIM" FontSize="9" Foreground="#888"/>
+                                        <TextBlock x:Name="ResHR"     Text="—" Foreground="#A5D6A7" FontSize="14" FontWeight="Bold"/>
+                                        <TextBlock Text="kW tasarruf" Foreground="#888" FontSize="9"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                        <TextBlock Text="ÖN ISITICISI" FontSize="9" Foreground="#888"/>
+                                        <TextBlock x:Name="ResPreHeat" Text="—" Foreground="#EF9A9A" FontSize="14" FontWeight="Bold"/>
+                                        <TextBlock Text="kW" Foreground="#888" FontSize="9"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="ANA BATARYA" FontSize="9" Foreground="#888"/>
+                                        <TextBlock x:Name="ResHeat"   Text="—" Foreground="#EF9A9A" FontSize="16" FontWeight="Bold"/>
+                                        <TextBlock Text="kW" Foreground="#888" FontSize="9"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Yaz -->
+                        <Border Background="#0D1117" CornerRadius="4" Padding="14" Margin="0,0,0,6">
+                            <StackPanel>
+                                <TextBlock Text="YAZIN SOĞUTMA" FontSize="10" Foreground="#80DEEA" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="DUYULUR" FontSize="9" Foreground="#888"/>
+                                        <TextBlock x:Name="ResSensible" Text="—" Foreground="#80DEEA" FontSize="14" FontWeight="Bold"/>
+                                        <TextBlock Text="kW" Foreground="#888" FontSize="9"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                        <TextBlock Text="GİZLİ (NEM)" FontSize="9" Foreground="#888"/>
+                                        <TextBlock x:Name="ResLatent" Text="—" Foreground="#80DEEA" FontSize="14" FontWeight="Bold"/>
+                                        <TextBlock Text="kW" Foreground="#888" FontSize="9"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="TOPLAM" FontSize="9" Foreground="#888"/>
+                                        <TextBlock x:Name="ResCoolTotal" Text="—" Foreground="#40C4FF" FontSize="16" FontWeight="Bold"/>
+                                        <TextBlock Text="kW" Foreground="#888" FontSize="9"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Fan + Nem + Boyut -->
+                        <Border Background="#0D1117" CornerRadius="4" Padding="14" Margin="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="FAN" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ResFan" Text="—" Foreground="#CE93D8" FontSize="14" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ResSFP" Text="—" Foreground="#888" FontSize="10"/>
+                                    <TextBlock Text="NEMLENDİRME" FontSize="9" Foreground="#888" FontWeight="Bold" Margin="0,8,0,0"/>
+                                    <TextBlock x:Name="ResHumid" Text="—" Foreground="#80DEEA" FontSize="13" FontWeight="Bold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="AHU BOYUT (L×G×Y)" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ResSize" Text="—" Foreground="#FFD740" FontSize="12" TextWrapping="Wrap"/>
+                                    <TextBlock Text="FİLTRE" FontSize="9" Foreground="#888" FontWeight="Bold" Margin="0,8,0,0"/>
+                                    <TextBlock x:Name="ResFilter" Text="—" Foreground="#A5D6A7" FontSize="10" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Notlar -->
+                        <Border x:Name="NotesBorder" Background="#0D2A0D" CornerRadius="4" Padding="14" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="NOTLAR" FontSize="10" Foreground="#A5D6A7" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <TextBlock x:Name="ResNotes" Text="" Foreground="#A5D6A7" TextWrapping="Wrap" FontSize="11"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

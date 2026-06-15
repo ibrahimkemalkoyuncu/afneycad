@@ -3621,6 +3621,75 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        // ── Session 35: Yeni Araçlar ─────────────────────────────────────────────
+
+        private void OnNewProjectWizard(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.NewProjectWizardDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnRevisionTracking(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.RevisionTrackingService();
+                svc.TitleBlock.ProjectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
+                new Dialogs.RevisionTrackingDialog(svc) { Owner = this }.ShowDialog();
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnFanSelection(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.FanSelectionDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnHeatPump(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.HeatPumpDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnFloorHeating(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.FloorHeatingDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnSprinklerDesign(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.SprinklerDesignDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnEnergyPerformance(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.EnergyPerformanceDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnAHUDesign(object sender, RoutedEventArgs e)
+        {
+            try { new Dialogs.AHUDesignDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnPrintLayout(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var tb = Afney.Cad.Presentation.Services.PrintLayoutService.CreateFromProject(
+                    _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD",
+                    "Tesisat Paftası",
+                    drawingNo: "M-001");
+                string path = Afney.Cad.Presentation.Services.PrintLayoutService.ExportToFile(tb);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnAutoSizing(object sender, RoutedEventArgs e)
         {
             try

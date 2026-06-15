@@ -1,0 +1,349 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.NewProjectWizardDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🚀 Yeni Proje Sihirbazı — Şablon Seçimi"
+        Height="700" Width="1100"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White"
+        ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <!-- Başlık -->
+        <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🚀 Yeni Proje Sihirbazı" FontSize="16" FontWeight="Bold" Foreground="#FFD740"/>
+                    <TextBlock Text="Bina tipine göre hazır şablon seçin — sistem, armatür ve yük değerleri otomatik yüklenir."
+                               FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                </StackPanel>
+                <!-- Adım göstergesi -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border x:Name="Step1Indicator" Background="#0D47A1" CornerRadius="12" Width="24" Height="24" Margin="2,0">
+                        <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="11"/>
+                    </Border>
+                    <Rectangle Fill="#555" Width="30" Height="2" VerticalAlignment="Center"/>
+                    <Border x:Name="Step2Indicator" Background="#333" CornerRadius="12" Width="24" Height="24" Margin="2,0">
+                        <TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="11" Foreground="#888"/>
+                    </Border>
+                    <Rectangle Fill="#555" Width="30" Height="2" VerticalAlignment="Center"/>
+                    <Border x:Name="Step3Indicator" Background="#333" CornerRadius="12" Width="24" Height="24" Margin="2,0">
+                        <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="11" Foreground="#888"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Alt navigasyon -->
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
+                <Button x:Name="BtnBack"  Grid.Column="1" Content="◀ Geri"   Width="90"  Margin="0,0,8,0" Click="BtnBack_Click"  Background="#333" IsEnabled="False"/>
+                <Button x:Name="BtnNext"  Grid.Column="2" Content="İleri ▶"  Width="90"  Margin="0,0,8,0" Click="BtnNext_Click"  Background="#0D47A1"/>
+                <Button x:Name="BtnClose" Grid.Column="3" Content="İptal"    Width="80"  Click="BtnClose_Click" Background="#4A0000"/>
+            </Grid>
+        </Border>
+
+        <!-- ─── Ana İçerik ─── -->
+        <Grid>
+            <!-- ADIM 1: Şablon Seçimi -->
+            <Grid x:Name="Step1" Visibility="Visible">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Kategori listesi -->
+                <DockPanel Grid.Column="0">
+                    <TextBlock DockPanel.Dock="Top" Text="KATEGORİ" FontSize="10" Foreground="#FFD740"
+                               FontWeight="Bold" Margin="0,0,0,6"/>
+                    <ListBox x:Name="LstCategories" Background="#0D1117" BorderBrush="#333"
+                             SelectionChanged="LstCategories_SelectionChanged">
+                        <ListBoxItem Tag="Tümü">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🌐" Margin="0,0,6,0"/>
+                                <TextBlock Text="Tüm Şablonlar"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Konut">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🏠" Margin="0,0,6,0"/>
+                                <TextBlock Text="Konut"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Ofis">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🏢" Margin="0,0,6,0"/>
+                                <TextBlock Text="Ofis"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Otel">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🏨" Margin="0,0,6,0"/>
+                                <TextBlock Text="Otel"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Ticari">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🛒" Margin="0,0,6,0"/>
+                                <TextBlock Text="Ticari (AVM)"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Sağlık">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🏥" Margin="0,0,6,0"/>
+                                <TextBlock Text="Sağlık"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Eğitim">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🏫" Margin="0,0,6,0"/>
+                                <TextBlock Text="Eğitim"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Endüstri">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🏭" Margin="0,0,6,0"/>
+                                <TextBlock Text="Endüstri"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Boş">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📄" Margin="0,0,6,0"/>
+                                <TextBlock Text="Boş Proje"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                    </ListBox>
+                </DockPanel>
+
+                <!-- Şablon kartları -->
+                <DockPanel Grid.Column="2">
+                    <TextBlock DockPanel.Dock="Top" Text="ŞABLON SEÇİN" FontSize="10" Foreground="#FFD740"
+                               FontWeight="Bold" Margin="0,0,0,6"/>
+                    <ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto" Height="480">
+                        <WrapPanel x:Name="TemplatePanel" Orientation="Horizontal"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+
+            <!-- ADIM 2: Proje Bilgileri -->
+            <Grid x:Name="Step2" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Sol: Proje bilgisi -->
+                <DockPanel Grid.Column="0">
+                    <TextBlock DockPanel.Dock="Top" Text="PROJE BİLGİLERİ" FontSize="10" Foreground="#FFD740"
+                               FontWeight="Bold" Margin="0,0,0,10"/>
+                    <Border Background="#0D1117" CornerRadius="4" Padding="14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Proje Adı: *" Foreground="#FFD740" FontWeight="Bold" Margin="0,6"/>
+                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtProjName" Margin="0,6"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Proje Numarası:" Margin="0,6"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtProjNum" Margin="0,6"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="İşveren / Müşteri:" Margin="0,6"/>
+                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtClient" Margin="0,6"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Sorumlu Mühendis:" Margin="0,6"/>
+                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtEngineer" Margin="0,6"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Firma Adı:" Margin="0,6"/>
+                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="TxtCompany" Margin="0,6"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Proje Aşaması:" Margin="0,6"/>
+                            <ComboBox  Grid.Row="5" Grid.Column="1" x:Name="CboPhase" Margin="0,6" SelectedIndex="2">
+                                <ComboBoxItem Content="Ön Proje"/>
+                                <ComboBoxItem Content="Kesin Proje"/>
+                                <ComboBoxItem Content="Uygulama Projesi"/>
+                                <ComboBoxItem Content="As-Built"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Kat Sayısı:" Margin="0,6"/>
+                            <TextBox   Grid.Row="6" Grid.Column="1" x:Name="TxtFloors" Margin="0,6" Text="4"/>
+
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="Kat Yüksekliği (m):" Margin="0,6"/>
+                            <TextBox   Grid.Row="7" Grid.Column="1" x:Name="TxtFloorH" Margin="0,6" Text="3.0"/>
+
+                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Tipik Kat Alanı (m²):" Margin="0,6"/>
+                            <TextBox   Grid.Row="8" Grid.Column="1" x:Name="TxtFloorArea" Margin="0,6"/>
+                        </Grid>
+                    </Border>
+                </DockPanel>
+
+                <!-- Sağ: Şablon özeti -->
+                <DockPanel Grid.Column="2">
+                    <TextBlock DockPanel.Dock="Top" Text="SEÇİLEN ŞABLON" FontSize="10" Foreground="#FFD740"
+                               FontWeight="Bold" Margin="0,0,0,10"/>
+                    <Border Background="#0D1117" CornerRadius="4" Padding="14">
+                        <StackPanel>
+                            <TextBlock x:Name="TplSummaryIcon" Text="🏠" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="TplSummaryName" Text="—" FontSize="14" FontWeight="Bold" Foreground="#FFD740"
+                                       HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="TplSummaryDesc" Text="—" FontSize="10" Foreground="#888"
+                                       TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,12"/>
+                            <Separator Background="#333" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="AKTİF SİSTEMLER" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="TplSystems" Text="—" TextWrapping="Wrap" FontSize="10" Foreground="#A5D6A7" Margin="0,0,0,12"/>
+
+                            <TextBlock Text="BÖLGE SAYISI" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="TplZoneCount" Text="—" FontSize="22" FontWeight="Bold" Foreground="#FFD740" Margin="0,0,0,12"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="TOPLAM ISINMA" FontSize="9" Foreground="#90CAF9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="TplHeating" Text="— kW" Foreground="#EF9A9A" FontSize="13" FontWeight="Bold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="TOPLAM SOĞUTMA" FontSize="9" Foreground="#90CAF9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="TplCooling" Text="— kW" Foreground="#80DEEA" FontSize="13" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Separator Background="#333" Margin="0,10"/>
+                            <TextBlock Text="NOTLAR" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="TplNotes" Text="—" FontSize="10" Foreground="#888" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </DockPanel>
+            </Grid>
+
+            <!-- ADIM 3: Özet ve Oluştur -->
+            <Grid x:Name="Step3" Visibility="Collapsed">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="PROJE ÖZETİ — Oluşturmak için 'Proje Oluştur'a basın"
+                               FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,10"/>
+
+                    <Border Background="#0D1117" CornerRadius="4" Padding="16">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="PROJE" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,6"/>
+                                    <TextBlock x:Name="SumProjName"   Text="—"  FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                                    <TextBlock x:Name="SumProjNum"    Text="No: —" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumClient"     Text="İşveren: —" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumEngineer"   Text="Müh: —" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumCompany"    Text="Firma: —" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumPhase"      Text="Aşama: —" Foreground="#AAA" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="ŞABLON" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,6"/>
+                                    <TextBlock x:Name="SumTemplate"  Text="—" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                                    <TextBlock x:Name="SumFloors"    Text="— Kat" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumFloorH"    Text="Kat H: — m" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumArea"      Text="— m² / Kat" Foreground="#AAA" FontSize="11"/>
+                                    <TextBlock x:Name="SumSystems"   Text="Sistemler: —" Foreground="#A5D6A7" FontSize="11" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Separator Background="#333" Margin="0,0,0,12"/>
+                            <TextBlock Text="BÖLGELER" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,8"/>
+
+                            <DataGrid x:Name="ZoneGrid" AutoGenerateColumns="False" MaxHeight="300"
+                                      Background="#252535" Foreground="White" CanUserAddRows="False" IsReadOnly="True"
+                                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#333"
+                                      RowBackground="#252535" AlternatingRowBackground="#2A2A3E">
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#0D3060"/>
+                                        <Setter Property="Foreground" Value="#90CAF9"/>
+                                        <Setter Property="Padding" Value="6,4"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Bölge"        Binding="{Binding Name}"             Width="180"/>
+                                    <DataGridTextColumn Header="Alan (m²)"    Binding="{Binding FloorAreaM2}"      Width="70"/>
+                                    <DataGridTextColumn Header="Armatür (DU)" Binding="{Binding FixtureUnits}"     Width="90"/>
+                                    <DataGridTextColumn Header="Kişi"         Binding="{Binding OccupancyPersons}" Width="50"/>
+                                    <DataGridTextColumn Header="Isıtma (W)"   Binding="{Binding HeatingLoadW}"     Width="80"/>
+                                    <DataGridTextColumn Header="Soğutma (W)"  Binding="{Binding CoolingLoadW}"     Width="80"/>
+                                    <DataGridTextColumn Header="Notlar"       Binding="{Binding Notes}"            Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <Border Background="#0D2A0D" CornerRadius="4" Padding="12" Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="✅ " FontSize="14"/>
+                                    <TextBlock Text="'Proje Oluştur' sonrası proje ana ekranda açılır. Bölge bilgileri istek üzerine tesisat hesaplarına aktarılır."
+                                               Foreground="#A5D6A7" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

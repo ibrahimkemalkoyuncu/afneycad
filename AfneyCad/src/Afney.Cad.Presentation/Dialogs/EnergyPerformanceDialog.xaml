@@ -1,0 +1,239 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.EnergyPerformanceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="⚡ Enerji Performansı — EKB / EPBD / TS 825:2023"
+        Height="720" Width="1100"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White"
+        ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="⚡ Enerji Performans Hesabı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <TextBlock Text="  EKB · EPBD · TS 825:2023 — Birincil Enerji · CO₂ · Sertifika Sınıfı A-G"
+                           FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="🖨 HTML Rapor" Width="110" Margin="0,0,8,0" Click="ExportHtml_Click" Background="#455A64"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <TabControl Background="#252535" BorderThickness="0">
+
+            <!-- ─── SEKME 1: GİRDİLER ─── -->
+            <TabItem Header="📐 Bina Tanımı">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="#0D1117" CornerRadius="4" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="GENEL BİLGİLER" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Isıtılan Alan (m²):" Margin="0,5"/>
+                                <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtArea" Text="150" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Hacim (m³):" Margin="0,5"/>
+                                <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtVolume" Text="420" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Şehir:" Margin="0,5"/>
+                                <ComboBox  Grid.Row="2" Grid.Column="1" x:Name="CboCity" Margin="0,5" SelectedIndex="0">
+                                    <ComboBoxItem Content="İstanbul"/><ComboBoxItem Content="Ankara"/>
+                                    <ComboBoxItem Content="İzmir"/><ComboBoxItem Content="Bursa"/>
+                                    <ComboBoxItem Content="Antalya"/><ComboBoxItem Content="Konya"/>
+                                    <ComboBoxItem Content="Erzurum"/>
+                                </ComboBox>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Bina Tipi:" Margin="0,5"/>
+                                <ComboBox  Grid.Row="3" Grid.Column="1" x:Name="CboType" Margin="0,5" SelectedIndex="0">
+                                    <ComboBoxItem Content="Konut"/><ComboBoxItem Content="Ofis"/>
+                                    <ComboBoxItem Content="Otel"/><ComboBoxItem Content="Hastane"/>
+                                </ComboBox>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Sızıntı (h⁻¹):" Margin="0,5"/>
+                                <TextBox   Grid.Row="4" Grid.Column="1" x:Name="TxtACR" Text="0.5" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Aydınlatma (W/m²):" Margin="0,5"/>
+                                <TextBox   Grid.Row="5" Grid.Column="1" x:Name="TxtLighting" Text="8" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Kişi Sayısı:" Margin="0,5"/>
+                                <TextBox   Grid.Row="6" Grid.Column="1" x:Name="TxtOccupants" Text="4" Margin="0,5"/>
+                            </Grid>
+
+                            <Separator Background="#333" Margin="0,10"/>
+                            <TextBlock Text="SİSTEM VERİMLERİ" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Isıtma Verimi / COP:" Margin="0,5"/>
+                                <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtHeatEff" Text="0.92" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Soğutma EER:" Margin="0,5"/>
+                                <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtCoolEff" Text="3.5" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="DHW Verimi:" Margin="0,5"/>
+                                <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtDHWEff" Text="0.85" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Güneş Kolektörü:" Margin="0,5"/>
+                                <CheckBox  Grid.Row="3" Grid.Column="1" x:Name="ChkSolar" Foreground="White"
+                                           Content="Var (DHW)" VerticalAlignment="Center" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Solar DHW Oranı:" Margin="0,5"/>
+                                <TextBox   Grid.Row="4" Grid.Column="1" x:Name="TxtSolarFrac" Text="0.40" Margin="0,5"/>
+                            </Grid>
+
+                            <Button Content="🔢 Hesapla" Width="200" HorizontalAlignment="Left"
+                                    Margin="0,14,0,0" Height="34" FontSize="13"
+                                    Click="Calculate_Click" Background="#0D47A1"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Yapı elemanları tablosu -->
+                    <DockPanel Grid.Column="2">
+                        <TextBlock DockPanel.Dock="Top" Text="YAPI ELEMANLARI (U-Değerleri)" FontSize="10" Foreground="#FFD740" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <Border DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="+ Eleman Ekle" Width="130" Click="AddElement_Click" Background="#1B5E20" Margin="0,0,8,0"/>
+                                <Button Content="🗑 Sil"         Width="80"  Click="RemElement_Click" Background="#6D0000"/>
+                                <Button Content="🏠 Konut Şablonu" Width="130" Click="LoadTemplate_Click" Background="#455A64" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <DataGrid x:Name="ElementGrid" AutoGenerateColumns="False"
+                                  Background="#252535" Foreground="White" CanUserAddRows="False"
+                                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#333"
+                                  RowBackground="#252535" AlternatingRowBackground="#2A2A3E">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+                                    <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Eleman"     Binding="{Binding Name}"    Width="150"/>
+                                <DataGridTextColumn Header="Alan (m²)"  Binding="{Binding AreaM2}"  Width="80"/>
+                                <DataGridTextColumn Header="U W/(m²K)"  Binding="{Binding U_Wpm2K}" Width="90"/>
+                                <DataGridTextColumn Header="Ψ×L (W/K)"  Binding="{Binding PsiM}"    Width="80"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- ─── SEKME 2: SONUÇLAR ─── -->
+            <TabItem Header="📊 EKB Sonuçları">
+                <ScrollViewer Margin="8" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- Sertifika sınıfı büyük -->
+                        <Border Background="#0D1117" CornerRadius="6" Padding="20" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                    <TextBlock Text="ENERJİ KİMLİK BELGESİ" FontSize="10" Foreground="#888" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                    <Border x:Name="ClassBorder" Background="#1B5E20" CornerRadius="8" Padding="20">
+                                        <TextBlock x:Name="ResClass" Text="?" FontSize="48" FontWeight="Black"
+                                                   HorizontalAlignment="Center" Foreground="#FFD740"/>
+                                    </Border>
+                                    <TextBlock x:Name="ResScore" Text="— kWh/(m²yıl)" FontSize="13" FontWeight="Bold"
+                                               Foreground="#FFD740" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                                    <TextBlock Text="ENERJİ DAĞILIMI" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,10"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Net Isıtma İhtiyacı:" Foreground="#888"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ResHeat"    Text="— kWh/(m²yıl)" Foreground="#EF9A9A" FontWeight="Bold"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Net Soğutma İhtiyacı:" Foreground="#888"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ResCool"    Text="— kWh/(m²yıl)" Foreground="#80DEEA" FontWeight="Bold"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Sıhhi Sıcak Su:" Foreground="#888"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ResDHW"     Text="— kWh/(m²yıl)" Foreground="#CE93D8" FontWeight="Bold"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Aydınlatma:" Foreground="#888"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ResLight"   Text="— kWh/(m²yıl)" Foreground="#FFCC02" FontWeight="Bold"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="CO₂ Emisyonu:" Foreground="#888"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ResCO2"     Text="— kg/(m²yıl)" Foreground="#A5D6A7" FontWeight="Bold"/>
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Isı Kaybı HT:" Foreground="#888"/>
+                                        <TextBlock Grid.Row="5" Grid.Column="1" x:Name="ResHT"      Text="— W/K" Foreground="#FFD740" FontWeight="Bold"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Öneriler -->
+                        <Border Background="#0D1117" CornerRadius="4" Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="İYİLEŞTİRME ÖNERİLERİ" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="ResRecommendations" Text="Hesap için 'Hesapla' butonuna basın."
+                                           Foreground="#A5D6A7" TextWrapping="Wrap" FontSize="11"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ─── SEKME 3: U-DEĞERİ LİMİTLERİ ─── -->
+            <TabItem Header="📋 TS 825 U-Limitleri">
+                <Border Margin="8" Background="#0D1117" CornerRadius="4" Padding="12">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="TS 825:2023 — İzolasyon Sınır Değerleri" FontSize="12" FontWeight="Bold" Foreground="#FFD740" Margin="0,0,0,10"/>
+                        <DataGrid x:Name="ULimitGrid" AutoGenerateColumns="False"
+                                  Background="#252535" Foreground="White" CanUserAddRows="False" IsReadOnly="True"
+                                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#333"
+                                  RowBackground="#252535" AlternatingRowBackground="#2A2A3E">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+                                    <Setter Property="Padding" Value="6,4"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Yapı Elemanı"      Binding="{Binding Key}"   Width="*"/>
+                                <DataGridTextColumn Header="U Limiti W/(m²K)"  Binding="{Binding Value}" Width="200"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
