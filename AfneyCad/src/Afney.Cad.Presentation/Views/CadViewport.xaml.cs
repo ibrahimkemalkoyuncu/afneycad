@@ -794,8 +794,11 @@ namespace Afney.Cad.Presentation.Views;
             if (_isPanning)
             {
                 var delta = currentPos - _lastMousePosition;
+                // Pan hızı: 1:1 pixel takip — AutoCAD standardı (zoom bağımsız).
                 _offset = new Vector3D(_offset.X + delta.X, _offset.Y + delta.Y, 0);
+                _targetOffset = _offset;
                 _lastMousePosition = currentPos;
+                InvalidateViewport();
             }
             else if (_isSelecting)
             {
@@ -1129,8 +1132,8 @@ namespace Afney.Cad.Presentation.Views;
 
             // Kaç notch? (1 notch = 120 delta birimi; bazı fareler kesirli verir)
             double notches = e.Delta / 120.0;
-            // Her ±1 notch ~%12 zoom. Negatif notch = zoom-out.
-            double factor = Math.Pow(1.12, notches);
+            // Her ±1 notch ~%25 zoom — AutoCAD 2026 standardı (eski: 1.12 = %12, çok yavaş).
+            double factor = Math.Pow(1.25, notches);
 
             // Yeni zoom değeri (klamp: aşırı in/out'u engelle)
             double newZoom = Math.Clamp(_zoom * factor, 1e-6, 1e6);
