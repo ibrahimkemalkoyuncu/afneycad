@@ -47,6 +47,7 @@ namespace Afney.Cad.Presentation
         private readonly Afney.Cad.Presentation.Services.PipeFlowAnimationService _flowAnimService = new();
         private readonly Afney.Cad.Presentation.Services.CloudBackupService _cloudBackupService = new();
         private readonly Afney.Cad.Presentation.Services.HtmlViewerExportService _htmlViewerService = new();
+        private double _dimTextHeight = 250.0;
 
         public CadDocumentContext ActiveContext
         {
@@ -648,6 +649,53 @@ namespace Afney.Cad.Presentation
         {
             StatusText.Text = "Kopyala: Nesne seçin ve hedef noktayı tıklayın.";
             MessageBox.Show("Kopyala komutu için önce nesne seçin, sonra 'CO' kısayoluna basın.", "Kopyala", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // ── BOYUTLANDIRMA KOMUTLARI ──────────────────────────────────────────────
+
+        private void OnLinearDimCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.LinearDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnAlignedDimCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.AlignedDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnRadiusDimCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.RadiusDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnDimTextHeightSmall(object sender, RoutedEventArgs e)
+        {
+            _dimTextHeight = 125.0;
+            StatusText.Text = "Ölçü metin boyutu: Küçük (125 mm)";
+        }
+
+        private void OnDimTextHeightMedium(object sender, RoutedEventArgs e)
+        {
+            _dimTextHeight = 250.0;
+            StatusText.Text = "Ölçü metin boyutu: Normal (250 mm)";
+        }
+
+        private void OnDimTextHeightLarge(object sender, RoutedEventArgs e)
+        {
+            _dimTextHeight = 500.0;
+            StatusText.Text = "Ölçü metin boyutu: Büyük (500 mm)";
         }
 
         /*
