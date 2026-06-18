@@ -1279,9 +1279,73 @@ namespace Afney.Cad.Presentation.Views;
         NE: Sağ Tıklama Menüsü - Pan Modu
         NEDEN: AutoCAD'de sağ tık → Pan yaygın kullanımdır
     */
+    private void OnContextMenu_Move(object sender, RoutedEventArgs e)
+    {
+        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        var selected = _selectionManager.GetSelectedEntities();
+        var cmd = new Afney.Cad.Commands.BasicCommands.MoveCommand(_database, _database.TransactionManager, selected);
+        cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
+        cmd.OnCompleted += () => SetActiveCommand(null);
+        SetActiveCommand(cmd);
+        cmd.Start();
+    }
+
+    private void OnContextMenu_Mirror(object sender, RoutedEventArgs e)
+    {
+        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        var selected = _selectionManager.GetSelectedEntities();
+        var cmd = new Afney.Cad.Commands.BasicCommands.MirrorCommand(_database, _database.TransactionManager, selected);
+        cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
+        cmd.OnCompleted += () => SetActiveCommand(null);
+        SetActiveCommand(cmd);
+        cmd.Start();
+    }
+
+    private void OnContextMenu_Rotate(object sender, RoutedEventArgs e)
+    {
+        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        var selected = _selectionManager.GetSelectedEntities();
+        var cmd = new Afney.Cad.Commands.BasicCommands.RotateCommand(_database, _database.TransactionManager, selected);
+        cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
+        cmd.OnCompleted += () => SetActiveCommand(null);
+        SetActiveCommand(cmd);
+        cmd.Start();
+    }
+
+    private void OnContextMenu_Scale(object sender, RoutedEventArgs e)
+    {
+        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        var selected = _selectionManager.GetSelectedEntities();
+        var cmd = new Afney.Cad.Commands.BasicCommands.ScaleCommand(_database, _database.TransactionManager, selected);
+        cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
+        cmd.OnCompleted += () => SetActiveCommand(null);
+        SetActiveCommand(cmd);
+        cmd.Start();
+    }
+
+    private void OnContextMenu_Stretch(object sender, RoutedEventArgs e)
+    {
+        OnFeedback?.Invoke("STRETCH: Grip noktalarını sürükleyerek esnetin.");
+    }
+
+    private void OnContextMenu_GripPoint(object sender, RoutedEventArgs e)
+    {
+        OnFeedback?.Invoke("Tutma noktası: Nesne seçin, mavi grip kutularını sürükleyin.");
+    }
+
+    private void OnContextMenu_Copy(object sender, RoutedEventArgs e)
+    {
+        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        var selected = _selectionManager.GetSelectedEntities();
+        var cmd = new Afney.Cad.Commands.BasicCommands.CopyCommand(_database, _database.TransactionManager, selected);
+        cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
+        cmd.OnCompleted += () => SetActiveCommand(null);
+        SetActiveCommand(cmd);
+        cmd.Start();
+    }
+
     private void OnContextMenu_Pan(object sender, RoutedEventArgs e)
     {
-        // Pan modunu aktif et (Middle mouse button gibi)
         _isPanning = true;
         CadCanvas.Cursor = System.Windows.Input.Cursors.Hand;
         OnFeedback?.Invoke("PAN modu aktif - Fareyi hareket ettirin");
@@ -1392,8 +1456,13 @@ namespace Afney.Cad.Presentation.Views;
         if (this.FindName("CtxMenu_ClearSelection") is MenuItem clearMenu) clearMenu.IsEnabled = hasSelection;
         if (this.FindName("CtxMenu_Properties") is MenuItem propsMenu) propsMenu.IsEnabled = hasSelection;
         if (this.FindName("CtxMenu_Delete") is MenuItem deleteMenu) deleteMenu.IsEnabled = hasSelection;
-        if (this.FindName("CtxMenu_Undo") is MenuItem undoMenu) undoMenu.IsEnabled = false;
-        if (this.FindName("CtxMenu_Redo") is MenuItem redoMenu) redoMenu.IsEnabled = false;
+        if (this.FindName("CtxMenu_Move") is MenuItem moveMenu) moveMenu.IsEnabled = hasSelection;
+        if (this.FindName("CtxMenu_Mirror") is MenuItem mirrorMenu) mirrorMenu.IsEnabled = hasSelection;
+        if (this.FindName("CtxMenu_Rotate") is MenuItem rotateMenu) rotateMenu.IsEnabled = hasSelection;
+        if (this.FindName("CtxMenu_Scale") is MenuItem scaleMenu) scaleMenu.IsEnabled = hasSelection;
+        if (this.FindName("CtxMenu_Stretch") is MenuItem stretchMenu) stretchMenu.IsEnabled = hasSelection;
+        if (this.FindName("CtxMenu_GripPoint") is MenuItem gripMenu) gripMenu.IsEnabled = hasSelection;
+        if (this.FindName("CtxMenu_Copy") is MenuItem copyMenu) copyMenu.IsEnabled = hasSelection;
 
         var ctx = CadCanvas.ContextMenu;
         if (ctx != null)

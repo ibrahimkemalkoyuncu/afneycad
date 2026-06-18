@@ -1104,7 +1104,170 @@
                     </TabItem>
 
                     <!-- ══════════════════════════════════════════════════════════ -->
-                    <!-- TAB 7: GÖRÜNÜM                                            -->
+                    <!-- TAB 7: AutoBLD (MİMARİ)                                   -->
+                    <!-- ══════════════════════════════════════════════════════════ -->
+                    <TabItem Header="🏗 AutoBLD" x:Name="TabAutoBLD">
+                        <Border Background="#1E2029" Padding="4,6,4,4">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <StackPanel Orientation="Horizontal">
+
+                                    <!-- Mimari Giriş -->
+                                    <Border Margin="0,0,2,0" Padding="6,0,6,4"
+                                            BorderBrush="#252836" BorderThickness="0,0,1,0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource RbnLargeAccent}"
+                                                        Click="OnBuildingProperties"
+                                                        ToolTip="Bina/Aktif Kat Belirle — Mimari çizimi programa girin">
+                                                    <StackPanel>
+                                                        <TextBlock Text="🏠" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Mimari" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Belirle" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnLevelManager"
+                                                        ToolTip="Katman Yöneticisi">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📶" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Katman" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Yönet" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnMultiStoryManager"
+                                                        ToolTip="Kat Kopyala — Tesisatı başka kata kopyala">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📋" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Kat" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Kopyala" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBlock Text="Mimari Giriş" Foreground="#424559" FontSize="9"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Mimari Elemanlar -->
+                                    <Border Margin="0,0,2,0" Padding="6,0,6,4"
+                                            BorderBrush="#252836" BorderThickness="0,0,1,0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnRecognizeArchitecture"
+                                                        ToolTip="Mimari Eleman Seç — DWG çizgilerini tanı">
+                                                    <StackPanel>
+                                                        <TextBlock Text="🧱" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Eleman" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Tanı" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnSmartBimConvert"
+                                                        ToolTip="DWG → BIM Dönüşüm">
+                                                    <StackPanel>
+                                                        <TextBlock Text="🔄" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="DWG→" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="BIM" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnArchitecturalLibrary"
+                                                        ToolTip="Yapı Elemanları Kütüphanesi">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📚" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Kütüphane" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBlock Text="Mimari Elemanlar" Foreground="#424559" FontSize="9"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Blok / WBlock -->
+                                    <Border Margin="0,0,2,0" Padding="6,0,6,4"
+                                            BorderBrush="#252836" BorderThickness="0,0,1,0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource RbnLargeGreen}"
+                                                        Click="OnBlockCommand"
+                                                        ToolTip="Blok Tanımla (BLOCK)">
+                                                    <StackPanel>
+                                                        <TextBlock Text="🔲" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Blok" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Tanımla" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnWBlockCommand"
+                                                        ToolTip="Blok Oluştur / Dışa Kaydet (WBLOCK)">
+                                                    <StackPanel>
+                                                        <TextBlock Text="💾" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="WBlock" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Kaydet" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnInsertCommand"
+                                                        ToolTip="Blok Ekle (INSERT)">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📥" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Blok" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Ekle" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBlock Text="Blok İşlemleri" Foreground="#424559" FontSize="9"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Ölçüm / Görünüm -->
+                                    <Border Margin="0,0,2,0" Padding="6,0,6,4"
+                                            BorderBrush="#252836" BorderThickness="0,0,1,0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource RbnLargeOrange}"
+                                                        Click="OnDistCommand"
+                                                        ToolTip="Uzaklık Ölç (DIST) — İki nokta arası mesafe">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📏" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Uzaklık" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnTitleBlock"
+                                                        ToolTip="Pafta / Antet Ekle">
+                                                    <StackPanel>
+                                                        <TextBlock Text="🗒" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Pafta" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Antet" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnToggle3DView"
+                                                        ToolTip="3D Görünüm — Aksonometrik">
+                                                    <StackPanel>
+                                                        <TextBlock Text="🧊" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="3D" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Görünüm" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBlock Text="Ölçüm / Görünüm" Foreground="#424559" FontSize="9"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </TabItem>
+
+                    <!-- ══════════════════════════════════════════════════════════ -->
+                    <!-- TAB 8: GÖRÜNÜM                                            -->
                     <!-- ══════════════════════════════════════════════════════════ -->
                     <TabItem Header="👁 Görünüm" x:Name="TabView">
                         <Border Background="#1E2029" Padding="4,6,4,4">

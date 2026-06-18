@@ -719,6 +719,15 @@ namespace Afney.Cad.Presentation
             Viewport.SetActiveCommand(cmd);
         }
 
+        private void OnDistCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.DistCommand();
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnDimTextHeightSmall(object sender, RoutedEventArgs e)
         {
             _dimTextHeight = 125.0;
@@ -1310,6 +1319,12 @@ namespace Afney.Cad.Presentation
                     case "dimangular":
                     case "dimang":
                         OnAngularDimCommand(this, new RoutedEventArgs());
+                        break;
+                    // Mesafe Ölçüm
+                    case "dist":
+                    case "mesafe":
+                    case "uzaklik":
+                        OnDistCommand(this, new RoutedEventArgs());
                         break;
                     // Düzenleme Komutları
                     case "tr":

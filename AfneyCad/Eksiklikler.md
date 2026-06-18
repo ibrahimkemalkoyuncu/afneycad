@@ -128,6 +128,23 @@ Session #37'de ölçülendirme sistemi ve profesyonel çizim iş akışı araçl
 | **Çizim Araçları** | 10/10 | Line/Circle/Arc/Polyline/Rectangle/Block/Trim/Extend/Mirror/Offset/Copy/Move/Scale/Rotate/Explode |
 | **Mühendislik Araçları** | 10/10 | Topoloji, çakışma, basınç haritası, gürültü, genleşme, kompansatör, yaşlanma |
 
+---
+
+## 9. Session #37 (Devam) — FineSANI Eğitim Eşdeğer Özellikler
+
+FineSANI Eğitimi 1 (Mimari Çizimin Programa Girilmesi) ekranlarındaki tüm özelliklerin AfneyCAD karşılıkları tamamlandı.
+
+| Özellik | FINE MEP | AfneyCAD | Not |
+|---|---|---|---|
+| Sağ Tık Bağlam Menüsü | Taşı/Sil/Aynala/Döndür/Ölçekle/Esnet/Kopyala/Özellikler | ✅ **Tamamlandı** | Context menu — Move/Mirror/Rotate/Scale/Copy/Delete/Properties (Session #37) |
+| Uzaklık Ölçüm (DIST) | OtoNET → Uzaklık | ✅ **Tamamlandı** | `DistCommand` — mesafe/açı/deltaX/deltaY, yeşil kesikli çizgi önizleme (Session #37) |
+| AutoBLD Menüsü | AutoBLD menü çubuğu | ✅ **Tamamlandı** | Ribbon "🏗 AutoBLD" sekmesi — Mimari Belirle/Katman Yönet/Kat Kopyala/Eleman Tanı/DWG→BIM/Kütüphane/Block/WBlock/Insert/DIST/Pafta/3D (Session #37) |
+| Blok Oluştur (WBlock) | Kaynak (Blok/Tüm çizim/Nesneler) + Tutma Nokta + Dosya Yolu | ✅ **Tamamlandı** | `BMakeDialog` — Kaynak radio, Blok Adı, Base Point XYZ, Nesne seç, Dosya Adı ve Yolu (Session #37) |
+| Bina/Aktif Kat Belirle | Kat/Dosya/Kot/İsim dialog | ✅ **Var** | `DefineBuildingDialog` — kat tanımlama (Session #6) |
+| Kat Kopyala | AutoBLD → Kat Kopyala | ✅ **Var** | `MultiStoryBuildingService.CopyFloorPlumbing` (Session #18) |
+| Mimari DWG Import | Dosya → Aç → DWG | ✅ **Var** | `DwgImportService` — ACadSharp (Session #3) |
+| 3D Bina Görünümü | Aksonometrik | ✅ **Var** | `AxonometricExportService` + `Pipe3DModelService` (Session #34) |
+
 **Eksik kalan 0.2 puan:**
 - Ölçü Stilleri (DIMSTYLE) — kaydetme/yükleme
 - Otomatik Boyut Zinciri (DIMCONTINUE)

@@ -99,6 +99,21 @@ namespace Afney.Cad.Presentation.Dialogs
         _command.FinalizeBlock(BlockName, BasePoint, ObjectBehavior);
     }
 
+    private void BtnBrowseFile_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Bloğu Kaydet",
+            Filter = "DWG Dosyası (*.dwg)|*.dwg|DXF Dosyası (*.dxf)|*.dxf",
+            DefaultExt = ".dwg",
+            FileName = TxtBlockName?.Text ?? "BLOCK"
+        };
+        if (dlg.ShowDialog() == true)
+        {
+            TxtFilePath.Text = dlg.FileName;
+        }
+    }
+
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         _command.Cancel();

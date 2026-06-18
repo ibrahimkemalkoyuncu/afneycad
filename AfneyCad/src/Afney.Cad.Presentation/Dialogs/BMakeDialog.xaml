@@ -1,7 +1,7 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.BMakeDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Block Definition" Height="450" Width="600"
+        Title="Blok Oluştur" Height="520" Width="620"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="#1E1E1E" Foreground="White" WindowStyle="ToolWindow">
         
@@ -42,15 +42,20 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Block Name -->
-        <Grid Grid.Row="0" Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Name:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBox x:Name="TxtBlockName" Grid.Column="1" Height="26"/>
-        </Grid>
+        <!-- Kaynak (Source) + Blok İsmi -->
+        <GroupBox Grid.Row="0" Header="Kaynak" Margin="5,0,5,5" Padding="8">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <RadioButton x:Name="RbSourceBlock" Content="Blok:" Foreground="White" Margin="0,0,15,0" IsEnabled="False"/>
+                    <RadioButton x:Name="RbSourceAll" Content="Tüm çizim" Foreground="White" Margin="0,0,15,0"/>
+                    <RadioButton x:Name="RbSourceObjects" Content="Nesneler" Foreground="White" IsChecked="True"/>
+                </StackPanel>
+                <DockPanel>
+                    <TextBlock Text="Blok Adı:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="TxtBlockName" Height="26"/>
+                </DockPanel>
+            </StackPanel>
+        </GroupBox>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -120,10 +125,23 @@
             </GroupBox>
         </Grid>
 
+        <!-- Dosya Adı ve Yolu (WBlock Export) -->
+        <GroupBox Grid.Row="3" Header="Dosya Adı ve Yolu" Margin="5,5,5,0" Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="TxtFilePath" Height="26" IsReadOnly="True" FontFamily="Consolas" FontSize="11"/>
+                <Button Grid.Column="1" Content="..." Width="30" Height="26" Margin="5,0,0,0"
+                        Click="BtnBrowseFile_Click" ToolTip="Dosya konumu seçin"/>
+            </Grid>
+        </GroupBox>
+
         <!-- Buttons -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button Content="OK" Click="Ok_Click" Width="80" Background="#007ACC" FontWeight="Bold"/>
-            <Button Content="Cancel" IsCancel="True" Click="Cancel_Click" Width="80"/>
+            <Button Content="Tamam" Click="Ok_Click" Width="80" Background="#007ACC" FontWeight="Bold"/>
+            <Button Content="İptal" IsCancel="True" Click="Cancel_Click" Width="80"/>
         </StackPanel>
 
     </Grid>

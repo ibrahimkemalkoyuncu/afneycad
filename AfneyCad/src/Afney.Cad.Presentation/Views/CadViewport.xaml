@@ -43,17 +43,23 @@
                             <Setter Property="Margin" Value="4,2"/>
                         </Style>
                     </ContextMenu.Resources>
-                    <MenuItem x:Name="CtxMenu_Pan" Header="🔄  Pan (Kaydır)" Click="OnContextMenu_Pan"/>
-                    <MenuItem x:Name="CtxMenu_ZoomExtents" Header="🔎  Zoom Extents" Click="OnContextMenu_ZoomExtents"/>
+                    <MenuItem x:Name="CtxMenu_Move" Header="Taşı" Click="OnContextMenu_Move" InputGestureText="M"/>
+                    <MenuItem x:Name="CtxMenu_Delete" Header="Sil" Click="OnContextMenu_Delete" InputGestureText="Del"/>
+                    <MenuItem x:Name="CtxMenu_Mirror" Header="Aynala" Click="OnContextMenu_Mirror" InputGestureText="MI"/>
+                    <MenuItem x:Name="CtxMenu_Rotate" Header="Döndür" Click="OnContextMenu_Rotate"/>
+                    <MenuItem x:Name="CtxMenu_Scale" Header="Ölçekle" Click="OnContextMenu_Scale"/>
+                    <MenuItem x:Name="CtxMenu_Stretch" Header="Esnet" Click="OnContextMenu_Stretch"/>
                     <Separator/>
-                    <MenuItem x:Name="CtxMenu_SelectAll" Header="✅  Tümünü Seç" Click="OnContextMenu_SelectAll" InputGestureText="Ctrl+A"/>
-                    <MenuItem x:Name="CtxMenu_ClearSelection" Header="🧹  Seçimi Temizle" Click="OnContextMenu_ClearSelection"/>
+                    <MenuItem x:Name="CtxMenu_GripPoint" Header="Tutma Noktası" Click="OnContextMenu_GripPoint"/>
+                    <MenuItem x:Name="CtxMenu_Copy" Header="Kopyala" Click="OnContextMenu_Copy" InputGestureText="CO"/>
+                    <MenuItem x:Name="CtxMenu_Undo" Header="Geri Al" Click="OnContextMenu_Undo" InputGestureText="Ctrl+Z"/>
                     <Separator/>
-                    <MenuItem x:Name="CtxMenu_Undo" Header="↩️  Geri Al" Click="OnContextMenu_Undo" InputGestureText="Ctrl+Z"/>
-                    <MenuItem x:Name="CtxMenu_Redo" Header="↪️  Yinele" Click="OnContextMenu_Redo" InputGestureText="Ctrl+Y"/>
+                    <MenuItem x:Name="CtxMenu_Properties" Header="Özellikler..." Click="OnContextMenu_Properties"/>
                     <Separator/>
-                    <MenuItem x:Name="CtxMenu_Properties" Header="📐  Özellikler" Click="OnContextMenu_Properties" FontWeight="SemiBold"/>
-                    <MenuItem x:Name="CtxMenu_Delete" Header="❌  Sil" Click="OnContextMenu_Delete" Foreground="#FF5555"/>
+                    <MenuItem x:Name="CtxMenu_Pan" Header="Pan (Kaydır)" Click="OnContextMenu_Pan"/>
+                    <MenuItem x:Name="CtxMenu_ZoomExtents" Header="Zoom Extents" Click="OnContextMenu_ZoomExtents"/>
+                    <MenuItem x:Name="CtxMenu_SelectAll" Header="Tümünü Seç" Click="OnContextMenu_SelectAll" InputGestureText="Ctrl+A"/>
+                    <MenuItem x:Name="CtxMenu_ClearSelection" Header="Seçimi Temizle" Click="OnContextMenu_ClearSelection"/>
                 </ContextMenu>
             </skia:SKElement.ContextMenu>
         </skia:SKElement>
