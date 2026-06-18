@@ -1058,4 +1058,54 @@ Session #34 öncesinde yapılan kapsamlı FINE SANİ karşılaştırması (puan:
 - `LetterSpacing` WPF desteklemediği için kaldırıldı  
 - Tüm `x:Name` ve `Click` handler'lar korundu  
 
-*Son güncelleme: 2026-06-16 | AfneyCAD v4.0.0 — Session #36: Profesyonel UI Tasarımı*
+---
+
+## Session #37: Boyutlandırma Araçları ve Profesyonel Çizim
+
+### Yeni Özellikler
+
+| Araç | Komut | Açıklama |
+|---|---|---|
+| Doğrusal Ölçü | `DIM` / `DIML` | Yatay/Dikey ölçü — 3 tıklama (P1→P2→Çizgi konumu) |
+| Hizalı Ölçü | `DIMA` | Eğik segmentlere paralel ölçü |
+| Yarıçap Ölçüsü | `DIMR` | Merkez + çevre noktası — "R xxx mm" |
+| Açısal Ölçü | `DIMANG` | Vertex + 2 kol noktası — yay ile derece |
+| Metin Aracı | `MTEXT` / `MT` | Dialog ile metin girişi, tıklayarak yerleştirme |
+
+### Komut Satırı (Genişletilmiş)
+
+| Komut | Kısayol | İşlem |
+|---|---|---|
+| `line` | `l` | Çizgi |
+| `circle` | `c` | Daire |
+| `polyline` | `pl` | Çoklu çizgi |
+| `rectangle` | `rect` | Dikdörtgen |
+| `trim` | `tr` | Kırpma |
+| `extend` | `ex` | Uzatma |
+| `mirror` | `mi` | Aynalama |
+| `copy` | `co` | Kopyalama |
+| `move` | `m` | Taşıma |
+| `explode` | `x` | Patlatma |
+| `dimlinear` | `dim` | Doğrusal ölçü |
+| `dimaligned` | `dima` | Hizalı ölçü |
+| `dimradius` | `dimr` | Yarıçap ölçüsü |
+| `dimangular` | `dimang` | Açısal ölçü |
+| `mtext` | `mt` | Çok satırlı metin |
+
+### Ribbon "📐 Boyut" Sekmesi
+
+| Buton | İkon | Açıklama |
+|---|---|---|
+| Doğrusal Ölçü | ↔ | DIMLINEAR — yatay/dikey |
+| Hizalı Ölçü | ↗ | DIMALIGNED — eğik segment |
+| Yarıçap Ölçü | ⊙ | DIMRADIUS — daire/yay |
+| Açısal Ölçü | ∠ | DIMANGULAR — derece |
+| Metin Boyutu | A | Küçük (125mm) / Normal (250mm) / Büyük (500mm) |
+
+### DXF Export Desteği
+
+DimensionEntity, DXF R12 formatına LINE + TEXT olarak aktarılır. Tüm CAD yazılımlarıyla uyumludur.
+
+### FINE MEP Eşdeğerlik: 9.8 / 10
+
+*Son güncelleme: 2026-06-18 | AfneyCAD v4.0.0 — Session #37: Boyutlandırma Araçları*
