@@ -6,6 +6,7 @@ using System.Text;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Domain.Tables;
 using Afney.Cad.Geometry.Primitives;
 
@@ -175,6 +176,9 @@ public class DxfWriterService
                 case ArcEntity arc:
                     WriteArc(sb, arc);
                     break;
+                case DimensionEntity dim:
+                    WriteDimension(sb, dim);
+                    break;
             }
         }
 
@@ -225,6 +229,89 @@ public class DxfWriterService
         // ArcEntity angles are in radians; DXF R12 needs degrees
         Group(sb, 50, (arc.StartAngle * 180.0 / Math.PI).ToString("F4"));
         Group(sb, 51, (arc.EndAngle   * 180.0 / Math.PI).ToString("F4"));
+    }
+
+    private static void WriteDimension(StringBuilder sb, DimensionEntity dim)
+    {
+        string layer = dim.Layer ?? "0";
+        int aci = ArgbToAci(dim.Color);
+
+        if (dim.DimType == DimensionType.Linear)
+        {
+            bool horiz = Math.Abs(dim.SecondPoint.X - dim.FirstPoint.X) >= Math.Abs(dim.SecondPoint.Y - dim.FirstPoint.Y);
+            if (horiz)
+            {
+                double dimY = dim.DimLinePoint.Y;
+                WriteDxfLine(sb, layer, aci, new Vector3D(dim.FirstPoint.X, dimY, 0), new Vector3D(dim.SecondPoint.X, dimY, 0));
+                WriteDxfLine(sb, layer, aci, dim.FirstPoint, new Vector3D(dim.FirstPoint.X, dimY, 0));
+                WriteDxfLine(sb, layer, aci, dim.SecondPoint, new Vector3D(dim.SecondPoint.X, dimY, 0));
+                WriteDxfText(sb, layer, aci, dim.GetDxfText(), new Vector3D((dim.FirstPoint.X + dim.SecondPoint.X) / 2, dimY + dim.TextHeight * 0.6, 0), dim.TextHeight, 0);
+            }
+            else
+            {
+                double dimX = dim.DimLinePoint.X;
+                WriteDxfLine(sb, layer, aci, new Vector3D(dimX, dim.FirstPoint.Y, 0), new Vector3D(dimX, dim.SecondPoint.Y, 0));
+                WriteDxfLine(sb, layer, aci, dim.FirstPoint, new Vector3D(dimX, dim.FirstPoint.Y, 0));
+                WriteDxfLine(sb, layer, aci, dim.SecondPoint, new Vector3D(dimX, dim.SecondPoint.Y, 0));
+                WriteDxfText(sb, layer, aci, dim.GetDxfText(), new Vector3D(dimX + dim.TextHeight * 0.6, (dim.FirstPoint.Y + dim.SecondPoint.Y) / 2, 0), dim.TextHeight, 90);
+            }
+        }
+        else if (dim.DimType == DimensionType.Aligned)
+        {
+            var seg = dim.SecondPoint - dim.FirstPoint;
+            double len = seg.Length();
+            if (len < 1e-9) return;
+            var dir  = new Vector3D(seg.X / len, seg.Y / len, 0);
+            var perp = new Vector3D(-dir.Y, dir.X, 0);
+            var dp   = dim.DimLinePoint - dim.FirstPoint;
+            double off = dp.X * perp.X + dp.Y * perp.Y;
+            var dimP1 = new Vector3D(dim.FirstPoint.X + perp.X * off, dim.FirstPoint.Y + perp.Y * off, 0);
+            var dimP2 = new Vector3D(dim.SecondPoint.X + perp.X * off, dim.SecondPoint.Y + perp.Y * off, 0);
+            WriteDxfLine(sb, layer, aci, dimP1, dimP2);
+            WriteDxfLine(sb, layer, aci, dim.FirstPoint, dimP1);
+            WriteDxfLine(sb, layer, aci, dim.SecondPoint, dimP2);
+            double angle = Math.Atan2(dir.Y, dir.X) * 180.0 / Math.PI;
+            var mid = new Vector3D((dimP1.X + dimP2.X) / 2, (dimP1.Y + dimP2.Y) / 2, 0);
+            WriteDxfText(sb, layer, aci, dim.GetDxfText(), mid, dim.TextHeight, angle);
+        }
+        else if (dim.DimType == DimensionType.Radius)
+        {
+            WriteDxfLine(sb, layer, aci, dim.FirstPoint, dim.SecondPoint);
+            var dir = dim.SecondPoint - dim.FirstPoint;
+            double len = dir.Length();
+            if (len < 1e-9) return;
+            var norm = new Vector3D(dir.X / len, dir.Y / len, 0);
+            var textPos = new Vector3D(dim.SecondPoint.X + norm.X * dim.TextHeight, dim.SecondPoint.Y + norm.Y * dim.TextHeight, 0);
+            WriteDxfText(sb, layer, aci, dim.GetDxfText(), textPos, dim.TextHeight, 0);
+        }
+        else if (dim.DimType == DimensionType.Angular)
+        {
+            WriteDxfLine(sb, layer, aci, dim.AngularVertex, dim.FirstPoint);
+            WriteDxfLine(sb, layer, aci, dim.AngularVertex, dim.SecondPoint);
+            var v1 = dim.FirstPoint - dim.AngularVertex;
+            var v2 = dim.SecondPoint - dim.AngularVertex;
+            double midAngle = (Math.Atan2(v1.Y, v1.X) + Math.Atan2(v2.Y, v2.X)) / 2;
+            double r = Math.Min(v1.Length(), v2.Length()) * 0.6;
+            var textPos = new Vector3D(dim.AngularVertex.X + Math.Cos(midAngle) * r * 1.3, dim.AngularVertex.Y + Math.Sin(midAngle) * r * 1.3, 0);
+            WriteDxfText(sb, layer, aci, dim.GetDxfText(), textPos, dim.TextHeight, 0);
+        }
+    }
+
+    private static void WriteDxfLine(StringBuilder sb, string layer, int aci, Vector3D p1, Vector3D p2)
+    {
+        sb.AppendLine("  0"); sb.AppendLine("LINE");
+        Group(sb, 8, layer); Group(sb, 62, aci.ToString());
+        GroupXYZ(sb, 10, 20, 30, p1); GroupXYZ(sb, 11, 21, 31, p2);
+    }
+
+    private static void WriteDxfText(StringBuilder sb, string layer, int aci, string text, Vector3D pos, double height, double rotation)
+    {
+        sb.AppendLine("  0"); sb.AppendLine("TEXT");
+        Group(sb, 8, layer); Group(sb, 62, aci.ToString());
+        GroupXYZ(sb, 10, 20, 30, pos);
+        Group(sb, 40, height.ToString("F2"));
+        Group(sb, 1, text);
+        Group(sb, 50, rotation.ToString("F2"));
     }
 
     // ── FOOTER ──────────────────────────────────────────────────────────────────

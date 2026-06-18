@@ -680,6 +680,45 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnAngularDimCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.AngularDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnMTextCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.MTextCommand(_database, _history.TransactionManager, () =>
+            {
+                var dlg = new Afney.Cad.Presentation.Dialogs.TextInputDialog("Metin Girin", "Çizime eklenecek metin:");
+                dlg.Owner = this;
+                return dlg.ShowDialog() == true ? dlg.InputText : null;
+            });
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnPolylineCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.PolylineCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+        }
+
+        private void OnRectangleCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.BasicCommands.RectangleCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+        }
+
         private void OnDimTextHeightSmall(object sender, RoutedEventArgs e)
         {
             _dimTextHeight = 125.0;
@@ -1253,6 +1292,64 @@ namespace Afney.Cad.Presentation
                     case "dxfexport":
                     case "saveas":
                         OnExportDxfCommand(this, new RoutedEventArgs());
+                        break;
+                    // Boyutlandırma Komutları
+                    case "dimlinear":
+                    case "diml":
+                    case "dim":
+                        OnLinearDimCommand(this, new RoutedEventArgs());
+                        break;
+                    case "dimaligned":
+                    case "dima":
+                        OnAlignedDimCommand(this, new RoutedEventArgs());
+                        break;
+                    case "dimradius":
+                    case "dimr":
+                        OnRadiusDimCommand(this, new RoutedEventArgs());
+                        break;
+                    case "dimangular":
+                    case "dimang":
+                        OnAngularDimCommand(this, new RoutedEventArgs());
+                        break;
+                    // Düzenleme Komutları
+                    case "tr":
+                    case "trim":
+                        OnTrimCommand(this, new RoutedEventArgs());
+                        break;
+                    case "ex":
+                    case "extend":
+                        OnExtendCommand(this, new RoutedEventArgs());
+                        break;
+                    case "mi":
+                    case "mirror":
+                        OnMirrorCommand(this, new RoutedEventArgs());
+                        break;
+                    case "co":
+                    case "copy":
+                        OnCopyCommand(this, new RoutedEventArgs());
+                        break;
+                    case "m":
+                    case "move":
+                        OnMoveCommand(this, new RoutedEventArgs());
+                        break;
+                    case "x":
+                    case "explode":
+                        OnExplodeCommand(this, new RoutedEventArgs());
+                        break;
+                    case "pl":
+                    case "pline":
+                    case "polyline":
+                        OnPolylineCommand(this, new RoutedEventArgs());
+                        break;
+                    case "rect":
+                    case "rectangle":
+                        OnRectangleCommand(this, new RoutedEventArgs());
+                        break;
+                    // MTEXT
+                    case "mtext":
+                    case "mt":
+                    case "text":
+                        OnMTextCommand(this, new RoutedEventArgs());
                         break;
                     default:
                         StatusText.Text = $"Bilinmeyen komut: {cmdText}";

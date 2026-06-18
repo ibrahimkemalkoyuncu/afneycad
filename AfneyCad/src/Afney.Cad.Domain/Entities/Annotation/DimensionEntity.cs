@@ -3,7 +3,7 @@ using Afney.Cad.Geometry.Primitives;
 
 namespace Afney.Cad.Domain.Entities.Annotation;
 
-public enum DimensionType { Linear, Aligned, Radius }
+public enum DimensionType { Linear, Aligned, Radius, Angular }
 
 public class DimensionEntity : CadEntity
 {
@@ -25,6 +25,8 @@ public class DimensionEntity : CadEntity
     private bool IsHorizontal =>
         Math.Abs(SecondPoint.X - FirstPoint.X) >= Math.Abs(SecondPoint.Y - FirstPoint.Y);
 
+    public Vector3D AngularVertex { get; set; }
+
     private double GetMeasurement() => DimType switch
     {
         DimensionType.Linear  => IsHorizontal
@@ -32,11 +34,26 @@ public class DimensionEntity : CadEntity
                                     : Math.Abs(SecondPoint.Y - FirstPoint.Y),
         DimensionType.Aligned => (SecondPoint - FirstPoint).Length(),
         DimensionType.Radius  => (SecondPoint - FirstPoint).Length(),
+        DimensionType.Angular => GetAngleDegrees(),
         _                     => 0
     };
 
+    private double GetAngleDegrees()
+    {
+        var v1 = FirstPoint - AngularVertex;
+        var v2 = SecondPoint - AngularVertex;
+        double dot   = v1.X * v2.X + v1.Y * v2.Y;
+        double cross = v1.X * v2.Y - v1.Y * v2.X;
+        double rad   = Math.Atan2(Math.Abs(cross), dot);
+        return rad * 180.0 / Math.PI;
+    }
+
+    public string GetDxfText() => GetText();
+
     private string GetText()
     {
+        if (DimType == DimensionType.Angular)
+            return $"{GetMeasurement():F1}°";
         double m      = GetMeasurement();
         string prefix = DimType == DimensionType.Radius ? "R " : "";
         return m >= 1000 ? $"{prefix}{m / 1000.0:F2} m" : $"{prefix}{m:F0} mm";
@@ -49,6 +66,7 @@ public class DimensionEntity : CadEntity
             case DimensionType.Linear:  DrawLinear(ctx);  break;
             case DimensionType.Aligned: DrawAligned(ctx); break;
             case DimensionType.Radius:  DrawRadius(ctx);  break;
+            case DimensionType.Angular: DrawAngular(ctx); break;
         }
     }
 
@@ -148,6 +166,36 @@ public class DimensionEntity : CadEntity
         ctx.DrawCircle(FirstPoint, TextHeight * 0.2, Color, 0);
 
         var textPos = new Vector3D(SecondPoint.X + norm.X * TextHeight * 1.5, SecondPoint.Y + norm.Y * TextHeight * 1.5, 0);
+        ctx.DrawText(GetText(), textPos, 0, TextHeight, Color);
+    }
+
+    private void DrawAngular(IRenderContext ctx)
+    {
+        var v1 = FirstPoint - AngularVertex;
+        var v2 = SecondPoint - AngularVertex;
+        double len1 = v1.Length();
+        double len2 = v2.Length();
+        if (len1 < 1e-9 || len2 < 1e-9) return;
+
+        double arcRadius = Math.Min(len1, len2) * 0.6;
+        double startAngle = Math.Atan2(v1.Y, v1.X) * 180.0 / Math.PI;
+        double endAngle   = Math.Atan2(v2.Y, v2.X) * 180.0 / Math.PI;
+
+        if (startAngle < 0) startAngle += 360;
+        if (endAngle   < 0) endAngle   += 360;
+
+        double sweep = endAngle - startAngle;
+        if (sweep < 0) sweep += 360;
+        if (sweep > 180) { sweep = 360 - sweep; (startAngle, endAngle) = (endAngle, startAngle); }
+
+        ctx.DrawLine(AngularVertex, FirstPoint, Color, 0);
+        ctx.DrawLine(AngularVertex, SecondPoint, Color, 0);
+        ctx.DrawArc(AngularVertex, arcRadius, startAngle, startAngle + sweep, Color, 0);
+
+        double midAngleRad = (startAngle + sweep / 2) * Math.PI / 180.0;
+        var textPos = new Vector3D(
+            AngularVertex.X + Math.Cos(midAngleRad) * arcRadius * 1.3,
+            AngularVertex.Y + Math.Sin(midAngleRad) * arcRadius * 1.3, 0);
         ctx.DrawText(GetText(), textPos, 0, TextHeight, Color);
     }
 
