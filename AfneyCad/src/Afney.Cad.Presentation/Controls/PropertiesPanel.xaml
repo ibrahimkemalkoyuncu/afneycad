@@ -1,0 +1,122 @@
+<UserControl x:Class="Afney.Cad.Presentation.Controls.PropertiesPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#1E2226" MinWidth="180">
+
+    <UserControl.Resources>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#7AA0CC"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,2,0,4"/>
+        </Style>
+        <Style x:Key="PropLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#888"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Width" Value="75"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="PropValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#CCC"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="8,4">
+
+            <!-- Selection Indicator -->
+            <Border Background="#252A35" CornerRadius="3" Padding="6,4" Margin="0,0,0,6">
+                <TextBlock x:Name="TxtSelection" Text="Seçilen yok" Foreground="#666"
+                           FontSize="11" FontFamily="Segoe UI"/>
+            </Border>
+
+            <!-- ══ Genel ══════════════════════════════════ -->
+            <Expander Header="Genel" IsExpanded="True" Foreground="#7AA0CC" FontSize="10" FontWeight="Bold">
+                <StackPanel Margin="4,4,0,0">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Renk" Style="{StaticResource PropLabel}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="ColorSwatch" Width="14" Height="14" CornerRadius="2"
+                                    Background="#FFF" Margin="0,0,5,0" BorderBrush="#444" BorderThickness="1"/>
+                            <TextBlock x:Name="TxtColor" Text="BYLAYER" Style="{StaticResource PropValue}"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Katman" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtLayer" Text="" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Çizgi tipi" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtLinetype" Text="BYLAYER" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="ÇizgiTipi Ö..." Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtLinetypeScale" Text="1.00" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Çizgi kalınlığı" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtLineWeight" Text="BYLAYER" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Kalınlık" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtThickness" Text="0.00" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ Yazdırma Biçimi ════════════════════════ -->
+            <Expander Header="Yazdırma Biçimi" IsExpanded="False" Foreground="#7AA0CC" FontSize="10" FontWeight="Bold" Margin="0,4,0,0">
+                <StackPanel Margin="4,4,0,0">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Yazdırma ..." Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtPlotStyle" Text="BYCOLOR" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Yazdırma ..." Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtPlotWeight" Text="" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Yazdırma ..." Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtPlotSpace" Text="Model" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ Görünüş ════════════════════════════════ -->
+            <Expander Header="Görünüş" IsExpanded="True" Foreground="#7AA0CC" FontSize="10" FontWeight="Bold" Margin="0,4,0,0">
+                <StackPanel Margin="4,4,0,0">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Merkez X" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtCenterX" Text="0.00" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Merkez Y" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtCenterY" Text="0.00" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Merkez Z" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtCenterZ" Text="0.00" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Yükseklik" Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtHeight" Text="0.00" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ Çeşit ══════════════════════════════════ -->
+            <Expander Header="Çeşit" IsExpanded="False" Foreground="#7AA0CC" FontSize="10" FontWeight="Bold" Margin="0,4,0,0">
+                <StackPanel Margin="4,4,0,0">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="UCS sima..." Style="{StaticResource PropLabel}"/>
+                        <TextBlock x:Name="TxtUcs" Text="Evet" Style="{StaticResource PropValue}"/>
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

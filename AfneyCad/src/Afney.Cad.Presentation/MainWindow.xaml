@@ -1423,6 +1423,11 @@
                     <controls:LayerManagerPanel x:Name="LayerPanel"
                                                 Grid.Row="1"
                                                 Visibility="Visible"/>
+
+                    <!-- Özellikler Paneli (FINE MEP sol panel) -->
+                    <controls:PropertiesPanel x:Name="EntityPropertiesPanel"
+                                               Grid.Row="1"
+                                               Visibility="Collapsed"/>
                 </Grid>
             </Border>
 

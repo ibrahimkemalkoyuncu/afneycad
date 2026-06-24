@@ -1,0 +1,41 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.PrintPreviewDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Baskı Önizleme" Height="700" Width="900"
+        WindowStartupLocation="CenterOwner"
+        Background="#2D2D30" Foreground="White">
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Background="#1E1E1E" Padding="8,6" BorderBrush="#444" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="🖨 Yazdır" Click="OnPrint_Click" Width="90" Height="30"
+                        Background="#0A84FF" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0"/>
+                <Button Content="📐 A4" x:Name="BtnA4" Click="OnA4_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                <Button Content="📐 A3" x:Name="BtnA3" Click="OnA3_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                <Button Content="📐 A2" x:Name="BtnA2" Click="OnA2_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                <Button Content="📐 A1" x:Name="BtnA1" Click="OnA1_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,16,0"/>
+                <TextBlock x:Name="TxtPaperInfo" Text="A3 — 420 × 297 mm" Foreground="#858899"
+                           VerticalAlignment="Center" FontFamily="Consolas" FontSize="12"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Preview Area -->
+        <Border Background="#1A1A1A" Padding="20">
+            <Border x:Name="PaperBorder" Background="White" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="600" Height="424"
+                    BorderBrush="#555" BorderThickness="1">
+                <Grid>
+                    <Border Margin="20" BorderBrush="#CCC" BorderThickness="0.5">
+                        <TextBlock x:Name="TxtPreviewContent" Text="Çizim içeriği burada görüntülenecek"
+                                   Foreground="#333" FontSize="11" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Border>
+    </DockPanel>
+</Window>

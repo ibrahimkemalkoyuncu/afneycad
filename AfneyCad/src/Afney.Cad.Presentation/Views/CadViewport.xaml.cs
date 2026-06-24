@@ -71,6 +71,9 @@ namespace Afney.Cad.Presentation.Views;
         // ── Cached SKPaint nesneleri (her frame new() yaratmaktan kaçınmak için) ──────────
         private readonly SKPaint _gridMinorPaint = new() { Color = new SKColor(255, 255, 255, 14), StrokeWidth = 0, IsAntialias = false };
         private readonly SKPaint _gridMajorPaint = new() { Color = new SKColor(255, 255, 255, 35), StrokeWidth = 0, IsAntialias = false };
+        private readonly SKPaint _gridDotPaint = new() { Color = new SKColor(255, 255, 255, 50), StrokeWidth = 2, StrokeCap = SKStrokeCap.Round, IsAntialias = false };
+        private bool _gridDotMode = false;
+        public bool GridDotMode { get => _gridDotMode; set { _gridDotMode = value; InvalidateViewport(); } }
         private readonly SKPaint _originXPaint   = new() { Color = new SKColor(255, 50, 50, 150), StrokeWidth = 2, IsAntialias = true };
         private readonly SKPaint _originYPaint   = new() { Color = new SKColor(50, 255, 50, 150), StrokeWidth = 2, IsAntialias = true };
         private readonly SKPaint _originTxtPaint = new() { Color = SKColors.White, TextSize = 13, IsAntialias = true };
@@ -403,15 +406,28 @@ namespace Afney.Cad.Presentation.Views;
             var tl = ScreenToWorld(new Point(0, 0));
             var br = ScreenToWorld(new Point(width, height));
 
-            // Log10 tabanlı ölçek: ekranda her zaman ~8-80 minor çizgi görünür
-            // 200 birim → ekranda yaklaşık 8-10 çizgi olacak şekilde adım ayarlanır
             double rawStep = Math.Pow(10.0, Math.Ceiling(Math.Log10(200.0 / Math.Max(_zoom, 1e-9))));
             double minorStep = rawStep;
             double majorStep  = minorStep * 10.0;
 
-            const int MaxLines = 400; // performans koruyucu
+            if (_gridDotMode)
+            {
+                const int MaxDots = 2500;
+                int count = 0;
+                double yMin = Math.Min(tl.Y, br.Y);
+                double yMax = Math.Max(tl.Y, br.Y);
+                for (double x = Math.Floor(tl.X / minorStep) * minorStep; x <= br.X && count < MaxDots; x += minorStep)
+                {
+                    for (double y = Math.Floor(yMin / minorStep) * minorStep; y <= yMax && count < MaxDots; y += minorStep, count++)
+                    {
+                        var p = WorldToScreen(new Vector3D(x, y, 0));
+                        canvas.DrawPoint((float)p.X, (float)p.Y, _gridDotPaint);
+                    }
+                }
+                return;
+            }
 
-            // Dikey çizgiler (X ekseninde adım)
+            const int MaxLines = 400;
             int vCount = 0;
             for (double x = Math.Floor(tl.X / minorStep) * minorStep; x <= br.X && vCount < MaxLines; x += minorStep, vCount++)
             {
@@ -423,12 +439,10 @@ namespace Afney.Cad.Presentation.Views;
                                 isMajor ? _gridMajorPaint : _gridMinorPaint);
             }
 
-            // Yatay çizgiler (Y ekseninde adım)
             int hCount = 0;
-            // Not: Y ekseninde tl.Y > br.Y olabilir (ters koordinat)
-            double yMin = Math.Min(tl.Y, br.Y);
-            double yMax = Math.Max(tl.Y, br.Y);
-            for (double y = Math.Floor(yMin / minorStep) * minorStep; y <= yMax && hCount < MaxLines; y += minorStep, hCount++)
+            double yMin2 = Math.Min(tl.Y, br.Y);
+            double yMax2 = Math.Max(tl.Y, br.Y);
+            for (double y = Math.Floor(yMin2 / minorStep) * minorStep; y <= yMax2 && hCount < MaxLines; y += minorStep, hCount++)
             {
                 var p1 = WorldToScreen(new Vector3D(tl.X, y, 0));
                 var p2 = WorldToScreen(new Vector3D(br.X, y, 0));

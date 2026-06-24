@@ -159,7 +159,11 @@ namespace Afney.Cad.Presentation
             var viewport = new Afney.Cad.Presentation.Views.CadViewport();
             viewport.Initialize(ctx.Database, ctx.SnapEngine, ctx.SelectionManager);
             viewport.OnFeedback += (msg) => StatusText.Text = msg;
-            viewport.SelectionChanged += (items) => RightPanel.UpdateEntityInfo(items.FirstOrDefault());
+            viewport.SelectionChanged += (items) =>
+            {
+                RightPanel.UpdateEntityInfo(items.FirstOrDefault());
+                EntityPropertiesPanel.UpdateSelection(items?.ToList());
+            };
             viewport.OrthoToggled += (isOrtho) => 
             {
                 // UI Thread'ine geçerek buton durumunu ve rengini değiştir
@@ -717,6 +721,34 @@ namespace Afney.Cad.Presentation
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
+        }
+
+        private void OnProjectInfoCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.ProjectInfoDialog(_database, null) { Owner = this };
+            dlg.ShowDialog();
+        }
+
+        private void OnNorthArrowCommand(object sender, RoutedEventArgs e)
+        {
+            var svc = new Afney.Cad.Mechanical.Services.NorthArrowService();
+            var entities = svc.Generate(new Afney.Cad.Geometry.Primitives.Vector3D(0, 0, 0));
+            foreach (var ent in entities)
+                _history.TransactionManager.Submit(new Afney.Cad.Database.Transactions.Operations.AddEntityOperation(_database, ent));
+            Viewport.InvalidateVisual();
+            StatusText.Text = $"Kuzey işareti eklendi ({entities.Count} nesne).";
+        }
+
+        private void OnPrintPreviewCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.PrintPreviewDialog(_database) { Owner = this };
+            dlg.ShowDialog();
+        }
+
+        private void OnToggleGridMode(object sender, RoutedEventArgs e)
+        {
+            Viewport.GridDotMode = !Viewport.GridDotMode;
+            StatusText.Text = Viewport.GridDotMode ? "Grid: Nokta modu" : "Grid: Çizgi modu";
         }
 
         private void OnDistCommand(object sender, RoutedEventArgs e)
