@@ -751,6 +751,34 @@ namespace Afney.Cad.Presentation
             StatusText.Text = Viewport.GridDotMode ? "Grid: Nokta modu" : "Grid: Çizgi modu";
         }
 
+        private void OnContinueDimCommand(object sender, RoutedEventArgs e)
+        {
+            StatusText.Text = "DIMCONTINUE: Başlangıç noktasını tıklayın, ardından zincir ölçüler ekleyin.";
+            var cmd = new Afney.Cad.Commands.BasicCommands.LinearDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () =>
+            {
+                var lastDims = _database.GetAllEntities()
+                    .OfType<Afney.Cad.Domain.Entities.Annotation.DimensionEntity>()
+                    .LastOrDefault();
+                if (lastDims != null)
+                {
+                    var cont = new Afney.Cad.Commands.BasicCommands.ContinueDimCommand(
+                        _database, _history.TransactionManager, lastDims.SecondPoint, lastDims.DimLinePoint.Y, _dimTextHeight);
+                    cont.OnFeedback  += msg2 => StatusText.Text = msg2;
+                    cont.OnCompleted += () => Viewport.SetActiveCommand(null);
+                    Viewport.SetActiveCommand(cont);
+                    cont.Start();
+                }
+                else
+                {
+                    Viewport.SetActiveCommand(null);
+                }
+            };
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnDistCommand(object sender, RoutedEventArgs e)
         {
             var cmd = new Afney.Cad.Commands.BasicCommands.DistCommand();
@@ -1357,6 +1385,11 @@ namespace Afney.Cad.Presentation
                     case "mesafe":
                     case "uzaklik":
                         OnDistCommand(this, new RoutedEventArgs());
+                        break;
+                    case "dimcontinue":
+                    case "dimcont":
+                    case "dco":
+                        OnContinueDimCommand(this, new RoutedEventArgs());
                         break;
                     // Düzenleme Komutları
                     case "tr":
