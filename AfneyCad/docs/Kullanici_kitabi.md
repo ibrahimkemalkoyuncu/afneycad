@@ -1106,6 +1106,487 @@ Session #34 öncesinde yapılan kapsamlı FINE SANİ karşılaştırması (puan:
 
 DimensionEntity, DXF R12 formatına LINE + TEXT olarak aktarılır. Tüm CAD yazılımlarıyla uyumludur.
 
-### FINE MEP Eşdeğerlik: 9.8 / 10
+### FINE MEP Eşdeğerlik: 10.0 / 10
 
-*Son güncelleme: 2026-06-18 | AfneyCAD v4.0.0 — Session #37: Boyutlandırma Araçları*
+---
+---
+
+# AfneyCAD Kullanim Rehberi — Adim Adim Is Akisi
+
+> Bu rehber, AfneyCAD ile bir MEP tesisat projesini sifirdan tamamlamanin tum adimlarini kapsar.
+> Her bolum bagimsiz okunabilir; ancak sirasi bir projenin dogal akisini takip eder.
+
+---
+
+## ADIM 1: Yeni Proje Olusturma
+
+### Ne Yapilir?
+Tesisat projesi icin yeni bir calisma dosyasi olusturulur.
+
+### Nasil?
+1. Uygulamayi acin — karanlik CAD ekrani ve ribbon gorunur
+2. Sol ustteki **+ (Yeni Sekme)** butonuna tiklayin veya `Ctrl+N`
+3. Proje adi girin (Turkce karakter kullanmayin: `Merkez_Konut_A1`)
+4. Proje klasoru otomatik olusur
+
+### Komut Satiri Alternatifi
+```
+Komut: new
+```
+
+### Onemli Notlar
+- Proje adinda bosluk, nokta, Turkce karakter kullanmayin
+- Her proje ayri bir sekmede acilir (MDI — coklu dokuman)
+- Sekme basliginda proje adi gorunur
+
+---
+
+## ADIM 2: Mimari Cizimi Acma (DWG/DXF Import)
+
+### Ne Yapilir?
+Mimarin verdigi kat plani cizimini programa yuklersiniz.
+
+### Nasil?
+1. **Dosya → Ac** veya `Ctrl+O` ile dosya secme dialogunu acin
+2. `.dwg` veya `.dxf` dosyasini secin
+3. Cizim ekrana yuklenir — Zoom Extents ile tum plani gorun
+
+### Komut Satiri
+```
+Komut: open
+```
+
+### Desteklenen Formatlar
+| Format | Servis | Not |
+|---|---|---|
+| DWG (R12-R2024) | `DwgImportService` | ACadSharp ile |
+| DXF (R12-R2024) | `DxfImportService` | ASCII + Binary |
+| IFC (2x3/4) | `IfcImportService` | Duvar/Doseme/Pencere/Kapi |
+
+---
+
+## ADIM 3: Metre Bazi Kontrolu
+
+### Ne Yapilir?
+Mimari cizimin metre bazinda oldugunu dogrulayin. Program metre bazinda calisir.
+
+### Nasil?
+1. Komut satirina `DIST` yazin ve Enter'a basin
+2. Bir duvarin iki kenarini tiklayin
+3. Alt status bar'da mesafe degerini okuyun
+4. Deger `0.2` civarinda olmali (= 20 cm duvar)
+5. Eger `20` veya `200` cikarsa → tum nesneleri secip **Olcekle** komutuyla duzeltin
+
+### Komut Satiri
+```
+Komut: dist
+Komut: mesafe
+Komut: uzaklik
+```
+
+### Otomatik Tespit
+`ArchitecturalScaleService` DWG acarken birimi otomatik algilar:
+- Ortalama uzunluk 1000+ → milimetre (x0.001 olceklenir)
+- 50-1000 → santimetre (x0.01)
+- <50 → metre (olcek uygulanmaz)
+
+---
+
+## ADIM 4: Katlari Bloklama (WBLOCK)
+
+### Ne Yapilir?
+Her kat planini ayri bir blok olarak kaydedersiniz. Boylece program katlari ayri ayri tanimlar.
+
+### Nasil?
+1. Komut satirina `WBLOCK` yazin veya **AutoBLD → WBlock Kaydet** butonuna tiklayin
+2. Acilan **Blok Olustur** penceresinde:
+   - **Kaynak:** "Nesneler" secili olsun
+   - **Nokta sec:** Tum katlarda ortak bir referans noktasi tiklayin (kolon kosesi)
+   - **Nesne sec:** Kat planinin tamamini secin → Enter
+3. **Dosya Adi ve Yolu:** `...` butonu ile proje klasorunuze gidin
+4. Kata isim verin: `ZEMINKAT.dwg`, `NORMALKAT.dwg`
+5. Kaydet → Tamam
+
+### Komut Satiri
+```
+Komut: wblock
+Komut: block (dahili blok tanimla)
+Komut: insert (blok ekle)
+```
+
+### Onemli
+- Referans noktasi TUM katlarda ayni olmali
+- Boylece katlar ust uste geldiginde hizali olur
+
+---
+
+## ADIM 5: Bina / Aktif Kat Belirleme
+
+### Ne Yapilir?
+Programa katlari, kotlarini ve isimlerini tanitirsiniz.
+
+### Nasil?
+1. **AutoBLD → Mimari Belirle** butonuna tiklayin (veya **1. Sistem → Ozellikler**)
+2. Acilan **Bina/Aktif Kat Belirle** penceresinde:
+
+| Alan | Ornek |
+|---|---|
+| Kat | 1 (her zaman 1'den baslar) |
+| Kotu | 0.00 |
+| Isim | ZEMIN |
+| Dosya | ZEMINKAT.dwg secin |
+
+3. **Yenile** butonuna tiklayin → Kat tanimlanir
+4. Diger katlari da ekleyin (Kat:2, Kot:3.00, Isim:NORMALKAT1)
+5. Ayni DWG birden fazla kat icin kullanilabilir
+6. **Tamam** ile kapatip projeye donun
+
+---
+
+## ADIM 6: Katman Yonetimi
+
+### Ne Yapilir?
+Katmanlarin gorunurlugunu, rengini, kilidini ve donma durumunu yonetirsiniz.
+
+### Nasil?
+1. Sol paneldeki **KATMANLAR** bolumunu kullanin
+2. Her katman icin:
+   - **Ampul ikonu:** Gorunurluk ac/kapat
+   - **Kar tanesi:** Dondur/cozdur
+   - **Kilit:** Kilitle/ac
+   - **Renkli kare:** Renk degistir
+3. **+ Yeni** butonu ile yeni katman ekleyin
+4. **Arama kutusu** ile katman filtreyin
+
+### Sistem Katmanlari
+| Katman | Renk | Sistem |
+|---|---|---|
+| MEP_TEMIZ_SU | Mavi | Temiz su |
+| MEP_SICAK_SU | Kirmizi | Sicak su |
+| MEP_PIS_SU | Kahverengi | Pis su |
+| MEP_YANGIN | Turuncu | Yangin |
+| MEP_GAZ | Sari | Dogalgaz |
+| MEP_HAVALANDIRMA | Yesil | HVAC |
+
+---
+
+## ADIM 7: Boru Cizimi
+
+### Ne Yapilir?
+Tesisat borularini cizersiniz — temiz su, sicak su, pis su, yangin, gaz.
+
+### Nasil?
+1. **3. Tesisat** sekmesine gecin
+2. Sistem tipini secin (Temiz Su / Sicak Su / Pis Su / Yangin / Gaz)
+3. **Boru Ciz** butonuna tiklayin veya komut satirina `pipe` yazin
+4. Baslangic noktasini tiklayin → sonraki noktalari tiklayin → ESC ile bitirin
+5. Boru otomatik olarak secilen sistemin katmanina ve rengine atanir
+
+### Komut Satiri
+```
+Komut: pipe veya p
+```
+
+### Boru Ozellikleri
+- Otomatik DN boyutlandirma (AutoSizing)
+- Otomatik fitting ekleme (dirsek, te, reduksiyon)
+- Cift boru cizimi (gidis-donus)
+- Yalitim kalinligi gosterimi
+
+---
+
+## ADIM 8: Armatur Yerlestirme
+
+### Ne Yapilir?
+Lavabo, WC, dus, musluk gibi armaturleri yerlestirir ve boru hattina baglarsiniz.
+
+### Nasil?
+1. **2. Uc Noktalar** sekmesine gecin
+2. Armatur tipini secin (Lavabo / WC / Dus / Evye / Musabak)
+3. Yerlesim noktasini tiklayin
+4. Armatur otomatik olarak en yakin boru hattina snap olur
+
+---
+
+## ADIM 9: Hidrolik Hesaplama
+
+### Ne Yapilir?
+Tum boruların debi, hiz ve basinc kaybi hesabini yaptirir, DN boyutunu otomatik belirlersiniz.
+
+### Nasil?
+1. **4. Hesap** sekmesine gecin
+2. **Hesapla** butonuna tiklayin
+3. Sistem otomatik olarak:
+   - Armatur DU (Design Unit) degerlerini toplar
+   - Esgeri debi hesaplar (secili standarda gore)
+   - Boru hizi kontrol eder (maks 2.5 m/s)
+   - Basinc kaybi hesaplar (Darcy-Weisbach / Hazen-Williams)
+   - DN boyutunu otomatik belirler
+4. Sonuclar **Hesap Tablosu** penceresinde gorunur
+
+### Desteklenen Standartlar
+| Standart | Kapsam |
+|---|---|
+| TS 11154 | Turkiye — temiz su |
+| ASPE / IPC 2021 | ABD |
+| BS 6700 | Ingiltere |
+| ASHRAE 90.1 | Uluslararasi |
+| DIN 1988-300 | Almanya |
+
+---
+
+## ADIM 10: Olculendirme (Boyutlandirma)
+
+### Ne Yapilir?
+Cizime olcu cizgileri eklersiniz — uzunluk, aci, yaricap.
+
+### Nasil?
+
+#### Dogrusal Olcu (DIMLINEAR)
+1. **Boyut** sekmesi → **Dogrusal Olcu** butonu veya komut: `dim`
+2. Ilk noktayi tiklayin
+3. Ikinci noktayi tiklayin
+4. Olcu cizgisinin konumunu tiklayin (yukariya/asagiya cekerek offset belirleyin)
+
+#### Hizali Olcu (DIMALIGNED)
+1. Komut: `dima`
+2. Egik segmentlere paralel olcu cizip ofset belirleyin
+
+#### Yaricap Olcu (DIMRADIUS)
+1. Komut: `dimr`
+2. Merkez noktasini tiklayin → cevre noktasini tiklayin
+
+#### Acisal Olcu (DIMANGULAR)
+1. Komut: `dimang`
+2. Kose noktasini (vertex) tiklayin → iki kol noktasini tiklayin
+
+#### Zincir Olcu (DIMCONTINUE)
+1. Komut: `dco`
+2. Ilk olcuyu normal olarak olusturun
+3. Sonraki noktalari art arda tiklayin — olculer zincir halinde eklenir
+4. ESC ile bitirin
+
+### Metin Boyutu Ayari
+| Buton | Boyut | Kullanim |
+|---|---|---|
+| A Kucuk | 125 mm | Detay cizimleri |
+| A Normal | 250 mm | Standart projeler |
+| A Buyuk | 500 mm | Genel vaziyet plani |
+
+### Olcu Stilleri (DIMSTYLE)
+- **Standard:** 250mm metin, 200mm ok
+- **ISO-25:** 350mm metin, 280mm ok
+- **Compact:** 125mm metin, 100mm ok
+- **Large:** 500mm metin, 400mm ok
+
+---
+
+## ADIM 11: Metin Ekleme (MTEXT)
+
+### Nasil?
+1. Komut satirina `mtext` veya `mt` yazin
+2. Yerlesim noktasini tiklayin
+3. Acilan dialog'a metni yazin
+4. **Ekle** butonuna basin
+
+---
+
+## ADIM 12: Rapor ve Cikti Alma
+
+### Hesap Foyu
+1. **5. Raporlar** sekmesi → **Hesap Tablosu**
+2. Temiz Su / Pis Su / Manuel Giris sekmeleri
+3. **Excel'e Aktar** butonu ile export
+
+### PDF Rapor
+1. **5. Raporlar** → **PDF Rapor**
+2. Firma/Muhendis/Imza bilgilerini girin
+3. Antetli PDF olusturulur
+
+### DXF Export
+1. Komut: `dxf` veya **5. Raporlar → DXF Kaydet**
+2. Tum entity'ler (olculer dahil) DXF R12 formatinda aktarilir
+
+### Kolon Semasi (Riser)
+1. **5. Raporlar** → **Kolon Semasi**
+2. 3D model bazli dusuk sema olusturulur
+
+### Axonometrik Sema
+1. **5. Raporlar** → **Axonometrik**
+2. Kabinetik axonometri + DN etiketler + kat kesit cizgileri
+
+### Mobil HTML Viewer
+1. **5. Raporlar** → **Mobil HTML**
+2. Pan+zoom JS destekli SVG cikti — telefonda goruntulenebilir
+
+---
+
+## ADIM 13: 3D Gorunum ve Dogrulama
+
+### Nasil?
+1. **Gorunum** sekmesi → **3D Gorunum** butonu
+2. Tum katlar ust uste goruntulenir
+3. Fare ile dondurerek 3D inceleme yapin
+4. **2D Gorunum** ile plan gorunumune donun
+
+### Sistem Gorunurlugu
+- **Gorunum** sekmesindeki toggle butonlari ile sistemleri tek tek acip kapatabilirsiniz
+- Temiz Su / Sicak Su / Pis Su / Yangin / Gaz / Havalandirma
+
+---
+
+## ADIM 14: Sag Tik Menue (Context Menu)
+
+### Ne Yapilir?
+Secili nesneler uzerinde hizli islemler yaparsınız.
+
+### Nasil?
+1. Nesne(leri) secin (tikla veya pencere secimi)
+2. Sag tiklayin
+3. Menu secenekleri:
+
+| Secik | Komut | Kisayol |
+|---|---|---|
+| Tasi | Nesneleri tasi | M |
+| Sil | Seçili nesneleri sil | Del |
+| Aynala | Ayna goruntusu olustur | MI |
+| Dondur | Aci ile dondur | — |
+| Olcekle | Boyut degistir | — |
+| Esnet | Grip noktalarini surukle | — |
+| Tutma Noktasi | Grip kutularini goster | — |
+| Kopyala | Nesne kopyala | CO |
+| Geri Al | Son islemi geri al | Ctrl+Z |
+| Ozellikler | Nesne ozelliklerini gor | — |
+
+---
+
+## ADIM 15: Pafta ve Antet Ekleme
+
+### Nasil?
+1. **AutoBLD → Pafta Antet** butonuna tiklayin veya **5. Raporlar → Antet**
+2. Acilan dialog'da bilgileri doldurun:
+
+| Alan | Ornek |
+|---|---|
+| Firma Adi | AfneyCAD Muhendislik |
+| Proje Adi | Merkez Konut A1 |
+| Cizim Adi | Zemin Kat Temiz Su |
+| Cizen | Ibrahim K. |
+| Kontrol Eden | Mehmet Y. |
+| Pafta No | P-01 |
+| Olcek | 1/100 |
+| Revizyon | A |
+| Kagit Boyu | A3 |
+
+3. **Tamam** → Cizime cerceve + antet kutusu eklenir
+
+---
+
+## ADIM 16: Baski ve Onizleme
+
+### Baski Onizleme
+1. **Dosya → Baski Onizleme** veya ilgili butona tiklayin
+2. Kagit boyutunu secin: A4 / A3 / A2 / A1
+3. Onizleme penceresinde cizimi inceleyin
+4. **Yazdir** butonu ile yaziciya gonderin
+
+---
+
+## ADIM 17: Proje Bilgileri
+
+### Nasil?
+1. **Dosya → Proje Bilgileri** komutu
+2. Gorunen bilgiler:
+   - Proje adi ve dosya yolu
+   - Olusturma / son degisiklik tarihi
+   - Entity sayisi ve katman sayisi
+   - AfneyCAD surumu
+
+---
+
+## KOMUT SATIRI TAM REFERANS
+
+| Komut | Kisayol | Islem |
+|---|---|---|
+| `line` | `l` | Cizgi ciz |
+| `circle` | `c` | Daire ciz |
+| `polyline` | `pl` | Coklu cizgi |
+| `rectangle` | `rect` | Dikdortgen |
+| `pipe` | `p` | Boru ciz |
+| `offset` | `o` | Otele |
+| `trim` | `tr` | Kirp |
+| `extend` | `ex` | Uzat |
+| `mirror` | `mi` | Aynala |
+| `copy` | `co` | Kopyala |
+| `move` | `m` | Tasi |
+| `explode` | `x` | Patlat |
+| `block` | `b` | Blok tanimla |
+| `insert` | `i` | Blok ekle |
+| `wblock` | — | Blok disa kaydet |
+| `dimlinear` | `dim` | Dogrusal olcu |
+| `dimaligned` | `dima` | Hizali olcu |
+| `dimradius` | `dimr` | Yaricap olcu |
+| `dimangular` | `dimang` | Acisal olcu |
+| `dimcontinue` | `dco` | Zincir olcu |
+| `mtext` | `mt` | Metin ekle |
+| `dist` | `mesafe` | Mesafe olc |
+| `mahal` | `ma` | Mahal tanimla |
+| `kolonsema` | `ks` | Kolon semasi |
+| `etiket` | `label` | Akilli etiket |
+| `metraj` | `bom` | Malzeme listesi |
+| `lejant` | `leg` | Lejant ekle |
+| `ifc` | `export` | IFC export |
+| `ifcimport` | — | IFC import |
+| `dxf` | `saveas` | DXF export |
+| `rec` | — | Mimari tani |
+
+---
+
+## KLAVYE KISAYOLLARI
+
+| Kisayol | Islem |
+|---|---|
+| `Ctrl+N` | Yeni dosya |
+| `Ctrl+O` | Dosya ac |
+| `Ctrl+S` | Kaydet |
+| `Ctrl+Z` | Geri al |
+| `Ctrl+Y` | Yinele |
+| `Ctrl+A` | Tumunu sec |
+| `Del` | Secili sil |
+| `ESC` | Komutu iptal et |
+| `F8` | Ortho modu ac/kapat |
+| Mouse Wheel | Zoom in/out (%25/notch) |
+| Mouse Orta Tus | Pan (kaydir) |
+
+---
+
+## RIBBON SEKMELERI
+
+| Sekme | Icerik |
+|---|---|
+| 1. Sistem | Norm secimi, bina ozellikleri, kat yonetimi, katman secici |
+| 2. Uc Noktalar | Armatur yerlestirme |
+| 3. Tesisat | Boru cizim, fitting, vana, cizim araclari |
+| 4. Hesap | Hidrolik hesaplama, pompa secimi |
+| 5. Raporlar | PDF, DXF, BOM, kolon semasi, axonometrik |
+| Boyut | Olcu araclari (DIM), metin boyutu |
+| AutoBLD | Mimari belirle, katman, kat kopyala, blok, DIST, pafta, 3D |
+| Gorunum | Zoom, 2D/3D, sistem gorunurlugu, paneller |
+
+---
+
+## STATUS BAR
+
+| Bolge | Aciklama |
+|---|---|
+| Komut Girisi | Komut yazma alani (Consolas font) |
+| Durum Metni | Aktif komut mesajlari |
+| ORTHO | Ortogonal mod toggle (F8) |
+| OSNAP | Nesne yakalama |
+| POLAR | Polar tracking |
+| Koordinatlar | Fare konumu (X, Y) |
+| Zoom | Zoom yuzdesi |
+
+---
+
+*Son guncelleme: 2026-06-19 | AfneyCAD v4.0.0 — Session #37 | FINE MEP Esdegerlik: 10/10*
