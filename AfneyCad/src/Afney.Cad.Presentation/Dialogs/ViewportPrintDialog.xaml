@@ -1,0 +1,91 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.ViewportPrintDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Yazdır — AfneyCAD" Height="480" Width="550"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1A1C24" Foreground="#E1E4EE">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="YAZDIR / ÇIKTI AL" FontSize="14" FontWeight="Bold" Foreground="#0A84FF" Margin="0,0,0,16"/>
+
+        <!-- Kağıt Boyutu -->
+        <GroupBox Grid.Row="1" Header="Kağıt Boyutu" Foreground="#7AA0CC" BorderBrush="#252836" Margin="0,0,0,8" Padding="8">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="RbA4" Content="A4 (297x210)" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Paper"/>
+                <RadioButton x:Name="RbA3" Content="A3 (420x297)" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Paper" IsChecked="True"/>
+                <RadioButton x:Name="RbA2" Content="A2 (594x420)" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Paper"/>
+                <RadioButton x:Name="RbA1" Content="A1 (841x594)" Foreground="#E1E4EE" GroupName="Paper"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Ölçek -->
+        <GroupBox Grid.Row="2" Header="Ölçek" Foreground="#7AA0CC" BorderBrush="#252836" Margin="0,0,0,8" Padding="8">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="RbFit" Content="Sığdır" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Scale" IsChecked="True"/>
+                <RadioButton x:Name="Rb100" Content="1:100" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Scale"/>
+                <RadioButton x:Name="Rb50" Content="1:50" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Scale"/>
+                <RadioButton x:Name="Rb200" Content="1:200" Foreground="#E1E4EE" Margin="0,0,20,0" GroupName="Scale"/>
+                <TextBlock Text="Özel:" Foreground="#858899" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="TxtCustomScale" Width="60" Height="24" Text="1:100"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836"
+                         FontFamily="Consolas" Padding="4,0" VerticalContentAlignment="Center"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Seçenekler -->
+        <GroupBox Grid.Row="3" Header="Seçenekler" Foreground="#7AA0CC" BorderBrush="#252836" Margin="0,0,0,8" Padding="8">
+            <WrapPanel>
+                <CheckBox x:Name="ChkTitleBlock" Content="Pafta / Antet Ekle" Foreground="#E1E4EE" IsChecked="True" Margin="0,0,20,4"/>
+                <CheckBox x:Name="ChkGrid" Content="Grid Çiz" Foreground="#E1E4EE" Margin="0,0,20,4"/>
+                <CheckBox x:Name="ChkBlackWhite" Content="Siyah-Beyaz" Foreground="#E1E4EE" Margin="0,0,20,4"/>
+                <CheckBox x:Name="ChkLandscape" Content="Yatay (Landscape)" Foreground="#E1E4EE" IsChecked="True" Margin="0,0,20,4"/>
+            </WrapPanel>
+        </GroupBox>
+
+        <!-- Çıktı Bilgisi -->
+        <GroupBox Grid.Row="4" Header="Antet Bilgileri" Foreground="#7AA0CC" BorderBrush="#252836" Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Firma:" Foreground="#858899" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtFirma" Grid.Column="1" Text="AfneyCAD Mühendislik" Height="24"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836" Padding="4,0" VerticalContentAlignment="Center"/>
+                <TextBlock Grid.Row="1" Text="Proje:" Foreground="#858899" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtProje" Grid.Row="1" Grid.Column="1" Height="24"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836" Padding="4,0" VerticalContentAlignment="Center"/>
+                <TextBlock Grid.Row="2" Text="Çizim:" Foreground="#858899" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtCizim" Grid.Row="2" Grid.Column="1" Height="24"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836" Padding="4,0" VerticalContentAlignment="Center"/>
+                <TextBlock Grid.Row="3" Text="Pafta No:" Foreground="#858899" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtPaftaNo" Grid.Row="3" Grid.Column="1" Text="P-01" Height="24"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836" Padding="4,0" VerticalContentAlignment="Center"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Butonlar -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="PNG Kaydet" Click="OnExportPng_Click" Width="100" Height="32"
+                    Background="#24273A" Foreground="#E1E4EE" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0"/>
+            <Button Content="Yazdır" Click="OnPrint_Click" Width="90" Height="32"
+                    Background="#0A84FF" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0"/>
+            <Button Content="İptal" IsCancel="True" Width="80" Height="32"
+                    Background="#24273A" Foreground="#858899" BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>

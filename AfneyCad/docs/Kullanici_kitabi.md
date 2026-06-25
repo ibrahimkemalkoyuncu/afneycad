@@ -1636,4 +1636,59 @@ Cizimde kapali alanlari dolgulamak icin kullanilir.
 
 ---
 
+---
+
+## YAZDIR / CIKTI AL (VIEWPORT PRINT)
+
+Ciziminizi yaziciya veya PNG dosyasina aktarin.
+
+### Nasil?
+1. Komut satirina `print` veya `plot` yazin
+2. Acilan **Yazdir** penceresinde:
+   - **Kagit Boyutu:** A4 / A3 / A2 / A1
+   - **Olcek:** Sigdir / 1:100 / 1:50 / 1:200 / Ozel
+   - **Secenekler:** Pafta ekle, Grid ciz, Siyah-Beyaz, Yatay
+   - **Antet Bilgileri:** Firma, Proje, Cizim, Pafta No
+3. **Yazdir** veya **PNG Kaydet** butonuna tiklayin
+
+### Komut
+```
+Komut: print veya plot
+```
+
+---
+
+## HATCH (Alan Dolgulama)
+
+Kapali alanlari desenlerie dolgulayarak malzeme turunu belirtin.
+
+### Nasil?
+1. Komut satirina `hatch` veya `h` yazin
+2. Acilan **Hatch Pattern Secimi** penceresinde:
+   - Listeden pattern secin (Beton/Toprak/Su/Tugla/Yalitim/Celik/Kum...)
+   - Olcek faktoru girin (varsayilan: 1.0)
+3. **Uygula** butonuna basin
+4. Kapali alani tiklayin
+
+### Desteklenen Patternler
+| Pattern | Kullanim |
+|---|---|
+| Solid | Duz renk dolgu |
+| Beton | Beton kesit (45 derece) |
+| Toprak | Toprak dolgu |
+| Su | Su alani |
+| Tugla | Tugla kesit |
+| Yalitim | Yalitim malzemesi |
+| Celik | Celik kesit |
+| Kum | Kum dolgu |
+| Capraz | Cift yon capraz cizgi |
+| Diyagonal | Tek yon 45 derece |
+
+### Komut
+```
+Komut: hatch veya h veya bh
+```
+
+---
+
 *Son guncelleme: 2026-06-25 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP Esdegerlik: 10/10*

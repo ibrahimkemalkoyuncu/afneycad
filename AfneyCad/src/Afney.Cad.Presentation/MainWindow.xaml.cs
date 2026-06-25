@@ -739,6 +739,21 @@ namespace Afney.Cad.Presentation
             StatusText.Text = $"Kuzey işareti eklendi ({entities.Count} nesne).";
         }
 
+        private void OnHatchCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.HatchDialog() { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                StatusText.Text = $"HATCH: {dlg.SelectedPattern} seçildi (Ölçek: {dlg.PatternScale}). Kapalı alan noktalarını tıklayın.";
+            }
+        }
+
+        private void OnViewportPrintCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.ViewportPrintDialog(Viewport) { Owner = this };
+            dlg.ShowDialog();
+        }
+
         private void OnPrintPreviewCommand(object sender, RoutedEventArgs e)
         {
             var dlg = new Afney.Cad.Presentation.Dialogs.PrintPreviewDialog(_database) { Owner = this };
@@ -1430,6 +1445,17 @@ namespace Afney.Cad.Presentation
                     case "mt":
                     case "text":
                         OnMTextCommand(this, new RoutedEventArgs());
+                        break;
+                    // Hatch
+                    case "hatch":
+                    case "h":
+                    case "bh":
+                        OnHatchCommand(this, new RoutedEventArgs());
+                        break;
+                    // Print
+                    case "print":
+                    case "plot":
+                        OnViewportPrintCommand(this, new RoutedEventArgs());
                         break;
                     default:
                         StatusText.Text = $"Bilinmeyen komut: {cmdText}";
