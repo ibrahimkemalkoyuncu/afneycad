@@ -1,0 +1,97 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.AutoRouteDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Akıllı Rota — Otomatik Boru Yolu" Height="460" Width="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1A1C24" Foreground="#E1E4EE">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="AKILLI ROTA (AUTO-ROUTE)" FontSize="14" FontWeight="Bold" Foreground="#0A84FF" Margin="0,0,0,14"/>
+
+        <!-- Sistem Seçimi -->
+        <GroupBox Grid.Row="1" Header="Sistem" Foreground="#7AA0CC" BorderBrush="#252836" Margin="0,0,0,8" Padding="8">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="RbCold" Content="Soğuk Su" Foreground="#0088FF" IsChecked="True" Margin="0,0,20,0" GroupName="Sys"/>
+                <RadioButton x:Name="RbHot" Content="Sıcak Su" Foreground="#FF4444" Margin="0,0,20,0" GroupName="Sys"/>
+                <RadioButton x:Name="RbWaste" Content="Pis Su" Foreground="#8B6914" Margin="0,0,20,0" GroupName="Sys"/>
+                <RadioButton x:Name="RbFire" Content="Yangın" Foreground="#FF8800" GroupName="Sys"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Parametreler -->
+        <GroupBox Grid.Row="2" Header="Rota Parametreleri" Foreground="#7AA0CC" BorderBrush="#252836" Margin="0,0,0,8" Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="30"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Boru Çapı (DN):" Foreground="#858899" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CbDiameter" Grid.Column="1" Height="24" Background="#12141A" Foreground="#E1E4EE" SelectedIndex="1">
+                    <ComboBoxItem Content="DN15"/>
+                    <ComboBoxItem Content="DN20"/>
+                    <ComboBoxItem Content="DN25"/>
+                    <ComboBoxItem Content="DN32"/>
+                    <ComboBoxItem Content="DN40"/>
+                    <ComboBoxItem Content="DN50"/>
+                </ComboBox>
+                <TextBlock Grid.Column="2" Text="Grid Adımı (mm):" Foreground="#858899" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBox x:Name="TxtGridStep" Grid.Column="3" Text="100" Height="24"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836" Padding="4,0" VerticalContentAlignment="Center"/>
+
+                <TextBlock Grid.Row="1" Text="Duvar Mesafesi:" Foreground="#858899" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtWallOffset" Grid.Row="1" Grid.Column="1" Text="50" Height="24"
+                         Background="#12141A" Foreground="#E1E4EE" BorderBrush="#252836" Padding="4,0" VerticalContentAlignment="Center"/>
+                <CheckBox x:Name="ChkOrtho" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                          Content="Ortogonal Tercih" Foreground="#E1E4EE" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Talimat -->
+        <Border Grid.Row="3" Background="#0D1A2E" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+            <TextBlock x:Name="TxtInstruction" Text="1. Başlangıç noktasını tıklayın&#x0a;2. Bitiş noktasını tıklayın&#x0a;3. Rota otomatik hesaplanır ve borular çizilir"
+                       Foreground="#60BAFF" FontSize="11" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Sonuç -->
+        <Border Grid.Row="4" Background="#12141A" CornerRadius="4" Padding="10" BorderBrush="#252836" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="ROTA SONUCU" FontSize="10" FontWeight="Bold" Foreground="#424559" Margin="0,0,0,6"/>
+                <TextBlock x:Name="TxtResult" Text="Henüz rota hesaplanmadı." Foreground="#858899" FontSize="11" TextWrapping="Wrap"/>
+                <StackPanel x:Name="ResultDetails" Orientation="Horizontal" Margin="0,8,0,0" Visibility="Collapsed">
+                    <Border Background="#0A2040" CornerRadius="3" Padding="8,4" Margin="0,0,8,0">
+                        <TextBlock x:Name="TxtLength" Text="0.00 m" Foreground="#0A84FF" FontFamily="Consolas" FontWeight="Bold"/>
+                    </Border>
+                    <Border Background="#1A0A00" CornerRadius="3" Padding="8,4" Margin="0,0,8,0">
+                        <TextBlock x:Name="TxtBends" Text="0 dirsek" Foreground="#F39C12" FontFamily="Consolas"/>
+                    </Border>
+                    <Border Background="#0A200A" CornerRadius="3" Padding="8,4">
+                        <TextBlock x:Name="TxtCost" Text="0 TRY" Foreground="#2ECC71" FontFamily="Consolas"/>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Butonlar -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Rota Çiz" Click="OnDrawRoute_Click" Width="100" Height="32"
+                    Background="#0A84FF" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0"
+                    x:Name="BtnDraw" IsEnabled="False"/>
+            <Button Content="Kapat" IsCancel="True" Width="80" Height="32"
+                    Background="#24273A" Foreground="#858899" BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>

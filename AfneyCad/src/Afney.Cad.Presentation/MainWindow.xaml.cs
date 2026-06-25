@@ -794,6 +794,19 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnAutoRouteCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.AutoRouteDialog(_database, _history.TransactionManager) { Owner = this };
+            dlg.Show();
+            StatusText.Text = "AUTO-ROUTE: Dialog açıldı. Başlangıç ve bitiş noktalarını belirleyin.";
+        }
+
+        private void OnTechnicalSpecCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.TechnicalSpecDialog(_database) { Owner = this };
+            dlg.ShowDialog();
+        }
+
         private void OnHatchCommand(object sender, RoutedEventArgs e)
         {
             var dlg = new Afney.Cad.Presentation.Dialogs.HatchDialog() { Owner = this };
@@ -1535,6 +1548,18 @@ namespace Afney.Cad.Presentation
                     case "print":
                     case "plot":
                         OnViewportPrintCommand(this, new RoutedEventArgs());
+                        break;
+                    // AutoRoute
+                    case "autoroute":
+                    case "route":
+                    case "ar":
+                        OnAutoRouteCommand(this, new RoutedEventArgs());
+                        break;
+                    // Teknik Sartname
+                    case "sartname":
+                    case "spec":
+                    case "techspec":
+                        OnTechnicalSpecCommand(this, new RoutedEventArgs());
                         break;
                     default:
                         StatusText.Text = $"Bilinmeyen komut: {cmdText}";

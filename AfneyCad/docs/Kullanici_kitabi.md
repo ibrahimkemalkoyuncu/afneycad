@@ -1870,4 +1870,79 @@ Projenin tum teknik detaylarini icerir — 7 bolumlu HTML dokuman.
 
 ---
 
+---
+
+## AUTO-ROUTE UI DIALOG
+
+Otomatik boru yolu hesaplatip cizdirin.
+
+### Nasil?
+1. Komut satirina `route` veya `ar` yazin
+2. Acilan **Akilli Rota** penceresinde:
+   - Sistem secin: Soguk Su / Sicak Su / Pis Su / Yangin
+   - Boru capi (DN15-DN50) ve grid adimi ayarlayin
+   - Ortogonal tercih ve engelden kacinma seceneklerini isaretleyin
+3. Baslangic ve bitis noktalarini tiklayin
+4. Sonuc panelinde: toplam uzunluk + dirsek sayisi + tahmini maliyet gorursunuz
+5. **Rota Ciz** butonuyla borulari otomatik olusturun
+
+### Komut
+```
+Komut: route veya ar veya autoroute
+```
+
+---
+
+## MALIYET DASHBOARD PANELI
+
+Proje maliyetini canli takip edin.
+
+### Gorunen Bilgiler
+| Kalem | Aciklama |
+|---|---|
+| TOPLAM MALIYET | Buyuk rakam — anlik guncellenir |
+| Boru | Boru malzeme maliyeti |
+| Fitting | Dirsek, te, reduksiyon |
+| Cihaz | Vitrifiye ve ekipman |
+| Iscilik | %35 iscilik payi |
+| Boru Adedi | Toplam segment sayisi |
+| Toplam Boy | Metre cinsinden uzunluk |
+| Cihaz Adedi | Yerlestirilmis cihaz sayisi |
+
+### Nasil Acilir?
+Sol panelde **Maliyet** sekmesine tiklayin. **Yenile** butonu ile guncellenir.
+
+---
+
+## TEKNIK SARTNAME DIALOG
+
+Projenin teknik sartname dokumanini otomatik uretin.
+
+### Nasil?
+1. Komut satirina `spec` veya `sartname` yazin
+2. Acilan pencerede:
+   - Firma adi, proje adi, muhendis ismi girin
+   - Standart secin (TS 11154 / DIN 1988 / ASPE / BS 6700)
+   - Icerik secenekleri: BOM, Montaj Notlari, Maliyet
+3. **HTML Olustur** butonuna basin
+4. Kaydedilen HTML otomatik tarayicida acilir
+
+### Uretilen Bolumleri
+| Bolum | Icerik |
+|---|---|
+| Proje Ozeti | Uzunluk, adet, cihaz, standart |
+| Boru Ozellikleri | Sistem/DN/adet/uzunluk |
+| Cihaz Ozellikleri | Tip/DU/port bilgileri |
+| Montaj Notlari | Basinc testi, kaynak, egim |
+| Malzeme Listesi | BOM tablosu |
+| Maliyet Ozeti | Kalem bazli fiyat |
+| Standart Referanslari | TS/DIN/ASPE referanslari |
+
+### Komut
+```
+Komut: spec veya sartname veya techspec
+```
+
+---
+
 *Son guncelleme: 2026-06-25 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP Esdegerlik: 10/10 + Rekabet Avantaji*
