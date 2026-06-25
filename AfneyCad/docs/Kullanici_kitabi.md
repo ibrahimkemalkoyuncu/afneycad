@@ -1702,6 +1702,56 @@ AfneyCAD ile temiz su tesisat tasariminin tum adimlari:
 3. Hata yoksa "Hesaba hazir" mesaji gorursunuz
 4. Hata varsa hatalari giderip tekrar calistirin
 
+### Cihaz Kutuphane Sembolleri (Programatik)
+
+AfneyCAD icinde hazir olarak gelen TS/DIN standart semboller:
+
+| Cihaz | Boyut | DU | Sembol |
+|---|---|---|---|
+| Lavabo (Yarim Ayak) | 550x450mm | 1.5 | Oval hazne + batarya + soguk/sicak isaret |
+| Klozet (Rezervuarli) | 400x600mm | 3.0 | Rezervuar kutusu + oval oturak |
+| Dus Teknesi | 800x800mm | 2.0 | Izgara deseni + gider + dus basligi |
+| Banyo Kuveti | 700x1600mm | 3.0 | Ic profil + batarya + gider |
+| Mutfak Eviyesi (Tek) | 500x400mm | 2.0 | Cift gozlu hazne + batarya |
+| Mutfak Eviyesi (Cift) | 800x450mm | 3.0 | Iki hazne + cift gider |
+| Pisuvar | 350x300mm | 2.0 | Yarim daire + dikdortgen |
+| Camasir Makinesi | 600x600mm | 2.0 | Tambur dairesi |
+| Bulasik Makinesi | 600x600mm | 2.0 | Izgara + kapak |
+| Su Isitici (Sofben) | 400x300mm | 0.0 | Daire + yildirim |
+| Doseme Suzgeci | 200x200mm | 0.5 | Capraz + merkez daire |
+
+### DWG Blok Dosyalari (Dis Kaynak)
+
+Profesyonel DWG blok dosyalari indirip AfneyCAD'e import edebilirsiniz:
+
+**Ucretsiz CAD Blok Kaynaklari:**
+
+1. **BIMobject** — Uretici bazli BIM/CAD bloklari (Geberit, Ideal Standard, Vitra)
+   - Adres: bimobject.com
+   - Format: DWG, IFC, RFA
+
+2. **CADdetails** — Mimari ve MEP detay cizim kutuphanesi
+   - Adres: caddetails.com
+   - Format: DWG, PDF
+
+3. **ArchWeb** — Italyan CAD blok arsivi (banyo, mutfak, mobilya)
+   - Adres: archweb.com/en
+   - Format: DWG
+
+4. **BiblioCAD** — 120.000+ ucretsiz CAD blok
+   - Adres: bibliocad.com
+   - Format: DWG, DXF
+
+5. **CADBlocksFree** — Kategori bazli ucretsiz bloklar
+   - Adres: cadblocksfree.com
+   - Format: DWG
+
+**AfneyCAD'e Import Etme:**
+1. DWG blok dosyasini indirin
+2. AfneyCAD'de **Dosya → Ac** ile DWG'yi acin
+3. Nesneleri secin → `WBLOCK` komutu ile blok olarak kaydedin
+4. Gelecekte **Insert** (`i`) komutu ile projelere ekleyin
+
 ### Komutlar
 | Komut | Kisayol | Islem |
 |---|---|---|
