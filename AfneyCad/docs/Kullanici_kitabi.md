@@ -1613,4 +1613,27 @@ Secili nesneler uzerinde hizli islemler yaparsınız.
 
 ---
 
-*Son guncelleme: 2026-06-19 | AfneyCAD v4.0.0 — Session #37 | FINE MEP Esdegerlik: 10/10*
+---
+
+## HATCH PATTERN (Alan Dolgulama)
+
+Cizimde kapali alanlari dolgulamak icin kullanilir.
+
+### Desteklenen Patternler
+
+| Pattern | Adi | Aci | Kullanim |
+|---|---|---|---|
+| Solid | SOLID | - | Duz renk dolgu |
+| Concrete | BETON | 45 | Beton kesit |
+| Earth | TOPRAK | 0 | Toprak dolgu |
+| Water | SU | 0 | Su alani |
+| Brick | TUGLA | 0 | Tugla kesit |
+| Insulation | YALITIM | 45 | Yalitim malzemesi |
+| Steel | CELIK | 45 | Celik kesit |
+| Sand | KUM | 0 | Kum dolgu |
+| CrossHatch | CAPRAZ | 0+90 | Capraz cizgi |
+| Diagonal | DIYAGONAL | 45 | Tek yon diyagonal |
+
+---
+
+*Son guncelleme: 2026-06-25 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP Esdegerlik: 10/10*

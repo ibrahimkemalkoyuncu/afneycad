@@ -167,3 +167,22 @@ Son 0.2 puanlık eksikler kapatılarak FINE MEP eşdeğerliği **10/10** seviyes
 ### Master Domain Puanı: **10.0 / 10** ✅
 
 **Tüm FINE MEP / AutoCAD eşdeğer özellikleri tamamlanmıştır.**
+
+---
+
+## 11. Session #37 (Final) — Ek Özellikler
+
+| Özellik | Durum | Not |
+|---|---|---|
+| Hatch Pattern Servisi | ✅ **Tamamlandı** | `HatchPatternService` — 10 pattern: Solid/Beton/Toprak/Su/Tuğla/Yalıtım/Çelik/Kum/Çapraz/Diyagonal + boundary clipping (Session #37) |
+| DefineBuildingDialog Türkçe | ✅ **Tamamlandı** | Tüm başlık/etiket/buton Türkçe — "Bina/Aktif Kat Belirle" (Session #37) |
+| Quick Access Genişletme | ✅ **Tamamlandı** | Proje Bilgileri + Baskı Önizleme butonları eklendi (Session #37) |
+| Kullanım Rehberi | ✅ **Tamamlandı** | 17 adımlı tam iş akışı + 35+ komut referansı + klavye kısayolları (Session #37) |
+
+### Session #37 İstatistikleri
+
+- **Toplam Commit:** 10
+- **Yeni Dosya:** 25+
+- **Yeni Kod:** ~4500 satır
+- **Build:** 0 hata
+- **FINE MEP Eşdeğerlik:** 10.0 / 10
