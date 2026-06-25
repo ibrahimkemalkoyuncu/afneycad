@@ -184,30 +184,124 @@ public class SanitaryFixtureEntity : MechanicalEntity
         context.DrawLine(p3, p4, color, thick);
         context.DrawLine(p4, p1, color, thick);
         
-        // 2. Tipe Özel Detaylar (Sembolizm)
+        // 2. Tipe Özel Detaylar — TS/DIN Standart MEP Plan Sembolleri
         if (FixtureType.Contains("Lavabo") || FixtureType.Contains("Washbasin"))
         {
-            // İç Hazne (Daire)
-            context.DrawCircle(Position, Math.Min(Width, Depth) * 0.4, color, thick * 0.7);
-            
-            // Batarya sembolü (Küçük bir çizgi)
-            context.DrawLine(Trans(new Vector3D(0, halfD, 0)), Trans(new Vector3D(0, halfD - 50, 0)), color, thick);
+            // Oval iç hazne
+            double ovalW = halfW * 0.75;
+            double ovalD = halfD * 0.6;
+            context.DrawArc(Trans(new Vector3D(0, -halfD * 0.1, 0)), ovalW, 0, Math.PI, color, thick * 0.7);
+            context.DrawArc(Trans(new Vector3D(0, -halfD * 0.1, 0)), ovalW, Math.PI, 2 * Math.PI, color, thick * 0.7);
+            // Gider noktası
+            context.DrawCircle(Trans(new Vector3D(0, -halfD * 0.15, 0)), 15, color, thick * 0.5);
+            // Batarya kolu
+            context.DrawLine(Trans(new Vector3D(-30, halfD * 0.7, 0)), Trans(new Vector3D(30, halfD * 0.7, 0)), color, thick);
+            context.DrawCircle(Trans(new Vector3D(0, halfD * 0.7, 0)), 12, color, thick * 0.5);
+            // Soğuk/sıcak su işaretleri
+            context.DrawCircle(Trans(new Vector3D(-halfW * 0.5, halfD * 0.7, 0)), 8, 0xFF0088FF, thick * 0.4);
+            context.DrawCircle(Trans(new Vector3D(halfW * 0.5, halfD * 0.7, 0)), 8, 0xFFFF4444, thick * 0.4);
         }
-        else if (FixtureType.Contains("WC") || FixtureType.Contains("Toilet"))
+        else if (FixtureType.Contains("WC") || FixtureType.Contains("Toilet") ||
+                 FixtureType.Contains("Klozet") || FixtureType.Contains("Alaturka"))
         {
-             // Rezervuar ve Oturak detayı
-             var rLineStart = Trans(new Vector3D(-halfW, -halfD + 150, 0));
-             var rLineEnd = Trans(new Vector3D(halfW, -halfD + 150, 0));
-             context.DrawLine(rLineStart, rLineEnd, color, thick);
-
-             // Oval oturak (İç elips yerine basitleştirilmiş daire)
-             context.DrawCircle(Trans(new Vector3D(0, 75, 0)), halfW * 0.8, color, thick * 0.5);
+            // Rezervuar kutusu (arkada)
+            double rH = halfD * 0.35;
+            context.DrawLine(Trans(new Vector3D(-halfW * 0.85, -halfD, 0)), Trans(new Vector3D(halfW * 0.85, -halfD, 0)), color, thick);
+            context.DrawLine(Trans(new Vector3D(-halfW * 0.85, -halfD, 0)), Trans(new Vector3D(-halfW * 0.85, -halfD + rH, 0)), color, thick);
+            context.DrawLine(Trans(new Vector3D(halfW * 0.85, -halfD, 0)), Trans(new Vector3D(halfW * 0.85, -halfD + rH, 0)), color, thick);
+            context.DrawLine(Trans(new Vector3D(-halfW * 0.85, -halfD + rH, 0)), Trans(new Vector3D(halfW * 0.85, -halfD + rH, 0)), color, thick);
+            // Oturak (oval)
+            double ovalCenterY = halfD * 0.2;
+            context.DrawArc(Trans(new Vector3D(0, ovalCenterY, 0)), halfW * 0.7, 0, Math.PI, color, thick * 0.7);
+            context.DrawArc(Trans(new Vector3D(0, ovalCenterY, 0)), halfW * 0.7, Math.PI, 2 * Math.PI, color, thick * 0.7);
+            // Kapak menteşe çizgisi
+            context.DrawLine(Trans(new Vector3D(-halfW * 0.5, -halfD + rH, 0)), Trans(new Vector3D(halfW * 0.5, -halfD + rH, 0)), color, thick * 0.4);
         }
         else if (FixtureType.Contains("Duş") || FixtureType.Contains("Shower"))
         {
-            // Köşegen çizgiler (Duş teknesi sembolü)
-            context.DrawLine(p1, p3, color, thick * 0.5);
-            context.DrawLine(p2, p4, color, thick * 0.5);
+            // Duş teknesi ızgara deseni
+            double step = Math.Min(Width, Depth) / 6;
+            for (int i = 1; i < 6; i++)
+            {
+                context.DrawLine(Trans(new Vector3D(-halfW + step * i, -halfD, 0)),
+                                 Trans(new Vector3D(-halfW + step * i, halfD, 0)), color, thick * 0.3);
+            }
+            // Gider noktası (merkez)
+            context.DrawCircle(Position, 20, color, thick);
+            context.DrawCircle(Position, 8, color, thick * 0.5);
+            // Duş başlığı sembolü (köşede daire)
+            context.DrawCircle(Trans(new Vector3D(halfW * 0.6, halfD * 0.6, 0)), 25, color, thick * 0.5);
+        }
+        else if (FixtureType.Contains("Küvet") || FixtureType.Contains("Bathtub"))
+        {
+            // İç profil (yuvarlatılmış dikdörtgen — ark ile köşeler)
+            double inset = 40;
+            var ip1 = Trans(new Vector3D(-halfW + inset, -halfD + inset, 0));
+            var ip2 = Trans(new Vector3D(halfW - inset, -halfD + inset, 0));
+            var ip3 = Trans(new Vector3D(halfW - inset, halfD - inset, 0));
+            var ip4 = Trans(new Vector3D(-halfW + inset, halfD - inset, 0));
+            context.DrawLine(ip1, ip2, color, thick * 0.6);
+            context.DrawLine(ip2, ip3, color, thick * 0.6);
+            context.DrawLine(ip3, ip4, color, thick * 0.6);
+            context.DrawLine(ip4, ip1, color, thick * 0.6);
+            // Batarya (bir uçta)
+            context.DrawCircle(Trans(new Vector3D(0, -halfD + 80, 0)), 15, color, thick * 0.5);
+            context.DrawLine(Trans(new Vector3D(-30, -halfD + 80, 0)), Trans(new Vector3D(30, -halfD + 80, 0)), color, thick);
+            // Gider (diğer uçta)
+            context.DrawCircle(Trans(new Vector3D(0, halfD - 80, 0)), 12, color, thick * 0.5);
+        }
+        else if (FixtureType.Contains("Eviye") || FixtureType.Contains("Sink"))
+        {
+            // Çift gözlü eviye
+            double gozW = halfW * 0.42;
+            double gozD = halfD * 0.65;
+            // Sol göz
+            context.DrawRectangle(Trans(new Vector3D(-halfW * 0.48 - gozW, -gozD, 0)),
+                                   Trans(new Vector3D(-halfW * 0.48 + gozW, gozD, 0)), color, thick * 0.5);
+            // Sağ göz
+            context.DrawRectangle(Trans(new Vector3D(halfW * 0.48 - gozW, -gozD, 0)),
+                                   Trans(new Vector3D(halfW * 0.48 + gozW, gozD, 0)), color, thick * 0.5);
+            // Gider noktaları
+            context.DrawCircle(Trans(new Vector3D(-halfW * 0.48, 0, 0)), 10, color, thick * 0.4);
+            context.DrawCircle(Trans(new Vector3D(halfW * 0.48, 0, 0)), 10, color, thick * 0.4);
+            // Batarya
+            context.DrawCircle(Trans(new Vector3D(0, halfD * 0.7, 0)), 12, color, thick * 0.5);
+        }
+        else if (FixtureType.Contains("Pisuvar") || FixtureType.Contains("Urinal"))
+        {
+            // Pisuvar — yarım daire üst + dikdörtgen alt
+            context.DrawArc(Trans(new Vector3D(0, 0, 0)), halfW * 0.7, 0, Math.PI, color, thick * 0.7);
+            context.DrawLine(Trans(new Vector3D(-halfW * 0.7, 0, 0)), Trans(new Vector3D(-halfW * 0.7, -halfD * 0.6, 0)), color, thick * 0.7);
+            context.DrawLine(Trans(new Vector3D(halfW * 0.7, 0, 0)), Trans(new Vector3D(halfW * 0.7, -halfD * 0.6, 0)), color, thick * 0.7);
+            // Gider
+            context.DrawCircle(Trans(new Vector3D(0, -halfD * 0.3, 0)), 10, color, thick * 0.5);
+        }
+        else if (FixtureType.Contains("Çamaşır") || FixtureType.Contains("Washing"))
+        {
+            // Çamaşır makinesi — daire (tambur) + dikdörtgen gövde
+            context.DrawCircle(Position, halfW * 0.6, color, thick * 0.6);
+            context.DrawCircle(Position, halfW * 0.25, color, thick * 0.4);
+        }
+        else if (FixtureType.Contains("Bulaşık") || FixtureType.Contains("Dish"))
+        {
+            // Bulaşık makinesi — ızgara + kapak çizgisi
+            context.DrawLine(Trans(new Vector3D(-halfW, halfD * 0.3, 0)), Trans(new Vector3D(halfW, halfD * 0.3, 0)), color, thick * 0.5);
+            context.DrawLine(Trans(new Vector3D(-halfW * 0.3, -halfD, 0)), Trans(new Vector3D(-halfW * 0.3, halfD * 0.3, 0)), color, thick * 0.3);
+            context.DrawLine(Trans(new Vector3D(halfW * 0.3, -halfD, 0)), Trans(new Vector3D(halfW * 0.3, halfD * 0.3, 0)), color, thick * 0.3);
+        }
+        else if (FixtureType.Contains("Isıtıcı") || FixtureType.Contains("Heater") || FixtureType.Contains("Şofben"))
+        {
+            // Elektrikli su ısıtıcı — daire + yıldırım sembolü
+            context.DrawCircle(Position, halfW * 0.7, color, thick * 0.7);
+            context.DrawLine(Trans(new Vector3D(-10, halfD * 0.4, 0)), Trans(new Vector3D(10, 0, 0)), color, thick);
+            context.DrawLine(Trans(new Vector3D(10, 0, 0)), Trans(new Vector3D(-10, -halfD * 0.4, 0)), color, thick);
+        }
+        else if (FixtureType.Contains("FloorDrain") || FixtureType.Contains("Yer Süz"))
+        {
+            // Yer süzgeci — kare + çapraz
+            context.DrawLine(p1, p3, color, thick * 0.4);
+            context.DrawLine(p2, p4, color, thick * 0.4);
+            context.DrawCircle(Position, 15, color, thick * 0.5);
         }
 
         // 3. Etiket (Sadece Seçiliyken veya Mühendislik Modunda Opsiyonel)
@@ -357,7 +451,57 @@ public class SanitaryFixtureEntity : MechanicalEntity
             Color = 0xFF00FFFF
         };
 
-    public void SetPortsByRule(string ruleName) { /* To implement later */ } // kurallara göre port ayarla
+    public static SanitaryFixtureEntity CreateUrinal(Vector3D position)
+        => new(position, "Pisuvar", 2.0)
+        {
+            Width = 350, Depth = 300,
+            ColdWaterOffset = new Vector3D(0, -100, 800),
+            HotWaterOffset  = Vector3D.Zero,
+            DrainOffset     = new Vector3D(0, 0, -200),
+            Color = 0xFF00FFFF
+        };
+
+    public static SanitaryFixtureEntity CreateWashingMachine(Vector3D position)
+        => new(position, "Çamaşır Makinesi", 2.0)
+        {
+            Width = 600, Depth = 600,
+            ColdWaterOffset = new Vector3D(0, -250, 700),
+            HotWaterOffset  = Vector3D.Zero,
+            DrainOffset     = new Vector3D(200, -250, 0),
+            Color = 0xFF00FFFF
+        };
+
+    public static SanitaryFixtureEntity CreateDishwasher(Vector3D position)
+        => new(position, "Bulaşık Makinesi", 2.0)
+        {
+            Width = 600, Depth = 600,
+            ColdWaterOffset = new Vector3D(0, -250, 700),
+            HotWaterOffset  = new Vector3D(-100, -250, 700),
+            DrainOffset     = new Vector3D(200, -250, 0),
+            Color = 0xFF00FFFF
+        };
+
+    public static SanitaryFixtureEntity CreateWaterHeater(Vector3D position)
+        => new(position, "Elektrikli Su Isıtıcı (Şofben)", 0.0)
+        {
+            Width = 400, Depth = 300,
+            ColdWaterOffset = new Vector3D(-100, 0, -200),
+            HotWaterOffset  = new Vector3D(100, 0, -200),
+            DrainOffset     = Vector3D.Zero,
+            Color = 0xFFFF8800
+        };
+
+    public static SanitaryFixtureEntity CreateDoubleSink(Vector3D position)
+        => new(position, "Mutfak Eviyesi (Çift Göz)", 3.0)
+        {
+            Width = 800, Depth = 450,
+            ColdWaterOffset = new Vector3D(80, -150, -400),
+            HotWaterOffset  = new Vector3D(-80, -150, -400),
+            DrainOffset     = new Vector3D(0, 0, -450),
+            Color = 0xFF00FFFF
+        };
+
+    public void SetPortsByRule(string ruleName) { }
 
     public override IEnumerable<SnapPoint> GetSnapPoints()
     {
