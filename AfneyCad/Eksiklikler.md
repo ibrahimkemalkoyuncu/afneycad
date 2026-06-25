@@ -179,10 +179,35 @@ Son 0.2 puanlık eksikler kapatılarak FINE MEP eşdeğerliği **10/10** seviyes
 | Quick Access Genişletme | ✅ **Tamamlandı** | Proje Bilgileri + Baskı Önizleme butonları eklendi (Session #37) |
 | Kullanım Rehberi | ✅ **Tamamlandı** | 17 adımlı tam iş akışı + 35+ komut referansı + klavye kısayolları (Session #37) |
 
+---
+
+## 12. Session #37 — FINE MEP'in Ötesinde (Yeni Özellikler)
+
+Bu özellikler FINE MEP'te **bulunmayan** veya çok sınırlı olan özelliklerdir.
+
+| Özellik | Durum | Not |
+|---|---|---|
+| Gerçek Zamanlı Maliyet Takibi | ✅ **Tamamlandı** | `RealTimeCostService` — 8 boru malzeme + 11 cihaz birim fiyat + DN faktörü + işçilik %35 + JSON kaydet/yükle (Session #37) |
+| Akıllı Rota Önerisi (Auto-Route) | ✅ **Tamamlandı** | `AutoRouteService` — A* algoritması, engelden kaçınma, ortogonal tercih, yol sadeleştirme, maliyet tahmini (Session #37) |
+| Teknik Şartname Dokümanı | ✅ **Tamamlandı** | `TechnicalSpecService` — 7 bölümlü HTML: proje özeti + boru spec + cihaz spec + montaj notları + BOM + maliyet + standart referansları (Session #37) |
+
+### AfneyCAD vs FINE MEP — Rekabet Avantajı
+
+| Özellik | AfneyCAD | FINE MEP |
+|---|---|---|
+| Gerçek zamanlı maliyet | ✅ Anlık hesaplama | ❌ Yok |
+| Otomatik boru yolu (A*) | ✅ Engelden kaçınma | ❌ Manuel çizim |
+| Teknik şartname (HTML) | ✅ 7 bölüm otomatik | ❌ Manuel doküman |
+| Dark CAD teması | ✅ Modern | ❌ Eski Windows |
+| Dinamik Input | ✅ Fare yanında tooltip | ❌ Yok |
+| Polar/OSnap Tracking | ✅ Gelişmiş | ⚠️ Temel |
+| Grid nokta modu | ✅ Çizgi/nokta geçişi | ❌ Sabit |
+| DIMSTYLE JSON | ✅ Kaydet/yükle | ❌ Sabit stiller |
+
 ### Session #37 İstatistikleri
 
-- **Toplam Commit:** 10
-- **Yeni Dosya:** 25+
-- **Yeni Kod:** ~4500 satır
+- **Toplam Commit:** 16+
+- **Yeni Dosya:** 35+
+- **Yeni Kod:** ~7000 satır
 - **Build:** 0 hata
-- **FINE MEP Eşdeğerlik:** 10.0 / 10
+- **FINE MEP Eşdeğerlik:** 10.0 / 10 + Rekabet Avantajı

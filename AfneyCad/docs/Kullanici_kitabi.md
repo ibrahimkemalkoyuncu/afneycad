@@ -1796,4 +1796,78 @@ Komut: hatch veya h veya bh
 
 ---
 
-*Son guncelleme: 2026-06-25 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP Esdegerlik: 10/10*
+---
+
+## GERCEK ZAMANLI MALIYET TAKIBI
+
+Boru cizerken anlik maliyet hesaplamasi yapin.
+
+### Nasil?
+1. Proje uzerinde borulari ve cihazlari cizin
+2. **5. Raporlar → Maliyet Ozeti** veya Teknik Sartname icinde otomatik hesaplanir
+
+### Maliyet Kalemleri
+| Kalem | Aciklama |
+|---|---|
+| Boru Malzemesi | DN faktoru ile birim fiyat x uzunluk |
+| Fitting / Baglanti | Dirsek, te, reduksiyon |
+| Vitrifiye / Cihaz | Lavabo, Klozet, Dus, Kuvet, Sofben vb. |
+| Iscilik | Toplam malzeme maliyetinin %35'i |
+
+### Birim Fiyat Tablosu (Varsayilan)
+| Malzeme | TL/metre |
+|---|---|
+| PPRC PN20 | 45 |
+| PPRC PN25 | 55 |
+| PVC SN4 | 35 |
+| Bakir | 180 |
+| Galvaniz | 95 |
+| Celik | 220 |
+
+Fiyat tablosu JSON olarak disari aktarilip icerilabilir.
+
+---
+
+## AKILLI ROTA (AUTO-ROUTE)
+
+Iki nokta arasi otomatik boru yolu hesaplar — engelden kacinma + en kisa yol.
+
+### Nasil?
+1. Baslangic ve bitis noktalarini belirleyin
+2. `AutoRouteService` A* algoritmasi ile en uygun rotayi hesaplar
+3. Ortogonal (90 derece) yonlendirme tercihi
+4. Duvar ve engel cizgilerinden otomatik kacinma
+5. Sonuc: waypoint listesi + toplam uzunluk + dirsek sayisi + tahmini maliyet
+
+### Parametreler
+| Parametre | Varsayilan | Aciklama |
+|---|---|---|
+| GridStep | 100 mm | Arama grid araligi |
+| WallOffset | 50 mm | Duvardan minimum mesafe |
+| PreferOrthogonal | Evet | 90 derece yonlendirme tercihi |
+| AvoidObstacles | Evet | Engelden kacinma |
+
+---
+
+## TEKNIK SARTNAME (OTOMATIK DOKUMAN)
+
+Projenin tum teknik detaylarini icerir — 7 bolumlu HTML dokuman.
+
+### Nasil?
+1. **5. Raporlar → Teknik Sartname** butonuna tiklayin
+2. Firma, proje, muhendis bilgilerini girin
+3. Otomatik olarak uretilen bolumleri:
+
+| Bolum | Icerik |
+|---|---|
+| 1. Proje Ozeti | Boru uzunlugu, adet, cihaz sayisi, standart |
+| 2. Boru Ozellikleri | Sistem/DN/adet/uzunluk tablosu |
+| 3. Cihaz Ozellikleri | Tip/adet/DU/port bilgileri |
+| 4. Montaj Notlari | Basinc testi, kaynak, egim, yalitim kurallari |
+| 5. Malzeme Listesi | BOM — malzeme/DN/uzunluk/dirsek/te |
+| 6. Maliyet Ozeti | Boru + fitting + cihaz + iscilik = toplam |
+| 7. Standart Referanslari | TS 11154, TS EN 806, TS EN 12056, DIN 1988 |
+
+---
+
+*Son guncelleme: 2026-06-25 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP Esdegerlik: 10/10 + Rekabet Avantaji*
