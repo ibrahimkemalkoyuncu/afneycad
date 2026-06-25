@@ -1658,6 +1658,61 @@ Komut: print veya plot
 
 ---
 
+## TEMIZ SU TESISAT TASARIMI — Tam Is Akisi
+
+AfneyCAD ile temiz su tesisat tasariminin tum adimlari:
+
+### Adim 1: Cihaz Yerlestirme
+1. **2. Uc Noktalar** sekmesine gecin
+2. Cihaz kutuphanesinden secin (Lavabo/WC/Dus/Bulasik Makinesi/Sofben)
+3. Mimari cizim uzerinde konumu tiklayin, yonu belirleyin
+4. Gerekirse sag tik → Tasi ile konumu ayarlayin
+
+### Adim 2: Boru Cizimi
+1. Komut: `pipe` veya **3. Tesisat → Boru Ciz**
+2. Soguk su / Sicak su secimini yapin
+3. Noktalar tiklayarak boru hattini cizin → ESC ile bitirin
+
+### Adim 3: Cihazlari Tesisata Bagla
+1. Komut: `bagla` veya `connect`
+2. Baglanacak cihazi tiklayin
+3. Baglanacak boru hattini tiklayin
+4. Otomatik branch boru olusturulur
+5. Tum cihazlar icin tekrarlayin
+
+### Adim 4: Tesisat Kopyala (Benzer Katlar)
+1. Komut: `katkopyala` veya **AutoBLD → Kat Kopyala**
+2. Kaynak kati ve hedef kati secin
+3. Tum tesisat + cihazlar kopyalanir
+
+### Adim 5: Kolon Borulari Olustur
+1. Komut: `kolon` veya `riser`
+2. Kolon borusunun XY konumunu tiklayin
+3. Taban yuksekligi (0 m) ve son kat yuksekligi (6 m) girin
+4. Soguk su ve sicak su icin ayri ayri tekrarlayin
+
+### Adim 6: Baslangic Noktasi Yerlestir
+1. Komut: `baslangic` veya `source`
+2. Soguk su borusunun basina (sayac/pompa noktasi) tiklayin
+3. Sicak su icin su isitici cikisina tiklayin
+
+### Adim 7: Tesisati Kabul Et
+1. Komut: `kabul` veya `accept`
+2. Program tum tesisati dogrular ve numaralandirir
+3. Hata yoksa "Hesaba hazir" mesaji gorursunuz
+4. Hata varsa hatalari giderip tekrar calistirin
+
+### Komutlar
+| Komut | Kisayol | Islem |
+|---|---|---|
+| `pipe` | `p` | Boru ciz |
+| `connect` | `bagla` / `cf` | Cihaz bagla |
+| `riser` | `kolon` | Kolon borusu |
+| `source` | `baslangic` / `sp` | Baslangic noktasi |
+| `accept` | `kabul` | Tesisati kabul et |
+
+---
+
 ## HATCH (Alan Dolgulama)
 
 Kapali alanlari desenlerie dolgulayarak malzeme turunu belirtin.

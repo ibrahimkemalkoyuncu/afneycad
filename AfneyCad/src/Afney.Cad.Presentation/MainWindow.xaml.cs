@@ -739,6 +739,61 @@ namespace Afney.Cad.Presentation
             StatusText.Text = $"Kuzey işareti eklendi ({entities.Count} nesne).";
         }
 
+        private void OnConnectFixtureCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.ConnectFixtureCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnRiserPipeCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.RiserPipeCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnSourcePointCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.SourcePointCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnAcceptPlumbingCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var guard = new Afney.Cad.Mechanical.Services.DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
+                var result = guard.ValidateSystem();
+                if (result.IsValid)
+                {
+                    StatusText.Text = "Tesisat kabul edildi — sistem doğrulandı, hesaba hazır.";
+                    MessageBox.Show("Tesisat doğrulaması başarılı!\n\nSistem hesaplamaya hazır.", "Tesisatı Kabul Et", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    string errors = string.Join("\n", result.Errors);
+                    string warnings = string.Join("\n", result.Warnings);
+                    string msg = "";
+                    if (result.Errors.Count > 0) msg += $"HATALAR:\n{errors}\n\n";
+                    if (result.Warnings.Count > 0) msg += $"UYARILAR:\n{warnings}";
+                    StatusText.Text = $"Tesisat doğrulaması: {result.Errors.Count} hata, {result.Warnings.Count} uyarı.";
+                    MessageBox.Show(msg, "Tesisatı Kabul Et — Sorunlar Tespit Edildi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = $"Doğrulama hatası: {ex.Message}";
+            }
+        }
+
         private void OnHatchCommand(object sender, RoutedEventArgs e)
         {
             var dlg = new Afney.Cad.Presentation.Dialogs.HatchDialog() { Owner = this };
@@ -1451,6 +1506,30 @@ namespace Afney.Cad.Presentation
                     case "h":
                     case "bh":
                         OnHatchCommand(this, new RoutedEventArgs());
+                        break;
+                    // Cihaz Baglanti
+                    case "bagla":
+                    case "connect":
+                    case "cf":
+                        OnConnectFixtureCommand(this, new RoutedEventArgs());
+                        break;
+                    // Kolon Borusu
+                    case "riser":
+                    case "kolon":
+                    case "kolonboru":
+                        OnRiserPipeCommand(this, new RoutedEventArgs());
+                        break;
+                    // Baslangic Noktasi
+                    case "source":
+                    case "baslangic":
+                    case "sp":
+                        OnSourcePointCommand(this, new RoutedEventArgs());
+                        break;
+                    // Tesisati Kabul Et
+                    case "kabul":
+                    case "accept":
+                    case "validate":
+                        OnAcceptPlumbingCommand(this, new RoutedEventArgs());
                         break;
                     // Print
                     case "print":
