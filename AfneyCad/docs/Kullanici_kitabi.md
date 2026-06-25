@@ -30,32 +30,56 @@
 
 | OtoNET/FINE MEP | AfneyCAD |
 |---|---|
-| "Uzaklık" komutu ile duvar kalınlığı ölçülür | **Otomatik:** `ArchitecturalScaleService` açılışta birimi tespit eder |
-| Değer 0.2 ise metre bazındadır | Durum çubuğunda `Birim: METRE` veya `Birim: MM` gösterilir |
-| Farklıysa tüm çizim "Ölçekle" ile metre bazına getirilir | **Bina → Ölçek Düzelt** komutu otomatik 0.001 / 0.01 katsayısı uygular |
+| OtoNET → "Uzaklık" komutu ile duvar kalınlığı ölçülür | Komut satırına `DIST` yazın veya **AutoBLD → Uzaklık** butonuna tıklayın |
+| Değer 0.2 ise metre bazındadır | Status bar'da `Mesafe = 0.2, Açı = 270°, ΔX = 0, ΔY = -0.2` gösterilir |
+| Farklıysa tüm çizim "Ölçekle" ile metre bazına getirilir | Tüm nesneleri seçin → komut satırına `scale` yazın → faktör girin (0.001 veya 0.01) |
 
-**Nasıl çalışır:**  
-AfneyCAD, DWG açılırken tüm `LineEntity` uzunluklarını analiz eder. Ortalama uzunluk:
+**Adımlar (Manuel Kontrol):**
+1. Komut satırına `DIST` yazın ve Enter'a basın
+2. Bir duvarın bir kenarını tıklayın
+3. Aynı duvarın diğer kenarını tıklayın
+4. Alt status bar'daki mesafe değerini okuyun:
+   - **0.2** → Metre bazında (doğru)
+   - **20** → Santimetre bazında → tüm nesneleri seçip `scale` ile **0.01** faktörü uygulayın
+   - **200** → Milimetre bazında → tüm nesneleri seçip `scale` ile **0.001** faktörü uygulayın
+5. Yeşil kesikli çizgi ile ölçüm önizlemesi ekranda görünür
+
+**Otomatik Tespit:**  
+AfneyCAD, DWG açılırken `ArchitecturalScaleService` ile birimi otomatik algılar:
 - 1000+ birim → Milimetre (× 0.001 ölçeklenir)
 - 50–1000 birim → Santimetre (× 0.01 ölçeklenir)
 - <50 birim → Metre (ölçek uygulanmaz)
 
-Otomatik tespite güvenmiyorsanız: **Araçlar → Mesafe Ölç** ile bir duvarın kalınlığını kontrol edin; `0.2` çıkması gerekmektedir.
+> **Not:** Program metre bazında çalışır. DIST ile ölçüm yaparak mutlaka doğrulayın.
 
 ---
 
 ### 1.3 WBlock — Katı Bloklama ve Referans Noktası
 
-OtoNET'teki **W Block** penceresinin AfneyCAD karşılığı: **Bina → Mimariyi Blokla (WBlock)**
+Komut satırına `WBLOCK` yazın veya **AutoBLD → WBlock Kaydet** butonuna tıklayın.
 
-Bu işlem `WBlockWizard` penceresini açar. 4 adımlı sihirbaz:
+Açılan **Blok Oluştur** penceresinde:
 
-| Adım | OtoNET Karşılığı | AfneyCAD |
-|---|---|---|
-| **1. Referans Noktası Seç** | "Nokta Seç" — kolon köşesi seçilir | "Hizalama Noktası Seç" butonuna basın, çizimde kolon/asansör köşesini tıklayın |
-| **2. Nesneleri Seç** | "Nesne Seç" ile kata ait çizim tamamı seçilir | "Nesneleri Seç" butonuna basın, çizimi tamamen seçin, Enter'a basın |
-| **3. Dosya Adı** | "..." ile proje klasörüne girip kata isim verilir | "Gözat..." ile proje klasörüne gidip `BodrumKat.dwg` gibi kaydedilir |
-| **4. Onayla** | "Tamam" | "Bitir ve Kaydet" — sihirbaz kapanır |
+| Alan | Açıklama |
+|---|---|
+| **Kaynak** | "Nesneler" seçili olmalı (Blok/Tüm çizim/Nesneler) |
+| **Blok Adı** | Kata isim verin (ZEMINKAT, NORMALKAT vb.) |
+| **Nokta Seç** | Tüm katlarda ortak referans noktası tıklayın (kolon köşesi, asansör kenarı) |
+| **Nesne Seç** | Kat planının tamamını seçin → Enter |
+| **Koru/Bloğa Çevir/Çizimden Sil** | Nesnelerin seçimden sonraki durumu |
+| **Dosya Adı ve Yolu** | `...` ile proje klasörüne gidin, `ZEMINKAT.dwg` olarak kaydedin |
+
+**Adımlar:**
+1. Komut satırına `WBLOCK` yazın → Enter
+2. Kaynak: "Nesneler" seçili olsun
+3. **Nokta seç** butonuna tıklayın → çizimde referans noktasını (kolon köşesi) tıklayın
+4. **Nesne seç** butonuna tıklayın → kat planının tamamını seçin → Enter
+5. **Dosya Adı ve Yolu:** `...` butonu ile proje klasörüne gidin
+6. Kata isim verin: `ZEMINKAT.dwg` → Kaydet → Tamam
+7. Aynı işlemi birbirinden farklı tüm katlar için tekrarlayın
+
+> **KRİTİK:** Referans noktası (Tutma Noktası) tüm katlarda aynı olmalıdır.  
+> Böylece katlar üst üste getirildiğinde hizalı olurlar.
 
 > **Önemli:** Her kat için bu işlem tekrarlanır. Mimari planı aynı olan katlarda aynı blok dosyası farklı katlara atanabilir (bkz. §1.4).
 

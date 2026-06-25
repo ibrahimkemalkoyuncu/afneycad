@@ -22,7 +22,7 @@ namespace Afney.Cad.Presentation.Dialogs
         public bool IsNormalized { get; set; } // WBLOCK base point (0,0,0) kontrolü
         public bool IsAligned { get; set; } // Katlar arası dikey hizalama kontrolü
         
-        public string StatusText => IsNormalized ? (IsAligned ? "Aligned (OK)" : "Normalized") : "Not Verified";
+        public string StatusText => IsNormalized ? (IsAligned ? "Hizalı (OK)" : "Tanımlı") : "Doğrulanmadı";
         public System.Windows.Media.Brush StatusColor => IsNormalized 
             ? (IsAligned ? System.Windows.Media.Brushes.LimeGreen : System.Windows.Media.Brushes.Orange) 
             : System.Windows.Media.Brushes.Gray;

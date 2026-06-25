@@ -227,6 +227,9 @@
                             <Button Content="💾" Click="OnSave"       ToolTip="Kaydet (Ctrl+S)" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
                             <Rectangle Width="1" Fill="#252836" Margin="6,4"/>
                             <Button Content="📂" Click="OnNewProject" ToolTip="Yeni Proje" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
+                            <Rectangle Width="1" Fill="#252836" Margin="6,4"/>
+                            <Button Content="ℹ" Click="OnProjectInfoCommand" ToolTip="Proje Bilgileri" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
+                            <Button Content="🖨" Click="OnPrintPreviewCommand" ToolTip="Baskı Önizleme" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
