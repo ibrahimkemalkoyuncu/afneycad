@@ -161,25 +161,27 @@
 
         <!-- ══ AKTİVİTE ÇUBUĞU STİLİ (VS Code tarzı) ══════════════════════════ -->
         <Style x:Key="ActivityBtn" TargetType="Button">
-            <Setter Property="Width"           Value="44"/>
-            <Setter Property="Height"          Value="44"/>
+            <Setter Property="Width"           Value="46"/>
+            <Setter Property="Height"          Value="46"/>
             <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="Foreground"      Value="#565870"/>
+            <Setter Property="Foreground"      Value="#7A7D94"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent" BorderThickness="3,0,0,0">
                             <TextBlock Text="{TemplateBinding Content}"
-                                       FontSize="18" HorizontalAlignment="Center"
+                                       FontSize="20" HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        Foreground="{TemplateBinding Foreground}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1A1C24"/>
-                                <Setter Property="Foreground"                  Value="#C8CADC"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#1F2233"/>
+                                <Setter Property="Foreground"                  Value="#E1E4EE"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0A84FF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Foreground" Value="#0A84FF"/>
@@ -197,7 +199,7 @@
             <RowDefinition Height="Auto"/>  <!-- Row 0: Ribbon (TabControl spans 0+1) -->
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>     <!-- Row 2: Content -->
-            <RowDefinition Height="28"/>    <!-- Row 3: Status Bar -->
+            <RowDefinition Height="36"/>    <!-- Row 3: Status Bar -->
         </Grid.RowDefinitions>
 
         <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -226,14 +228,14 @@
                         </StackPanel>
                         <!-- Quick Access Buttons -->
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                            <Button Content="📄" Click="OnNewFile"    ToolTip="Yeni"      Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
-                            <Button Content="📁" Click="OnOpenFile"   ToolTip="Aç (Ctrl+O)" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
-                            <Button Content="💾" Click="OnSave"       ToolTip="Kaydet (Ctrl+S)" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
-                            <Rectangle Width="1" Fill="#252836" Margin="6,4"/>
-                            <Button Content="📂" Click="OnNewProject" ToolTip="Yeni Proje" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
-                            <Rectangle Width="1" Fill="#252836" Margin="6,4"/>
-                            <Button Content="ℹ" Click="OnProjectInfoCommand" ToolTip="Proje Bilgileri" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
-                            <Button Content="🖨" Click="OnPrintPreviewCommand" ToolTip="Baskı Önizleme" Width="28" Height="26" Background="Transparent" Foreground="#858899" BorderThickness="0" FontSize="13" Cursor="Hand"/>
+                            <Button Content="📄" Click="OnNewFile"    ToolTip="Yeni (Ctrl+N)"      Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button Content="📁" Click="OnOpenFile"   ToolTip="Aç (Ctrl+O)"        Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button Content="💾" Click="OnSave"       ToolTip="Kaydet (Ctrl+S)"    Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
+                            <Button Content="📂" Click="OnNewProject" ToolTip="Yeni Proje"         Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
+                            <Button Content="ℹ" Click="OnProjectInfoCommand" ToolTip="Proje Bilgileri" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button Content="🖨" Click="OnPrintPreviewCommand" ToolTip="Baskı Önizleme" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -1590,10 +1592,10 @@
             <!-- CAD Toggles: ORTHO, SNAP, POLAR -->
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
                 <ToggleButton x:Name="BtnOrthoMode"
-                              Content="ORTHO" FontSize="9" FontFamily="Consolas"
-                              Padding="5,2" Margin="2,0"
-                              Background="#12141A" Foreground="#35374A"
-                              BorderBrush="#252836" BorderThickness="1"
+                              Content="ORTHO" FontSize="11" FontFamily="Consolas"
+                              Padding="8,4" Margin="3,0"
+                              Background="#12141A" Foreground="#6B6F88"
+                              BorderBrush="#2E3148" BorderThickness="1"
                               ToolTip="Ortho Modu (F8)">
                     <ToggleButton.Style>
                         <Style TargetType="ToggleButton">
@@ -1622,15 +1624,15 @@
                         </Style>
                     </ToggleButton.Style>
                 </ToggleButton>
-                <Border Background="#12141A" CornerRadius="3" Margin="2,0"
-                        BorderBrush="#252836" BorderThickness="1">
-                    <TextBlock Text="OSNAP" Foreground="#35374A" FontSize="9"
-                               FontFamily="Consolas" Padding="5,2"/>
+                <Border Background="#12141A" CornerRadius="3" Margin="3,0"
+                        BorderBrush="#2E3148" BorderThickness="1" Cursor="Hand">
+                    <TextBlock Text="OSNAP" Foreground="#6B6F88" FontSize="11"
+                               FontFamily="Consolas" Padding="8,4"/>
                 </Border>
-                <Border Background="#12141A" CornerRadius="3" Margin="2,0"
-                        BorderBrush="#252836" BorderThickness="1">
-                    <TextBlock Text="POLAR" Foreground="#35374A" FontSize="9"
-                               FontFamily="Consolas" Padding="5,2"/>
+                <Border Background="#12141A" CornerRadius="3" Margin="3,0"
+                        BorderBrush="#2E3148" BorderThickness="1" Cursor="Hand">
+                    <TextBlock Text="POLAR" Foreground="#6B6F88" FontSize="11"
+                               FontFamily="Consolas" Padding="8,4"/>
                 </Border>
             </StackPanel>
 
@@ -1639,7 +1641,7 @@
                     Padding="10,0" BorderBrush="#252836" BorderThickness="1,0,0,0">
                 <TextBlock x:Name="ZoomText"
                            Text="Zoom: 100%"
-                           Foreground="#424559" FontSize="10"
+                           Foreground="#7A7D94" FontSize="12"
                            FontFamily="Consolas" VerticalAlignment="Center"/>
             </Border>
         </Grid>
