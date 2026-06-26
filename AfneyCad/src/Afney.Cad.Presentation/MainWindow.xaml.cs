@@ -834,6 +834,27 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnDwgImportDialog(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Afney.Cad.Presentation.Dialogs.DwgImportDialog() { Owner = this };
+            if (dlg.ShowDialog() == true && dlg.ImportedEntities != null)
+            {
+                foreach (var ent in dlg.ImportedEntities)
+                    _database.AddEntity(ent);
+
+                var layers = dlg.ImportedEntities.Select(e2 => e2.Layer).Distinct().Where(l => l != null);
+                foreach (var layerName in layers)
+                {
+                    if (_database.GetLayer(layerName!) == null)
+                        _database.AddLayer(new Afney.Cad.Domain.Tables.CadLayer(layerName!));
+                }
+
+                Viewport.InvalidateViewport();
+                Viewport.ZoomExtents();
+                StatusText.Text = $"Import tamamlandı: {dlg.ImportedEntities.Count:N0} nesne yüklendi.";
+            }
+        }
+
         private void OnAutoRouteCommand(object sender, RoutedEventArgs e)
         {
             var dlg = new Afney.Cad.Presentation.Dialogs.AutoRouteDialog(_database, _history.TransactionManager) { Owner = this };
@@ -1588,6 +1609,12 @@ namespace Afney.Cad.Presentation
                     case "print":
                     case "plot":
                         OnViewportPrintCommand(this, new RoutedEventArgs());
+                        break;
+                    // DWG Import
+                    case "dwgimport":
+                    case "import":
+                    case "acimport":
+                        OnDwgImportDialog(this, new RoutedEventArgs());
                         break;
                     // AutoRoute
                     case "autoroute":

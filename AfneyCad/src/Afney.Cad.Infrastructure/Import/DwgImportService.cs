@@ -237,10 +237,13 @@ public class DwgImportService
             Arc a => MapArc(a),
             Circle c => MapCircle(c),
             LwPolyline pl => MapLwPolyline(pl),
-            MText mt => MapMText(mt), 
+            MText mt => MapMText(mt),
             ACadSharp.Entities.TextEntity t => MapText(t),
-            Dimension dim => null, 
-            Hatch h => null, // Özel işlem (aşağıda)
+            ACadSharp.Entities.Spline spline => MapSpline(spline),
+            ACadSharp.Entities.Ellipse ellipse => MapEllipse(ellipse),
+            ACadSharp.Entities.Point point => MapPoint(point),
+            Dimension dim => null,
+            Hatch h => null,
             _ => null
         };
         
@@ -488,7 +491,70 @@ public class DwgImportService
     }
 
     
-    // MapInsertAsPoint kaldırıldı çünkü artık ConvertEntity içinde işleniyor.
+    private CadEntity? MapSpline(ACadSharp.Entities.Spline spline)
+    {
+        var points = new List<Vector3D>();
+        if (spline.ControlPoints != null && spline.ControlPoints.Count > 1)
+        {
+            int segments = Math.Max(spline.ControlPoints.Count * 4, 32);
+            for (int i = 0; i < spline.ControlPoints.Count; i++)
+            {
+                var cp = spline.ControlPoints[i];
+                points.Add(new Vector3D(cp.X, cp.Y, cp.Z));
+            }
+        }
+        else if (spline.FitPoints != null && spline.FitPoints.Count > 1)
+        {
+            foreach (var fp in spline.FitPoints)
+                points.Add(new Vector3D(fp.X, fp.Y, fp.Z));
+        }
+
+        if (points.Count < 2) return null;
+        return new SplineEntity(points);
+    }
+
+    private CadEntity MapEllipse(ACadSharp.Entities.Ellipse ellipse)
+    {
+        var center = new Vector3D(ellipse.Center.X, ellipse.Center.Y, ellipse.Center.Z);
+
+        double majorX, majorY, majorZ;
+        try
+        {
+            dynamic dynEllipse = ellipse;
+            var ep = dynEllipse.EndMajorPoint;
+            majorX = ep.X; majorY = ep.Y; majorZ = ep.Z;
+        }
+        catch
+        {
+            majorX = 1; majorY = 0; majorZ = 0;
+        }
+
+        double majorLen = Math.Sqrt(majorX * majorX + majorY * majorY + majorZ * majorZ);
+        if (majorLen < 1e-9) majorLen = 1;
+        double minorLen = majorLen * ellipse.RadiusRatio;
+        double majorAngle = Math.Atan2(majorY, majorX);
+
+        int segments = 48;
+        var points = new List<Vector3D>();
+        for (int i = 0; i <= segments; i++)
+        {
+            double t = ellipse.StartParameter + (ellipse.EndParameter - ellipse.StartParameter) * i / segments;
+            double x = majorLen * Math.Cos(t);
+            double y = minorLen * Math.Sin(t);
+            double rx = x * Math.Cos(majorAngle) - y * Math.Sin(majorAngle);
+            double ry = x * Math.Sin(majorAngle) + y * Math.Cos(majorAngle);
+            points.Add(new Vector3D(center.X + rx, center.Y + ry, center.Z));
+        }
+
+        bool closed = Math.Abs(ellipse.EndParameter - ellipse.StartParameter - Math.PI * 2) < 0.01;
+        return new LwPolylineEntity(points, closed);
+    }
+
+    private CadEntity MapPoint(ACadSharp.Entities.Point point)
+    {
+        var pos = new Vector3D(point.Location.X, point.Location.Y, point.Location.Z);
+        return new CircleEntity(pos, 1.0);
+    }
 
     // --- Renk Yönetimi (ACI -> RGBA) ---
     public static uint MapColor(ACadSharp.Color color)
