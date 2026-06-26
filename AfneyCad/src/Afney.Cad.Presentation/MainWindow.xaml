@@ -259,7 +259,7 @@
                                             <Trigger Property="IsSelected" Value="True">
                                                 <Setter TargetName="TabBorder" Property="Background"       Value="#1E2029"/>
                                                 <Setter TargetName="TabBorder" Property="BorderBrush"     Value="#0A84FF"/>
-                                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="0,2,0,0"/>
+                                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="0,3,0,0"/>
                                                 <Setter TargetName="TabText"   Property="Foreground"      Value="#E1E4EE"/>
                                                 <Setter TargetName="TabText"   Property="FontWeight"      Value="SemiBold"/>
                                             </Trigger>
@@ -298,7 +298,7 @@
                                                     <TextBlock Text="Seçimi" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <TextBlock Text="Standart" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Standart" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -327,7 +327,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Bina Ayarları" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Bina Ayarları" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -345,7 +345,7 @@
                                                     <TextBlock Text="Onayla" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <TextBlock Text="Süreç" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Süreç" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -403,9 +403,9 @@
                                                            PlacementTarget="{Binding ElementName=LayerPickerBtn}"
                                                            Placement="Bottom" StaysOpen="False"
                                                            AllowsTransparency="True" PopupAnimation="Slide">
-                                                        <Border Background="#1A1C24" BorderBrush="#2E3045"
+                                                        <Border Background="#1A1C24" BorderBrush="#0A84FF"
                                                                 BorderThickness="1" CornerRadius="6"
-                                                                MinWidth="290" MaxHeight="300">
+                                                                MinWidth="320" MaxHeight="420">
                                                             <Grid>
                                                                 <Grid.RowDefinitions>
                                                                     <RowDefinition Height="Auto"/>
@@ -418,7 +418,8 @@
                                                                 </Border>
                                                                 <ScrollViewer Grid.Row="1"
                                                                               VerticalScrollBarVisibility="Auto"
-                                                                              MaxHeight="260">
+                                                                              MaxHeight="380"
+                                                                              CanContentScroll="True">
                                                                     <ListBox x:Name="LayerPickerList"
                                                                              Background="Transparent"
                                                                              BorderThickness="0"
@@ -428,27 +429,30 @@
                                                                         <ListBox.ItemContainerStyle>
                                                                             <Style TargetType="ListBoxItem">
                                                                                 <Setter Property="Background"              Value="Transparent"/>
-                                                                                <Setter Property="BorderThickness"         Value="0"/>
-                                                                                <Setter Property="Padding"                 Value="2,1"/>
+                                                                                <Setter Property="BorderThickness"         Value="0,0,0,1"/>
+                                                                                <Setter Property="BorderBrush"            Value="#1E2029"/>
+                                                                                <Setter Property="Padding"                 Value="4,3"/>
                                                                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                                                                 <Style.Triggers>
                                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                                        <Setter Property="Background" Value="#1A1D28"/>
+                                                                                        <Setter Property="Background" Value="#1F2A3E"/>
+                                                                                        <Setter Property="BorderBrush" Value="#0A84FF"/>
                                                                                     </Trigger>
                                                                                     <Trigger Property="IsSelected" Value="True">
                                                                                         <Setter Property="Background" Value="#0A3A6A"/>
+                                                                                        <Setter Property="BorderBrush" Value="#0A84FF"/>
                                                                                     </Trigger>
                                                                                 </Style.Triggers>
                                                                             </Style>
                                                                         </ListBox.ItemContainerStyle>
                                                                         <ListBox.ItemTemplate>
                                                                             <DataTemplate>
-                                                                                <Grid Margin="2,2" Height="22">
+                                                                                <Grid Margin="2,1" Height="28">
                                                                                     <Grid.ColumnDefinitions>
-                                                                                        <ColumnDefinition Width="22"/>
-                                                                                        <ColumnDefinition Width="22"/>
-                                                                                        <ColumnDefinition Width="22"/>
-                                                                                        <ColumnDefinition Width="14"/>
+                                                                                        <ColumnDefinition Width="26"/>
+                                                                                        <ColumnDefinition Width="26"/>
+                                                                                        <ColumnDefinition Width="26"/>
+                                                                                        <ColumnDefinition Width="18"/>
                                                                                         <ColumnDefinition Width="*"/>
                                                                                     </Grid.ColumnDefinitions>
                                                                                     <Button Grid.Column="0" Content="{Binding VisibilityIcon}"
@@ -474,16 +478,16 @@
                                                                                         <Button.Foreground><SolidColorBrush Color="#F39C12"/></Button.Foreground>
                                                                                     </Button>
                                                                                     <Border Grid.Column="3"
-                                                                                            Width="12" Height="12" CornerRadius="2"
+                                                                                            Width="14" Height="14" CornerRadius="3"
                                                                                             Background="{Binding ColorBrush}"
-                                                                                            BorderBrush="#444" BorderThickness="1"
+                                                                                            BorderBrush="#555" BorderThickness="1"
                                                                                             VerticalAlignment="Center"/>
                                                                                     <TextBlock Grid.Column="4"
                                                                                                Text="{Binding Name}"
-                                                                                               Foreground="#C8CADC"
-                                                                                               FontFamily="Consolas" FontSize="12"
+                                                                                               Foreground="#D4D6E8"
+                                                                                               FontFamily="Consolas" FontSize="13"
                                                                                                VerticalAlignment="Center"
-                                                                                               Margin="6,0,0,0" Cursor="Hand"
+                                                                                               Margin="8,0,0,0" Cursor="Hand"
                                                                                                MouseLeftButtonUp="OnLayerNameClick"/>
                                                                                 </Grid>
                                                                             </DataTemplate>
@@ -496,10 +500,10 @@
                                                 </Grid>
                                                 <Button Content="🗂" Click="OnToggleLayerPanel"
                                                         Style="{StaticResource RbnBtn}"
-                                                        ToolTip="Katman Yöneticisi"
-                                                        Width="28" Height="26" Margin="4,0,0,0" FontSize="14"/>
+                                                        ToolTip="Katman Yöneticisi (Ctrl+L)"
+                                                        Width="32" Height="30" Margin="4,0,0,0" FontSize="16"/>
                                             </StackPanel>
-                                            <TextBlock Text="Katman" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Katman" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -538,7 +542,7 @@
                                                     <Button Content="🏷️ Tag"        Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Text="Mahal Tanımı" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Mahal Tanımı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -566,7 +570,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Kütüphane" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Kütüphane" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -580,7 +584,7 @@
                                                     <TextBlock Text="Onayla" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <TextBlock Text="Süreç" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Süreç" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -632,7 +636,7 @@
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Text="Boru Çizimi" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Boru Çizimi" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -655,7 +659,7 @@
                                                     <Button Content="📐 Kolon Bağlantısı" Click="OnRiserConnection"   Style="{StaticResource RbnBtn}"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Text="Akıllı Bağlantı" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Akıllı Bağlantı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -689,7 +693,7 @@
                                                 <Button Content="🧯 Fosseptik"       Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}" Margin="2,2,0,0"/>
                                                 <Button Content="🌧 Yağmur Suyu"     Click="OnRainWaterCalc"    Style="{StaticResource RbnBtn}" Margin="2,2,0,0"/>
                                             </StackPanel>
-                                            <TextBlock Text="Sistem Tasarımı" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Sistem Tasarımı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -706,7 +710,7 @@
                                                 <Button Content="⛽ Doğalgaz Hesabı"  Click="OnGasCalc"            Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 1775"/>
                                                 <Button Content="📋 Pis Su Hesap Föyü" Click="OnWasteWaterCalcSheet" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             </StackPanel>
-                                            <TextBlock Text="Tesisat Ekipmanları" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Tesisat Ekipmanları" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -735,7 +739,7 @@
                                                     <Button Content="⛏ Patlat (X)"  Click="OnExplodeCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Text="Yardımcı Çizim" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Yardımcı Çizim" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -753,7 +757,7 @@
                                             </Button>
                                             <Button Content="🔧 İleri Araçlar" Click="OnAdvancedTools" Style="{StaticResource RbnBtn}"
                                                     Margin="0,2,0,0" ToolTip="Yağmur Oluğu · Gürültü Analizi"/>
-                                            <TextBlock Text="Yangın &amp; İleri" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Yangın &amp; İleri" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -768,7 +772,7 @@
                                                     <TextBlock Text="Onayla" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <TextBlock Text="Süreç" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Süreç" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -807,7 +811,7 @@
                                                             Content="🔴 Çakışma Vurgusu"    Click="OnClashHighlightToggle" Style="{StaticResource RbnBtn}"   Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Text="Validasyon &amp; Çakışma" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Validasyon &amp; Çakışma" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -828,7 +832,7 @@
                                                     <Button Content="🔄 Tesisat (Sadece)" Click="OnRecalculatePlumbing" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Text="Sizing Motoru" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Sizing Motoru" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -838,7 +842,7 @@
                                         <StackPanel>
                                             <Button Content="📉 Basınç Kaybı" Click="OnPressureDropCalc" Style="{StaticResource RbnMed}" ToolTip="Kritik Hat Basınç Kaybı"/>
                                             <Button Content="💧 Pompa Seçimi" Click="OnPumpSelection"    Style="{StaticResource RbnMedAccent}" Margin="0,4,0,0"/>
-                                            <TextBlock Text="Kritik Hat &amp; Cihaz" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Kritik Hat &amp; Cihaz" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -862,7 +866,7 @@
                                         <StackPanel>
                                             <Button Content="✏️ Çapları Yazdır" Click="OnAutoAnnotate"     Style="{StaticResource RbnMedGreen}"/>
                                             <Button Content="🗑️ Temizle"         Click="OnClearAnnotations" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="Anotasyon" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Anotasyon" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -874,7 +878,7 @@
                                             <Button Content="📊 Hesaplama Tab."  Click="OnCalculationTable"       Style="{StaticResource RbnMedAccent}"/>
                                             <Button Content="📈 Hidrolik Rapor"  Click="OnGenerateHydraulicReport" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             <Button Content="📄 Sistem Raporu"   Click="OnReportExport"           Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="HTML/CSV/RTF"/>
-                                            <TextBlock Text="Föyler" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Föyler" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -885,7 +889,7 @@
                                         <StackPanel>
                                             <Button Content="📐 Kolon Şeması"  Click="OnRiserDiagramExport"   Style="{StaticResource RbnMed}"/>
                                             <Button Content="📊 İzometrik Şema" Click="OnShowIsometricScheme" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="Şemalar" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Şemalar" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -898,7 +902,7 @@
                                             <Button Content="📜 Lejant"         Click="OnGenerateLegend"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             <Button Content="📋 Şartname"       Click="OnSpecificationExport"    Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             <Button Content="📄 PDF Rapor"      Click="OnPdfExport"              Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="Listeler" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Listeler" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -929,7 +933,7 @@
                                                 <Button Content="📦 Üretici Ktlg." Click="OnManufacturerCatalog"   Style="{StaticResource RbnBtn}" ToolTip="Grundfos · Wilo · Valsir · Wavin · Geberit"/>
                                                 <Button Content="🖨 Pafta"         Click="OnPrintLayout"           Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="A3/A2 antetli pafta"/>
                                             </StackPanel>
-                                            <TextBlock Text="Dışa / İçeri" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Dışa / İçeri" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -942,7 +946,7 @@
                                             <Button x:Name="BtnFlowAnim"
                                                     Content="▶ Akış Animasyonu"       Click="OnFlowAnimationToggle" Style="{StaticResource RbnBtn}"     Margin="0,2,0,0"/>
                                             <Button Content="☁️ Bulut Yedek"          Click="OnCloudBackup"         Style="{StaticResource RbnBtn}"     Margin="0,2,0,0"/>
-                                            <TextBlock Text="Baskı &amp; Yedek" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Baskı &amp; Yedek" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -956,7 +960,7 @@
                                             <Button Content="💰 Maliyet Analizi" Click="OnPipeCostAnalysis"   Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             <Button Content="📐 Oto Boyutlandır" Click="OnAutoSizing"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 806-3 oto boyut"/>
                                             <Button Content="⚙ Pompaj Grubu"    Click="OnPumpGroup"          Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="İleri Analiz" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="İleri Analiz" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1017,7 +1021,7 @@
                                             <Button Content="📄 Pafta Düzeni"    Click="OnLayoutSheet"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             <Button Content="🗒 Antet"           Click="OnTitleBlock"       Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
                                             <Button Content="🔄 Kat Senkron"     Click="OnSyncSystemLayers" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="Pafta &amp; Çıktı" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Pafta &amp; Çıktı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1068,7 +1072,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Ölçü Çizgileri" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Ölçü Çizgileri" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1094,7 +1098,7 @@
                                                     ToolTip="Metin boyutu: Büyük (500 mm)">
                                                 <TextBlock Text="A  Büyük" FontSize="15" FontWeight="Bold"/>
                                             </Button>
-                                            <TextBlock Text="Metin Boyutu" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Metin Boyutu" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1153,7 +1157,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Mimari Giriş" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Mimari Giriş" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1190,7 +1194,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Mimari Elemanlar" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Mimari Elemanlar" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1228,7 +1232,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Blok İşlemleri" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Blok İşlemleri" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1265,7 +1269,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Ölçüm / Görünüm" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Ölçüm / Görünüm" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1294,7 +1298,7 @@
                                                     <TextBlock Text="Extents" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <TextBlock Text="Navigasyon" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Navigasyon" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1323,7 +1327,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Görünüm Modu" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Görünüm Modu" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1343,7 +1347,7 @@
                                                 <Button x:Name="BtnToggleVent"       Content="🌀 Havaland."   Click="OnToggleVent"       Style="{StaticResource RbnBtn}" Tag="MEP_HAVALANDIRMA" ToolTip="Havalandırma göster/gizle" Margin="2,0,0,0"/>
                                             </StackPanel>
                                             <Button Content="✅ Tümünü Göster" Click="OnShowAllSystems" Style="{StaticResource RbnOk}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="Sistem Görünürlüğü" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Sistem Görünürlüğü" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1353,7 +1357,7 @@
                                         <StackPanel>
                                             <Button Content="📁 Navigator"    Click="OnToggleProjectNavigator" Style="{StaticResource RbnMed}"/>
                                             <Button Content="🧠 Intelligence" Click="OnToggleIntelligencePanel" Style="{StaticResource RbnMed}" Margin="0,4,0,0"/>
-                                            <TextBlock Text="Paneller" Foreground="#424559" FontSize="9"
+                                            <TextBlock Text="Paneller" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -1420,8 +1424,8 @@
                     <!-- Panel başlık -->
                     <Border Grid.Row="0" Background="#12141A" Padding="12,6"
                             BorderBrush="#252836" BorderThickness="0,0,0,1">
-                        <TextBlock Text="PROJE GEZGİNİ" Foreground="#424559"
-                                   FontSize="10" FontWeight="Bold"
+                        <TextBlock Text="PROJE GEZGİNİ" Foreground="#7AA0CC"
+                                   FontSize="11" FontWeight="Bold"
                                    FontFamily="Segoe UI"/>
                     </Border>
 
