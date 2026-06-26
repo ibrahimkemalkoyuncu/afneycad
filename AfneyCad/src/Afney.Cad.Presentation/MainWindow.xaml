@@ -32,23 +32,25 @@
 
         <!-- Büyük Ikon Buton: Ana eylemler için — 68×72px -->
         <Style x:Key="RbnLarge" TargetType="Button">
-            <Setter Property="Width"           Value="68"/>
-            <Setter Property="Height"          Value="72"/>
+            <Setter Property="Width"           Value="74"/>
+            <Setter Property="Height"          Value="76"/>
             <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="Foreground"      Value="#C8CADC"/>
+            <Setter Property="Foreground"      Value="#D4D6E8"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Margin"          Value="1,2"/>
+            <Setter Property="Margin"          Value="2,2"/>
             <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                CornerRadius="6" Padding="2">
+                                CornerRadius="6" Padding="4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#282B3A"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#2E3148"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0A84FF"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#0A84FF"/>
@@ -59,7 +61,7 @@
             </Setter>
         </Style>
         <Style x:Key="RbnLargeAccent" TargetType="Button" BasedOn="{StaticResource RbnLarge}">
-            <Setter Property="Foreground" Value="#60BAFF"/>
+            <Setter Property="Foreground" Value="#70C4FF"/>
         </Style>
         <Style x:Key="RbnLargeGreen" TargetType="Button" BasedOn="{StaticResource RbnLarge}">
             <Setter Property="Foreground" Value="#2ECC71"/>
@@ -71,15 +73,15 @@
             <Setter Property="Foreground" Value="#E74C3C"/>
         </Style>
 
-        <!-- Orta Buton: 44px yükseklik, yatay düzen -->
+        <!-- Orta Buton: yatay düzen, okunabilir font -->
         <Style x:Key="RbnMed" TargetType="Button">
-            <Setter Property="Height"          Value="44"/>
+            <Setter Property="Height"          Value="36"/>
             <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="Foreground"      Value="#C8CADC"/>
+            <Setter Property="Foreground"      Value="#D4D6E8"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding"         Value="10,0"/>
-            <Setter Property="Margin"          Value="1,2"/>
-            <Setter Property="FontSize"        Value="12"/>
+            <Setter Property="Padding"         Value="14,0"/>
+            <Setter Property="Margin"          Value="2,2"/>
+            <Setter Property="FontSize"        Value="13"/>
             <Setter Property="FontFamily"      Value="Segoe UI"/>
             <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
@@ -91,7 +93,9 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#282B3A"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#2E3148"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0A84FF"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#0A84FF"/>
@@ -114,15 +118,15 @@
             <Setter Property="Foreground" Value="#E74C3C"/>
         </Style>
 
-        <!-- Küçük Buton: 28px, kompakt -->
+        <!-- Küçük Buton: kompakt ama okunabilir -->
         <Style x:Key="RbnBtn" TargetType="Button">
-            <Setter Property="Height"          Value="28"/>
+            <Setter Property="Height"          Value="30"/>
             <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="Foreground"      Value="#B0B3C6"/>
+            <Setter Property="Foreground"      Value="#C0C3D6"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding"         Value="8,0"/>
-            <Setter Property="Margin"          Value="1,1"/>
-            <Setter Property="FontSize"        Value="11"/>
+            <Setter Property="Padding"         Value="10,0"/>
+            <Setter Property="Margin"          Value="2,2"/>
+            <Setter Property="FontSize"        Value="12"/>
             <Setter Property="FontFamily"      Value="Segoe UI"/>
             <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
@@ -134,7 +138,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#282B3A"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#2E3148"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#0A84FF"/>
@@ -241,12 +245,12 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="TabItem">
-                                        <Border x:Name="TabBorder" Padding="16,7" Margin="0"
+                                        <Border x:Name="TabBorder" Padding="18,9" Margin="0"
                                                 Background="Transparent" Cursor="Hand">
                                             <TextBlock x:Name="TabText"
                                                        Text="{TemplateBinding Header}"
-                                                       Foreground="#565870"
-                                                       FontSize="12" FontWeight="Medium"
+                                                       Foreground="#7A7D94"
+                                                       FontSize="13" FontWeight="Medium"
                                                        FontFamily="Segoe UI"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -1541,7 +1545,7 @@
         <!--  STATUS BAR                                                           -->
         <!-- ════════════════════════════════════════════════════════════════════ -->
         <Grid Grid.Row="3" Background="#0E1014"
-              Height="28">
+              Height="34">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>  <!-- Komut girişi -->
                 <ColumnDefinition Width="1"/>     <!-- Ayırıcı -->
@@ -1558,13 +1562,13 @@
                     <TextBlock Text="▶" Foreground="#0A84FF" FontSize="10"
                                VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <TextBox x:Name="CommandInput"
-                             Width="180" Height="20"
+                             Width="240" Height="24"
                              Background="#12141A" Foreground="#E1E4EE"
                              BorderBrush="#0A84FF" BorderThickness="1"
-                             CaretBrush="White" FontFamily="Consolas" FontSize="11"
-                             Padding="4,1" VerticalContentAlignment="Center"
+                             CaretBrush="White" FontFamily="Consolas" FontSize="13"
+                             Padding="6,2" VerticalContentAlignment="Center"
                              KeyDown="CommandInput_KeyDown"
-                             ToolTip="Komut girin (L=Çizgi, C=Daire, P=Boru...)"/>
+                             ToolTip="Komut girin (L=Çizgi, C=Daire, P=Boru, DIM=Ölçü...)"/>
                 </StackPanel>
             </Border>
             <ProgressBar Grid.Column="0" x:Name="MainProgressBar"
@@ -1579,7 +1583,7 @@
             <Border Grid.Column="2" Padding="10,0">
                 <TextBlock x:Name="StatusText"
                            Text="Hazır — Komut girin veya araç seçin."
-                           Foreground="#424559" FontSize="11"
+                           Foreground="#6B6F88" FontSize="12.5"
                            VerticalAlignment="Center" FontFamily="Segoe UI"/>
             </Border>
 
