@@ -1404,7 +1404,7 @@
             <Border Grid.Column="1" Width="220"
                     Background="#1A1C24"
                     BorderBrush="#252836" BorderThickness="0,0,1,0"
-                    x:Name="LeftPanelBorder" Visibility="Visible">
+                    x:Name="LeftPanelBorder" Visibility="Collapsed">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

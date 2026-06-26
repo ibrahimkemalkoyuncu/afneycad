@@ -163,6 +163,12 @@ namespace Afney.Cad.Presentation
             {
                 RightPanel.UpdateEntityInfo(items.FirstOrDefault());
                 EntityPropertiesPanel.UpdateSelection(items?.ToList());
+                var first = items?.FirstOrDefault();
+                if (first != null)
+                {
+                    LayerPanel.HighlightLayer(first.Layer);
+                    UpdateToolbarLayerIndicator(first.Layer);
+                }
             };
             viewport.OrthoToggled += (isOrtho) => 
             {
@@ -287,8 +293,12 @@ namespace Afney.Cad.Presentation
             }
             else if (e.Key == System.Windows.Input.Key.F8)
             {
-                Serilog.Log.Information("⌨️ Kısayol: F8 (Ortho Toggle)");
                 _activeContext.Viewport.ToggleOrtho();
+                e.Handled = true;
+            }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.L)
+            {
+                ToggleLeftPanel();
                 e.Handled = true;
             }
         }
@@ -342,6 +352,7 @@ namespace Afney.Cad.Presentation
         {
             ProjectNavigatorPanel.Visibility = Visibility.Collapsed;
             LayerPanel.Visibility = Visibility.Visible;
+            EntityPropertiesPanel.Visibility = Visibility.Collapsed;
             TabLayerBtn.Background = new System.Windows.Media.SolidColorBrush(
                 (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1F3A5F"));
             TabLayerBtn.Foreground = System.Windows.Media.Brushes.White;
@@ -349,11 +360,23 @@ namespace Afney.Cad.Presentation
             TabNavBtn.Foreground = new System.Windows.Media.SolidColorBrush(
                 (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#AAA"));
 
-            // Listeyi yenile
             if (_activeContext != null)
             {
                 LayerPanel.RefreshLayers(_activeContext.Database);
                 LayerPanel.SyncHiddenLayers(_activeContext.Viewport.HiddenLayers);
+            }
+        }
+
+        private void ToggleLeftPanel()
+        {
+            if (LeftPanelBorder.Visibility == Visibility.Collapsed)
+            {
+                LeftPanelBorder.Visibility = Visibility.Visible;
+                OnLeftTab_Layers(this, new RoutedEventArgs());
+            }
+            else
+            {
+                LeftPanelBorder.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -409,6 +432,23 @@ namespace Afney.Cad.Presentation
                             .ConvertFromString(colorBrush)!;
                 }
                 catch { /* Geçersiz renk — yok say */ }
+            }
+        }
+
+        private void UpdateToolbarLayerIndicator(string layerName)
+        {
+            if (string.IsNullOrEmpty(layerName)) return;
+            var layer = _database?.GetLayer(layerName);
+            if (layer != null)
+            {
+                byte r = (byte)((layer.Color >> 16) & 0xFF);
+                byte g = (byte)((layer.Color >> 8) & 0xFF);
+                byte b = (byte)(layer.Color & 0xFF);
+                SetActiveLayerUI(layerName, $"#{r:X2}{g:X2}{b:X2}");
+            }
+            else
+            {
+                SetActiveLayerUI(layerName, "#CCCCCC");
             }
         }
 

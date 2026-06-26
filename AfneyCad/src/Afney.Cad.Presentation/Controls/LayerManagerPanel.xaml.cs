@@ -295,8 +295,22 @@ public partial class LayerManagerPanel : UserControl
         }
     }
 
-    // ListView selection
     private void LayerList_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+
+    public void HighlightLayer(string? layerName)
+    {
+        if (string.IsNullOrEmpty(layerName) || LayerList.ItemsSource == null) return;
+
+        foreach (var item in LayerList.Items)
+        {
+            if (item is CadLayer layer && layer.Name.Equals(layerName, StringComparison.OrdinalIgnoreCase))
+            {
+                LayerList.SelectedItem = item;
+                LayerList.ScrollIntoView(item);
+                return;
+            }
+        }
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
