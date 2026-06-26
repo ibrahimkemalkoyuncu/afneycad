@@ -1071,43 +1071,66 @@ namespace Afney.Cad.Presentation.Views;
                     if (_isSelecting)
                     {
                         _isSelecting = false;
-                    
+
                     if (_selectionManager != null)
                     {
                         try
                         {
-                            var p1 = ScreenToWorld(_selectionStartPoint);
-                            var p2 = ScreenToWorld(_selectionCurrentPoint);
-                            // MÜHENDİSLİK: AutoCAD gibi 2D top-down görünümden seçim yaparken,
-                            // seçim kutusunun Z ekseninde (derinlikte) sonsuz kabul edilmesi gerekir.
-                            // Aksi takdirde Z koordinatı 0 olmayan nesneler seçilemez.
-                            p1 = new Vector3D(p1.X, p1.Y, -1000000);
-                            p2 = new Vector3D(p2.X, p2.Y, 1000000);
+                            double dragDist = Math.Sqrt(
+                                Math.Pow(_selectionCurrentPoint.X - _selectionStartPoint.X, 2) +
+                                Math.Pow(_selectionCurrentPoint.Y - _selectionStartPoint.Y, 2));
 
-                            var rect = new CadBoundingBox(p1, p2);
-                            
-                            bool isCrossing = _selectionCurrentPoint.X < _selectionStartPoint.X;
-                            
-                            Serilog.Log.Information("🎯 SEÇİM: {Type}, Rect: ({MinX},{MinY}) → ({MaxX},{MaxY})", 
-                                isCrossing ? "Crossing" : "Window",
-                                rect.Min.X, rect.Min.Y, rect.Max.X, rect.Max.Y);
-                            
-                            // SHIFT tuşu basılı değilse öncekiler temizle
-                            if (Keyboard.Modifiers != ModifierKeys.Shift) 
-                                _selectionManager.ClearSelection();
-                            
-                            // Crossing veya Window selection
-                            if (isCrossing)
-                                _selectionManager.SelectByCrossing(rect);
+                            if (dragDist < 5.0)
+                            {
+                                // TEK TIK — en yakın entity'yi seç (AutoCAD pick)
+                                var wp = ScreenToWorld(_selectionStartPoint);
+                                double pickTol = 12.0 / Math.Max(0.001, _zoom);
+
+                                if (Keyboard.Modifiers != ModifierKeys.Shift)
+                                    _selectionManager.ClearSelection();
+
+                                CadEntity? best = null;
+                                double bestDist = pickTol;
+                                foreach (var ent in _database!.GetAllEntities())
+                                {
+                                    if (HiddenLayers.Contains(ent.Layer)) continue;
+                                    double d = ent.DistanceTo(wp);
+                                    if (d < bestDist) { bestDist = d; best = ent; }
+                                }
+
+                                if (best != null)
+                                {
+                                    _selectionManager.ToggleEntity(best.Id);
+                                    OnFeedback?.Invoke($"Seçildi: {best.GetType().Name} — Katman: {best.Layer}");
+                                }
+
+                                SelectionChanged?.Invoke(_selectionManager.GetSelectedEntities());
+                            }
                             else
-                                _selectionManager.SelectByWindow(rect);
-                            
-                            SelectionChanged?.Invoke(_selectionManager.GetSelectedEntities());
-                            Serilog.Log.Information("✅ Seçim tamamlandı: {Count} entity", _selectionManager.SelectedCount);
+                            {
+                                // PENCERE SEÇİMİ — drag ile seçim kutusu
+                                var p1 = ScreenToWorld(_selectionStartPoint);
+                                var p2 = ScreenToWorld(_selectionCurrentPoint);
+                                p1 = new Vector3D(p1.X, p1.Y, -1000000);
+                                p2 = new Vector3D(p2.X, p2.Y, 1000000);
+
+                                var rect = new CadBoundingBox(p1, p2);
+                                bool isCrossing = _selectionCurrentPoint.X < _selectionStartPoint.X;
+
+                                if (Keyboard.Modifiers != ModifierKeys.Shift)
+                                    _selectionManager.ClearSelection();
+
+                                if (isCrossing)
+                                    _selectionManager.SelectByCrossing(rect);
+                                else
+                                    _selectionManager.SelectByWindow(rect);
+
+                                SelectionChanged?.Invoke(_selectionManager.GetSelectedEntities());
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Serilog.Log.Error(ex, "❌ Seçim sırasında hata!");
+                            Serilog.Log.Error(ex, "Seçim sırasında hata!");
                         }
                     }
                 }
