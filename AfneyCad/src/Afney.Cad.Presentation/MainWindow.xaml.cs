@@ -839,6 +839,41 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnArchBomCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.ArchitecturalBomService(_database);
+                var bom = svc.Generate();
+
+                if (bom.Items.Count == 0)
+                {
+                    MessageBox.Show("Projede mimari element bulunamadi.\nDuvar/Kolon/Kiris/Kapi/Pencere/Mahal ekleyin.", "Mimari Metraj", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Mimari Metraj Kaydet",
+                    Filter = "HTML (*.html)|*.html",
+                    FileName = $"Mimari_Metraj_{DateTime.Now:yyyyMMdd}",
+                    DefaultExt = ".html"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    string html = svc.ExportToHtml(bom, _activeContext?.ProjectName);
+                    System.IO.File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    StatusText.Text = $"Mimari Metraj: {bom.WallCount} duvar, {bom.ColumnCount} kolon, {bom.DoorCount} kapi, {bom.WindowCount} pencere, {bom.RoomCount} mahal";
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Mimari Metraj hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnRouteDuctCommand(object sender, RoutedEventArgs e)
         {
             var cmd = new Afney.Cad.Commands.MechanicalCommands.RouteDuctCommand(_database, _history.TransactionManager);
@@ -1750,6 +1785,12 @@ namespace Afney.Cad.Presentation
                     case "selbom":
                     case "sm":
                         OnSelectionBomCommand(this, new RoutedEventArgs());
+                        break;
+                    // Mimari Metraj
+                    case "mimaribom":
+                    case "archbom":
+                    case "mb":
+                        OnArchBomCommand(this, new RoutedEventArgs());
                         break;
                     // AutoRoute
                     case "autoroute":
