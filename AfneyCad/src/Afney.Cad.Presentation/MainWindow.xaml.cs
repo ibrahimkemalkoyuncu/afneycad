@@ -839,6 +839,46 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnHvacBomCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.HvacBomService(_database);
+                var bom = svc.Generate();
+
+                if (bom.DuctCount == 0)
+                {
+                    MessageBox.Show("Projede HVAC kanal entity'si bulunamadı.\nÖnce kanal çizimi yapın.", "HVAC Metraj", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "HVAC Metraj Kaydet",
+                    Filter = "HTML Dosyası (*.html)|*.html|CSV Dosyası (*.csv)|*.csv",
+                    FileName = $"HVAC_Metraj_{DateTime.Now:yyyyMMdd}",
+                    DefaultExt = ".html"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    string content = dlg.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)
+                        ? svc.ExportToCsv(bom)
+                        : svc.ExportToHtml(bom, _activeContext?.ProjectName);
+
+                    System.IO.File.WriteAllText(dlg.FileName, content, System.Text.Encoding.UTF8);
+                    StatusText.Text = $"HVAC Metraj: {bom.DuctCount} kanal, {bom.TotalDuctLength:F1} m, {bom.TotalCost:N0} TRY";
+
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"HVAC Metraj hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnDwgImportDialog(object sender, RoutedEventArgs e)
         {
             var dlg = new Afney.Cad.Presentation.Dialogs.DwgImportDialog() { Owner = this };
@@ -1620,6 +1660,12 @@ namespace Afney.Cad.Presentation
                     case "import":
                     case "acimport":
                         OnDwgImportDialog(this, new RoutedEventArgs());
+                        break;
+                    // HVAC Metraj
+                    case "hvacbom":
+                    case "kanalmetraj":
+                    case "ductbom":
+                        OnHvacBomCommand(this, new RoutedEventArgs());
                         break;
                     // AutoRoute
                     case "autoroute":
