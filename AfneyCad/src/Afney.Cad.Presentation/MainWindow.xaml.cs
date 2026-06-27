@@ -47,6 +47,9 @@ namespace Afney.Cad.Presentation
         private readonly Afney.Cad.Presentation.Services.PipeFlowAnimationService _flowAnimService = new();
         private readonly Afney.Cad.Presentation.Services.CloudBackupService _cloudBackupService = new();
         private readonly Afney.Cad.Presentation.Services.HtmlViewerExportService _htmlViewerService = new();
+        private readonly Afney.Cad.Presentation.Services.RecentFilesService _recentFiles = new();
+        private readonly Afney.Cad.Presentation.Services.ClipboardService _clipboard = new();
+        private readonly Afney.Cad.Presentation.Services.UserSettingsService _userSettings = new();
         private double _dimTextHeight = 250.0;
 
         public CadDocumentContext ActiveContext
@@ -301,9 +304,54 @@ namespace Afney.Cad.Presentation
                 OnSave(this, new RoutedEventArgs());
                 e.Handled = true;
             }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.C)
+            {
+                var selected = _activeContext?.SelectionManager?.GetSelectedEntities();
+                if (selected != null && selected.Any())
+                {
+                    var center = selected.First().GetBoundingBox().Center;
+                    _clipboard.Copy(selected, center);
+                    StatusText.Text = $"Kopyalandi: {selected.Count()} nesne";
+                }
+                e.Handled = true;
+            }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.X)
+            {
+                var selected = _activeContext?.SelectionManager?.GetSelectedEntities();
+                if (selected != null && selected.Any())
+                {
+                    var center = selected.First().GetBoundingBox().Center;
+                    _clipboard.Cut(selected, center);
+                    foreach (var ent in selected.ToList())
+                        _database.RemoveEntity(ent.Id);
+                    _activeContext?.SelectionManager?.ClearSelection();
+                    Viewport.InvalidateViewport();
+                    StatusText.Text = $"Kesildi: {_clipboard.Count} nesne";
+                }
+                e.Handled = true;
+            }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.V)
+            {
+                if (_clipboard.HasContent)
+                {
+                    var mousePos = Viewport.LastMouseWorldPos;
+                    var target = mousePos ?? new Afney.Cad.Geometry.Primitives.Vector3D(0, 0, 0);
+                    var pasted = _clipboard.Paste(target);
+                    foreach (var ent in pasted)
+                        _database.AddEntity(ent);
+                    Viewport.InvalidateViewport();
+                    StatusText.Text = $"Yapistirildi: {pasted.Count} nesne";
+                }
+                e.Handled = true;
+            }
             else if (isCtrlDown && e.Key == System.Windows.Input.Key.L)
             {
                 ToggleLeftPanel();
+                e.Handled = true;
+            }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.F)
+            {
+                _activeContext?.Viewport?.ZoomToSelection();
                 e.Handled = true;
             }
         }
@@ -2115,6 +2163,7 @@ namespace Afney.Cad.Presentation
                 // Yeni sekme oluştur ve yükle
                 CreateNewDocument(name, info.FullName);
                 LoadDwgInternal(openFileDialog.FileName);
+                _recentFiles.AddFile(info.FullName);
             }
         }
 

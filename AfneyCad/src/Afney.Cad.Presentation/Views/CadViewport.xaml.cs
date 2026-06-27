@@ -37,6 +37,37 @@ namespace Afney.Cad.Presentation.Views;
 
         private SnapPoint? _activeSnap;
         private Vector3D? _lastMouseWorldPos;
+        public Vector3D? LastMouseWorldPos => _lastMouseWorldPos;
+
+        public void ZoomToSelection()
+        {
+            if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+            var selected = _selectionManager.GetSelectedEntities().ToList();
+            double minX = double.MaxValue, minY = double.MaxValue;
+            double maxX = double.MinValue, maxY = double.MinValue;
+            foreach (var ent in selected)
+            {
+                var bb = ent.GetBoundingBox();
+                if (bb.Min.X < minX) minX = bb.Min.X;
+                if (bb.Min.Y < minY) minY = bb.Min.Y;
+                if (bb.Max.X > maxX) maxX = bb.Max.X;
+                if (bb.Max.Y > maxY) maxY = bb.Max.Y;
+            }
+            double width = maxX - minX;
+            double height = maxY - minY;
+            if (width < 1 || height < 1) return;
+            double padding = 1.2;
+            double cx = (minX + maxX) / 2;
+            double cy = (minY + maxY) / 2;
+            double screenW = CadCanvas.ActualWidth;
+            double screenH = CadCanvas.ActualHeight;
+            _zoom = Math.Min(screenW / (width * padding), screenH / (height * padding));
+            _zoom = Math.Clamp(_zoom, 1e-6, 100.0);
+            _offset = new Vector3D(screenW / 2.0 - cx * _zoom, screenH / 2.0 - cy * _zoom, 0);
+            _targetZoom = _zoom;
+            _targetOffset = _offset;
+            InvalidateViewport();
+        }
 
         private bool _isPanning = false;
         private Point _lastMousePosition;
