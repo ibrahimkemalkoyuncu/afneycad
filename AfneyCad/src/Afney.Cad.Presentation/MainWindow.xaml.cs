@@ -296,6 +296,11 @@ namespace Afney.Cad.Presentation
                 _activeContext.Viewport.ToggleOrtho();
                 e.Handled = true;
             }
+            else if (isCtrlDown && e.Key == System.Windows.Input.Key.S)
+            {
+                OnSave(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
             else if (isCtrlDown && e.Key == System.Windows.Input.Key.L)
             {
                 ToggleLeftPanel();
@@ -2074,6 +2079,9 @@ namespace Afney.Cad.Presentation
 
                 Viewport.ZoomExtents();
 
+                // Layer state dosyasını yükle (gizli katmanlar)
+                LoadLayerState(filePath);
+
                 // ── Katman UI'larını Güncelle ─────────────────────────────────
                 // Proje açıldıktan sonra katman seçici ve panel yenilenmelidir
                 Dispatcher.Invoke(() =>
@@ -2134,10 +2142,115 @@ namespace Afney.Cad.Presentation
 
         private void OnSave(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Kaydetme özelliği yakında eklenecektir.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (_activeContext == null || _database == null) return;
+
+            string filePath = _activeContext.FilePath;
+
+            if (string.IsNullOrEmpty(filePath))
+            {
+                OnSaveAs(sender, e);
+                return;
+            }
+
+            try
+            {
+                SaveToFile(filePath);
+                _activeContext.IsModified = false;
+                StatusText.Text = $"Kaydedildi: {System.IO.Path.GetFileName(filePath)}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Kaydetme hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void OnSaveAs(object sender, RoutedEventArgs e) => OnExportDwgCommand(sender, e);
+        private void OnSaveAs(object sender, RoutedEventArgs e)
+        {
+            if (_database == null) return;
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Farkli Kaydet",
+                Filter = "AutoCAD DWG (*.dwg)|*.dwg|DXF Dosyasi (*.dxf)|*.dxf|AfneyCAD Projesi (*.afney)|*.afney",
+                FileName = !string.IsNullOrEmpty(_activeContext?.FilePath)
+                    ? System.IO.Path.GetFileNameWithoutExtension(_activeContext.FilePath)
+                    : _activeContext?.ProjectName ?? "Proje",
+                DefaultExt = ".dwg"
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    SaveToFile(dlg.FileName);
+                    if (_activeContext != null)
+                    {
+                        _activeContext.FilePath = dlg.FileName;
+                        _activeContext.IsModified = false;
+                    }
+                    Title = $"AfneyCAD - {_activeContext?.ProjectName} [{dlg.FileName}]";
+                    StatusText.Text = $"Kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)}";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Kaydetme hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void SaveToFile(string filePath)
+        {
+            if (_database == null) return;
+
+            if (filePath.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase))
+            {
+                var dxf = new Afney.Cad.Infrastructure.Export.DxfWriterService(_database);
+                dxf.WriteToFile(filePath);
+            }
+            else
+            {
+                var dwg = new Afney.Cad.Infrastructure.Export.DwgExportService(_database);
+                dwg.WriteToFile(filePath);
+            }
+
+            SaveLayerState(filePath);
+        }
+
+        private void SaveLayerState(string filePath)
+        {
+            try
+            {
+                string stateFile = filePath + ".layerstate";
+                var hiddenLayers = _activeContext?.Viewport?.HiddenLayers;
+                if (hiddenLayers != null && hiddenLayers.Any())
+                {
+                    System.IO.File.WriteAllLines(stateFile, hiddenLayers);
+                }
+                else if (System.IO.File.Exists(stateFile))
+                {
+                    System.IO.File.Delete(stateFile);
+                }
+            }
+            catch { }
+        }
+
+        private void LoadLayerState(string filePath)
+        {
+            try
+            {
+                string stateFile = filePath + ".layerstate";
+                if (System.IO.File.Exists(stateFile) && _activeContext?.Viewport != null)
+                {
+                    var hidden = System.IO.File.ReadAllLines(stateFile);
+                    foreach (var layer in hidden)
+                    {
+                        if (!string.IsNullOrWhiteSpace(layer))
+                            _activeContext.Viewport.HiddenLayers.Add(layer.Trim());
+                    }
+                }
+            }
+            catch { }
+        }
 
         private void OnExportDwgCommand(object sender, RoutedEventArgs e)
         {

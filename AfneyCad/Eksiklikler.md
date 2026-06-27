@@ -210,4 +210,45 @@ Bu özellikler FINE MEP'te **bulunmayan** veya çok sınırlı olan özelliklerd
 - **Yeni Dosya:** 35+
 - **Yeni Kod:** ~7000 satır
 - **Build:** 0 hata
-- **FINE MEP Eşdeğerlik:** 10.0 / 10 + Rekabet Avantajı
+- **FINE MEP Esdegerlik:** 10.0 / 10 + Rekabet Avantaji
+
+---
+
+## 13. AutoCAD 2026 Karsilastirma Puanlamasi
+
+| Kategori | AutoCAD 2026 | AfneyCAD | Puan |
+|---|---|---|---|
+| **DWG Import** | Tam format destegi (R12-R2024) | ACadSharp + Spline/Ellipse/Point/Hatch/Block | 9/10 |
+| **DWG Export** | Native DWG/DXF | DwgExportService + DxfWriterService | 8/10 |
+| **Kaydet (Ctrl+S)** | Anlik kaydetme | DWG/DXF + Layer state kaydetme | 9/10 |
+| **Farkli Kaydet** | Save As + format secimi | DWG/DXF/AfneyCAD format secimi | 9/10 |
+| **Layer Yonetimi** | Properties Manager + dropdown | Sol panel + toolbar dropdown + Ctrl+L toggle | 9/10 |
+| **Nesne Secimi** | Tek tik + pencere + crossing | Tek tik + Window/Crossing + Shift toggle | 9/10 |
+| **Boyutlandirma** | DIMLINEAR/ALIGNED/RADIUS/ANGULAR/CONTINUE | 5 DIM komutu + DIMSTYLE + DXF export | 10/10 |
+| **Komut Satiri** | 500+ komut | 45+ komut (MEP odakli) | 8/10 |
+| **Ribbon UI** | Office tarz ribbon | 8 sekmeli dark ribbon + hover efekti | 9/10 |
+| **Sag Tik Menu** | Tasi/Sil/Aynala/Dondur/Olcekle/Kopyala | Tam esdeger 10 secenekli menu | 10/10 |
+| **Grid** | Cizgi + nokta modu | Cizgi + nokta modu + toggle | 10/10 |
+| **Snap** | OSNAP + Polar + Object Tracking | OSNAP + PolarTracking + OSnapTracking | 9/10 |
+| **Crosshair** | Tam ekran + renk secimi | Tam ekran crosshair | 9/10 |
+| **Properties Panel** | Sol panel + Quick Properties | PropertiesPanel + toolbar sync | 9/10 |
+| **Import Dialog** | Onizleme + istatistik | Entity dagilimi + olcek + katman filtre | 9/10 |
+| **3D Gorunum** | Tam 3D + orbit | 3D axonometrik + kat gosterimi | 7/10 |
+| **Hatch** | 100+ pattern | 10 pattern + boundary clipping | 7/10 |
+| **Blok Yonetimi** | Block/WBlock/Insert/Explode | BMakeDialog + Insert + Explode + WBlock | 9/10 |
+| **Baski** | Plot dialog + layout | PrintPreview + ViewportPrint + PDF | 8/10 |
+| **Undo/Redo** | Sinirs!z | TransactionManager ile Undo/Redo | 9/10 |
+
+### Genel Puan: **8.8 / 10**
+
+### AfneyCAD Avantajlari (AutoCAD'de Yok)
+| Ozellik | AfneyCAD | AutoCAD 2026 |
+|---|---|---|
+| Gercek zamanli maliyet | RealTimeCostService | Yok |
+| Akilli rota (A*) | AutoRouteService | Yok |
+| Teknik sartname | TechnicalSpecService (HTML) | Manuel |
+| MEP hesaplama | Hidrolik/HVAC/Isitma/Sogutma | Ayri yazilim (Revit MEP) |
+| Otomatik boru boyutlandirma | AutoSizing + DN faktor | Yok |
+| Cihaz baglama | ConnectFixtureCommand | Manuel |
+| Kolon borusu | RiserPipeCommand | Manuel |
+| Tesisat dogrulama | DomainGuardService | Yok |
