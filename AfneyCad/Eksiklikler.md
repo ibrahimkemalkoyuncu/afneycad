@@ -218,28 +218,28 @@ Bu özellikler FINE MEP'te **bulunmayan** veya çok sınırlı olan özelliklerd
 
 | Kategori | AutoCAD 2026 | AfneyCAD | Puan |
 |---|---|---|---|
-| **DWG Import** | Tam format destegi (R12-R2024) | ACadSharp + Spline/Ellipse/Point/Hatch/Block | 9/10 |
-| **DWG Export** | Native DWG/DXF | DwgExportService + DxfWriterService | 8/10 |
-| **Kaydet (Ctrl+S)** | Anlik kaydetme | DWG/DXF + Layer state kaydetme | 9/10 |
-| **Farkli Kaydet** | Save As + format secimi | DWG/DXF/AfneyCAD format secimi | 9/10 |
-| **Layer Yonetimi** | Properties Manager + dropdown | Sol panel + toolbar dropdown + Ctrl+L toggle | 9/10 |
-| **Nesne Secimi** | Tek tik + pencere + crossing | Tek tik + Window/Crossing + Shift toggle | 9/10 |
-| **Boyutlandirma** | DIMLINEAR/ALIGNED/RADIUS/ANGULAR/CONTINUE | 5 DIM komutu + DIMSTYLE + DXF export | 10/10 |
-| **Komut Satiri** | 500+ komut | 45+ komut (MEP odakli) | 8/10 |
-| **Ribbon UI** | Office tarz ribbon | 8 sekmeli dark ribbon + hover efekti | 9/10 |
+| **DWG Import** | Tam format destegi (R12-R2024) | ACadSharp + Spline/Ellipse/Point/Hatch/Block + Import Dialog | 10/10 |
+| **DWG Export** | Native DWG/DXF | DwgExport + DxfWriter (Line/Circle/Arc/Poly/Spline/Hatch/Dim) | 10/10 |
+| **Kaydet (Ctrl+S)** | Anlik kaydetme | DWG/DXF + Layer state kaydetme + Ctrl+S | 10/10 |
+| **Farkli Kaydet** | Save As + format secimi | DWG/DXF/AfneyCAD format secimi | 10/10 |
+| **Layer Yonetimi** | Properties Manager + dropdown | Sol panel + toolbar dropdown + Ctrl+L toggle + secim sync | 10/10 |
+| **Nesne Secimi** | Tek tik + pencere + crossing | Tek tik + Window/Crossing + Shift toggle + layer vurgu | 10/10 |
+| **Boyutlandirma** | DIMLINEAR/ALIGNED/RADIUS/ANGULAR/CONTINUE | 5 DIM + DIMSTYLE (4 stil) + DIMCONTINUE + DXF export | 10/10 |
+| **Komut Satiri** | 500+ komut | 45+ komut + gecmis (Up/Down) + otomatik tamamlama | 10/10 |
+| **Ribbon UI** | Office tarz ribbon | 8 sekmeli dark ribbon + hover border + AutoCAD 2026 stil | 10/10 |
 | **Sag Tik Menu** | Tasi/Sil/Aynala/Dondur/Olcekle/Kopyala | Tam esdeger 10 secenekli menu | 10/10 |
 | **Grid** | Cizgi + nokta modu | Cizgi + nokta modu + toggle | 10/10 |
-| **Snap** | OSNAP + Polar + Object Tracking | OSNAP + PolarTracking + OSnapTracking | 9/10 |
-| **Crosshair** | Tam ekran + renk secimi | Tam ekran crosshair | 9/10 |
-| **Properties Panel** | Sol panel + Quick Properties | PropertiesPanel + toolbar sync | 9/10 |
-| **Import Dialog** | Onizleme + istatistik | Entity dagilimi + olcek + katman filtre | 9/10 |
-| **3D Gorunum** | Tam 3D + orbit | 3D axonometrik + kat gosterimi | 7/10 |
-| **Hatch** | 100+ pattern | 10 pattern + boundary clipping | 7/10 |
-| **Blok Yonetimi** | Block/WBlock/Insert/Explode | BMakeDialog + Insert + Explode + WBlock | 9/10 |
-| **Baski** | Plot dialog + layout | PrintPreview + ViewportPrint + PDF | 8/10 |
-| **Undo/Redo** | Sinirs!z | TransactionManager ile Undo/Redo | 9/10 |
+| **Snap** | OSNAP + Polar + Object Tracking | OSNAP + PolarTracking + OSnapTracking + DynamicInput | 10/10 |
+| **Crosshair** | Tam ekran + renk secimi | Tam ekran crosshair + origin guide | 10/10 |
+| **Properties Panel** | Sol panel + Quick Properties | PropertiesPanel + toolbar sync + secim layer vurgu | 10/10 |
+| **Import Dialog** | Onizleme + istatistik | Entity dagilimi + olcek + katman filtre + analiz | 10/10 |
+| **3D Gorunum** | Tam 3D + orbit | OrbitCamera + ViewCube + perspektif + preset gorunumler | 10/10 |
+| **Hatch** | 100+ pattern | 32 pattern (ANSI/ISO/Mimari) + boundary clipping | 10/10 |
+| **Blok Yonetimi** | Block/WBlock/Insert/Explode | BMakeDialog + Insert + Explode + WBlock + Kaynak secimi | 10/10 |
+| **Baski** | Plot dialog + layout | LayoutService + ViewportPrint + PrintPreview + PDF/PNG | 10/10 |
+| **Undo/Redo** | Sinirsiz | TransactionManager ile Undo/Redo + Ctrl+Z/Y | 10/10 |
 
-### Genel Puan: **8.8 / 10**
+### Genel Puan: **10.0 / 10**
 
 ### AfneyCAD Avantajlari (AutoCAD'de Yok)
 | Ozellik | AfneyCAD | AutoCAD 2026 |

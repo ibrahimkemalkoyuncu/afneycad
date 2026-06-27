@@ -7,6 +7,7 @@ using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Domain.Entities.Annotation;
+using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Domain.Tables;
 using Afney.Cad.Geometry.Primitives;
 
@@ -179,6 +180,15 @@ public class DxfWriterService
                 case DimensionEntity dim:
                     WriteDimension(sb, dim);
                     break;
+                case LwPolylineEntity poly:
+                    WritePolyline(sb, poly);
+                    break;
+                case SplineEntity spline:
+                    WriteSpline(sb, spline);
+                    break;
+                case HatchEntity hatch:
+                    WriteHatch(sb, hatch);
+                    break;
             }
         }
 
@@ -312,6 +322,41 @@ public class DxfWriterService
         Group(sb, 40, height.ToString("F2"));
         Group(sb, 1, text);
         Group(sb, 50, rotation.ToString("F2"));
+    }
+
+    private static void WritePolyline(StringBuilder sb, LwPolylineEntity poly)
+    {
+        var pts = poly.Vertices?.ToList();
+        if (pts == null || pts.Count < 2) return;
+        for (int i = 0; i < pts.Count - 1; i++)
+        {
+            WriteDxfLine(sb, poly.Layer ?? "0", ArgbToAci(poly.Color), pts[i], pts[i + 1]);
+        }
+        if (poly.IsClosed && pts.Count > 2)
+            WriteDxfLine(sb, poly.Layer ?? "0", ArgbToAci(poly.Color), pts[^1], pts[0]);
+    }
+
+    private static void WriteSpline(StringBuilder sb, SplineEntity spline)
+    {
+        var pts = spline.ControlPoints?.ToList();
+        if (pts == null || pts.Count < 2) return;
+        for (int i = 0; i < pts.Count - 1; i++)
+        {
+            WriteDxfLine(sb, spline.Layer ?? "0", ArgbToAci(spline.Color), pts[i], pts[i + 1]);
+        }
+    }
+
+    private static void WriteHatch(StringBuilder sb, HatchEntity hatch)
+    {
+        var verts = hatch.BoundaryVertices?.ToList();
+        if (verts == null || verts.Count < 3) return;
+        string layer = hatch.Layer ?? "0";
+        int aci = ArgbToAci(hatch.Color);
+        for (int i = 0; i < verts.Count; i++)
+        {
+            int j = (i + 1) % verts.Count;
+            WriteDxfLine(sb, layer, aci, verts[i], verts[j]);
+        }
     }
 
     // ── FOOTER ──────────────────────────────────────────────────────────────────

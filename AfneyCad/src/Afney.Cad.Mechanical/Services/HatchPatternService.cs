@@ -15,7 +15,31 @@ public enum HatchPatternType
     Steel,
     Sand,
     CrossHatch,
-    Diagonal
+    Diagonal,
+    // ANSI Patterns
+    ANSI31_Iron,
+    ANSI32_Steel,
+    ANSI33_Bronze,
+    ANSI34_Plastic,
+    ANSI35_FireBrick,
+    ANSI36_Marble,
+    ANSI37_Lead,
+    ANSI38_Zinc,
+    // ISO Patterns
+    ISO_Concrete,
+    ISO_Wood,
+    ISO_Metal,
+    ISO_Glass,
+    ISO_Ground,
+    // Mimari
+    Roof_Tile,
+    Wood_Plank,
+    Stone_Rubble,
+    Gravel,
+    Grass,
+    Dots,
+    Zigzag,
+    Herringbone
 }
 
 public class HatchPatternService
@@ -34,6 +58,27 @@ public class HatchPatternService
         [HatchPatternType.Sand]        = ("KUM",         0,   5.0),
         [HatchPatternType.CrossHatch]  = ("CAPRAZ",      0,   3.0),
         [HatchPatternType.Diagonal]    = ("DIYAGONAL",  45,   3.0),
+        [HatchPatternType.ANSI31_Iron]     = ("ANSI31",  45,  1.5),
+        [HatchPatternType.ANSI32_Steel]    = ("ANSI32",  45,  3.0),
+        [HatchPatternType.ANSI33_Bronze]   = ("ANSI33",  45,  2.0),
+        [HatchPatternType.ANSI34_Plastic]  = ("ANSI34",  45,  4.0),
+        [HatchPatternType.ANSI35_FireBrick]= ("ANSI35",   0,  2.5),
+        [HatchPatternType.ANSI36_Marble]   = ("ANSI36",  30,  3.5),
+        [HatchPatternType.ANSI37_Lead]     = ("ANSI37",  45,  1.0),
+        [HatchPatternType.ANSI38_Zinc]     = ("ANSI38",  45,  2.5),
+        [HatchPatternType.ISO_Concrete]    = ("ISO_BETON",45,  2.0),
+        [HatchPatternType.ISO_Wood]        = ("ISO_AHSAP", 0,  4.0),
+        [HatchPatternType.ISO_Metal]       = ("ISO_METAL",45,  1.5),
+        [HatchPatternType.ISO_Glass]       = ("ISO_CAM",  0,   5.0),
+        [HatchPatternType.ISO_Ground]      = ("ISO_ZEMIN", 0,  3.0),
+        [HatchPatternType.Roof_Tile]       = ("KIREMIT",  30,  3.0),
+        [HatchPatternType.Wood_Plank]      = ("TAHTA",     0,  4.0),
+        [HatchPatternType.Stone_Rubble]    = ("TAS",      15,  5.0),
+        [HatchPatternType.Gravel]          = ("CAKIL",     0,  6.0),
+        [HatchPatternType.Grass]           = ("CIMEN",    75,  4.0),
+        [HatchPatternType.Dots]            = ("NOKTA",     0,  3.0),
+        [HatchPatternType.Zigzag]          = ("ZIGZAG",    0,  3.0),
+        [HatchPatternType.Herringbone]     = ("BALIK_SIRTI",45, 2.0),
     };
 
     public List<CadEntity> GeneratePattern(List<Vector3D> boundary, HatchPatternType type, double scale = 1.0)
