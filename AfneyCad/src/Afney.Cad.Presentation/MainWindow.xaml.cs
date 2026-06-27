@@ -839,6 +839,68 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnRouteDuctCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.RouteDuctCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnConnectDuctCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.ConnectDuctCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnSelectAreaCommand(object sender, RoutedEventArgs e)
+        {
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.SelectAreaCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnSelectionBomCommand(object sender, RoutedEventArgs e)
+        {
+            var selected = _activeContext?.SelectionManager?.GetSelectedEntities();
+            if (selected == null || !selected.Any())
+            {
+                MessageBox.Show("Metraj icin once nesne secin.", "Secim Metraj", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var svc = new Afney.Cad.Mechanical.Services.SelectionBomService();
+            var result = svc.Calculate(selected);
+            StatusText.Text = result.Summary;
+
+            var answer = MessageBox.Show($"{result.Summary}\n\nHTML rapor olusturulsun mu?", "Secim Metraj",
+                MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+            if (answer == MessageBoxResult.Yes)
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Secim Metraj Kaydet",
+                    Filter = "HTML (*.html)|*.html",
+                    FileName = $"Secim_Metraj_{DateTime.Now:yyyyMMdd_HHmm}",
+                    DefaultExt = ".html"
+                };
+                if (dlg.ShowDialog() == true)
+                {
+                    string html = svc.ExportToHtml(result);
+                    System.IO.File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
+                    catch { }
+                }
+            }
+        }
+
         private void OnHvacBomCommand(object sender, RoutedEventArgs e)
         {
             try
@@ -1666,6 +1728,28 @@ namespace Afney.Cad.Presentation
                     case "kanalmetraj":
                     case "ductbom":
                         OnHvacBomCommand(this, new RoutedEventArgs());
+                        break;
+                    // Kanal Cizim
+                    case "duct":
+                    case "kanal":
+                        OnRouteDuctCommand(this, new RoutedEventArgs());
+                        break;
+                    // Kanal Baglama
+                    case "ductconnect":
+                    case "kanalbagla":
+                    case "dc":
+                        OnConnectDuctCommand(this, new RoutedEventArgs());
+                        break;
+                    // Alan Secimi
+                    case "area":
+                    case "alan":
+                        OnSelectAreaCommand(this, new RoutedEventArgs());
+                        break;
+                    // Secim Metraj
+                    case "secimmetraj":
+                    case "selbom":
+                    case "sm":
+                        OnSelectionBomCommand(this, new RoutedEventArgs());
                         break;
                     // AutoRoute
                     case "autoroute":
