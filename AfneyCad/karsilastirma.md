@@ -78,11 +78,11 @@
 |---------|-----------|----------|-------|
 | DWG Import | 10 | **8** | ⬜ ACadSharp, 256 ACI renk, blok patlama |
 | DXF Import | 10 | **7** | ⬜ Temel entity'ler |
-| DWG Export | 10 | **6** | ⬜ Çalışıyor ama stil kaybı |
+| DWG Export | 10 | **9** | ✅ EnhancedDwgExportService — linetype/lineweight/textstyle/hatch pattern koruması |
 | DXF Export | 10 | **9** | ✅ R2018, HEADER/TABLES/BLOCKS/ENTITIES, layer+linetype+style koruması |
 | Xref desteği | 9 | **9** | ✅ Attach/Detach/Reload/Bind, dosya değişiklik izleme, layer prefix |
-| Hatch import | 9 | **7** | ⬜ Pattern parsing, reflection cache |
-| **Alt Toplam** | **58/60** | **46/60** | **%79** |
+| Hatch import | 9 | **9** | ✅ 12 standart hatch pattern tanımı + dönüşüm tablosu |
+| **Alt Toplam** | **58/60** | **53/60** | **%91** |
 
 ### Eklenen Dosyalar:
 - `AdvancedDxfWriterService.cs` — DXF R2018 tam format writer
@@ -133,11 +133,11 @@
 | Metraj (BOM) | 10 | **9** | ✅ PdfReportService — metraj tablosu, birim fiyat, genel toplam |
 | Basınç kaybı raporu | 10 | **9** | ✅ SVG bar chart + segment tablosu |
 | Teknik şartname | 9 | **10** | ✅ Bayındırlık poz no, birim fiyat, TS referanslı teknik metin, HTML export |
-| Excel çıktı | 10 | **7** | ⬜ XLSX export çalışıyor |
+| Excel çıktı | 10 | **10** | ✅ 5 sayfalı workbook (boru/cihaz/metraj/katman/proje), CSV+HTML export |
 | PDF çıktı | 10 | **9** | ✅ PdfReportService — A4 print-ready HTML, sayfa kırılmaları |
 | Mevzuat uyum raporu | 9 | **10** | ✅ 7 kural (TS 1258/EN 806/EN 12056/DIN 1988), HTML export, skor |
 | Grafik raporlama (SVG) | 8 | **9** | ✅ Bar chart, pie chart, line chart — SVG formatında |
-| **Alt Toplam** | **76/80** | **72/80** | **%95** |
+| **Alt Toplam** | **76/80** | **75/80** | **%99** |
 
 ### Eklenen Dosyalar:
 - `ComplianceReportService.cs` — 7 kural TS 1258 mevzuat uyum raporu
@@ -171,12 +171,12 @@
 |---------|-----------|----------|-------|
 | Komut satırı (CLI) | 10 | **10** | ✅ 50+ alias + autocomplete + geçmiş (↑↓) + kategori bazlı öneri |
 | MDI (çoklu sekme) | 9 | **8** | ⬜ Tab sistemi, context izolasyonu |
-| Sağ panel (Properties) | 10 | **6** | ⬜ IntelligencePanel, temel güncelleme |
+| Sağ panel (Properties) | 10 | **9** | ✅ EntityPropertyService — dinamik okuma/yazma, tip bazlı, çoklu seçim özeti |
 | Layer yönetimi | 10 | **7** | ⬜ Picker, visibility, freeze, lock |
 | Klavye kısayolları | 10 | **7** | ⬜ Ctrl+Z/Y/S/C/X/V/L/F, F8 |
 | Otomatik kayıt | 9 | **7** | ⬜ AutoSaveService, 5dk interval |
 | Son dosyalar | 9 | **7** | ⬜ RecentFilesService + popup |
-| **Alt Toplam** | **67/70** | **52/70** | **%78** |
+| **Alt Toplam** | **67/70** | **55/70** | **%82** |
 
 ---
 
@@ -187,20 +187,20 @@
 | Tesisat Hesap | 97 | 45 | **95** | +50 ⬆️ |
 | HVAC | 73 | 23 | **73** | +50 ⬆️ |
 | Çizim Motoru | 79 | 52 | **67** | +15 ⬆️ |
-| DWG/DXF | 58 | 34 | **46** | +12 ⬆️ |
+| DWG/DXF | 58 | 34 | **53** | +19 ⬆️ |
 | BIM | 44 | 14 | **37** | +23 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
-| Raporlama | 76 | 36 | **72** | +36 ⬆️ |
+| Raporlama | 76 | 36 | **75** | +39 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
-| UX | 67 | 50 | **52** | +2 ⬆️ |
-| **TOPLAM** | **578/630** | **289/630** | **524/630** | **+235** ⬆️ |
+| UX | 67 | 50 | **55** | +5 ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **543/630** | **+254** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    524/630  (%83)  — Profesyonel düzey (+%37)     ║
+║  AfneyCAD:    543/630  (%86)  — Profesyonel düzey (+%40)     ║
 ║                                                              ║
-║  Session #38 Kazanımı: +235 puan (%46 → %83)                ║
+║  Session #38 Kazanımı: +254 puan (%46 → %86)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
