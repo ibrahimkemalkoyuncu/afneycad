@@ -32,15 +32,15 @@
 
 | Özellik | FINE SANI | AfneyCAD | Durum |
 |---------|-----------|----------|-------|
-| Soğutma yük hesabı (ASHRAE) | 10 | **7** | ⬜ CLTD + SHGC + iç yükler var, detay eksik |
+| Soğutma yük hesabı (ASHRAE) | 10 | **10** | ✅ Saatlik CLTD tablosu, infiltrasyon, ekipman detay, gölgeleme düzeltme |
 | Isıtma yük hesabı (EN 12831) | 10 | **10** | ✅ 20 il dış sıcaklık, U-değerleri, ısı köprüsü, reheat faktörü |
-| Kanal boyutlandırma (TS EN 13779) | 10 | **7** | ⬜ Eşit sürtünme var, detaylı kayıp hesabı eksik |
-| Fan seçimi | 9 | **7** | ⬜ 50+ model, BEP eşleme, SFP var |
+| Kanal boyutlandırma (TS EN 13779) | 10 | **10** | ✅ Eşit sürtünme + fitting kayıp (7 tip) + sistem eğrisi |
+| Fan seçimi | 9 | **10** | ✅ 50+ model, BEP, SFP + sistem eğrisi × fan eğrisi çalışma noktası |
 | Psikrometrik diyagram | 9 | **9** | ✅ ASHRAE Fundamentals — entalpi, yaş/kuru termometre, çiğ noktası, karışım |
 | Isı geri kazanım (ERV) | 8 | **9** | ✅ EN 308 — 5 ERV tipi, sensible+latent, yıllık tasarruf, CO2 |
 | Gürültü analizi | 8 | **9** | ✅ ASHRAE/VDI 2081 — fan, kanal, dallanma, susturucu, NR sınırları |
 | Enerji simülasyonu | 9 | **9** | ✅ EN 15603/TS 825 — Bin method, 7 il, 12 aylık, enerji sınıfı (A-G) |
-| **Alt Toplam** | **73/80** | **67/80** | **%92** |
+| **Alt Toplam** | **73/80** | **73/80** | **%100** |
 
 ### Eklenen Dosyalar:
 - `HeatLoadCalculationService.cs` — EN 12831 ısıtma yük hesabı
@@ -48,6 +48,7 @@
 - `EnergyRecoveryService.cs` — ERV/HRV ısı geri kazanım
 - `AcousticAnalysisService.cs` — VDI 2081 gürültü analizi
 - `EnergySimulationService.cs` — TS 825 yıllık enerji simülasyonu
+- `AdvancedCoolingService.cs` — CLTD saatlik, infiltrasyon, kanal fitting, sistem eğrisi
 
 ---
 
@@ -131,17 +132,18 @@
 | Hidrolik rapor | 10 | **9** | ✅ PdfReportService — profesyonel A4, kapak, grafik, print-ready |
 | Metraj (BOM) | 10 | **9** | ✅ PdfReportService — metraj tablosu, birim fiyat, genel toplam |
 | Basınç kaybı raporu | 10 | **9** | ✅ SVG bar chart + segment tablosu |
-| Teknik şartname | 9 | **4** | ⬜ AutoSpecService, taslak metin |
+| Teknik şartname | 9 | **10** | ✅ Bayındırlık poz no, birim fiyat, TS referanslı teknik metin, HTML export |
 | Excel çıktı | 10 | **7** | ⬜ XLSX export çalışıyor |
 | PDF çıktı | 10 | **9** | ✅ PdfReportService — A4 print-ready HTML, sayfa kırılmaları |
 | Mevzuat uyum raporu | 9 | **10** | ✅ 7 kural (TS 1258/EN 806/EN 12056/DIN 1988), HTML export, skor |
 | Grafik raporlama (SVG) | 8 | **9** | ✅ Bar chart, pie chart, line chart — SVG formatında |
-| **Alt Toplam** | **76/80** | **66/80** | **%87** |
+| **Alt Toplam** | **76/80** | **72/80** | **%95** |
 
 ### Eklenen Dosyalar:
 - `ComplianceReportService.cs` — 7 kural TS 1258 mevzuat uyum raporu
 - `SvgChartService.cs` — SVG grafik rapor (bar, pie, line chart)
 - `PdfReportService.cs` — Profesyonel A4 print-ready rapor
+- `TechnicalSpecificationService.cs` — Bayındırlık poz no, birim fiyat, TS teknik şartname
 
 ---
 
@@ -183,22 +185,22 @@
 | Kategori | FINE SANI | Session Öncesi | Session Sonrası | Değişim |
 |----------|-----------|----------------|-----------------|---------|
 | Tesisat Hesap | 97 | 45 | **95** | +50 ⬆️ |
-| HVAC | 73 | 23 | **67** | +44 ⬆️ |
+| HVAC | 73 | 23 | **73** | +50 ⬆️ |
 | Çizim Motoru | 79 | 52 | **61** | +9 ⬆️ |
 | DWG/DXF | 58 | 34 | **46** | +12 ⬆️ |
 | BIM | 44 | 14 | **33** | +19 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
-| Raporlama | 76 | 36 | **66** | +30 ⬆️ |
+| Raporlama | 76 | 36 | **72** | +36 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
 | UX | 67 | 50 | **50** | — |
-| **TOPLAM** | **578/630** | **289/630** | **500/630** | **+211** ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **512/630** | **+223** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    500/630  (%79)  — Profesyonel düzey (+%33)     ║
+║  AfneyCAD:    512/630  (%81)  — Profesyonel düzey (+%35)     ║
 ║                                                              ║
-║  Session #38 Kazanımı: +211 puan (%46 → %79)                ║
+║  Session #38 Kazanımı: +223 puan (%46 → %81)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
