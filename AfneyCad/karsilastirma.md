@@ -57,14 +57,14 @@
 | Özellik | FINE SANI | AfneyCAD | Durum |
 |---------|-----------|----------|-------|
 | 2D render kalitesi | 10 | **8** | ⬜ SkiaSharp, hairline, linetype, AA |
-| Snap (OSNAP) | 10 | **7** | ⬜ End/Mid/Center/Perp, zoom-adaptif |
+| Snap (OSNAP) | 10 | **10** | ✅ End/Mid/Center/Perp + Intersection/Tangent/Nearest/Quadrant/Extension |
 | Selection sistemi | 10 | **9** | ✅ Rect/pick + Fence/Polygon/Layer/Type/Color seçim |
 | Zoom/Pan performansı | 10 | **6** | ⬜ Brute-force iterasyon, 100k+ sorunlu |
 | 3D izometrik görünüm | 9 | **9** | ✅ 30-30 projeksiyon, Cabinet, Perspective, ViewCube, Z-sort |
 | Blok kütüphanesi | 10 | **9** | ✅ MepBlockLibraryService — 38 MEP sembol (TS 7363/ISO 4067), 7 kategori |
 | Undo/Redo | 10 | **8** | ⬜ Transaction tabanlı, CompositeOperation |
 | Ortho/Grid | 10 | **8** | ⬜ F8, grid dot/line modu |
-| **Alt Toplam** | **79/80** | **64/80** | **%81** |
+| **Alt Toplam** | **79/80** | **67/80** | **%85** |
 
 ### Eklenen Dosyalar:
 - `AdvancedSelectionService.cs` — Fence, Polygon, Layer, Type, Color seçim modları
@@ -169,14 +169,14 @@
 
 | Özellik | FINE SANI | AfneyCAD | Durum |
 |---------|-----------|----------|-------|
-| Komut satırı (CLI) | 10 | **8** | ⬜ 50+ alias (L, C, P, TRIM, BOM...) |
+| Komut satırı (CLI) | 10 | **10** | ✅ 50+ alias + autocomplete + geçmiş (↑↓) + kategori bazlı öneri |
 | MDI (çoklu sekme) | 9 | **8** | ⬜ Tab sistemi, context izolasyonu |
 | Sağ panel (Properties) | 10 | **6** | ⬜ IntelligencePanel, temel güncelleme |
 | Layer yönetimi | 10 | **7** | ⬜ Picker, visibility, freeze, lock |
 | Klavye kısayolları | 10 | **7** | ⬜ Ctrl+Z/Y/S/C/X/V/L/F, F8 |
 | Otomatik kayıt | 9 | **7** | ⬜ AutoSaveService, 5dk interval |
 | Son dosyalar | 9 | **7** | ⬜ RecentFilesService + popup |
-| **Alt Toplam** | **67/70** | **50/70** | **%75** |
+| **Alt Toplam** | **67/70** | **52/70** | **%78** |
 
 ---
 
@@ -186,21 +186,21 @@
 |----------|-----------|----------------|-----------------|---------|
 | Tesisat Hesap | 97 | 45 | **95** | +50 ⬆️ |
 | HVAC | 73 | 23 | **73** | +50 ⬆️ |
-| Çizim Motoru | 79 | 52 | **64** | +12 ⬆️ |
+| Çizim Motoru | 79 | 52 | **67** | +15 ⬆️ |
 | DWG/DXF | 58 | 34 | **46** | +12 ⬆️ |
 | BIM | 44 | 14 | **37** | +23 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
 | Raporlama | 76 | 36 | **72** | +36 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
-| UX | 67 | 50 | **50** | — |
-| **TOPLAM** | **578/630** | **289/630** | **519/630** | **+230** ⬆️ |
+| UX | 67 | 50 | **52** | +2 ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **524/630** | **+235** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    519/630  (%82)  — Profesyonel düzey (+%36)     ║
+║  AfneyCAD:    524/630  (%83)  — Profesyonel düzey (+%37)     ║
 ║                                                              ║
-║  Session #38 Kazanımı: +230 puan (%46 → %82)                ║
+║  Session #38 Kazanımı: +235 puan (%46 → %83)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
