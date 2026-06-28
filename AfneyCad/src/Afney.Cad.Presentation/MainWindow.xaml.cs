@@ -347,13 +347,13 @@ namespace Afney.Cad.Presentation
             {
                 if (_clipboard.HasContent)
                 {
-                    var mousePos = Viewport.LastMouseWorldPos;
-                    var target = mousePos ?? new Afney.Cad.Geometry.Primitives.Vector3D(0, 0, 0);
-                    var pasted = _clipboard.Paste(target);
-                    foreach (var ent in pasted)
-                        _database.AddEntity(ent);
-                    Viewport.InvalidateViewport();
-                    StatusText.Text = $"Yapistirildi: {pasted.Count} nesne";
+                    var basePoint = new Afney.Cad.Geometry.Primitives.Vector3D(0, 0, 0);
+                    var entities = _clipboard.Paste(basePoint);
+                    var cmd = new Afney.Cad.Commands.BasicCommands.PasteCommand(_database, _history.TransactionManager, entities, basePoint);
+                    cmd.OnFeedback  += msg => StatusText.Text = msg;
+                    cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+                    Viewport.SetActiveCommand(cmd);
+                    cmd.Start();
                 }
                 e.Handled = true;
             }
