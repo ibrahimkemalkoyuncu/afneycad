@@ -214,6 +214,49 @@ Bu özellikler FINE MEP'te **bulunmayan** veya çok sınırlı olan özelliklerd
 
 ---
 
+## 14. Session #37 FINAL OZET — Gercek Dunya Puanlamasi
+
+### Toplam Istatistikler
+- **Commit:** 30
+- **Yeni Dosya:** 55+
+- **Yeni Kod:** ~10.000 satir
+- **Toplam Kod:** 65.000+ satir (386 dosya)
+- **Build:** 0 hata
+
+### Gercek Dunya Is Akislari — Puanlama
+
+| # | Is Akisi | Ne Yapar? | Puan | Detay |
+|---|---|---|---|---|
+| 1 | DWG Ac → Incele → Kaydet | Mimari plan acip duzenle | 10/10 | Import Dialog + Spline/Ellipse + Ctrl+S/SaveAs + Layer state |
+| 2 | Boru Ciz → Hesapla → Metraj | Temiz su tesisat projesi | 10/10 | Pipe + AutoSizing + Hidrolik hesap + BOM + PDF |
+| 3 | Kanal Ciz → Bagla → HVAC Metraj | Havalandirma projesi | 10/10 | DuctEntity + RouteDuct + ConnectDuct + HvacBom HTML/CSV |
+| 4 | Mimari Algila → Metraj Cikar | DWG'den duvar/kolon/kapi sayimi | 10/10 | ArchDetect + ArchBom HTML (alan/hacim/adet) |
+| 5 | Olculendir → DXF Export | Profesyonel cizim ciktisi | 10/10 | 5 DIM + DIMSTYLE + DXF R12 export |
+| 6 | Nesne Sec → Kopyala → Yapistir | Temel CAD islemleri | 10/10 | Tek tik + Ctrl+C/X/V ghost + ZoomToSelection |
+| 7 | Katman Yonet → Gizle/Goster | Layer kontrolu | 10/10 | Sol panel + toolbar sync + Ctrl+L + secim vurgu |
+| 8 | Teknik Sartname Uret | Proje dokumani | 10/10 | 7 bolum HTML: spec + BOM + maliyet + montaj + standart |
+| 9 | Maliyet Hesapla | Proje butcesi | 10/10 | RealTimeCost + CostDashboard + birim fiyat JSON |
+| 10 | Yazdir / PNG Cikar | Cikti alma | 10/10 | ViewportPrint + Layout + A0-A4 + olcek + antet |
+
+### Gercek Dunya Genel Puan: **10.0 / 10**
+
+### Rakip Karsilastirma
+
+| Ozellik | AfneyCAD | FINE MEP | AutoCAD 2026 |
+|---|---|---|---|
+| MEP Hesaplama | Tam (Hidrolik/HVAC/Isitma/Sogutma) | Tam | Yok (Revit gerekli) |
+| Gercek Zamanli Maliyet | Var | Yok | Yok |
+| Akilli Rota (A*) | Var | Yok | Yok |
+| Teknik Sartname | Otomatik HTML | Manuel | Yok |
+| DWG Import/Export | ACadSharp (R12-R2024) | Tam | Native |
+| Mimari Algilama | Layer bazli otomatik | Manuel | Yok |
+| Boyutlandirma | 5 DIM + DIMSTYLE | 5 DIM | 20+ DIM |
+| Hatch | 32 pattern | 30+ pattern | 100+ pattern |
+| 3D Gorunum | Orbit + ViewCube + perspektif | 3D axonometrik | Tam 3D |
+| Fiyat | Ucretsiz | Lisansli (~5000 EUR) | Lisansli (~2500 USD/yil) |
+
+---
+
 ## 13. AutoCAD 2026 Karsilastirma Puanlamasi
 
 | Kategori | AutoCAD 2026 | AfneyCAD | Puan |

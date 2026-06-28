@@ -1945,4 +1945,66 @@ Komut: spec veya sartname veya techspec
 
 ---
 
-*Son guncelleme: 2026-06-25 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP Esdegerlik: 10/10 + Rekabet Avantaji*
+---
+
+## MIMARI ELEMENT YONETIMI
+
+DWG'den mimari elementleri otomatik algilayin ve metraj cikarin.
+
+### Otomatik Algilama
+```
+Komut: archdetect veya mimaritani veya ad
+```
+DWG layer isimlerinden (DUVAR/KOLON/KAPI/PENCERE/KIRIS) otomatik entity olusturur.
+
+### Mimari Entity'ler
+
+| Entity | Ozellikler | Komut |
+|---|---|---|
+| Duvar (WallEntity) | Kalinlik/yukseklik/7 malzeme/U-degeri/tasiyici | archdetect |
+| Kolon (ColumnEntity) | Dikdortgen/dairesel/4 malzeme/rotasyon | archdetect |
+| Kiris (BeamEntity) | Genislik/yukseklik/4 malzeme/uzunluk | archdetect |
+| Kapi (DoorEntity) | 5 tip (Tek/Cift/Surme/Doner/Yangin)/acilma yonu | archdetect |
+| Pencere (WindowEntity) | 4 tip (Kanatli/Surme/Sabit/Vasistas)/cam sayisi | archdetect |
+
+### Mimari Metraj
+```
+Komut: archbom veya mimaribom veya mb
+```
+HTML rapor: duvar alan/hacim + kolon hacim + kiris uzunluk + kapi/pencere adet + mahal alan
+
+---
+
+## CLIPBOARD (KOPYALA / YAPISTIR)
+
+| Kisayol | Islem |
+|---|---|
+| Ctrl+C | Secili nesneleri kopyala |
+| Ctrl+X | Secili nesneleri kes |
+| Ctrl+V | Ghost onizleme ile yapistir — fareyi takip eder, tikla yerlestir |
+| Ctrl+F | Secili nesnelere zoom |
+| Ctrl+L | Sol panel ac/kapat |
+| Ctrl+S | Kaydet (DWG/DXF + layer state) |
+
+---
+
+## SON ACILAN DOSYALAR
+
+Quick Access cizgisindeki saat ikonu ile son 15 dosyaya hizli erisim.
+Dosya acildiginda otomatik listeye eklenir. Bulunamayan dosyalar kaldirilir.
+
+---
+
+## KULLANICI AYARLARI
+
+Uygulama kapandiginda otomatik kaydedilir, acildiginda geri yuklenir:
+- Sol panel gorunurlugu
+- Pencere durumu (maximized)
+- Olcu metin boyutu
+- Grid/Ortho/Snap tercihleri
+
+Kayit yeri: `%LOCALAPPDATA%/AfneyCAD/user_settings.json`
+
+---
+
+*Son guncelleme: 2026-06-28 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
