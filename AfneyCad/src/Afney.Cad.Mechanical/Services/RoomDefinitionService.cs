@@ -138,26 +138,175 @@ public class RoomDefinitionService
         { "FD", ("FloorDrain", 0.5) }
     };
 
+    // Geometri bazlı cihaz tanıma boyut tablosu (mm)
+    private static readonly List<FixtureGeometryProfile> _geometryProfiles = new()
+    {
+        new("WC", 1.0, 340, 400, 500, 700, 0.85),
+        new("Washbasin", 0.5, 400, 550, 300, 450, 0.80),
+        new("Shower", 0.8, 800, 1000, 800, 1000, 0.75),
+        new("Bathtub", 1.5, 1500, 1800, 600, 800, 0.90),
+        new("KitchenSink", 0.8, 500, 800, 400, 600, 0.75),
+        new("Urinal", 0.5, 250, 400, 300, 450, 0.80),
+        new("Bidet", 0.5, 350, 420, 550, 700, 0.80),
+        new("WashingMachine", 0.8, 550, 650, 550, 650, 0.90),
+        new("Dishwasher", 0.8, 550, 650, 550, 650, 0.85),
+    };
+
     private (string Type, double FU)? MatchBlockToFixtureType(string blockName)
     {
         if (string.IsNullOrWhiteSpace(blockName)) return null;
 
-        string normalizedName = blockName.ToUpperInvariant().Replace("İ", "I").Replace("Ş", "S").Replace("Ğ", "G").Replace("Ü", "U").Replace("Ö", "O").Replace("Ç", "C");
+        string normalizedName = blockName.ToUpperInvariant()
+            .Replace("İ", "I").Replace("Ş", "S").Replace("Ğ", "G")
+            .Replace("Ü", "U").Replace("Ö", "O").Replace("Ç", "C");
 
-        // 1. Tam Eşleşme Kontrolü
+        // 1. Tam eşleşme
         if (_fixtureLibrary.TryGetValue(normalizedName, out var exactMatch))
             return exactMatch;
 
-        // 2. İçerik Araması (Contains)
+        // 2. İçerik araması (Contains)
         foreach (var key in _fixtureLibrary.Keys)
         {
             if (normalizedName.Contains(key))
-            {
                 return _fixtureLibrary[key];
+        }
+
+        // 3. Fuzzy matching (Levenshtein mesafesi)
+        var fuzzyResult = FuzzyMatch(normalizedName);
+        if (fuzzyResult != null)
+            return fuzzyResult;
+
+        return null;
+    }
+
+    // Geometri bazlı cihaz tanıma — blok boyutlarından cihaz tipi tahmin et
+    public FixtureDetectionResult IdentifyFixtureByGeometry(CadBoundingBox bbox)
+    {
+        double width = Math.Abs(bbox.Max.X - bbox.Min.X);
+        double depth = Math.Abs(bbox.Max.Y - bbox.Min.Y);
+
+        // Küçük boyut → genişlik, büyük boyut → derinlik olarak normalize et
+        double w = Math.Min(width, depth);
+        double d = Math.Max(width, depth);
+
+        FixtureDetectionResult? bestMatch = null;
+        double bestConfidence = 0;
+
+        foreach (var profile in _geometryProfiles)
+        {
+            double wScore = 1.0 - Math.Abs(w - (profile.MinWidth + profile.MaxWidth) / 2.0) / ((profile.MaxWidth - profile.MinWidth) / 2.0 + 100);
+            double dScore = 1.0 - Math.Abs(d - (profile.MinDepth + profile.MaxDepth) / 2.0) / ((profile.MaxDepth - profile.MinDepth) / 2.0 + 100);
+
+            wScore = Math.Max(0, Math.Min(1, wScore));
+            dScore = Math.Max(0, Math.Min(1, dScore));
+
+            bool wInRange = w >= profile.MinWidth * 0.8 && w <= profile.MaxWidth * 1.2;
+            bool dInRange = d >= profile.MinDepth * 0.8 && d <= profile.MaxDepth * 1.2;
+
+            if (wInRange && dInRange)
+            {
+                double confidence = (wScore + dScore) / 2.0 * profile.BaseConfidence;
+                if (confidence > bestConfidence)
+                {
+                    bestConfidence = confidence;
+                    bestMatch = new FixtureDetectionResult
+                    {
+                        DetectedType = profile.Type,
+                        FixtureUnit = profile.FU,
+                        Confidence = confidence,
+                        Method = "Geometry",
+                        MeasuredWidth = w,
+                        MeasuredDepth = d
+                    };
+                }
             }
         }
 
+        return bestMatch ?? new FixtureDetectionResult { DetectedType = "Unknown", Confidence = 0, Method = "None" };
+    }
+
+    // Hibrit tanıma — önce isim, sonra geometri
+    public FixtureDetectionResult IdentifyFixtureHybrid(string? blockName, CadBoundingBox bbox)
+    {
+        // 1. İsim bazlı (yüksek güven)
+        if (!string.IsNullOrEmpty(blockName))
+        {
+            var nameMatch = MatchBlockToFixtureType(blockName);
+            if (nameMatch != null)
+            {
+                return new FixtureDetectionResult
+                {
+                    DetectedType = nameMatch.Value.Type,
+                    FixtureUnit = nameMatch.Value.FU,
+                    Confidence = 0.95,
+                    Method = "Name"
+                };
+            }
+        }
+
+        // 2. Geometri bazlı (orta güven)
+        var geoResult = IdentifyFixtureByGeometry(bbox);
+        if (geoResult.Confidence > 0.5)
+            return geoResult;
+
+        // 3. TS EN 806-2 FU tablosundan çapraz kontrol
+        if (!string.IsNullOrEmpty(blockName))
+        {
+            var fuEntry = FixtureUnitTable.GetEntry(blockName);
+            if (fuEntry != null)
+            {
+                return new FixtureDetectionResult
+                {
+                    DetectedType = blockName,
+                    FixtureUnit = fuEntry.LoadUnits,
+                    Confidence = 0.85,
+                    Method = "FU_Table"
+                };
+            }
+        }
+
+        return new FixtureDetectionResult { DetectedType = "Unknown", Confidence = 0, Method = "None" };
+    }
+
+    // Levenshtein mesafesi ile fuzzy matching
+    private (string Type, double FU)? FuzzyMatch(string input)
+    {
+        int bestDistance = int.MaxValue;
+        string? bestKey = null;
+
+        foreach (var key in _fixtureLibrary.Keys)
+        {
+            int dist = LevenshteinDistance(input, key);
+            if (dist < bestDistance && dist <= Math.Max(2, key.Length / 3))
+            {
+                bestDistance = dist;
+                bestKey = key;
+            }
+        }
+
+        if (bestKey != null)
+            return _fixtureLibrary[bestKey];
         return null;
+    }
+
+    private static int LevenshteinDistance(string s, string t)
+    {
+        int n = s.Length, m = t.Length;
+        var d = new int[n + 1, m + 1];
+
+        for (int i = 0; i <= n; i++) d[i, 0] = i;
+        for (int j = 0; j <= m; j++) d[0, j] = j;
+
+        for (int i = 1; i <= n; i++)
+        {
+            for (int j = 1; j <= m; j++)
+            {
+                int cost = s[i - 1] == t[j - 1] ? 0 : 1;
+                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
+            }
+        }
+
+        return d[n, m];
     }
 
     // Geometri Yardımcıları
@@ -194,11 +343,10 @@ public class RoomDefinitionService
 }
 
 // Extention Helper for Group of Entities
-public static class CadGroupExtensions 
+public static class CadGroupExtensions
 {
     public static CadBoundingBox GetBoundingBox(this IGrouping<Guid?, CadEntity> group)
     {
-        // Basit implementation
         double minX = double.MaxValue, minY = double.MaxValue;
         double maxX = double.MinValue, maxY = double.MinValue;
         foreach (var ent in group) {
@@ -210,4 +358,24 @@ public static class CadGroupExtensions
         }
         return new CadBoundingBox(new Vector3D(minX, minY, 0), new Vector3D(maxX, maxY, 0));
     }
+}
+
+public record FixtureGeometryProfile(
+    string Type,
+    double FU,
+    double MinWidth,
+    double MaxWidth,
+    double MinDepth,
+    double MaxDepth,
+    double BaseConfidence
+);
+
+public class FixtureDetectionResult
+{
+    public string DetectedType { get; set; } = "Unknown";
+    public double FixtureUnit { get; set; }
+    public double Confidence { get; set; }
+    public string Method { get; set; } = "None";
+    public double MeasuredWidth { get; set; }
+    public double MeasuredDepth { get; set; }
 }

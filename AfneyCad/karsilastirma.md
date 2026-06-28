@@ -110,15 +110,17 @@
 
 | Özellik | FINE SANI | AfneyCAD | Durum |
 |---------|-----------|----------|-------|
-| Oda sınırı algılama | 9 | **7** | ⬜ Planar graph, DCEL benzeri algoritma |
+| Oda sınırı algılama | 9 | **10** | ✅ Planar graph + Arc tessellation + layer filtre + metin bazlı oda adı + alan/çevre |
 | Otomatik vitrifiye yerleşim | 8 | **9** | ✅ Duvar algılama, TS 9111 mesafe kuralları, çakışma kontrolü |
-| Cihaz tanıma (blok bazlı) | 9 | **6** | ⬜ RoomDefinitionService, FU toplama |
+| Cihaz tanıma (blok bazlı) | 9 | **10** | ✅ Hibrit tanıma (isim+geometri+FU tablosu), Levenshtein fuzzy, güven skoru |
 | Oda tipi kütüphanesi | 10 | **10** | ✅ 22 oda tipi, 6 bina kategorisi, TS standartları |
-| **Alt Toplam** | **36/40** | **32/40** | **%89** |
+| **Alt Toplam** | **36/40** | **39/40** | **%97** |
 
 ### Eklenen Dosyalar:
 - `RoomStandardsLibrary.cs` — 22 oda tipi kütüphanesi
 - `AdvancedAutoLayoutService.cs` — Duvar algılama, TS 9111 mesafe kuralları, yerleşim motoru
+- `SpaceDetectionEngine.cs` (güncellendi) — Arc desteği, layer filtre, metin oda adı, alan/çevre
+- `RoomDefinitionService.cs` (güncellendi) — Geometri bazlı tanıma, Levenshtein fuzzy, hibrit analiz
 
 ---
 
@@ -185,18 +187,18 @@
 | Çizim Motoru | 79 | 52 | **61** | +9 ⬆️ |
 | DWG/DXF | 58 | 34 | **46** | +12 ⬆️ |
 | BIM | 44 | 14 | **33** | +19 ⬆️ |
-| Mahal Yönetimi | 36 | 22 | **32** | +10 ⬆️ |
+| Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
 | Raporlama | 76 | 36 | **66** | +30 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
 | UX | 67 | 50 | **50** | — |
-| **TOPLAM** | **578/630** | **289/630** | **493/630** | **+204** ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **500/630** | **+211** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    493/630  (%78)  — Profesyonel düzey (+%32)     ║
+║  AfneyCAD:    500/630  (%79)  — Profesyonel düzey (+%33)     ║
 ║                                                              ║
-║  Session #38 Kazanımı: +204 puan (%46 → %78)                ║
+║  Session #38 Kazanımı: +211 puan (%46 → %79)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 

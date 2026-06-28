@@ -56,11 +56,31 @@ namespace Afney.Cad.Mechanical.Services
         /*
            ADIM 1: Çizgileri Parçala
         */
+        // Duvar olarak kabul edilen katmanlar
+        private static readonly HashSet<string> WallLayerKeywords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "WALL", "DUVAR", "A-WALL", "ARCH-WALL", "S-WALL", "STRUCTURAL",
+            "KOLON", "COLUMN", "PARTITION", "BÖLME", "0"
+        };
+
+        private bool IsWallLayer(string? layer)
+        {
+            if (string.IsNullOrEmpty(layer)) return true; // Layer yoksa dahil et
+            foreach (var keyword in WallLayerKeywords)
+            {
+                if (layer.Contains(keyword, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
         private List<(Vector3D P1, Vector3D P2)> ExtractSegments()
         {
             var segs = new List<(Vector3D, Vector3D)>();
             foreach (var ent in _database.GetAllEntities())
             {
+                // Layer filtresi — sadece duvar/mimari katmanları
+                if (!IsWallLayer(ent.Layer)) continue;
+
                 if (ent is LineEntity line && line.StartPoint.DistanceTo(line.EndPoint) > MergeTolerance)
                 {
                     segs.Add((line.StartPoint, line.EndPoint));
@@ -78,8 +98,86 @@ namespace Afney.Cad.Mechanical.Services
                             segs.Add((poly.Vertices[poly.Vertices.Count - 1], poly.Vertices[0]));
                     }
                 }
+                // Eğrisel duvar desteği — Arc entity'lerini segmentlere böl
+                else if (ent is ArcEntity arc)
+                {
+                    var arcSegs = ArcToSegments(arc, 12); // 12 segment yaklaşımı
+                    segs.AddRange(arcSegs);
+                }
             }
             return segs;
+        }
+
+        // Arc → doğrusal segment yaklaşımı (tessellation)
+        private List<(Vector3D P1, Vector3D P2)> ArcToSegments(ArcEntity arc, int segmentCount)
+        {
+            var segs = new List<(Vector3D, Vector3D)>();
+            double startAngle = arc.StartAngle;
+            double endAngle = arc.EndAngle;
+            if (endAngle < startAngle) endAngle += 2 * Math.PI;
+            double step = (endAngle - startAngle) / segmentCount;
+
+            for (int i = 0; i < segmentCount; i++)
+            {
+                double a1 = startAngle + i * step;
+                double a2 = startAngle + (i + 1) * step;
+                var p1 = new Vector3D(arc.Center.X + arc.Radius * Math.Cos(a1), arc.Center.Y + arc.Radius * Math.Sin(a1), 0);
+                var p2 = new Vector3D(arc.Center.X + arc.Radius * Math.Cos(a2), arc.Center.Y + arc.Radius * Math.Sin(a2), 0);
+                if (p1.DistanceTo(p2) > MergeTolerance) segs.Add((p1, p2));
+            }
+            return segs;
+        }
+
+        // Oda içindeki text entity'lerden oda adı çıkarma
+        public string? DetectRoomNameFromTexts(List<Vector3D> roomBoundary)
+        {
+            foreach (var ent in _database.GetAllEntities())
+            {
+                if (ent is TextEntity text && !string.IsNullOrWhiteSpace(text.Text))
+                {
+                    if (IsPointInPolygon(text.Position, roomBoundary))
+                    {
+                        string t = text.Text.Trim();
+                        // Kısa kodlar ve sayıları atla (oda adı en az 2 karakter olmalı)
+                        if (t.Length >= 2 && !double.TryParse(t, out _))
+                            return t;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private bool IsPointInPolygon(Vector3D p, List<Vector3D> polygon)
+        {
+            bool inside = false;
+            int j = polygon.Count - 1;
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                if (((polygon[i].Y > p.Y) != (polygon[j].Y > p.Y)) &&
+                    (p.X < (polygon[j].X - polygon[i].X) * (p.Y - polygon[i].Y) / (polygon[j].Y - polygon[i].Y) + polygon[i].X))
+                {
+                    inside = !inside;
+                }
+                j = i;
+            }
+            return inside;
+        }
+
+        // Alan hesabı (Gauss/Shoelace) — m²
+        public static double CalculateAreaM2(List<Vector3D> polygon)
+        {
+            return Math.Abs(ComputeSignedArea(polygon)) / 1_000_000.0; // mm² → m²
+        }
+
+        // Çevre hesabı (m)
+        public static double CalculatePerimeterM(List<Vector3D> polygon)
+        {
+            double perimeter = 0;
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                perimeter += polygon[i].DistanceTo(polygon[(i + 1) % polygon.Count]);
+            }
+            return perimeter / 1000.0; // mm → m
         }
 
         /*
