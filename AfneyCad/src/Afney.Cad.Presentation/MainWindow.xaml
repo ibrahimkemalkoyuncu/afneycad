@@ -236,6 +236,24 @@
                             <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
                             <Button Content="ℹ" Click="OnProjectInfoCommand" ToolTip="Proje Bilgileri" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
                             <Button Content="🖨" Click="OnPrintPreviewCommand" ToolTip="Baskı Önizleme" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
+                            <Button x:Name="BtnRecentFiles" Content="🕐" Click="OnRecentFilesClick" ToolTip="Son Açılan Dosyalar" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Popup x:Name="RecentFilesPopup" PlacementTarget="{Binding ElementName=BtnRecentFiles}"
+                                   Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide">
+                                <Border Background="#1A1C24" BorderBrush="#0A84FF" BorderThickness="1" CornerRadius="6"
+                                        MinWidth="350" MaxHeight="400">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Background="#14151C" Padding="10,6" CornerRadius="6,6,0,0">
+                                            <TextBlock Text="  Son Açılan Dosyalar" Foreground="#70C4FF" FontSize="12" FontWeight="Bold"/>
+                                        </Border>
+                                        <StackPanel x:Name="RecentFilesList" Grid.Row="1" Margin="4"/>
+                                    </Grid>
+                                </Border>
+                            </Popup>
                         </StackPanel>
                     </DockPanel>
                 </Border>

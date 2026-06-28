@@ -123,6 +123,7 @@ namespace Afney.Cad.Presentation
             _autoSaveService.Start();
             
             this.Closing += MainWindow_Closing;
+            ApplyUserSettings();
         }
 
         /*
@@ -213,6 +214,18 @@ namespace Afney.Cad.Presentation
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             _autoSaveService?.Stop();
+            _userSettings.Settings.WindowMaximized = WindowState == WindowState.Maximized;
+            _userSettings.Settings.LeftPanelVisible = LeftPanelBorder.Visibility == Visibility.Visible;
+            _userSettings.Settings.DimTextHeight = _dimTextHeight;
+            _userSettings.Save();
+        }
+
+        private void ApplyUserSettings()
+        {
+            var s = _userSettings.Settings;
+            if (s.WindowMaximized) WindowState = WindowState.Maximized;
+            LeftPanelBorder.Visibility = s.LeftPanelVisible ? Visibility.Visible : Visibility.Collapsed;
+            _dimTextHeight = s.DimTextHeight;
         }
 
         private void OnEntityModifiedFromRightPanel(object? sender, Afney.Cad.Domain.Abstractions.CadEntity e)
@@ -885,6 +898,89 @@ namespace Afney.Cad.Presentation
             {
                 StatusText.Text = $"Doğrulama hatası: {ex.Message}";
             }
+        }
+
+        private void OnArchDetectCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.ArchEntityConverterService(_database);
+                var result = svc.ConvertFromLayers();
+
+                if (result.Total == 0)
+                {
+                    MessageBox.Show("Mimari element algilanamadi.\nDWG layer isimlerinde DUVAR/KOLON/KAPI/PENCERE/KIRIS gibi anahtar kelimeler aranir.", "Mimari Algilama", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    Viewport.InvalidateViewport();
+                    StatusText.Text = $"Mimari Algilama: {result.WallsCreated} duvar, {result.ColumnsCreated} kolon, {result.DoorsCreated} kapi, {result.WindowsCreated} pencere, {result.BeamsCreated} kiris";
+                    MessageBox.Show($"Mimari element algilama tamamlandi:\n\nDuvar: {result.WallsCreated}\nKolon: {result.ColumnsCreated}\nKapi: {result.DoorsCreated}\nPencere: {result.WindowsCreated}\nKiris: {result.BeamsCreated}\n\nToplam: {result.Total} element", "Mimari Algilama", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Algilama hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnRecentFilesClick(object sender, RoutedEventArgs e)
+        {
+            RecentFilesList.Children.Clear();
+            var files = _recentFiles.Files;
+
+            if (files.Count == 0)
+            {
+                RecentFilesList.Children.Add(new TextBlock
+                {
+                    Text = "Henüz dosya açılmadı.",
+                    Foreground = new System.Windows.Media.SolidColorBrush(
+                        (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#6B6F88")),
+                    Margin = new Thickness(8, 6, 8, 6),
+                    FontSize = 12
+                });
+            }
+            else
+            {
+                foreach (var file in files)
+                {
+                    var btn = new Button
+                    {
+                        Content = $"📄  {System.IO.Path.GetFileName(file)}",
+                        ToolTip = file,
+                        Height = 30,
+                        Background = System.Windows.Media.Brushes.Transparent,
+                        Foreground = new System.Windows.Media.SolidColorBrush(
+                            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#D4D6E8")),
+                        BorderThickness = new Thickness(0),
+                        HorizontalContentAlignment = HorizontalAlignment.Left,
+                        Padding = new Thickness(8, 0, 8, 0),
+                        FontSize = 12,
+                        Cursor = System.Windows.Input.Cursors.Hand,
+                        Tag = file
+                    };
+                    btn.Click += (s, args) =>
+                    {
+                        RecentFilesPopup.IsOpen = false;
+                        string path = (string)((Button)s!).Tag;
+                        if (System.IO.File.Exists(path))
+                        {
+                            string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                            CreateNewDocument(name, path);
+                            LoadDwgInternal(path);
+                            _recentFiles.AddFile(path);
+                        }
+                        else
+                        {
+                            MessageBox.Show($"Dosya bulunamadı:\n{path}", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            _recentFiles.RemoveFile(path);
+                        }
+                    };
+                    RecentFilesList.Children.Add(btn);
+                }
+            }
+
+            RecentFilesPopup.IsOpen = !RecentFilesPopup.IsOpen;
         }
 
         private void OnArchBomCommand(object sender, RoutedEventArgs e)
@@ -1839,6 +1935,12 @@ namespace Afney.Cad.Presentation
                     case "archbom":
                     case "mb":
                         OnArchBomCommand(this, new RoutedEventArgs());
+                        break;
+                    // Mimari Algilama
+                    case "archdetect":
+                    case "mimaritani":
+                    case "ad":
+                        OnArchDetectCommand(this, new RoutedEventArgs());
                         break;
                     // AutoRoute
                     case "autoroute":
