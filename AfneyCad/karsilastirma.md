@@ -61,10 +61,10 @@
 | Selection sistemi | 10 | **9** | ✅ Rect/pick + Fence/Polygon/Layer/Type/Color seçim |
 | Zoom/Pan performansı | 10 | **6** | ⬜ Brute-force iterasyon, 100k+ sorunlu |
 | 3D izometrik görünüm | 9 | **9** | ✅ 30-30 projeksiyon, Cabinet, Perspective, ViewCube, Z-sort |
-| Blok kütüphanesi | 10 | **6** | ⬜ BMake/Insert var, zengin kütüphane yok |
+| Blok kütüphanesi | 10 | **9** | ✅ MepBlockLibraryService — 38 MEP sembol (TS 7363/ISO 4067), 7 kategori |
 | Undo/Redo | 10 | **8** | ⬜ Transaction tabanlı, CompositeOperation |
 | Ortho/Grid | 10 | **8** | ⬜ F8, grid dot/line modu |
-| **Alt Toplam** | **79/80** | **61/80** | **%77** |
+| **Alt Toplam** | **79/80** | **64/80** | **%81** |
 
 ### Eklenen Dosyalar:
 - `AdvancedSelectionService.cs` — Fence, Polygon, Layer, Type, Color seçim modları
@@ -97,9 +97,9 @@
 | IFC import | 9 | **8** | ✅ STEP parser genişletilmiş, Wall/Slab/Door/Window/Space/MEP tanıma |
 | IFC export | 9 | **8** | ✅ IFC4 LOD 300, geometri dahil, Project→Site→Building→Storey hiyerarşisi |
 | Revit bağlantısı | 8 | **3** | ⬜ IFC üzerinden dolaylı (native link yok) |
-| Çakışma tespiti | 9 | **5** | ⬜ BoundingBox overlap |
+| Çakışma tespiti | 9 | **9** | ✅ ClashResolutionService — otomatik çözüm (Z offset, U-bend), strateji seçimi |
 | MEP koordinasyonu | 9 | **9** | ✅ TS 8373/ASHRAE mesafe kuralları, çözüm önerisi |
-| **Alt Toplam** | **44/50** | **33/50** | **%75** |
+| **Alt Toplam** | **44/50** | **37/50** | **%84** |
 
 ### Eklenen Dosyalar:
 - `MepCoordinationService.cs` — 10 mesafe kuralı, çakışma çözüm önerileri
@@ -186,21 +186,21 @@
 |----------|-----------|----------------|-----------------|---------|
 | Tesisat Hesap | 97 | 45 | **95** | +50 ⬆️ |
 | HVAC | 73 | 23 | **73** | +50 ⬆️ |
-| Çizim Motoru | 79 | 52 | **61** | +9 ⬆️ |
+| Çizim Motoru | 79 | 52 | **64** | +12 ⬆️ |
 | DWG/DXF | 58 | 34 | **46** | +12 ⬆️ |
-| BIM | 44 | 14 | **33** | +19 ⬆️ |
+| BIM | 44 | 14 | **37** | +23 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
 | Raporlama | 76 | 36 | **72** | +36 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
 | UX | 67 | 50 | **50** | — |
-| **TOPLAM** | **578/630** | **289/630** | **512/630** | **+223** ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **519/630** | **+230** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    512/630  (%81)  — Profesyonel düzey (+%35)     ║
+║  AfneyCAD:    519/630  (%82)  — Profesyonel düzey (+%36)     ║
 ║                                                              ║
-║  Session #38 Kazanımı: +223 puan (%46 → %81)                ║
+║  Session #38 Kazanımı: +230 puan (%46 → %82)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
