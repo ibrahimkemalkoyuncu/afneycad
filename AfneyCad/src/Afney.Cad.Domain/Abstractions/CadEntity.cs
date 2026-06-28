@@ -33,7 +33,11 @@ public abstract class CadEntity
 
     // SEÇİM DURUMU (SELECTION)
     public bool IsSelected { get; set; } = false;
-    public virtual bool Selectable => true; // Varsayılan olarak her şey seçilebilir.
+    public virtual bool Selectable => true;
+
+    // XREF (External Reference)
+    public bool IsXref { get; set; } = false;
+    public Guid? XrefId { get; set; }
 
     // Mekansal Dönüşüm Matrisi (World Transform)
     public Matrix4x4 TransformMatrix { get; set; } = Matrix4x4.Identity;

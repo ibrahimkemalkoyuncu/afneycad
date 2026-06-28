@@ -22,7 +22,6 @@ public class PressureDropService
     private readonly CadDatabase _database;
     private readonly MechanicalProjectSettings _settings;
     private readonly MechanicalTopologyGraph _graph;
-    private const double KinematicViscosity = 1.004e-6; // Su (20°C) m²/s
     private const double Gravity = 9.81;
 
     /*
@@ -48,26 +47,43 @@ public class PressureDropService
         double dMe = pipe.InnerDiameter / 1000.0;
         double lengthMetre = pipe.GetLength() / 1000.0;
 
+        // Sıcaklık bağımlı viskozite (TS EN 806 / IAPWS-IF97)
+        double waterTemp = pipe.SystemType == Enums.MechanicalSystemType.DomesticHotWater ? 60.0 : 10.0;
+        double nu = WaterPropertiesService.GetKinematicViscosity(waterTemp);
+
         // 1. Reynolds Sayısı
-        double Re = (v * dMe) / KinematicViscosity;
-        if (Re < 2300) // Laminer Akış
+        double Re = (v * dMe) / nu;
+        if (Re < 2300)
         {
             double f_lam = 64.0 / Re;
             double h_lam = f_lam * (lengthMetre / dMe) * (Math.Pow(v, 2) / (2 * Gravity));
-            return h_lam * (1.0 + _settings.LocalLossAllowance);
+            double localLoss = EstimateFittingLoss(pipe, v);
+            return h_lam + localLoss;
         }
 
-        // 2. Sürtünme Katsayısı (f) - Colebrook-White (Swamee-Jain)
-        double eps = _settings.EffectiveRoughness / 1000.0; // mm -> m (yaşlanma modeli dahil)
-        double f = 0.25 / Math.Pow(Math.Log10((eps / (3.7 * dMe)) + (5.74 / Math.Pow(Re, 0.9))), 2);
+        // 2. Sürtünme Katsayısı (f) - İteratif Colebrook-White (Newton-Raphson)
+        double f = AdvancedHydraulicsService.ColebrookWhiteFriction(Re, _settings.EffectiveRoughness, pipe.InnerDiameter);
 
         // 3. Darcy-Weisbach: hf = f * (L/D) * (v²/2g)
         double linearLoss = f * (lengthMetre / dMe) * (Math.Pow(v, 2) / (2 * Gravity));
-        
-        // 4. Yerel Kayıplar (Zeta payı dahil - FINE SANI Standardı)
-        double totalLoss = linearLoss * (1.0 + _settings.LocalLossAllowance);
-        
-        return totalLoss; // Birim: Metre Su Sütunu (mSS)
+
+        // 4. Yerel Kayıplar — Fitting K-değer veritabanından (Crane TP 410 / TS EN 806-3)
+        double fittingLoss = EstimateFittingLoss(pipe, v);
+
+        return linearLoss + fittingLoss;
+    }
+
+    private double EstimateFittingLoss(PipeEntity pipe, double velocity)
+    {
+        if (pipe.Fittings != null && pipe.Fittings.Count > 0)
+            return FittingKValueService.CalculateTotalLocalLoss(pipe.Fittings, pipe.InnerDiameter, velocity);
+
+        // Fitting listesi yoksa geometriden tahmin et (her 90° dönüş = 1 dirsek)
+        var dir = (pipe.EndPoint - pipe.StartPoint).Normalize();
+        double angleChange = Math.Abs(dir.X) > 0.01 && Math.Abs(dir.Y) > 0.01 ? 1 : 0;
+        double estimatedK = angleChange * FittingKValueService.GetKValue(FittingType.Elbow90, pipe.InnerDiameter);
+        estimatedK += _settings.LocalLossAllowance * pipe.GetLength() / 1000.0 * 0.5;
+        return estimatedK * Math.Pow(velocity, 2) / (2 * Gravity);
     }
 
     /*

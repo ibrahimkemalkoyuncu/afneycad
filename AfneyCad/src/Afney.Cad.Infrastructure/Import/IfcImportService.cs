@@ -480,6 +480,8 @@ public class IfcImportResult
     public int DoorCount    { get; set; }
     public int SpaceCount   { get; set; }
     public int SkippedCount { get; set; }
+    public int MepCount { get; set; }
+    public int TotalEntities { get; set; }
     public List<string> Warnings { get; set; } = [];
     public List<string> Errors   { get; set; } = [];
     public List<string> Layers   { get; set; } = [];

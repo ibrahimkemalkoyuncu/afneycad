@@ -74,9 +74,9 @@ public class PipeEntity : MechanicalEntity
     // NEDEN: Kritik hat hesabında pompa basma yüksekliğini belirlemek için.
     public double PressureDrop { get; set; } = 0.0;
 
-    // NE: Hidrolik Hata Durumu (Step 5)
-    // NEDEN: Hız veya basınç kaybı limitleri aşıldığında görsel uyarı vermek için.
     public bool HasHydraulicViolation { get; set; } = false;
+
+    public System.Collections.Generic.List<Services.FittingType>? Fittings { get; set; }
 
 
 

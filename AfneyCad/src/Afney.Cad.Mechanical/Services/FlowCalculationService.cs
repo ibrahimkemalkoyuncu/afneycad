@@ -180,7 +180,7 @@ public class FlowCalculationService
 
                 // --- MÜHENDİSLİK HESAPLARI (CORE KERNEL) ---
 
-                double kinematicViscosity = 1.004e-6; // m2/s (20°C)
+                double kinematicViscosity = WaterPropertiesService.GetKinematicViscosity(pipe.Temperature);
                 double length_m = (pipe.EndPoint - pipe.StartPoint).Length() / 1000.0;
                 double D = pipe.InnerDiameter / 1000.0; // m
                 double area_m2 = System.Math.PI * System.Math.Pow(D / 2.0, 2);
@@ -191,36 +191,31 @@ public class FlowCalculationService
 
                     if (pipe.SystemType == MechanicalSystemType.WasteWater)
                     {
-                        // PİS SU: Manning Formülü (v = (1/n) * R^(2/3) * S^(1/2))
-                        double n = 0.013; // Manning katsayısı (PVC)
-                        double S = pipe.Slope > 0 ? pipe.Slope : 0.01; // Minimum %1 eğim varsayımı (Yatay)
-                        if (IsRiser(pipe)) S = 1.0; // Dikey kolon için tam eğim (S=1)
-                        
-                        double R = D / 4.0; // Tam dolulukta Hidrolik Yarıçap
-                        double v_manning = (1.0 / n) * System.Math.Pow(R, 2.0/3.0) * System.Math.Sqrt(S);
-                        
-                        // Doluluk Oranı Analizi (Filling Ratio)
-                        double actualFlow = peakFlowRateLS / 1000.0; // m3/s
-                        double capacityFlow = v_manning * area_m2;
-                        double fillingRatio = actualFlow / capacityFlow;
-                        
-                        if (fillingRatio > 0.7) pipe.HasHydraulicViolation = true; // %70 doluluk sınırı
+                        double S = pipe.Slope > 0 ? pipe.Slope : 0.01;
+                        if (IsRiser(pipe)) S = 1.0;
+
+                        // Kısmi doluluk analizi (Camp formülü — h/D eğrileri)
+                        var partialResult = AdvancedHydraulicsService.CalculatePartialFlow(
+                            peakFlowRateLS, pipe.InnerDiameter, S * 100.0);
+
+                        pipe.Velocity = partialResult.ActualVelocity;
+                        pipe.HasHydraulicViolation = partialResult.IsOverCapacity || !partialResult.SelfCleansingOk;
                     }
                     else
                     {
-                        // TEMİZ SU: Darcy-Weisbach & Colebrook-White (Yük Kaybı)
-                        // Re = v * D / nu
+                        // TEMİZ SU: Darcy-Weisbach & İteratif Colebrook-White (Newton-Raphson)
                         double Re = pipe.Velocity * D / kinematicViscosity;
-                        double lambda = 0.02; // Basit başlangıç
-                        
-                        if (Re > 4000) // Türbülanslı akış
-                         {
-                            // Colebrook-White basitleştirilmiş (Swamee-Jain)
-                            double epsilon = 0.045 / 1000.0; // Pürüzlülük (mm->m)
-                            lambda = 0.25 / System.Math.Pow(System.Math.Log10(epsilon / (3.7 * D) + 5.74 / System.Math.Pow(Re, 0.9)), 2);
-                        }
-                        
-                        // deltaP = lambda * (L/D) * (v^2 / 2g) [mSS]
+                        double roughnessMm = pipe.PipeMaterialType switch
+                        {
+                            PipeMaterial.Steel_Galvanized => 0.045,
+                            PipeMaterial.PVC_SN4 => 0.007,
+                            PipeMaterial.PEX_b => 0.007,
+                            PipeMaterial.Silent_PP => 0.007,
+                            _ => 0.007 // PP-R varsayılan
+                        };
+
+                        double lambda = AdvancedHydraulicsService.ColebrookWhiteFriction(Re, roughnessMm, pipe.InnerDiameter);
+
                         pipe.PressureDrop = lambda * (length_m / D) * (System.Math.Pow(pipe.Velocity, 2) / (2 * 9.81));
                     }
                 }
