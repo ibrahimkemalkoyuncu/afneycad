@@ -23,6 +23,8 @@
     <ProjectReference Include="..\..\src\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj" />
     <ProjectReference Include="..\..\src\Afney.Cad.Domain\Afney.Cad.Domain.csproj" />
     <ProjectReference Include="..\..\src\Afney.Cad.Geometry\Afney.Cad.Geometry.csproj" />
+    <ProjectReference Include="..\..\src\Afney.Cad.Application\Afney.Cad.Application.csproj" />
+    <ProjectReference Include="..\..\src\Afney.Cad.Database\Afney.Cad.Database.csproj" />
   </ItemGroup>
 
 </Project>

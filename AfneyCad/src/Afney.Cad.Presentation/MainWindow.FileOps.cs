@@ -68,17 +68,32 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void LoadDwgInternal(string filePath)
+        private async void LoadDwgInternal(string filePath)
         {
             try
             {
                 var stopwatch = Stopwatch.StartNew();
                 Log.Information("[MAIN] Dosya yükleniyor: {Path}", filePath);
+                StatusText.Text = "Dosya yükleniyor... Lütfen bekleyin.";
 
+                // UI donmasını önlemek için ağır işlemi arka plana at
                 var importer = new CadImporter();
-                Log.Information("[MAIN] importer.Import({Path}) çağrılıyor...", filePath);
-                var entities = importer.Import(filePath);
-                Log.Information("[MAIN] importer.Import(...) başarıyla tamamlandı.");
+                var entities = await System.Threading.Tasks.Task.Run(() => importer.Import(filePath));
+
+                // Geri kalan işlemler UI thread'inde devam edecek (aşağıda)
+                LoadDwgEntities(filePath, entities, stopwatch);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Dosya yükleme hatası");
+                MessageBox.Show($"Dosya yüklenirken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadDwgEntities(string filePath, System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity> entities, Stopwatch stopwatch)
+        {
+            try
+            {
 
                 stopwatch.Stop();
                 Log.Information("[MAIN] Dosya yüklendi. Nesne: {Count}, Süre: {Duration}ms", entities.Count, stopwatch.ElapsedMilliseconds);
