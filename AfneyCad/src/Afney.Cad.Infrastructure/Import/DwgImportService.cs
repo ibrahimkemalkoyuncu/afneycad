@@ -67,16 +67,25 @@ public class DwgImportService
                 var layerColors = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
                 var layerLinetypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 
+                var layerFrozen = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+                var layerLocked = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
                 foreach (var layer in cadDoc.Layers)
                 {
                     layerColors[layer.Name] = MapColor(layer.Color);
-                    if (layer.LineType != null)
+                    layerLinetypes[layer.Name] = layer.LineType?.Name ?? "Continuous";
+
+                    // Layer frozen/locked flag — Flags bitfield'dan çıkar
+                    try
                     {
-                        layerLinetypes[layer.Name] = layer.LineType.Name ?? "Continuous";
+                        var flags = (int)layer.Flags;
+                        layerFrozen[layer.Name] = (flags & 1) != 0;  // Bit 0 = Frozen
+                        layerLocked[layer.Name] = (flags & 4) != 0;  // Bit 2 = Locked
                     }
-                    else
+                    catch
                     {
-                        layerLinetypes[layer.Name] = "Continuous";
+                        layerFrozen[layer.Name] = false;
+                        layerLocked[layer.Name] = false;
                     }
                 }
 
@@ -106,21 +115,36 @@ public class DwgImportService
                 int convertedCount = 0;
                 var concurrentEntities = new System.Collections.Concurrent.ConcurrentBag<CadEntity>();
 
+                int errorCount = 0;
                 System.Threading.Tasks.Parallel.ForEach(cadDoc.Entities, entity =>
                 {
-                    // Root entity'ler için Identity matrisi kullanılır
-                    var convertedList = ConvertEntity(entity, Matrix4x4.Identity, layerColors, layerLinetypes);
-                    foreach (var c in convertedList)
+                    try
                     {
-                        concurrentEntities.Add(c);
+                        var convertedList = ConvertEntity(entity, Matrix4x4.Identity, layerColors, layerLinetypes);
+                        foreach (var c in convertedList)
+                        {
+                            // Frozen layer entity'lerini işaretle
+                            if (c.Layer != null && layerFrozen.TryGetValue(c.Layer, out bool frozen) && frozen)
+                                c.IsSelected = false; // Frozen = seçilemez
+
+                            concurrentEntities.Add(c);
+                        }
                     }
-                    
+                    catch (Exception ex)
+                    {
+                        // Partial recovery — hatalı entity'yi atla, diğerlerine devam et
+                        System.Threading.Interlocked.Increment(ref errorCount);
+                        if (errorCount <= 10)
+                            Serilog.Log.Warning("[DWG] Entity dönüştürme hatası (atlandı): {Type} — {Error}", entity.GetType().Name, ex.Message);
+                    }
+
                     int currentCount = System.Threading.Interlocked.Increment(ref convertedCount);
                     if (currentCount % 10000 == 0)
-                    {
                         Serilog.Log.Information("[DWG] Dönüştürülen ana obje sayısı: {Count}...", currentCount);
-                    }
                 });
+
+                if (errorCount > 0)
+                    Serilog.Log.Warning("[DWG] Toplam {ErrorCount} entity atlandı (partial recovery).", errorCount);
                 
                 entities.AddRange(concurrentEntities);
                 
@@ -303,6 +327,30 @@ public class DwgImportService
             };
             string dimLayer = dimension.Layer?.Name ?? "DIM";
 
+            // Dimension text ve measurement çıkarma
+            Afney.Cad.Domain.Entities.Basic.TextEntity? dimTextEntity = null;
+            try
+            {
+                string dimText = dimension.Text;
+                double measurement = dimension.Measurement;
+                var textMidPoint = dimension.TextMiddlePoint;
+
+                if (string.IsNullOrEmpty(dimText) && measurement > 0)
+                    dimText = measurement.ToString("F1");
+
+                if (!string.IsNullOrEmpty(dimText))
+                {
+                    dimTextEntity = new Afney.Cad.Domain.Entities.Basic.TextEntity(
+                        dimText,
+                        new Vector3D(textMidPoint.X, textMidPoint.Y, textMidPoint.Z),
+                        250
+                    ) { Layer = dimLayer, Color = resolvedColor };
+                    dimTextEntity.Transform(transform);
+                }
+            }
+            catch { }
+            if (dimTextEntity != null) yield return dimTextEntity;
+
             // Anonymous block'taki geometriyi çıkar
             if (dimension.Block != null)
             {
@@ -388,7 +436,62 @@ public class DwgImportService
                                 yield return poly;
                             }
                         }
-                        // Diğer edge tipleri (Ellipse, Spline) sonra eklenebilir
+                        // Ellipse edge
+                        else if (edge is ACadSharp.Entities.Hatch.BoundaryPath.Ellipse ellipseEdge)
+                        {
+                            int segments = 32;
+                            double majorLen = Math.Sqrt(ellipseEdge.MajorAxisEndPoint.X * ellipseEdge.MajorAxisEndPoint.X + ellipseEdge.MajorAxisEndPoint.Y * ellipseEdge.MajorAxisEndPoint.Y);
+                            if (majorLen < 1e-9) majorLen = 1;
+                            double minorLen = majorLen * ellipseEdge.MinorToMajorRatio;
+                            double majorAngle = Math.Atan2(ellipseEdge.MajorAxisEndPoint.Y, ellipseEdge.MajorAxisEndPoint.X);
+                            var ellipsePoints = new List<Vector3D>();
+                            for (int i = 0; i <= segments; i++)
+                            {
+                                double t = ellipseEdge.StartAngle + (ellipseEdge.EndAngle - ellipseEdge.StartAngle) * i / segments;
+                                double ex = majorLen * Math.Cos(t);
+                                double ey = minorLen * Math.Sin(t);
+                                double rx = ex * Math.Cos(majorAngle) - ey * Math.Sin(majorAngle);
+                                double ry = ex * Math.Sin(majorAngle) + ey * Math.Cos(majorAngle);
+                                ellipsePoints.Add(new Vector3D(ellipseEdge.Center.X + rx, ellipseEdge.Center.Y + ry, 0));
+                            }
+                            if (ellipsePoints.Count > 1)
+                            {
+                                var ellipsePoly = new LwPolylineEntity(ellipsePoints, false)
+                                {
+                                    Layer = hatch.Layer?.Name ?? "0",
+                                    Color = resolvedColor,
+                                    Linetype = resolvedLinetype
+                                };
+                                ellipsePoly.Transform(transform);
+                                yield return ellipsePoly;
+                            }
+                        }
+                        // Spline edge
+                        else if (edge is ACadSharp.Entities.Hatch.BoundaryPath.Spline splineEdge)
+                        {
+                            var splinePoints = new List<Vector3D>();
+                            if (splineEdge.ControlPoints != null)
+                            {
+                                foreach (var cp in splineEdge.ControlPoints)
+                                    splinePoints.Add(new Vector3D(cp.X, cp.Y, 0));
+                            }
+                            else if (splineEdge.FitPoints != null)
+                            {
+                                foreach (var fp in splineEdge.FitPoints)
+                                    splinePoints.Add(new Vector3D(fp.X, fp.Y, 0));
+                            }
+                            if (splinePoints.Count > 1)
+                            {
+                                var splinePoly = new LwPolylineEntity(splinePoints, false)
+                                {
+                                    Layer = hatch.Layer?.Name ?? "0",
+                                    Color = resolvedColor,
+                                    Linetype = resolvedLinetype
+                                };
+                                splinePoly.Transform(transform);
+                                yield return splinePoly;
+                            }
+                        }
                     }
                 }
                 
@@ -487,15 +590,42 @@ public class DwgImportService
     
     private CadEntity? MapMText(MText mt)
     {
-        // MText -> TextEntity
         string cleanValue = CleanMText(mt.Value ?? "");
-        
-        return new Afney.Cad.Domain.Entities.Basic.TextEntity(
+
+        var textEntity = new Afney.Cad.Domain.Entities.Basic.TextEntity(
             cleanValue,
             new Vector3D(mt.InsertPoint.X, mt.InsertPoint.Y, mt.InsertPoint.Z),
             mt.Height,
             mt.Rotation
         );
+
+        // MText justification (AttachmentPoint) — 1-9 arası grid pozisyon
+        try
+        {
+            int attachment = (int)mt.AttachmentPoint;
+            textEntity.Style = attachment switch
+            {
+                1 => "TopLeft", 2 => "TopCenter", 3 => "TopRight",
+                4 => "MiddleLeft", 5 => "MiddleCenter", 6 => "MiddleRight",
+                7 => "BottomLeft", 8 => "BottomCenter", 9 => "BottomRight",
+                _ => "TopLeft"
+            };
+        }
+        catch { }
+
+        // MText drawing direction
+        try
+        {
+            var dirProp = GetCachedProperty(mt.GetType(), "DrawingDirection");
+            if (dirProp != null)
+            {
+                int dir = (int)dirProp.GetValue(mt)!;
+                if (dir == 3 || dir == 4) textEntity.Rotation = 90.0; // Vertical
+            }
+        }
+        catch { }
+
+        return textEntity;
     }
     
     private string CleanMText(string value)
