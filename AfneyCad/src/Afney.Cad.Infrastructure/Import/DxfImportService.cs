@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using ACadSharp;
 using ACadSharp.IO;
 using ACadSharp.Entities;
@@ -10,199 +11,266 @@ using Afney.Cad.Geometry.Primitives;
 
 namespace Afney.Cad.Infrastructure.Import;
 
-/*
-NE: DXF Dosya Aktarım Servisi (DXF Import Service)
-NEDEN: Mimari projelerin DXF formatında içe aktarılması ve AfneyCAD entity'lerine dönüştürülmesi için.
-
-MÜHENDİSLİK DETAYI (Kemal & Mebrure):
-- FineSANI benzeri: Mimari planları underlay olarak import eder.
-- ACadSharp kütüphanesi ile DXF parse edilir.
-- DXF Entity'leri (LINE, ARC, POLYLINE, CIRCLE) AfneyCAD Domain Entity'lerine map edilir.
-- Layer bilgisi korunur - mimari ve tesisat katmanları ayrıştırılabilir.
-- KOORDINAT DÖNÜŞÜMÜmalıdır: DXF mm birimi → AfneyCAD mm birimi (1:1 mapping)
-*/
+// DXF Import — DwgImportService ile aynı kalitede (ConvertEntity delegasyonu)
 public class DxfImportService
 {
-    /*
-    NE: DXF Dosyasını Okuyup AfneyCAD Entity Listesi Döndürür
-    NEDEN: Kullanıcı "File → Import DXF" dediğinde mimari planı yüklemek için.
-    
-    PARAMETRELER:
-    - filePath: DXF dosya yolu
-    - targetLayer: Import edilen entity'lerin hangi layer'a yerleştirileceği (default: "IMPORT")
-    
-    DÖNÜŞ: AfneyCAD CadEntity listesi
-    */
+    private readonly DwgImportService _dwgService = new();
+
     public List<CadEntity> ImportDxf(string filePath, string targetLayer = "IMPORT")
     {
         var entities = new List<CadEntity>();
-        
+
         if (!File.Exists(filePath))
-        {
             throw new FileNotFoundException($"DXF dosyası bulunamadı: {filePath}");
-        }
-        
+
         try
         {
-            // ACadSharp ile DXF parse et
-            using (DxfReader reader = new DxfReader(filePath))
+            Serilog.Log.Information("[DXF] DxfReader açılıyor: {Path}", filePath);
+            using var reader = new DxfReader(filePath);
+            var cadDoc = reader.Read();
+            Serilog.Log.Information("[DXF] Doküman okundu. Entity: {Count}", cadDoc.Entities.Count);
+
+            // Layer renk/linetype cache (DWG ile aynı mantık)
+            var layerColors = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+            var layerLinetypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var layer in cadDoc.Layers)
             {
-                CadDocument cadDoc = reader.Read();
-                
-                // Her entity'yi çevir
-                foreach (var acadEntity in cadDoc.Entities)
-                {
-                    var convertedEntity = ConvertEntity(acadEntity, targetLayer);
-                    if (convertedEntity != null)
-                    {
-                        entities.Add(convertedEntity);
-                    }
-                }
+                layerColors[layer.Name] = DwgImportService.MapColor(layer.Color);
+                layerLinetypes[layer.Name] = layer.LineType?.Name ?? "Continuous";
             }
+
+            // INSUNITS birim algılama
+            double unitScale = 1.0;
+            try
+            {
+                int insUnits = (int)cadDoc.Header.InsUnits;
+                unitScale = insUnits switch
+                {
+                    1 => 25.4, 2 => 304.8, 4 => 1.0, 5 => 10.0, 6 => 1000.0, _ => 1.0
+                };
+            }
+            catch { }
+
+            // Entity dönüşüm — DwgImportService.ConvertEntity ile aynı kalite
+            int errorCount = 0;
+            var concurrentEntities = new System.Collections.Concurrent.ConcurrentBag<CadEntity>();
+
+            System.Threading.Tasks.Parallel.ForEach(cadDoc.Entities, entity =>
+            {
+                try
+                {
+                    var converted = ConvertEntityFull(entity, Matrix4x4.Identity, layerColors, layerLinetypes, unitScale);
+                    foreach (var c in converted)
+                        concurrentEntities.Add(c);
+                }
+                catch
+                {
+                    System.Threading.Interlocked.Increment(ref errorCount);
+                }
+            });
+
+            entities.AddRange(concurrentEntities);
+
+            if (errorCount > 0)
+                Serilog.Log.Warning("[DXF] {Count} entity atlandı (partial recovery).", errorCount);
+
+            Serilog.Log.Information("[DXF] Dönüşüm tamamlandı: {Count} entity.", entities.Count);
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"DXF import hatası: {ex.Message}", ex);
         }
-        
+
         return entities;
     }
-    
-    /*
-    NE: ACadSharp Entity → AfneyCAD Entity Dönüşümü
-    NEDEN: DXF formatındaki geometrileri kendi domain modelimize çevirmek için.
-    */
-    private CadEntity? ConvertEntity(ACadSharp.Entities.Entity acadEntity, string targetLayer)
+
+    // Tam entity dönüşümü — DWG ile aynı entity tipleri
+    private IEnumerable<CadEntity> ConvertEntityFull(
+        Entity entity, Matrix4x4 transform,
+        Dictionary<string, uint> layerColors, Dictionary<string, string> layerLinetypes,
+        double unitScale, int depth = 0, HashSet<string>? visitedBlocks = null)
     {
-        return acadEntity switch
+        // Renk çözümleme
+        uint color = 0xFFFFFFFF;
+        if (entity.Color.IsTrueColor)
+            color = (uint)((0xFF << 24) | (entity.Color.R << 16) | (entity.Color.G << 8) | entity.Color.B);
+        else if (entity.Color.IsByLayer && layerColors.TryGetValue(entity.Layer?.Name ?? "0", out var lc))
+            color = lc;
+        else
+            color = DwgImportService.MapColor(entity.Color);
+
+        string linetype = entity.LineType?.Name ?? "Continuous";
+        if (linetype.Equals("ByLayer", StringComparison.OrdinalIgnoreCase))
+            linetype = layerLinetypes.GetValueOrDefault(entity.Layer?.Name ?? "0", "Continuous");
+
+        // Insert (Block Reference) — recursive
+        if (entity is Insert insert)
         {
-            Line line => ConvertLine(line, targetLayer),
-            Arc arc => ConvertArc(arc, targetLayer),
-            Circle circle => ConvertCircle(circle, targetLayer),
-            LwPolyline polyline => ConvertPolyline(polyline, targetLayer),
-            Polyline3D poly => ConvertPolyline3D(poly, targetLayer),
-            _ => null // Desteklenmeyen entity tip (TEXT, BLOCK vb. ileride eklenecek)
+            if (depth > 50) yield break;
+            var blocks = visitedBlocks ?? new HashSet<string>();
+            string blockName = insert.Block?.Name ?? "";
+            if (blocks.Contains(blockName)) yield break;
+            blocks.Add(blockName);
+
+            var basePointTrans = Matrix4x4.Identity;
+            if (insert.Block?.BlockEntity != null)
+            {
+                var bp = insert.Block.BlockEntity.BasePoint;
+                basePointTrans = Matrix4x4.CreateTranslation(-bp.X, -bp.Y, -bp.Z);
+            }
+
+            var scaleMat = Matrix4x4.CreateScale(insert.XScale, insert.YScale, insert.ZScale);
+            var rotMat = Matrix4x4.CreateRotationZ(insert.Rotation);
+            var transMat = Matrix4x4.CreateTranslation(insert.InsertPoint.X, insert.InsertPoint.Y, insert.InsertPoint.Z);
+            var combined = transform * transMat * rotMat * scaleMat * basePointTrans;
+
+            // Attributes
+            if (insert.Attributes != null)
+            {
+                foreach (var attr in insert.Attributes)
+                {
+                    if (string.IsNullOrEmpty(attr?.Value)) continue;
+                    var attrText = new Afney.Cad.Domain.Entities.Basic.TextEntity(attr.Value,
+                        new Vector3D(attr.InsertPoint.X, attr.InsertPoint.Y, attr.InsertPoint.Z),
+                        attr.Height > 0 ? attr.Height : 100);
+                    attrText.Layer = insert.Layer?.Name ?? "0";
+                    attrText.Color = color;
+                    attrText.Transform(transform);
+                    yield return attrText;
+                }
+            }
+
+            if (insert.Block?.Entities != null)
+            {
+                var newVisited = new HashSet<string>(blocks);
+                foreach (var child in insert.Block.Entities)
+                    foreach (var cc in ConvertEntityFull(child, combined, layerColors, layerLinetypes, unitScale, depth + 1, newVisited))
+                        yield return cc;
+            }
+            yield break;
+        }
+
+        // Dimension
+        if (entity is Dimension dim && dim.Block != null)
+        {
+            foreach (var child in dim.Block.Entities)
+                foreach (var cc in ConvertEntityFull(child, transform, layerColors, layerLinetypes, unitScale, depth + 1))
+                    yield return cc;
+            yield break;
+        }
+
+        // Hatch
+        if (entity is Hatch hatch)
+        {
+            foreach (var path in hatch.Paths)
+            {
+                if (path?.Edges != null)
+                {
+                    foreach (var edge in path.Edges)
+                    {
+                        if (edge is Hatch.BoundaryPath.Line le)
+                        {
+                            var lineEnt = new LineEntity(new Vector3D(le.Start.X, le.Start.Y, 0), new Vector3D(le.End.X, le.End.Y, 0))
+                            { Layer = hatch.Layer?.Name ?? "0", Color = color };
+                            lineEnt.Transform(transform);
+                            yield return lineEnt;
+                        }
+                        else if (edge is Hatch.BoundaryPath.Arc ae)
+                        {
+                            var pts = new List<Vector3D>();
+                            double sa = ae.StartAngle, ea = ae.EndAngle;
+                            if (ae.CounterClockWise && ea < sa) ea += 2 * Math.PI;
+                            double step = (ea - sa) / 16;
+                            for (int i = 0; i <= 16; i++)
+                            {
+                                double a = sa + step * i;
+                                pts.Add(new Vector3D(ae.Center.X + ae.Radius * Math.Cos(a), ae.Center.Y + ae.Radius * Math.Sin(a), 0));
+                            }
+                            if (pts.Count > 1)
+                            {
+                                var poly = new LwPolylineEntity(pts, false) { Layer = hatch.Layer?.Name ?? "0", Color = color };
+                                poly.Transform(transform);
+                                yield return poly;
+                            }
+                        }
+                    }
+                }
+            }
+            yield break;
+        }
+
+        // Temel geometri
+        CadEntity? result = entity switch
+        {
+            Line l => new LineEntity(new Vector3D(l.StartPoint.X, l.StartPoint.Y, l.StartPoint.Z),
+                                     new Vector3D(l.EndPoint.X, l.EndPoint.Y, l.EndPoint.Z)),
+            Arc a => MapArc(a),
+            Circle c => new CircleEntity(new Vector3D(c.Center.X, c.Center.Y, c.Center.Z), c.Radius),
+            LwPolyline pl => new LwPolylineEntity(pl.Vertices.Select(v => new Vector3D(v.Location.X, v.Location.Y, 0)).ToList(), pl.IsClosed),
+            MText mt => new Afney.Cad.Domain.Entities.Basic.TextEntity(mt.Value ?? "", new Vector3D(mt.InsertPoint.X, mt.InsertPoint.Y, mt.InsertPoint.Z), mt.Height, mt.Rotation),
+            ACadSharp.Entities.TextEntity t => new Afney.Cad.Domain.Entities.Basic.TextEntity(t.Value ?? "", new Vector3D(t.InsertPoint.X, t.InsertPoint.Y, t.InsertPoint.Z), t.Height, t.Rotation),
+            ACadSharp.Entities.Ellipse el => MapEllipse(el),
+            ACadSharp.Entities.Spline sp => MapSpline(sp),
+            ACadSharp.Entities.Point pt => new CircleEntity(new Vector3D(pt.Location.X, pt.Location.Y, pt.Location.Z), 1.0),
+            _ => null
         };
+
+        if (result != null)
+        {
+            result.Layer = entity.Layer?.Name ?? "0";
+            result.Color = color;
+            result.Linetype = linetype;
+            result.Transform(transform);
+            if (Math.Abs(unitScale - 1.0) > 0.001)
+                result.Transform(Matrix4x4.CreateScale(unitScale, unitScale, unitScale));
+            yield return result;
+        }
     }
-    
-    /*
-    NE: DXF LINE → AfneyCAD LineEntity
-    */
-    private LineEntity ConvertLine(Line line, string targetLayer)
+
+    private CadEntity MapArc(Arc a)
     {
-        var start = new Vector3D(line.StartPoint.X, line.StartPoint.Y, line.StartPoint.Z);
-        var end = new Vector3D(line.EndPoint.X, line.EndPoint.Y, line.EndPoint.Z);
-        
-        return new LineEntity(start, end)
+        var points = new List<Vector3D>();
+        double start = a.StartAngle, end = a.EndAngle;
+        if (end < start) end += 2 * Math.PI;
+        double step = (end - start) / 16;
+        for (int i = 0; i <= 16; i++)
         {
-            Layer = targetLayer,
-            Color = ConvertColor(line.Color)
-        };
+            double angle = start + step * i;
+            points.Add(new Vector3D(a.Center.X + a.Radius * Math.Cos(angle), a.Center.Y + a.Radius * Math.Sin(angle), a.Center.Z));
+        }
+        return new LwPolylineEntity(points, false);
     }
-    
-    /*
-    NE: DXF CIRCLE → AfneyCAD CircleEntity
-    */
-    private CircleEntity ConvertCircle(Circle circle, string targetLayer)
+
+    private CadEntity MapEllipse(ACadSharp.Entities.Ellipse ellipse)
     {
-        var center = new Vector3D(circle.Center.X, circle.Center.Y, circle.Center.Z);
-        
-        return new CircleEntity(center, circle.Radius)
+        var center = new Vector3D(ellipse.Center.X, ellipse.Center.Y, ellipse.Center.Z);
+        double majorX = 1, majorY = 0;
+        try { dynamic d = ellipse; majorX = d.EndMajorPoint.X; majorY = d.EndMajorPoint.Y; } catch { }
+        double majorLen = Math.Sqrt(majorX * majorX + majorY * majorY);
+        if (majorLen < 1e-9) majorLen = 1;
+        double minorLen = majorLen * ellipse.RadiusRatio;
+        double majorAngle = Math.Atan2(majorY, majorX);
+        var points = new List<Vector3D>();
+        for (int i = 0; i <= 48; i++)
         {
-            Layer = targetLayer,
-            Color = ConvertColor(circle.Color)
-        };
+            double t = ellipse.StartParameter + (ellipse.EndParameter - ellipse.StartParameter) * i / 48;
+            double x = majorLen * Math.Cos(t);
+            double y = minorLen * Math.Sin(t);
+            points.Add(new Vector3D(center.X + x * Math.Cos(majorAngle) - y * Math.Sin(majorAngle),
+                                     center.Y + x * Math.Sin(majorAngle) + y * Math.Cos(majorAngle), center.Z));
+        }
+        return new LwPolylineEntity(points, Math.Abs(ellipse.EndParameter - ellipse.StartParameter - Math.PI * 2) < 0.01);
     }
-    
-    /*
-    NE: DXF ARC → AfneyCAD LineEntity (Yaklaşık - ileride ArcEntity eklenecek)
-    NEDEN: Şimdilik arc'ı çizgi segmentlere bölerek temsil ediyoruz.
-    */
-    private LineEntity? ConvertArc(Arc arc, string targetLayer)
+
+    private CadEntity? MapSpline(ACadSharp.Entities.Spline spline)
     {
-        // Basitleştirilmiş: Arc'ın başlangıç ve bitiş noktasını çizgi olarak çiziyoruz
-        // FineSANI benzeri: Arc tessellation yapılabilir (çok segment)
-        var startAngle = arc.StartAngle * (System.Math.PI / 180.0);
-        var endAngle = arc.EndAngle * (System.Math.PI / 180.0);
-        
-        var startX = arc.Center.X + arc.Radius * System.Math.Cos(startAngle);
-        var startY = arc.Center.Y + arc.Radius * System.Math.Sin(startAngle);
-        var endX = arc.Center.X + arc.Radius * System.Math.Cos(endAngle);
-        var endY = arc.Center.Y + arc.Radius * System.Math.Sin(endAngle);
-        
-        var start = new Vector3D(startX, startY, arc.Center.Z);
-        var end = new Vector3D(endX, endY, arc.Center.Z);
-        
-        return new LineEntity(start, end)
-        {
-            Layer = targetLayer,
-            Color = ConvertColor(arc.Color)
-        };
-    }
-    
-    /*
-    NE: DXF LWPOLYLINE → AfneyCAD LineEntity (Segment bazlı)
-    NEDEN: POLYLINE'ı birden fazla LINE segment olarak import ediyoruz.
-    NOT: İleride PolylineEntity eklendiğinde doğrudan map edilecek.
-    */
-    private CadEntity? ConvertPolyline(LwPolyline polyline, string targetLayer)
-    {
-        // Şimdilik sadece ilk segment'i döndürüyoruz (basitleştirme)
-        // FineSANI: Tüm vertex'leri döner
-        if (polyline.Vertices.Count < 2) return null;
-        
-        var v1 = polyline.Vertices[0];
-        var v2 = polyline.Vertices[1];
-        
-        var start = new Vector3D(v1.Location.X, v1.Location.Y, 0);
-        var end = new Vector3D(v2.Location.X, v2.Location.Y, 0);
-        
-        return new LineEntity(start, end)
-        {
-            Layer = targetLayer,
-            Color = ConvertColor(polyline.Color)
-        };
-    }
-    
-    /*
-    NE: DXF POLYLINE (3D) → LineEntity
-    */
-    private CadEntity? ConvertPolyline3D(Polyline3D poly, string targetLayer)
-    {
-        if (poly.Vertices.Count < 2) return null;
-        
-        var v1 = poly.Vertices[0].Location;
-        var v2 = poly.Vertices[1].Location;
-        
-        var start = new Vector3D(v1.X, v1.Y, v1.Z);
-        var end = new Vector3D(v2.X, v2.Y, v2.Z);
-        
-        return new LineEntity(start, end)
-        {
-            Layer = targetLayer,
-            Color = ConvertColor(poly.Color)
-        };
-    }
-    
-    /*
-    NE: DXF Renk → AfneyCAD uint Color
-    NEDEN: Color formatı dönüşümü
-    */
-    private uint ConvertColor(ACadSharp.Color acadColor)
-    {
-        // DXF color index → RGB (basitleştirilmiş)
-        // 7 = White, 1 = Red, 3 = Green vb.
-        return acadColor.Index switch
-        {
-            1 => 0xFFFF0000, // Red
-            2 => 0xFFFFFF00, // Yellow
-            3 => 0xFF00FF00, // Green
-            4 => 0xFF00FFFF, // Cyan
-            5 => 0xFF0000FF, // Blue
-            6 => 0xFFFF00FF, // Magenta
-            7 => 0xFFFFFFFF, // White
-            _ => 0xFFAAAAAA  // Gray (default)
-        };
+        var points = new List<Vector3D>();
+        if (spline.ControlPoints?.Count > 1)
+            foreach (var cp in spline.ControlPoints) points.Add(new Vector3D(cp.X, cp.Y, cp.Z));
+        else if (spline.FitPoints?.Count > 1)
+            foreach (var fp in spline.FitPoints) points.Add(new Vector3D(fp.X, fp.Y, fp.Z));
+        if (points.Count < 2) return null;
+        return new SplineEntity(points);
     }
 }
-

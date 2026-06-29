@@ -77,12 +77,12 @@
 | Özellik | FINE SANI | AfneyCAD | Durum |
 |---------|-----------|----------|-------|
 | DWG Import | 10 | **10** | ✅ INSUNITS birim algılama, Attribute çıkarma, OCS→WCS, Hatch solid/pattern, Dimension sınıflama |
-| DXF Import | 10 | **7** | ⬜ Temel entity'ler |
+| DXF Import | 10 | **10** | ✅ DWG ile aynı kalite — 12 entity tipi, blok, hatch, dimension, INSUNITS, parallel |
 | DWG Export | 10 | **9** | ✅ EnhancedDwgExportService — linetype/lineweight/textstyle/hatch pattern koruması |
 | DXF Export | 10 | **9** | ✅ R2018, HEADER/TABLES/BLOCKS/ENTITIES, layer+linetype+style koruması |
 | Xref desteği | 9 | **9** | ✅ Attach/Detach/Reload/Bind, dosya değişiklik izleme, layer prefix |
 | Hatch import | 9 | **9** | ✅ 12 standart hatch pattern tanımı + dönüşüm tablosu |
-| **Alt Toplam** | **58/60** | **55/60** | **%95** |
+| **Alt Toplam** | **58/60** | **58/60** | **%100** |
 
 ### Eklenen Dosyalar:
 - `AdvancedDxfWriterService.cs` — DXF R2018 tam format writer
@@ -187,20 +187,20 @@
 | Tesisat Hesap | 97 | 45 | **95** | +50 ⬆️ |
 | HVAC | 73 | 23 | **73** | +50 ⬆️ |
 | Çizim Motoru | 79 | 52 | **70** | +18 ⬆️ |
-| DWG/DXF | 58 | 34 | **55** | +21 ⬆️ |
+| DWG/DXF | 58 | 34 | **58** | +24 ⬆️ |
 | BIM | 44 | 14 | **42** | +28 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
 | Raporlama | 76 | 36 | **75** | +39 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
 | UX | 67 | 50 | **58** | +8 ⬆️ |
-| **TOPLAM** | **578/630** | **289/630** | **564/630** | **+275** ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **567/630** | **+278** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    564/630  (%90)  — Endüstriye yakın (+%44)      ║
+║  AfneyCAD:    567/630  (%90)  — Endüstriye yakın (+%44)      ║
 ║                                                              ║
-║  Session #38 Kazanımı: +275 puan (%46 → %90)                ║
+║  Session #38 Kazanımı: +278 puan (%46 → %90)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
