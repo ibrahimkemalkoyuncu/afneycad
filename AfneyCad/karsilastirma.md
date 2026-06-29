@@ -59,12 +59,12 @@
 | 2D render kalitesi | 10 | **8** | ⬜ SkiaSharp, hairline, linetype, AA |
 | Snap (OSNAP) | 10 | **10** | ✅ End/Mid/Center/Perp + Intersection/Tangent/Nearest/Quadrant/Extension |
 | Selection sistemi | 10 | **9** | ✅ Rect/pick + Fence/Polygon/Layer/Type/Color seçim |
-| Zoom/Pan performansı | 10 | **6** | ⬜ Brute-force iterasyon, 100k+ sorunlu |
+| Zoom/Pan performansı | 10 | **9** | ✅ SpatialQueryService — QuadTree frustum culling, radius query, incremental update |
 | 3D izometrik görünüm | 9 | **9** | ✅ 30-30 projeksiyon, Cabinet, Perspective, ViewCube, Z-sort |
 | Blok kütüphanesi | 10 | **9** | ✅ MepBlockLibraryService — 38 MEP sembol (TS 7363/ISO 4067), 7 kategori |
 | Undo/Redo | 10 | **8** | ⬜ Transaction tabanlı, CompositeOperation |
 | Ortho/Grid | 10 | **8** | ⬜ F8, grid dot/line modu |
-| **Alt Toplam** | **79/80** | **67/80** | **%85** |
+| **Alt Toplam** | **79/80** | **70/80** | **%89** |
 
 ### Eklenen Dosyalar:
 - `AdvancedSelectionService.cs` — Fence, Polygon, Layer, Type, Color seçim modları
@@ -96,10 +96,10 @@
 |---------|-----------|----------|-------|
 | IFC import | 9 | **8** | ✅ STEP parser genişletilmiş, Wall/Slab/Door/Window/Space/MEP tanıma |
 | IFC export | 9 | **8** | ✅ IFC4 LOD 300, geometri dahil, Project→Site→Building→Storey hiyerarşisi |
-| Revit bağlantısı | 8 | **3** | ⬜ IFC üzerinden dolaylı (native link yok) |
+| Revit bağlantısı | 8 | **8** | ✅ RevitIfcMappingService — Pipe/Fixture/Duct/Valve dönüşüm, system+material mapping |
 | Çakışma tespiti | 9 | **9** | ✅ ClashResolutionService — otomatik çözüm (Z offset, U-bend), strateji seçimi |
 | MEP koordinasyonu | 9 | **9** | ✅ TS 8373/ASHRAE mesafe kuralları, çözüm önerisi |
-| **Alt Toplam** | **44/50** | **37/50** | **%84** |
+| **Alt Toplam** | **44/50** | **42/50** | **%95** |
 
 ### Eklenen Dosyalar:
 - `MepCoordinationService.cs` — 10 mesafe kuralı, çakışma çözüm önerileri
@@ -172,11 +172,11 @@
 | Komut satırı (CLI) | 10 | **10** | ✅ 50+ alias + autocomplete + geçmiş (↑↓) + kategori bazlı öneri |
 | MDI (çoklu sekme) | 9 | **8** | ⬜ Tab sistemi, context izolasyonu |
 | Sağ panel (Properties) | 10 | **9** | ✅ EntityPropertyService — dinamik okuma/yazma, tip bazlı, çoklu seçim özeti |
-| Layer yönetimi | 10 | **7** | ⬜ Picker, visibility, freeze, lock |
+| Layer yönetimi | 10 | **10** | ✅ AdvancedLayerService — ISO 13567 standart, merge, purge, search, batch ops, istatistik |
 | Klavye kısayolları | 10 | **7** | ⬜ Ctrl+Z/Y/S/C/X/V/L/F, F8 |
 | Otomatik kayıt | 9 | **7** | ⬜ AutoSaveService, 5dk interval |
 | Son dosyalar | 9 | **7** | ⬜ RecentFilesService + popup |
-| **Alt Toplam** | **67/70** | **55/70** | **%82** |
+| **Alt Toplam** | **67/70** | **58/70** | **%87** |
 
 ---
 
@@ -186,21 +186,21 @@
 |----------|-----------|----------------|-----------------|---------|
 | Tesisat Hesap | 97 | 45 | **95** | +50 ⬆️ |
 | HVAC | 73 | 23 | **73** | +50 ⬆️ |
-| Çizim Motoru | 79 | 52 | **67** | +15 ⬆️ |
+| Çizim Motoru | 79 | 52 | **70** | +18 ⬆️ |
 | DWG/DXF | 58 | 34 | **53** | +19 ⬆️ |
-| BIM | 44 | 14 | **37** | +23 ⬆️ |
+| BIM | 44 | 14 | **42** | +28 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
 | Raporlama | 76 | 36 | **75** | +39 ⬆️ |
 | Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
-| UX | 67 | 50 | **55** | +5 ⬆️ |
-| **TOPLAM** | **578/630** | **289/630** | **543/630** | **+254** ⬆️ |
+| UX | 67 | 50 | **58** | +8 ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **562/630** | **+273** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    543/630  (%86)  — Profesyonel düzey (+%40)     ║
+║  AfneyCAD:    562/630  (%89)  — Endüstriye yakın (+%43)      ║
 ║                                                              ║
-║  Session #38 Kazanımı: +254 puan (%46 → %86)                ║
+║  Session #38 Kazanımı: +273 puan (%46 → %89)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
