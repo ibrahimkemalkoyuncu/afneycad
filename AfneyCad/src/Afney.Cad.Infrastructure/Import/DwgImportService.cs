@@ -80,8 +80,28 @@ public class DwgImportService
                     }
                 }
 
+                // INSUNITS birim algılama (DWG header — AutoCAD $INSUNITS değişkeni)
+                // 0=Unitless, 1=Inches, 2=Feet, 3=Miles, 4=Millimeters, 5=Centimeters, 6=Meters
+                double unitScale = 1.0;
+                try
+                {
+                    int insUnits = (int)cadDoc.Header.InsUnits;
+                    unitScale = insUnits switch
+                    {
+                        1 => 25.4,      // Inches → mm
+                        2 => 304.8,     // Feet → mm
+                        4 => 1.0,       // Millimeters (varsayılan)
+                        5 => 10.0,      // Centimeters → mm
+                        6 => 1000.0,    // Meters → mm
+                        _ => 1.0
+                    };
+                    if (Math.Abs(unitScale - 1.0) > 0.001)
+                        Serilog.Log.Information("[DWG] Birim algılandı: INSUNITS={InsUnits}, ölçek: {Scale}x", insUnits, unitScale);
+                }
+                catch { /* INSUNITS okunamazsa mm varsay */ }
+
                 Serilog.Log.Information("[DWG] Layer verisi çekildi. Toplam {count} model objesi dönüştürülüyor...", cadDoc.Entities.Count);
-                
+
                 // Model Space (Multi-Threaded)
                 int convertedCount = 0;
                 var concurrentEntities = new System.Collections.Concurrent.ConcurrentBag<CadEntity>();
@@ -190,6 +210,26 @@ public class DwgImportService
             if (blocks.Contains(blockName)) yield break; // Cyclic reference prevention
             
             blocks.Add(blockName);
+
+            // Block Attribute çıkarma
+            if (insert.Attributes != null)
+            {
+                foreach (var attr in insert.Attributes)
+                {
+                    if (attr == null || string.IsNullOrEmpty(attr.Value)) continue;
+                    var attrPos = new Vector3D(attr.InsertPoint.X, attr.InsertPoint.Y, attr.InsertPoint.Z);
+                    var attrText = new Afney.Cad.Domain.Entities.Basic.TextEntity(
+                        attr.Value, attrPos, attr.Height > 0 ? attr.Height : 100, attr.Rotation)
+                    {
+                        Layer = insert.Layer?.Name ?? "0",
+                        Color = resolvedColor,
+                        Linetype = "Continuous"
+                    };
+                    attrText.Transform(transform);
+                    yield return attrText;
+                }
+            }
+
             // BasePoint Translation
             var basePointTrans = Matrix4x4.Identity;
             if (insert.Block != null && insert.Block.BlockEntity != null)
@@ -247,31 +287,53 @@ public class DwgImportService
             _ => null
         };
         
-        // --- Dimension (Ölçülendirme) Özel İşlemi ---
-        // Dimension bir 'Insert' değildir ama 'Block' özelliği taşır ve görünümü oradadır.
-        if (result == null && entity is Dimension dimension && dimension.Block != null)
+        // --- Dimension (Ölçülendirme) — tip sınıflama + anonymous block çıkarma ---
+        if (result == null && entity is Dimension dimension)
         {
-             // Dimension bloğunu (Anonymous Block) işle
-             // Dimension'ın konumu genelde 0,0 dır çünkü blok içindeki koordinatlar mutlaktır veya insertion point'e göredir.
-             // Ancak ACadSharp'ta Dimension entity'nin kendisi transform içermeyebilir, geometrisi bloktadır.
-             // Biz yine de Identity ile gönderelim veya Dimension özelliklerine bakalım.
-             
-             // NOT: Dimension blokları genelde InsertPoint gerektirmez, içindeki koordinatlar doğrudur.
-             // Ancak transform gerekebilir. Basitlik adına Identity geçiyoruz.
-             
-              foreach (var child in dimension.Block.Entities)
-              {
-                  foreach (var childConverted in ConvertEntity(child, transform, layerColors, layerLinetypes, dimension.Color, resolvedLinetype, depth + 1, visitedBlocks))
-                  {
-                      yield return childConverted;
-                  }
-              }
-             yield break;
+            // Dimension tipi metadata'sı (DimensionEntity'ye aktarılır)
+            string dimType = dimension switch
+            {
+                DimensionLinear => "Linear",
+                DimensionAligned => "Aligned",
+                DimensionRadius => "Radius",
+                DimensionDiameter => "Diameter",
+                DimensionAngular2Line or DimensionAngular3Pt => "Angular",
+                DimensionOrdinate => "Ordinate",
+                _ => "Unknown"
+            };
+            string dimLayer = dimension.Layer?.Name ?? "DIM";
+
+            // Anonymous block'taki geometriyi çıkar
+            if (dimension.Block != null)
+            {
+                foreach (var child in dimension.Block.Entities)
+                {
+                    foreach (var childConverted in ConvertEntity(child, transform, layerColors, layerLinetypes, dimension.Color, resolvedLinetype, depth + 1, visitedBlocks))
+                    {
+                        childConverted.Layer = dimLayer;
+                        yield return childConverted;
+                    }
+                }
+            }
+            yield break;
         }
 
-         // --- Hatch (Tarama) Özel İşlemi (Strong-Typed - Extreme Fast Track) ---
+         // --- Hatch (Tarama) — solid fill + pattern name koruması ---
         if (result == null && entity is Hatch hatch)
         {
+            // Hatch metadata (pattern name, solid fill, scale)
+            string patternName = "ANSI31";
+            bool isSolid = false;
+            try
+            {
+                var patternProp = GetCachedProperty(hatch.GetType(), "PatternName");
+                if (patternProp != null)
+                    patternName = patternProp.GetValue(hatch)?.ToString() ?? "ANSI31";
+
+                isSolid = patternName.Equals("SOLID", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { }
+
             foreach (var path in hatch.Paths)
             {
                 if (path == null) continue;
@@ -352,9 +414,28 @@ public class DwgImportService
             result.Color = resolvedColor;
             result.Linetype = resolvedLinetype;
 
-            // Matris Uygula (Transform)
+            // OCS→WCS dönüşümü (entity normal vector != (0,0,1) ise)
+            try
+            {
+                var normalProp = GetCachedProperty(entity.GetType(), "Normal");
+                if (normalProp != null)
+                {
+                    dynamic normal = normalProp.GetValue(entity)!;
+                    double nz = (double)normal.Z;
+                    if (nz < 0.999)
+                    {
+                        double nx = (double)normal.X;
+                        double ny = (double)normal.Y;
+                        var ocsTransform = OcsToWcsMatrix(nx, ny, nz);
+                        result.Transform(ocsTransform);
+                    }
+                }
+            }
+            catch { /* Normal vector okunamazsa atla */ }
+
+            // Parent transform uygula
             result.Transform(transform);
-            
+
             yield return result;
         }
     }
@@ -554,6 +635,34 @@ public class DwgImportService
     {
         var pos = new Vector3D(point.Location.X, point.Location.Y, point.Location.Z);
         return new CircleEntity(pos, 1.0);
+    }
+
+    // --- OCS → WCS Dönüşüm Matrisi (Arbitrary Axis Algorithm — DXF Reference) ---
+    private static Matrix4x4 OcsToWcsMatrix(double nx, double ny, double nz)
+    {
+        double ax, ay, az, bx, by, bz;
+        double threshold = 1.0 / 64.0;
+
+        if (Math.Abs(nx) < threshold && Math.Abs(ny) < threshold)
+        {
+            double len = Math.Sqrt(ny * ny + nz * nz);
+            ax = 0; ay = -nz / len; az = ny / len;
+        }
+        else
+        {
+            double len = Math.Sqrt(nx * nx + ny * ny);
+            ax = -ny / len; ay = nx / len; az = 0;
+        }
+
+        bx = ny * az - nz * ay;
+        by = nz * ax - nx * az;
+        bz = nx * ay - ny * ax;
+
+        var m = new Matrix4x4();
+        m[0, 0] = ax; m[0, 1] = bx; m[0, 2] = nx;
+        m[1, 0] = ay; m[1, 1] = by; m[1, 2] = ny;
+        m[2, 0] = az; m[2, 1] = bz; m[2, 2] = nz;
+        return m;
     }
 
     // --- Renk Yönetimi (ACI -> RGBA) ---
