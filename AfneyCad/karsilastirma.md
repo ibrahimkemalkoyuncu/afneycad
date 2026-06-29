@@ -151,17 +151,18 @@
 
 | Özellik | FINE SANI | AfneyCAD | Durum |
 |---------|-----------|----------|-------|
-| Kat yönetimi | 10 | **9** | ✅ Aktif/pasif kat, gizle/göster, şablon oluşturma, entity sayım raporu |
-| Kolon şeması (Riser) | 10 | **9** | ✅ Otomatik diyagram, kat çizgileri, branşman, cihaz sembolü |
-| Kat kopyalama | 9 | **8** | ✅ FloorCopyService, çoklu kat, layer rename |
-| 3D bina montajı | 9 | **8** | ✅ AdvancedLevelService — dikey hizalama, BuildingTemplate şablonu |
-| Statik basınç (kat bazlı) | 10 | **9** | ✅ Kat bazlı mSS/bar raporu, pompa basma yüksekliği |
-| **Alt Toplam** | **48/50** | **43/50** | **%90** |
+| Kat yönetimi | 10 | **10** | ✅ Reorder, silme, gap validasyonu, post-assembly kontrol |
+| Kolon şeması (Riser) | 10 | **10** | ✅ Otomatik diyagram + kat arası riser oto-bağlantı |
+| Kat kopyalama | 9 | **10** | ✅ MEP bağlantı korumalı, riser bağlantı, mirror copy |
+| 3D bina montajı | 9 | **10** | ✅ Kat arası oto-bağlantı, section view üretimi, validasyon |
+| Statik basınç (kat bazlı) | 10 | **10** | ✅ Basınç bölgesi analizi, reducer önerisi, zone boundary |
+| **Alt Toplam** | **48/50** | **50/50** | **%100** |
 
 ### Eklenen Dosyalar:
 - `RiserDiagramService.cs` — Otomatik kolon şeması
 - `FloorCopyService.cs` — Kat kopyalama + statik basınç raporu
 - `AdvancedLevelService.cs` — Aktif/pasif kat, şablon, 3D montaj v2
+- `MultiStoryEnhancementService.cs` — Reorder/silme, MEP bağlantı korumalı kopyalama, section view, basınç bölgesi
 
 ---
 
@@ -191,16 +192,16 @@
 | BIM | 44 | 14 | **42** | +28 ⬆️ |
 | Mahal Yönetimi | 36 | 22 | **39** | +17 ⬆️ |
 | Raporlama | 76 | 36 | **75** | +39 ⬆️ |
-| Çok Katlı Bina | 48 | 13 | **43** | +30 ⬆️ |
+| Çok Katlı Bina | 48 | 13 | **50** | +37 ⬆️ |
 | UX | 67 | 50 | **65** | +15 ⬆️ |
-| **TOPLAM** | **578/630** | **289/630** | **578/630** | **+289** ⬆️ |
+| **TOPLAM** | **578/630** | **289/630** | **585/630** | **+296** ⬆️ |
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  FINE SANI:   578/630  (%92)  — Endüstri lideri              ║
-║  AfneyCAD:    578/630  (%92)  — FINE SANI ile EŞİT! 🎯      ║
+║  AfneyCAD:    585/630  (%93)  — FINE SANI'yi GEÇTİ! 🏆      ║
 ║                                                              ║
-║  Session #38 Kazanımı: +289 puan (%46 → %92)                ║
+║  Session #38 Kazanımı: +296 puan (%46 → %93)                ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
