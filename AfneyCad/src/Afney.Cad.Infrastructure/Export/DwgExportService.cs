@@ -100,10 +100,12 @@ public class DwgExportService
 
     private static LwPolyline ToPipePolyline(PipeEntity pipe)
     {
-        double hw = pipe.InnerDiameter * 500; // half-width display
+        // Boru, gerçek dış çapında (mm) çizilir — InnerDiameter zaten mm cinsinden.
+        // Önceki "* 500" çarpanı 500 kat büyütme hatasıydı (DN20 boru 10m genişlik gibi render oluyordu).
+        double width = pipe.InnerDiameter > 0 ? pipe.InnerDiameter : 1.0;
         var lw = new LwPolyline();
-        lw.Vertices.Add(new LwPolyline.Vertex(V2(pipe.StartPoint)) { StartWidth = hw, EndWidth = hw });
-        lw.Vertices.Add(new LwPolyline.Vertex(V2(pipe.EndPoint))   { StartWidth = hw, EndWidth = hw });
+        lw.Vertices.Add(new LwPolyline.Vertex(V2(pipe.StartPoint)) { StartWidth = width, EndWidth = width });
+        lw.Vertices.Add(new LwPolyline.Vertex(V2(pipe.EndPoint))   { StartWidth = width, EndWidth = width });
         return lw;
     }
 

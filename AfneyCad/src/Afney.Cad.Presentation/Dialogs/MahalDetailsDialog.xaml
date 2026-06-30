@@ -31,6 +31,40 @@
             <Setter Property="BorderThickness"  Value="1"/>
             <Setter Property="Padding"          Value="6,3"/>
             <Setter Property="FontSize"         Value="13"/>
+            <!-- NE: Açılan liste (popup) öğe stili
+                 NEDEN: ComboBox.Foreground, popup içindeki ComboBoxItem'lara miras geçmez.
+                 Bu Setter olmadan sistem varsayılanı (genelde koyu zeminde siyah metin)
+                 kullanılır ve liste öğeleri "görünmez" gibi durur — sadece hover/seçili
+                 öğe (mavi vurgu) görünür kalır. -->
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="#252530"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Padding"    Value="8,5"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Bd"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="True">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#007ACC"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#1F3A5F"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Label stili -->
@@ -146,7 +180,9 @@
                     <TextBlock Text="MAHAL TİPİ" Style="{StaticResource FieldLabel}"/>
                     <ComboBox x:Name="MahalTypeCombo"
                               Style="{StaticResource DarkComboBox}"
-                              SelectedIndex="0">
+                              SelectedIndex="1">
+                        <!-- Konut -->
+                        <ComboBoxItem Content="— KONUT —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
                         <ComboBoxItem Content="Banyo"/>
                         <ComboBoxItem Content="WC"/>
                         <ComboBoxItem Content="Mutfak"/>
@@ -154,11 +190,36 @@
                         <ComboBoxItem Content="Oturma Odası"/>
                         <ComboBoxItem Content="Yatak Odası"/>
                         <ComboBoxItem Content="Çocuk Odası"/>
-                        <ComboBoxItem Content="Ofis"/>
+                        <ComboBoxItem Content="Çamaşır Odası"/>
                         <ComboBoxItem Content="Koridor"/>
                         <ComboBoxItem Content="Antre"/>
                         <ComboBoxItem Content="Balkon"/>
                         <ComboBoxItem Content="Depo"/>
+                        <!-- Ofis -->
+                        <ComboBoxItem Content="— OFİS —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
+                        <ComboBoxItem Content="Ofis"/>
+                        <ComboBoxItem Content="Ofis (Açık Plan)"/>
+                        <ComboBoxItem Content="Ofis WC (Erkek)"/>
+                        <ComboBoxItem Content="Ofis WC (Kadın)"/>
+                        <ComboBoxItem Content="Toplantı Odası"/>
+                        <!-- Ticari -->
+                        <ComboBoxItem Content="— TİCARİ —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
+                        <ComboBoxItem Content="Restoran Mutfak"/>
+                        <ComboBoxItem Content="Otel Odası Banyo"/>
+                        <!-- Hastane -->
+                        <ComboBoxItem Content="— HASTANE —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
+                        <ComboBoxItem Content="Hasta Odası"/>
+                        <ComboBoxItem Content="Ameliyathane"/>
+                        <ComboBoxItem Content="Hastane WC"/>
+                        <!-- Eğitim -->
+                        <ComboBoxItem Content="— EĞİTİM —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
+                        <ComboBoxItem Content="Sınıf"/>
+                        <ComboBoxItem Content="Okul WC"/>
+                        <ComboBoxItem Content="Laboratuvar"/>
+                        <!-- Endüstri -->
+                        <ComboBoxItem Content="— ENDÜSTRİ —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
+                        <ComboBoxItem Content="Soyunma/Duş"/>
+                        <!-- Diğer -->
                         <ComboBoxItem Content="Diğer"/>
                     </ComboBox>
                 </StackPanel>

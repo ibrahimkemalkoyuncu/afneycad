@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -213,9 +214,9 @@ public class DxfWriterService
         Group(sb, 8,  text.Layer ?? "0");
         Group(sb, 62, ArgbToAci(text.Color).ToString());
         GroupXYZ(sb, 10, 20, 30, text.Position);
-        Group(sb, 40, text.Height.ToString("F2"));
+        Group(sb, 40, text.Height.ToString("F2", CultureInfo.InvariantCulture));
         Group(sb, 1,  text.Text);
-        Group(sb, 50, text.Rotation.ToString("F2"));
+        Group(sb, 50, text.Rotation.ToString("F2", CultureInfo.InvariantCulture));
     }
 
     private static void WriteCircle(StringBuilder sb, CircleEntity circle)
@@ -225,7 +226,7 @@ public class DxfWriterService
         Group(sb, 8,  circle.Layer ?? "0");
         Group(sb, 62, ArgbToAci(circle.Color).ToString());
         GroupXYZ(sb, 10, 20, 30, circle.Center);
-        Group(sb, 40, circle.Radius.ToString("F4"));
+        Group(sb, 40, circle.Radius.ToString("F4", CultureInfo.InvariantCulture));
     }
 
     private static void WriteArc(StringBuilder sb, ArcEntity arc)
@@ -235,10 +236,10 @@ public class DxfWriterService
         Group(sb, 8,  arc.Layer ?? "0");
         Group(sb, 62, ArgbToAci(arc.Color).ToString());
         GroupXYZ(sb, 10, 20, 30, arc.Center);
-        Group(sb, 40, arc.Radius.ToString("F4"));
+        Group(sb, 40, arc.Radius.ToString("F4", CultureInfo.InvariantCulture));
         // ArcEntity angles are in radians; DXF R12 needs degrees
-        Group(sb, 50, (arc.StartAngle * 180.0 / Math.PI).ToString("F4"));
-        Group(sb, 51, (arc.EndAngle   * 180.0 / Math.PI).ToString("F4"));
+        Group(sb, 50, (arc.StartAngle * 180.0 / Math.PI).ToString("F4", CultureInfo.InvariantCulture));
+        Group(sb, 51, (arc.EndAngle   * 180.0 / Math.PI).ToString("F4", CultureInfo.InvariantCulture));
     }
 
     private static void WriteDimension(StringBuilder sb, DimensionEntity dim)
@@ -319,9 +320,9 @@ public class DxfWriterService
         sb.AppendLine("  0"); sb.AppendLine("TEXT");
         Group(sb, 8, layer); Group(sb, 62, aci.ToString());
         GroupXYZ(sb, 10, 20, 30, pos);
-        Group(sb, 40, height.ToString("F2"));
+        Group(sb, 40, height.ToString("F2", CultureInfo.InvariantCulture));
         Group(sb, 1, text);
-        Group(sb, 50, rotation.ToString("F2"));
+        Group(sb, 50, rotation.ToString("F2", CultureInfo.InvariantCulture));
     }
 
     private static void WritePolyline(StringBuilder sb, LwPolylineEntity poly)
@@ -378,11 +379,11 @@ public class DxfWriterService
     private static void GroupXYZ(StringBuilder sb, int gx, int gy, int gz, Vector3D v)
     {
         sb.AppendLine($"{gx,3}");
-        sb.AppendLine(v.X.ToString("F4"));
+        sb.AppendLine(v.X.ToString("F4", CultureInfo.InvariantCulture));
         sb.AppendLine($"{gy,3}");
-        sb.AppendLine(v.Y.ToString("F4"));
+        sb.AppendLine(v.Y.ToString("F4", CultureInfo.InvariantCulture));
         sb.AppendLine($"{gz,3}");
-        sb.AppendLine(v.Z.ToString("F4"));
+        sb.AppendLine(v.Z.ToString("F4", CultureInfo.InvariantCulture));
     }
 
     /*

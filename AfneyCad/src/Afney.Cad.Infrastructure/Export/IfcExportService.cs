@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.IO;
@@ -113,7 +114,7 @@ public class IfcExportService
         // 1. Profil (Circle Profile)
         int profileId = NextId();
         double radius = pipe.InnerDiameter / 2.0; // mm
-        _sb.AppendLine($"#{profileId}= IFCCIRCLEPROFILEDEF(.AREA.,$,#{_axis2Placement3DId_Default},{radius:F4});");
+        _sb.AppendLine($"#{profileId}= IFCCIRCLEPROFILEDEF(.AREA.,$,#{_axis2Placement3DId_Default},{radius.ToString("F4", CultureInfo.InvariantCulture)});");
 
         // 2. Yol (Polyline for Axis) veya Extrusion Direction
         // Basitleştirme: Boruyu Z ekseninde extrude edip, local placement ile yerine koyacağız.
@@ -128,7 +129,7 @@ public class IfcExportService
         int placementId = CreateAxis2Placement3D(pipe.StartPoint, dir, new Vector3D(0, 0, 1)); // RefDirection Z (yaklaşık)
         
         int solidId = NextId();
-        _sb.AppendLine($"#{solidId}= IFCEXTRUDEDAREASOLID(#{profileId},#{placementId},#{_directionId_001},{length:F4});");
+        _sb.AppendLine($"#{solidId}= IFCEXTRUDEDAREASOLID(#{profileId},#{placementId},#{_directionId_001},{length.ToString("F4", CultureInfo.InvariantCulture)});");
 
         // Shape Representation
         int shapeRepId = NextId();
@@ -235,11 +236,11 @@ public class IfcExportService
     {
         // IFCRECTANGLEPROFILEDEF -> IFCEXTRUDEDAREASOLID
         int profileId = NextId();
-        _sb.AppendLine($"#{profileId}= IFCRECTANGLEPROFILEDEF(.AREA.,$,#{_axis2Placement3DId_Default},{x:F4},{y:F4});");
+        _sb.AppendLine($"#{profileId}= IFCRECTANGLEPROFILEDEF(.AREA.,$,#{_axis2Placement3DId_Default},{x.ToString("F4", CultureInfo.InvariantCulture)},{y.ToString("F4", CultureInfo.InvariantCulture)});");
 
         int solidId = NextId();
         // Merkezden extrude etmek için profil pozisyonunu ayarlamak gerekirdi ama şimdilik corner'dan kabul
-        _sb.AppendLine($"#{solidId}= IFCEXTRUDEDAREASOLID(#{profileId},#{_axis2Placement3DId_Default},#{_directionId_001},{z:F4});");
+        _sb.AppendLine($"#{solidId}= IFCEXTRUDEDAREASOLID(#{profileId},#{_axis2Placement3DId_Default},#{_directionId_001},{z.ToString("F4", CultureInfo.InvariantCulture)});");
         return solidId;
     }
 
@@ -248,14 +249,14 @@ public class IfcExportService
     private int CreateCartesianPoint(Vector3D p)
     {
         int id = NextId();
-        _sb.AppendLine($"#{id}= IFCCARTESIANPOINT(({p.X:F4},{p.Y:F4},{p.Z:F4}));");
+        _sb.AppendLine($"#{id}= IFCCARTESIANPOINT(({p.X.ToString("F4", CultureInfo.InvariantCulture)},{p.Y.ToString("F4", CultureInfo.InvariantCulture)},{p.Z.ToString("F4", CultureInfo.InvariantCulture)}));");
         return id;
     }
 
     private int CreateDirection(Vector3D v)
     {
         int id = NextId();
-        _sb.AppendLine($"#{id}= IFCDIRECTION(({v.X:F6},{v.Y:F6},{v.Z:F6}));");
+        _sb.AppendLine($"#{id}= IFCDIRECTION(({v.X.ToString("F6", CultureInfo.InvariantCulture)},{v.Y.ToString("F6", CultureInfo.InvariantCulture)},{v.Z.ToString("F6", CultureInfo.InvariantCulture)}));");
         return id;
     }
 

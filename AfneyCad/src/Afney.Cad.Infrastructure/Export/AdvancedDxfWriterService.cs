@@ -17,6 +17,8 @@ public class AdvancedDxfWriterService
     private readonly CadDatabase _database;
     private readonly StringBuilder _sb = new();
     private int _handle = 100;
+    private int _modelSpaceRecordHandle;
+    private int _paperSpaceRecordHandle;
 
     public AdvancedDxfWriterService(CadDatabase database) => _database = database;
 
@@ -42,6 +44,10 @@ public class AdvancedDxfWriterService
         Dxf(9, "$INSUNITS"); Dxf(70, 4); // mm
         Dxf(9, "$MEASUREMENT"); Dxf(70, 1); // metrik
         Dxf(9, "$LWDISPLAY"); Dxf(290, 1);
+        // Üretilebilecek en yüksek entity/handle sayısının üzerinde güvenli bir tohum değeri.
+        // Tam doğru olması gerekmez — AutoCAD'in sonraki nesneye atayacağı handle'ın
+        // mevcut maksimumdan büyük olmasını garanti eder (R13+ formatında beklenir).
+        Dxf(9, "$HANDSEED"); Dxf(5, "FFFFFF");
         EndSection();
     }
 
@@ -79,17 +85,39 @@ public class AdvancedDxfWriterService
         Dxf(3, "txt"); Dxf(4, "");
         Dxf(0, "ENDTAB");
 
+        // BLOCK_RECORD tablosu — R13+ formatında ZORUNLU.
+        // BLOCKS bölümünde tanımlanan her blok (*Model_Space, *Paper_Space) burada
+        // karşılık gelen bir kayda sahip olmalı, aksi halde AutoCAD dosyayı geçersiz sayar.
+        _modelSpaceRecordHandle = NextHandle();
+        _paperSpaceRecordHandle = NextHandle();
+        Dxf(0, "TABLE"); Dxf(2, "BLOCK_RECORD"); Dxf(70, 2);
+        Dxf(0, "BLOCK_RECORD"); Dxf(5, _modelSpaceRecordHandle.ToString("X"));
+        Dxf(100, "AcDbSymbolTableRecord"); Dxf(100, "AcDbBlockTableRecord");
+        Dxf(2, "*Model_Space");
+        Dxf(0, "BLOCK_RECORD"); Dxf(5, _paperSpaceRecordHandle.ToString("X"));
+        Dxf(100, "AcDbSymbolTableRecord"); Dxf(100, "AcDbBlockTableRecord");
+        Dxf(2, "*Paper_Space");
+        Dxf(0, "ENDTAB");
+
         EndSection();
     }
 
     private void WriteBlocks()
     {
         Section("BLOCKS");
-        // Model space
-        Dxf(0, "BLOCK"); Handle(); Dxf(100, "AcDbEntity"); Dxf(8, "0");
+
+        // Model space — BLOCK_RECORD'daki handle'a (owner) referans verir (grup kodu 330)
+        Dxf(0, "BLOCK"); Handle(); Dxf(330, _modelSpaceRecordHandle.ToString("X")); Dxf(100, "AcDbEntity"); Dxf(8, "0");
         Dxf(100, "AcDbBlockBegin"); Dxf(2, "*Model_Space"); Dxf(70, 0);
-        Dxf(10, 0.0); Dxf(20, 0.0); Dxf(30, 0.0);
-        Dxf(0, "ENDBLK"); Handle(); Dxf(100, "AcDbEntity"); Dxf(8, "0"); Dxf(100, "AcDbBlockEnd");
+        Dxf(10, 0.0); Dxf(20, 0.0); Dxf(30, 0.0); Dxf(3, "*Model_Space"); Dxf(1, "");
+        Dxf(0, "ENDBLK"); Handle(); Dxf(330, _modelSpaceRecordHandle.ToString("X")); Dxf(100, "AcDbEntity"); Dxf(8, "0"); Dxf(100, "AcDbBlockEnd");
+
+        // Paper space — AutoCAD R13+'da varlığı beklenen ikinci standart blok
+        Dxf(0, "BLOCK"); Handle(); Dxf(330, _paperSpaceRecordHandle.ToString("X")); Dxf(100, "AcDbEntity"); Dxf(8, "0");
+        Dxf(100, "AcDbBlockBegin"); Dxf(2, "*Paper_Space"); Dxf(70, 0);
+        Dxf(10, 0.0); Dxf(20, 0.0); Dxf(30, 0.0); Dxf(3, "*Paper_Space"); Dxf(1, "");
+        Dxf(0, "ENDBLK"); Handle(); Dxf(330, _paperSpaceRecordHandle.ToString("X")); Dxf(100, "AcDbEntity"); Dxf(8, "0"); Dxf(100, "AcDbBlockEnd");
+
         EndSection();
     }
 
@@ -196,6 +224,7 @@ public class AdvancedDxfWriterService
     }
 
     private void Handle() { Dxf(5, (_handle++).ToString("X")); }
+    private int NextHandle() => _handle++;
     private void Section(string name) { Dxf(0, "SECTION"); Dxf(2, name); }
     private void EndSection() { Dxf(0, "ENDSEC"); }
     private void WriteEof() { Dxf(0, "EOF"); }

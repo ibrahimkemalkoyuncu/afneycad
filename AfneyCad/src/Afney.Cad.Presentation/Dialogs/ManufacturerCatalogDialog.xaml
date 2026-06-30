@@ -14,7 +14,36 @@
         <Style TargetType="ComboBox">
             <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
-        </Style>
+                    <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="#252530"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Padding"    Value="8,5"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Bd"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="True">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#007ACC"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#1F3A5F"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+</Style>
         <Style TargetType="Button">
             <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
