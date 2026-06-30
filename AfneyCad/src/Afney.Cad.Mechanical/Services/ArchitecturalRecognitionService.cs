@@ -180,9 +180,18 @@ public class ArchitecturalRecognitionService
             return result;
         }
 
+        // Kapı ve pencere engelleri ray-blocker olarak KULLANMA — bunlar oda açıklıklarıdır.
+        // Duvar/kolon dışındaki engeller ray'i durdurmuyor; onları segment listesine eklemek
+        // ray'in kapı açıklığından geçip ardındaki duvara çarpmasına sebep olurdu.
+        // Fallback modunda (tüm çizgiler duvar sayıldığında) bu filtreleme atlanır.
+        bool layerAwareMode = obstacles.Any(o => o.Type != ObstacleType.Wall);
+        var rayBlockers = layerAwareMode
+            ? obstacles.Where(o => o.Type == ObstacleType.Wall || o.Type == ObstacleType.Column).ToList()
+            : obstacles;
+
         // Mimari çizgileri "Line Segment" listesine dönüştür
         var segments = new List<(Afney.Cad.Geometry.Primitives.Vector3D P1, Afney.Cad.Geometry.Primitives.Vector3D P2)>();
-        foreach(var obs in obstacles)
+        foreach(var obs in rayBlockers)
         {
             if (obs.Boundary.Count < 2) continue;
             for(int i=0; i<obs.Boundary.Count-1; i++) segments.Add((obs.Boundary[i], obs.Boundary[i+1]));

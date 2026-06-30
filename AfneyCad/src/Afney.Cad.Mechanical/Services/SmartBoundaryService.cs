@@ -65,6 +65,12 @@ public class SmartBoundaryService
 
         Serilog.Log.Information("[SmartBoundary] Ham ray cast noktaları: {Count}", rawPoints.Count);
 
+        // 1b. Kapı/pencere açıklıklarından kaçan ışın filtresi.
+        // Açıklıktan geçen bir ışın, komşu ışınlardan çok daha uzakta bir yere çarpar
+        // (komşu medyan mesafesinin 2.5×'inden fazla). Bu noktalar polygon'u bozar —
+        // sınırı komşu odaya doğru uzatır veya kapalı polygon oluşmasını engeller.
+        rawPoints = FilterGapEscapedRays(rawPoints, startPoint);
+
         // 2. Adım: Tüm duvar segmentlerini topla (snap kaynağı)
         var segments = CollectWallSegments();
         Serilog.Log.Information("[SmartBoundary] Toplam segment: {Count}", segments.Count);
@@ -125,6 +131,61 @@ public class SmartBoundaryService
 
         Serilog.Log.Information("[SmartBoundary] ✅ Final polygon: {Count} köşe, Alan: {Area:F1}", polygon.Count, Math.Abs(area));
         return polygon;
+    }
+
+    /*
+        NE: Kapı/Pencere Açıklığından Kaçan Işınları Filtrele (FilterGapEscapedRays)
+        NEDEN: Ray casting sırasında kapı/pencere açıklığından geçen ışın, normal oda
+               duvarlarından çok daha uzak bir yere (komşu oda duvarı veya dış duvar)
+               çarpar. Bu "kaçak" noktalar polygon'u bozar.
+
+        NASIL: Açısal sıralı ham noktalar için kayan pencere medyan filtresi:
+               - Her noktanın merkeze uzaklığını hesapla
+               - ±halfWindow komşusunun medyan mesafesini bul
+               - Mesafe > outlierRatio × medyan ise nokta kapı/pencere açıklığından
+                 kaçmış demektir → listeden çıkar
+               - Güvenlik: Filtreleme sonrası < 3 nokta kalırsa orijinale dön
+    */
+    private static List<Vector3D> FilterGapEscapedRays(
+        List<Vector3D> rawPoints, Vector3D center,
+        int halfWindow = 20, double outlierRatio = 2.5)
+    {
+        int n = rawPoints.Count;
+        if (n < halfWindow * 2 + 1)
+            return rawPoints;
+
+        var distances = rawPoints.Select(p => center.DistanceTo(p)).ToArray();
+        var result = new List<Vector3D>(n);
+
+        for (int i = 0; i < n; i++)
+        {
+            // Kayan pencere — dairesel (ilk/son noktalar birbirine komşu)
+            var window = new double[halfWindow * 2 + 1];
+            for (int k = -halfWindow; k <= halfWindow; k++)
+                window[k + halfWindow] = distances[((i + k) % n + n) % n];
+
+            var sorted = (double[])window.Clone();
+            Array.Sort(sorted);
+            double median = sorted[sorted.Length / 2];
+
+            if (median > 1.0 && distances[i] > outlierRatio * median)
+            {
+                // Kaçak ışın — kapı/pencere açıklığından geçmiş, atla
+                Serilog.Log.Debug("[GapFilter] Kaçak ışın atıldı: mesafe={D:F0}mm, medyan={M:F0}mm, idx={I}", distances[i], median, i);
+                continue;
+            }
+
+            result.Add(rawPoints[i]);
+        }
+
+        if (result.Count < 3)
+        {
+            Serilog.Log.Warning("[GapFilter] Filtre sonrası nokta yetersiz ({Count}), orijinal kullanılıyor.", result.Count);
+            return rawPoints;
+        }
+
+        Serilog.Log.Information("[GapFilter] {Before}→{After} nokta (kaçak ışın filtresi uygulandı)", n, result.Count);
+        return result;
     }
 
     /*
