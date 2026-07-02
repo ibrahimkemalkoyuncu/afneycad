@@ -636,11 +636,47 @@
                                                         <TextBlock Text="Çift Hat" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
-                                                <StackPanel Margin="4,8,0,0">
+                                                <StackPanel Margin="4,4,0,0">
                                                     <Button Content="⬌ Paralel Boru" Click="OnWallParallelRoute" Style="{StaticResource RbnBtn}" ToolTip="Duvara Paralel Boru"/>
+                                                    <!-- Sistem Tipi -->
                                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                        <TextBlock Text="Eğim(%):" Foreground="#858899" FontSize="9" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                        <ComboBox x:Name="SlopeComboBox" Width="48" Height="22"
+                                                        <TextBlock Text="Sistem:" Foreground="#858899" FontSize="9" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                                        <ComboBox x:Name="PipeSystemCombo" Width="90" Height="22"
+                                                                  SelectedIndex="0"
+                                                                  Background="#14151C" Foreground="#C8CADC"
+                                                                  BorderBrush="#2E3045" BorderThickness="1"
+                                                                  SelectionChanged="OnMechanicalSettingsChanged">
+                                                            <ComboBoxItem Content="Soğuk Su"/>
+                                                            <ComboBoxItem Content="Sıcak Su"/>
+                                                            <ComboBoxItem Content="Pis Su"/>
+                                                            <ComboBoxItem Content="Yangın"/>
+                                                            <ComboBoxItem Content="Gaz"/>
+                                                            <ComboBoxItem Content="Yağmur"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                    <!-- Çap ve Eğim -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="DN:" Foreground="#858899" FontSize="9" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                                        <ComboBox x:Name="PipeDiameterCombo" Width="54" Height="22"
+                                                                  SelectedIndex="4"
+                                                                  Background="#14151C" Foreground="#C8CADC"
+                                                                  BorderBrush="#2E3045" BorderThickness="1"
+                                                                  SelectionChanged="OnMechanicalSettingsChanged">
+                                                            <ComboBoxItem Content="15"/>
+                                                            <ComboBoxItem Content="20"/>
+                                                            <ComboBoxItem Content="25"/>
+                                                            <ComboBoxItem Content="32"/>
+                                                            <ComboBoxItem Content="40"/>
+                                                            <ComboBoxItem Content="50"/>
+                                                            <ComboBoxItem Content="65"/>
+                                                            <ComboBoxItem Content="75"/>
+                                                            <ComboBoxItem Content="80"/>
+                                                            <ComboBoxItem Content="100"/>
+                                                            <ComboBoxItem Content="125"/>
+                                                            <ComboBoxItem Content="150"/>
+                                                        </ComboBox>
+                                                        <TextBlock Text="Eğim%:" Foreground="#858899" FontSize="9" VerticalAlignment="Center" Margin="4,0,3,0"/>
+                                                        <ComboBox x:Name="SlopeComboBox" Width="36" Height="22"
                                                                   SelectedIndex="0"
                                                                   Background="#14151C" Foreground="#C8CADC"
                                                                   BorderBrush="#2E3045" BorderThickness="1"

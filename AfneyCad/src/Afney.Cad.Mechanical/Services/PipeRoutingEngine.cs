@@ -118,10 +118,10 @@ public class PipeRoutingEngine
         // Yeni boru oluştur
         var newPipe = new PipeEntity(start, adjustedEnd, _currentDiameter)
         {
-            SystemType = _currentSystemType,
-            PipeMaterialType = PipeMaterial.PPRC_PN20, // Varsayılan: Temiz Su
-            Slope = _currentSlope,
-            Layer = GetLayerNameForSystem(_currentSystemType)
+            SystemType    = _currentSystemType,
+            PipeMaterialType = GetMaterialForSystem(_currentSystemType),
+            Slope  = _currentSlope,
+            Layer  = GetLayerNameForSystem(_currentSystemType)
         };
         newPipe.ApplySystemColor();
 
@@ -296,15 +296,27 @@ public class PipeRoutingEngine
         
         return createdEntities;
     }
-    private string GetLayerNameForSystem(MechanicalSystemType sysType)
+    private static PipeMaterial GetMaterialForSystem(MechanicalSystemType sysType) => sysType switch
     {
-        switch (sysType)
-        {
-            case MechanicalSystemType.WasteWater: return "MEK_PIS_SU";
-            case MechanicalSystemType.DomesticColdWater: return "MEK_TEMIZ_SU";
-            case MechanicalSystemType.DomesticHotWater: return "MEK_SICAK_SU";
-            default: return "MEK_GENEL";
-        }
-    }
+        MechanicalSystemType.DomesticColdWater => PipeMaterial.PPRC_PN20,
+        MechanicalSystemType.DomesticHotWater  => PipeMaterial.PPRC_PN20,
+        MechanicalSystemType.WasteWater        => PipeMaterial.PVC_SN4,
+        MechanicalSystemType.RainWater         => PipeMaterial.PVC_SN4,
+        MechanicalSystemType.FireProtection    => PipeMaterial.Steel_Galvanized,
+        MechanicalSystemType.Gas               => PipeMaterial.Steel_Galvanized,
+        _                                      => PipeMaterial.PPRC_PN20
+    };
+
+    private static string GetLayerNameForSystem(MechanicalSystemType sysType) => sysType switch
+    {
+        MechanicalSystemType.DomesticColdWater => "MEK_TEMIZ_SU",
+        MechanicalSystemType.DomesticHotWater  => "MEK_SICAK_SU",
+        MechanicalSystemType.WasteWater        => "MEK_PIS_SU",
+        MechanicalSystemType.RainWater         => "MEK_YAGMUR",
+        MechanicalSystemType.FireProtection    => "MEK_YANGIN",
+        MechanicalSystemType.Gas               => "MEK_GAZ",
+        MechanicalSystemType.Ventilation       => "MEK_HAVALAND",
+        _                                      => "MEK_GENEL"
+    };
 }
 

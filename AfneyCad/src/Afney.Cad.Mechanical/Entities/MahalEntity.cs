@@ -63,8 +63,8 @@ public class MahalEntity : MechanicalEntity
             area += (p1.X * p2.Y) - (p2.X * p1.Y);
             perimeter += p1.DistanceTo(p2);
         }
-        Area = System.Math.Abs(area) / 2.0;
-        Perimeter = perimeter;
+        Area = System.Math.Abs(area) / 2.0 / 1_000_000.0; // mm² → m²
+        Perimeter = perimeter / 1000.0;                    // mm → m
     }
 
     public override void Draw(IRenderContext context)

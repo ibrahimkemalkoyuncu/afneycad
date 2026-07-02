@@ -65,26 +65,70 @@ public class SanitaryFixtureEntity : MechanicalEntity
     
     private void InitializeDefaults(string type)
     {
-        // Varsayılan boyutlar (TS Standartlarına Yakın)
+        // Yalnızca geometri ve bağlantı ofsetleri — LU/FixtureUnit burada DEĞİŞTİRİLMEZ.
+        // LU değeri constructor'dan veya FixtureLibraryService kataloğundan gelir.
         if (type.Contains("Lavabo") || type.Contains("Washbasin"))
         {
-            Width = 550; Depth = 450; FixtureUnit = 0.5;
-            ColdWaterOffset = new Vector3D(80, -50, -500); // Duvardan 5cm çıkık
-            HotWaterOffset = new Vector3D(-80, -50, -500);
-            DrainOffset = new Vector3D(0, 0, -550); // Yerden veya duvardan
+            Width = 550; Depth = 450;
+            ColdWaterOffset = new Vector3D(80, -50, -500);
+            HotWaterOffset  = new Vector3D(-80, -50, -500);
+            DrainOffset     = new Vector3D(0, 0, -550);
         }
-        else if (type.Contains("WC") || type.Contains("Toilet"))
+        else if (type.Contains("WC") || type.Contains("Toilet") || type.Contains("Klozet") || type.Contains("Alaturka"))
         {
-            Width = 400; Depth = 600; FixtureUnit = 1.0; // Tank tipi
-            ColdWaterOffset = new Vector3D(-150, -550, 200); // Taharet musluğu
-            DrainOffset = new Vector3D(0, -250, -100); // Alttan çıkış (S)
+            Width = 400; Depth = 600;
+            ColdWaterOffset = new Vector3D(-150, -550, 200);
+            HotWaterOffset  = Vector3D.Zero;
+            DrainOffset     = new Vector3D(0, -250, -100);
         }
         else if (type.Contains("Duş") || type.Contains("Shower"))
         {
-            Width = 900; Depth = 900; FixtureUnit = 0.8;
-            ColdWaterOffset = new Vector3D(80, 0, 1000); // Batarya Yüksekliği
-            HotWaterOffset = new Vector3D(-80, 0, 1000);
-            DrainOffset = new Vector3D(0, 450, 0); // Yer süzgeci
+            Width = 900; Depth = 900;
+            ColdWaterOffset = new Vector3D(80, 0, 1000);
+            HotWaterOffset  = new Vector3D(-80, 0, 1000);
+            DrainOffset     = new Vector3D(0, 450, 0);
+        }
+        else if (type.Contains("Küvet") || type.Contains("Bathtub"))
+        {
+            Width = 700; Depth = 1600;
+            ColdWaterOffset = new Vector3D(80, -700, 500);
+            HotWaterOffset  = new Vector3D(-80, -700, 500);
+            DrainOffset     = new Vector3D(0, 730, 0);
+        }
+        else if (type.Contains("Eviye") || type.Contains("Sink"))
+        {
+            Width = 500; Depth = 400;
+            ColdWaterOffset = new Vector3D(80, -150, -400);
+            HotWaterOffset  = new Vector3D(-80, -150, -400);
+            DrainOffset     = new Vector3D(0, 0, -450);
+        }
+        else if (type.Contains("Pisuvar") || type.Contains("Urinal"))
+        {
+            Width = 350; Depth = 300;
+            ColdWaterOffset = new Vector3D(0, -100, 800);
+            HotWaterOffset  = Vector3D.Zero;
+            DrainOffset     = new Vector3D(0, 0, -200);
+        }
+        else if (type.Contains("Çamaşır") || type.Contains("Washing"))
+        {
+            Width = 600; Depth = 600;
+            ColdWaterOffset = new Vector3D(0, -250, 700);
+            HotWaterOffset  = Vector3D.Zero;
+            DrainOffset     = new Vector3D(200, -250, 0);
+        }
+        else if (type.Contains("Bulaşık") || type.Contains("Dish"))
+        {
+            Width = 600; Depth = 600;
+            ColdWaterOffset = new Vector3D(0, -250, 700);
+            HotWaterOffset  = new Vector3D(-100, -250, 700);
+            DrainOffset     = new Vector3D(200, -250, 0);
+        }
+        else if (type.Contains("Süzgeç") || type.Contains("Drain") || type.Contains("Gider"))
+        {
+            Width = 200; Depth = 200;
+            ColdWaterOffset = Vector3D.Zero;
+            HotWaterOffset  = Vector3D.Zero;
+            DrainOffset     = new Vector3D(0, 0, -300);
         }
     }
 

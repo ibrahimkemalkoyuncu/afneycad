@@ -83,16 +83,19 @@ public class PipeEntity : MechanicalEntity
     /// <summary>
     /// Sistem tipine göre boru rengini otomatik olarak ayarlar.
     /// </summary>
+    /// <summary>TS 1258 / TS EN 12056 renk standardına göre boru rengini ayarlar.</summary>
     public void ApplySystemColor()
     {
         Color = SystemType switch
         {
-            MechanicalSystemType.DomesticColdWater => 0xFF00AAFF, // Mavi
-            MechanicalSystemType.DomesticHotWater => 0xFFFF3333,  // Kırmızı
-            MechanicalSystemType.WasteWater => 0xFF888888,       // Gri
-            MechanicalSystemType.FireProtection => 0xFFFF0000,   // Parlak Kırmızı
-            MechanicalSystemType.Gas => 0xFFFFFF00,              // Sarı
-            _ => 0xFFFFFFFF                                      // Beyaz (Tanımsız)
+            MechanicalSystemType.DomesticColdWater => 0xFF0077CC, // Koyu Mavi — soğuk su
+            MechanicalSystemType.DomesticHotWater  => 0xFFCC2200, // Koyu Kırmızı — sıcak su
+            MechanicalSystemType.WasteWater        => 0xFF886633, // Kahverengi — pis su (TS EN 12056)
+            MechanicalSystemType.RainWater         => 0xFF00BBDD, // Açık Cyan — yağmur suyu
+            MechanicalSystemType.FireProtection    => 0xFFFF0000, // Parlak Kırmızı — yangın (TS EN 671)
+            MechanicalSystemType.Gas               => 0xFFFFCC00, // Sarı — gaz (TS 7363)
+            MechanicalSystemType.Ventilation       => 0xFF88AAAA, // Gri-Mavi — havalandırma
+            _                                      => 0xFFCCCCCC  // Açık Gri — tanımsız
         };
     }
 

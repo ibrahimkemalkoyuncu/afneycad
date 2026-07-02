@@ -587,27 +587,57 @@ namespace Afney.Cad.Presentation
         {
             if (Viewport == null) return;
 
-            Afney.Cad.Commands.Abstractions.ICadCommand? target = cmd ?? (Viewport.GetType().GetField("_activeCommand", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(Viewport) as Afney.Cad.Commands.Abstractions.ICadCommand);
+            var target = cmd ?? (Viewport.GetType()
+                .GetField("_activeCommand", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.GetValue(Viewport) as Afney.Cad.Commands.Abstractions.ICadCommand);
 
-            if (target is RoutePipeCommand pipeCmd)
+            if (target is not RoutePipeCommand pipeCmd) return;
+
+            // Sistem tipi
+            MechanicalSystemType sys = MechanicalSystemType.DomesticColdWater;
+            string material = "PPRC";
+            if (PipeSystemCombo?.SelectedItem is ComboBoxItem sysItem)
             {
-                string material = "PVC";
-                double size = 100.0;
-                MechanicalSystemType sys = MechanicalSystemType.WasteWater;
-                double slope = 0.0;
-
-                if (SlopeComboBox != null && SlopeComboBox.SelectedItem is ComboBoxItem item)
+                sys = (sysItem.Content?.ToString() ?? "") switch
                 {
-                    string content = item.Content?.ToString() ?? "0";
-                    content = content.Replace("%", "").Trim();
-                    if (double.TryParse(content, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedSlope))
-                    {
-                        slope = parsedSlope;
-                    }
-                }
-
-                pipeCmd.SetSettings(size, sys, material, slope);
+                    "Soğuk Su"  => MechanicalSystemType.DomesticColdWater,
+                    "Sıcak Su"  => MechanicalSystemType.DomesticHotWater,
+                    "Pis Su"    => MechanicalSystemType.WasteWater,
+                    "Yangın"    => MechanicalSystemType.FireProtection,
+                    "Gaz"       => MechanicalSystemType.Gas,
+                    "Yağmur"    => MechanicalSystemType.RainWater,
+                    _           => MechanicalSystemType.DomesticColdWater
+                };
+                material = sys switch
+                {
+                    MechanicalSystemType.WasteWater    => "PVC",
+                    MechanicalSystemType.RainWater     => "PVC",
+                    MechanicalSystemType.FireProtection => "Steel",
+                    MechanicalSystemType.Gas           => "Steel",
+                    _                                  => "PPRC"
+                };
             }
+
+            // Çap (DN)
+            double size = 50.0;
+            if (PipeDiameterCombo?.SelectedItem is ComboBoxItem dnItem)
+            {
+                string dnStr = dnItem.Content?.ToString() ?? "50";
+                if (double.TryParse(dnStr, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out double parsed))
+                    size = parsed;
+            }
+
+            // Eğim
+            double slope = 0.0;
+            if (SlopeComboBox?.SelectedItem is ComboBoxItem slopeItem)
+            {
+                string slopeStr = (slopeItem.Content?.ToString() ?? "0").Replace("%", "").Trim();
+                double.TryParse(slopeStr, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out slope);
+            }
+
+            pipeCmd.SetSettings(size, sys, material, slope);
         }
 
         private void OnMechanicalSettingsChanged(object sender, SelectionChangedEventArgs e)

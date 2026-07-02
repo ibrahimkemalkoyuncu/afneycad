@@ -228,38 +228,39 @@ public class AutoBranchingService
 
         Vector3D targetPoint = projInfo.Point;
 
+        // Branşman çapı: port'un kendi çapı (TS 1258 — WC=DN100, Duş=DN50, Lavabo=DN40)
+        double branchDN = port.Diameter > 0 ? port.Diameter : mainPipe.InnerDiameter / 2.0;
+
         // 2. Ara Hat (Dikey + Yatay + Pathfinder)
         double zDiff = targetPoint.Z - sourcePoint.Z;
         Vector3D intermediatePoint = sourcePoint;
-        
+
         // Z Kot farkı varsa Dikey Boru
-        if (Math.Abs(zDiff) > 10.0) 
+        if (Math.Abs(zDiff) > 10.0)
         {
             intermediatePoint = new Vector3D(sourcePoint.X, sourcePoint.Y, targetPoint.Z);
-            var verticalPipe = new PipeEntity(sourcePoint, intermediatePoint, mainPipe.InnerDiameter / 2.0)
+            var verticalPipe = new PipeEntity(sourcePoint, intermediatePoint, branchDN)
             {
                 SystemType = mainPipe.SystemType,
-                Color = mainPipe.Color,
+                Color      = mainPipe.Color,
+                PipeMaterialType = mainPipe.PipeMaterialType,
                 Id = Guid.NewGuid()
             };
             result.NewEntities.Add(verticalPipe);
         }
 
-        // --- PATHFINDER ENTEGRASYONU (Suggestion 19) ---
-        // Intermediate -> Target arasındaki yolu engellerden sakınarak bul
+        // Intermediate → Target yatay branşman
         var routePoints = _kernel.Pathfinder.FindPath(intermediatePoint, targetPoint);
-        
         for (int i = 0; i < routePoints.Count - 1; i++)
         {
-            var segment = new PipeEntity(routePoints[i], routePoints[i + 1], mainPipe.InnerDiameter / 2.0)
+            var segment = new PipeEntity(routePoints[i], routePoints[i + 1], branchDN)
             {
-                SystemType = mainPipe.SystemType,
-                Color = mainPipe.Color,
+                SystemType       = mainPipe.SystemType,
+                Color            = mainPipe.Color,
+                PipeMaterialType = mainPipe.PipeMaterialType,
                 Id = Guid.NewGuid()
             };
             result.NewEntities.Add(segment);
-            
-            // Eğer rota kırıklıysa (dirsek varsa) araya dirsek/fittings eklenebilir.
         }
 
         // 3. Ana Boruyu Böl (SPLIT LOGIC)
@@ -376,11 +377,8 @@ public class AutoBranchingService
         }
 
         // Ana Kollektör Borusu (İlk parça)
-        var collectorPipe = new PipeEntity(startP, endP, 100)
-        {
-            SystemType = systemType,
-            Color = (systemType == MechanicalSystemType.WasteWater) ? 0xFF8B4513 : 0xFF0000FF
-        };
+        var collectorPipe = new PipeEntity(startP, endP, 100) { SystemType = systemType };
+        collectorPipe.ApplySystemColor();
 
         // 3. Bağlantı Algoritmasını Çalıştır
         // Bu metod (ConnectFixturesToPipe) ana boruyu böler ve tüm parçaları döndürür.
@@ -441,12 +439,11 @@ public class AutoBranchingService
         {
             var p1 = new PipeEntity(riserPipe.StartPoint, splitPoint, riserPipe.InnerDiameter)
             {
-                SystemType = riserPipe.SystemType, // Hata düzeltildi
-                Color = riserPipe.Color,
+                SystemType       = riserPipe.SystemType,
+                Color            = riserPipe.Color,
                 PipeMaterialType = riserPipe.PipeMaterialType,
                 Id = Guid.NewGuid()
             };
-            p1.SystemType = riserPipe.SystemType; // Düzeltme
             result.NewEntities.Add(p1);
         }
 

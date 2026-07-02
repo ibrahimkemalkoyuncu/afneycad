@@ -20,6 +20,12 @@ public class RoomEntity : CadEntity
     public LwPolylineEntity Boundary { get; private set; }
     public string Name { get; set; } = "Mahal";
     public double Area { get; private set; }
+    // Brüt çevre — kapı/pencere açıklıkları duvarın devamı sayılır (mm → m)
+    public double Perimeter { get; private set; }
+    // Net çevre — kapı/pencere genişlikleri düşülmüş (mm → m)
+    public double NetPerimeter { get; private set; }
+    // Düşülen toplam açıklık genişliği (m)
+    public double TotalOpeningWidth { get; private set; }
     public List<CadEntity> Fixtures { get; private set; } = new List<CadEntity>();
     public double TotalLoadUnits { get; set; } = 0;
     public Afney.Cad.Mechanical.Enums.RoomType Type { get; set; } = Afney.Cad.Mechanical.Enums.RoomType.Unknown;
@@ -56,18 +62,30 @@ public class RoomEntity : CadEntity
 
     private void CalculateArea()
     {
-        // Basit Gauss alanı formülü
         if (Boundary.Vertices.Count < 3) return;
-        
+
         double area = 0;
+        double perim = 0;
         for (int i = 0; i < Boundary.Vertices.Count; i++)
         {
             var p1 = Boundary.Vertices[i];
             var p2 = Boundary.Vertices[(i + 1) % Boundary.Vertices.Count];
             area += (p1.X * p2.Y - p2.X * p1.Y);
+            perim += p1.DistanceTo(p2);
         }
-        // AfneyCAD birimi mm ise, mm² / 1,000,000 = m².
-        Area = System.Math.Abs(area / 2.0) / 1000000.0;
+        Area = System.Math.Abs(area / 2.0) / 1000000.0; // mm² → m²
+        Perimeter = perim / 1000.0;                       // mm → m (brüt)
+        NetPerimeter = Perimeter - TotalOpeningWidth;
+    }
+
+    // Kapı ve pencere açıklık genişliklerini net çevre hesabı için kaydet.
+    // openingWidthsMm: her bir kapı/pencere açıklığının genişliği mm cinsinden.
+    public void SetOpenings(IEnumerable<double> openingWidthsMm)
+    {
+        TotalOpeningWidth = 0;
+        foreach (var w in openingWidthsMm)
+            TotalOpeningWidth += w / 1000.0; // mm → m
+        NetPerimeter = Perimeter - TotalOpeningWidth;
     }
 
     public override void Draw(IRenderContext context)

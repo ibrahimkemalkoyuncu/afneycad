@@ -97,41 +97,63 @@ namespace Afney.Cad.Commands.MechanicalCommands
             OnCompleted?.Invoke();
         }
 
+        // Layer adı → katalog ID eşlemesi (TS 1258 LU değerleri FixtureLibraryService'ten gelir)
+        private static readonly (string layerKeyword, string fixtureId)[] s_layerMap =
+        {
+            ("LAV",      "LV-001"),  // Lavabo: 1.5 LU
+            ("WASHB",    "LV-001"),
+            ("WC",       "WC-001"),  // Klozet: 3.0 LU
+            ("KLOZET",   "WC-001"),
+            ("TOILET",   "WC-001"),
+            ("PISUVAR",  "WC-003"),  // Pisuvar: 2.0 LU
+            ("URINAL",   "WC-003"),
+            ("DUŞ",      "DU-001"),  // Duş: 2.0 LU
+            ("SHOWER",   "DU-001"),
+            ("KÜVET",    "KV-001"),  // Küvet: 3.0 LU
+            ("BATHTUB",  "KV-001"),
+            ("EVIYE",    "EV-001"),  // Eviye: 2.0 LU
+            ("SINK",     "EV-001"),
+            ("BIDE",     "BI-001"),  // Bide: 1.0 LU
+            ("BIDET",    "BI-001"),
+            ("CAMASIR",  "CM-001"),  // Çamaşır Makinesi: 1.5 LU
+            ("WASHING",  "CM-001"),
+            ("BULASIK",  "BM-001"),  // Bulaşık Makinesi: 1.5 LU
+            ("DISH",     "BM-001"),
+            ("SUZGEC",   "DS-001"),  // Döşeme Süzgeci: 0.5 LU
+            ("DRAIN",    "DS-001"),
+            ("GIDER",    "DS-001"),
+        };
+
         private void AnalyzeAndAddFixtures(RoomEntity mahal)
         {
+            var lib = new FixtureLibraryService();
             var entities = _database.GetAllEntities().ToList();
+
             foreach (var ent in entities)
             {
-                if (IsPointInPolygon(ent.GetBoundingBox().Center, mahal.BoundaryPoints))
+                if (!IsPointInPolygon(ent.GetBoundingBox().Center, mahal.BoundaryPoints)) continue;
+
+                string layer = (ent.Layer ?? "").ToUpperInvariant()
+                                                 .Replace("İ", "I").Replace("Ş", "S")
+                                                 .Replace("Ç", "C").Replace("Ğ", "G")
+                                                 .Replace("Ü", "U").Replace("Ö", "O");
+
+                string? fixtureId = null;
+                foreach (var (keyword, id) in s_layerMap)
                 {
-                    string layer = ent.Layer ?? "";
-                    SanitaryFixtureEntity? fixtureEntity = null;
-
-                    // Layer ismine göre cihaz tespiti
-                    if (layer.Contains("LAV", StringComparison.OrdinalIgnoreCase))
+                    if (layer.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                     {
-                        fixtureEntity = new SanitaryFixtureEntity(ent.GetBoundingBox().Center, "Washbasin", 0.5);
-                    }
-                    else if (layer.Contains("WC", StringComparison.OrdinalIgnoreCase) || layer.Contains("KLOZET", StringComparison.OrdinalIgnoreCase))
-                    {
-                        fixtureEntity = new SanitaryFixtureEntity(ent.GetBoundingBox().Center, "WC", 1.0);
-                    }
-                    else if (layer.Contains("DUŞ", StringComparison.OrdinalIgnoreCase) || layer.Contains("SHOWER", StringComparison.OrdinalIgnoreCase))
-                    {
-                        fixtureEntity = new SanitaryFixtureEntity(ent.GetBoundingBox().Center, "Shower", 0.8);
-                    }
-                    else if (layer.Contains("EVIYE", StringComparison.OrdinalIgnoreCase) || layer.Contains("SINK", StringComparison.OrdinalIgnoreCase))
-                    {
-                        fixtureEntity = new SanitaryFixtureEntity(ent.GetBoundingBox().Center, "Sink", 1.0);
-                    }
-
-                    if (fixtureEntity != null)
-                    {
-                        _database.AddEntity(fixtureEntity);
-                        mahal.Fixtures.Add(fixtureEntity);
-                        mahal.TotalLoadUnits += fixtureEntity.LoadUnits;
+                        fixtureId = id;
+                        break;
                     }
                 }
+
+                if (fixtureId == null) continue;
+
+                var fixtureEntity = lib.CreateEntity(fixtureId, ent.GetBoundingBox().Center);
+                _database.AddEntity(fixtureEntity);
+                mahal.Fixtures.Add(fixtureEntity);
+                mahal.TotalLoadUnits += fixtureEntity.LoadUnits;
             }
         }
 
