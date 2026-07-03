@@ -20,6 +20,7 @@ namespace Afney.Cad.Mechanical.Services;
 public class BillOfMaterialsService
 {
     private readonly CadDatabase _database;
+    private readonly PozKatalogService _katalog = new();
 
     public BillOfMaterialsService(CadDatabase database)
     {
@@ -69,9 +70,10 @@ public class BillOfMaterialsService
         foreach (var group in pipes)
         {
             double totalMeters = group.Sum(p => p.GetLength()) / 1000.0;
-            string poz = GetPipePoz(group.Key.SystemType, (int)group.Key.InnerDiameter);
-            string desc = GetPipeDescription(group.Key.SystemType, (int)group.Key.InnerDiameter);
-            
+            var kalem = _katalog.FindForPipe(group.Key.SystemType, group.Key.InnerDiameter);
+            string poz  = kalem?.PozNo ?? GetPipePoz(group.Key.SystemType, (int)group.Key.InnerDiameter);
+            string desc = kalem?.Tanim ?? GetPipeDescription(group.Key.SystemType, (int)group.Key.InnerDiameter);
+
             table.SetCell(currentRow, 0, poz);
             table.SetCell(currentRow, 1, desc);
             table.SetCell(currentRow, 2, $"{totalMeters:F2} m");
@@ -83,8 +85,10 @@ public class BillOfMaterialsService
         currentRow++;
         foreach (var group in fixtures)
         {
-            table.SetCell(currentRow, 0, GetFixturePoz(group.Key));
-            table.SetCell(currentRow, 1, group.Key);
+            var kalem = _katalog.FindForFixture(group.Key);
+            string poz = kalem?.PozNo ?? GetFixturePoz(group.Key);
+            table.SetCell(currentRow, 0, poz);
+            table.SetCell(currentRow, 1, kalem?.Tanim ?? group.Key);
             table.SetCell(currentRow, 2, $"{group.Count()} Ad.");
             currentRow++;
         }
