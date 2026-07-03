@@ -2236,4 +2236,46 @@ Ribbon → Akıllı Bağlantı → **Kolon Konumu**:
 
 ---
 
-*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #44 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #45 — Audit Highlight · WasteWater Eğim Log · Sistem Bazlı HTML Rapor · Yağmur Alanı Surface Dialog (2026-07-03)
+
+### Düzeltilen ve Tamamlanan Özellikler
+
+| Özellik | Değişiklik |
+|---|---|
+| `OnAuditSystem` — kırmızı highlight | `DomainGuardService.ValidateSystem()` sonucundaki hatalı entity'lerin `HasHydraulicViolation = true` atanarak viewport'ta kırmızı render edilmesi sağlandı |
+| `AcceptSystem` ValidationLog | Eğim uyarıları (WasteWater/RainWater < %2) artık WasteWaterDesignDialog'daki ValidationLog'a yansıyor; hatalı borulara `HasHydraulicViolation` bayrağı yazılıyor |
+| `HydraulicReportService` — sistem bölümleri | Tek tablo yerine 4 ayrı bölüm: (1) Temiz Su — TS 1258/DIN 1988 (LU, Hız, ΔP), (2) Pis Su — TS EN 12056-2 (eğim%, Manning h/D, DU, WC kolonu), (3) Yağmur Suyu — TS EN 12056-3 (alan, C, Q, eğim), (4) Diğer sistemler |
+| `HydraulicReportService` — Manning doluluk | `FillingRatio` property bulunmadığından Manning formülü (`n=0.013`) ile `h/D = Q/Q_dolu` hesabı eklendi |
+| `DrawCatchmentAreaCommand` — surface dialog | Poligon kapanınca `SurfaceTypeRequested` event'i fırlatılıyor; `CatchmentSurfaceDialog` açılıp 5 yüzey tipi seçimi (Düz/Eğimli/Döşeme/Çakıl/Yeşil) ve alan adı girişi yapılıyor |
+| `CatchmentSurfaceDialog` | Yeni WPF dialog — yüzey tipi radio butonlar + C değeri gösterimi + alan adı input |
+
+### HTML Hidrolik Rapor — Bölüm Yapısı
+
+```
+Rapor
+├── 1. Temiz Su Tesisatı — TS 1258 / DIN 1988
+│   Sistem | Uzunluk | DN | LU | Q (l/s) | Hız | ΔP | Hat Kaybı
+│   ⚠ Hız > 1.5 m/s → sarı; Violation → kırmızı
+├── 2. Pis Su Tesisatı — TS EN 12056-2
+│   Uzunluk | DN | Σ DU | Q_ww | Eğim% | Doluluk h/D | Hız | WC | Durum
+│   ⚠ Eğim < %2 → sarı uyarı + violation kırmızı
+├── 3. Yağmur Suyu Tesisatı — TS EN 12056-3
+│   ├── Yağmur Düşme Alanları: Alan | Yüzey | m² | C | Efektif m²
+│   └── Yağmur Boruları: Uzunluk | DN | Q | Eğim% | Durum
+└── 4. Diğer Sistemler (Yangın, Gaz)
+    Sistem | Uzunluk | DN | Q | Hız | Hat Kaybı
+```
+
+### Yüzey Tipleri ve Akış Katsayıları (TS EN 12056-3)
+
+| Yüzey Tipi | Akış Katsayısı C |
+|---|---|
+| Düz Çatı / Teras | 1.0 |
+| Eğimli Çatı | 1.0 |
+| Döşemeli Teras | 0.9 |
+| Çakıl Çatı | 0.7 |
+| Yeşil Çatı | 0.5 |
+
+---
+
+*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #45 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
