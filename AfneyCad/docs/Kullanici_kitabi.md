@@ -2278,4 +2278,51 @@ Rapor
 
 ---
 
-*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #45 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #46 — PozKatalog + Keşif Birim Fiyat + Emdirme Çukuru Perkolasyon (2026-07-03)
+
+### Düzeltilen ve Tamamlanan Özellikler
+
+| Özellik | Değişiklik |
+|---|---|
+| `PozKatalogService` (yeni) | PozApp.BirimFiyatKalemi modelinden ilham — 2024 Bayındırlık poz listesi (Grup 22/23/27/28/29), JSON override, `FindForPipe` + `FindForFixture` |
+| Keşif listesi birim fiyat | `WasteWaterCalcSheetDialog` BomRow: Poz No + B.Fiyat + Toplam kolonları; `PozKatalogService` entegrasyonu (snapshot fiyat) |
+| HTML Keşif export | "🌐 HTML Keşif" butonu — KDV hariç + %20 KDV dahil toplam gösterimi |
+| CSV export güncellendi | Poz No + Birim Fiyat + Toplam colonları eklendi |
+| `CalculateSoakPit` | `WasteWaterCalcSheetService`'e yeni metod: TS 7880 perkolasyon (A = Q_tasarım / f_perc, çukur adedi, fizibilite) |
+| Emdirme Çukuru UI | `WasteWaterCalcSheetDialog` Foseptik sekmesine yeni GroupBox + `CalcSoakPit_Click` |
+| `OnGenerateHydraulicReport` | `RainfallCatchmentEntity` listesi rapora aktarıldı — HTML'de "Yağmur Düşme Alanları" tablosu dolu gelir |
+
+### PozKatalog Yapısı (PozApp uyumlu)
+
+```
+PozKatalogService
+├── PozKalemi(PozNo, Tanim, Birim, BirimFiyat, IsGrubu)  ← BirimFiyatKalemi
+├── Built-in 2024 katalogu (Grup 22/23/27/28/29 — 50+ poz)
+├── LoadFromJson(path)  — kullanıcı override / PDF import sonrası JSON
+├── FindForPipe(MechanicalSystemType, innerDiamMm)
+└── FindForFixture(fixtureType)
+```
+
+| Grup | Kapsam | Örnek Poz |
+|---|---|---|
+| 22.xxx | Temiz Su (Çelik/PPR) | 22.001/9 DN100 çelik boru |
+| 23.xxx | Sıcak Su (PPR PN25) | 23.001/3 DN32 |
+| 27.001 | Pis Su (PVC-U SN4) | 27.001/3 DN100 |
+| 27.005 | Yağmur Borusu | 27.005/2 DN125 |
+| 27.101–108 | Vitrifiyeler | 27.102 klozet, 27.103 lavabo |
+| 28.xxx | Yangın (Galv. Çelik) | 28.001/7 DN100 |
+| 29.xxx | Gaz (Çelik) | 29.001/3 DN25 |
+
+### Emdirme Çukuru Hesabı (TS 7880)
+
+```
+A_gerekli = Q_tasarım (L/gün) / f_perc (L/m²/gün)
+Q_tasarım = kişi × L/kişi/gün × güvenlik faktörü
+A_çukur   = π × D × H  (tek çukur yan yüzeyi)
+n_çukur   = ⌈A_gerekli / A_çukur⌉
+Fizibilite: f_perc ≥ 10 L/m²/gün şartı (TS 7880)
+```
+
+---
+
+*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #46 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
