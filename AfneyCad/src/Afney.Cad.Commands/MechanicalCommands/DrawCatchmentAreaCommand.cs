@@ -9,7 +9,7 @@ using Afney.Cad.Geometry.Primitives;
 namespace Afney.Cad.Commands.MechanicalCommands;
 
 // Polygon tıklama ile RainfallCatchmentEntity oluşturur.
-// Enter ya da C tuşuyla kapatılır.
+// Enter ile poligon kapatılır; SurfaceTypeRequested event'i yüzey tipi seçimi için ateşlenir.
 public class DrawCatchmentAreaCommand : ICadCommand
 {
     private readonly CadDatabase _database;
@@ -24,6 +24,11 @@ public class DrawCatchmentAreaCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action?         OnCompleted;
 
+    /// <summary>
+    /// Poligon kapandığında fırlatılır. Callback'e seçilen SurfaceType iletilir; callback null ise işlem iptal edilir.
+    /// </summary>
+    public event Action<RainfallCatchmentEntity, Action<RainfallCatchmentEntity.SurfaceType?>>? SurfaceTypeRequested;
+
     public DrawCatchmentAreaCommand(CadDatabase db, TransactionManager tm)
     {
         _database = db;
@@ -33,7 +38,7 @@ public class DrawCatchmentAreaCommand : ICadCommand
     public void Start()
     {
         _current = new RainfallCatchmentEntity { Layer = "MEK_YAGMUR" };
-        OnFeedback?.Invoke("YAĞMUR ALAN: İlk köşeyi tıklayın. Her tıklama bir köşe ekler. Enter veya C ile poligonu kapatın.");
+        OnFeedback?.Invoke("YAĞMUR ALAN: İlk köşeyi tıklayın. Her tıklama bir köşe ekler. Enter ile poligonu kapatın.");
     }
 
     public void OnPointerPressed(Vector3D point)
@@ -47,13 +52,29 @@ public class DrawCatchmentAreaCommand : ICadCommand
 
     public void OnKeyDown(InputKey key)
     {
-        if ((key == InputKey.Enter || key == InputKey.Escape) && _current != null && _current.Vertices.Count >= 3)
+        if (key == InputKey.Enter && _current != null && _current.Vertices.Count >= 3)
         {
             _current.ClosePolygon();
-            _tm.Submit(new AddEntityOperation(_database, _current));
-            OnFeedback?.Invoke($"YAĞMUR ALAN: {_current.AreaM2:F1} m² poligon kaydedildi (C={_current.RunoffCoefficient:F1}).");
+            var pending = _current;
             _current = null;
-            OnCompleted?.Invoke();
+
+            if (SurfaceTypeRequested != null)
+            {
+                SurfaceTypeRequested.Invoke(pending, chosen =>
+                {
+                    if (chosen == null) return; // iptal
+                    pending.Surface = chosen.Value;
+                    _tm.Submit(new AddEntityOperation(_database, pending));
+                    OnFeedback?.Invoke($"YAĞMUR ALAN: {pending.AreaM2:F1} m² kaydedildi (C={pending.RunoffCoefficient:F1}).");
+                    OnCompleted?.Invoke();
+                });
+            }
+            else
+            {
+                _tm.Submit(new AddEntityOperation(_database, pending));
+                OnFeedback?.Invoke($"YAĞMUR ALAN: {pending.AreaM2:F1} m² kaydedildi (C={pending.RunoffCoefficient:F1}).");
+                OnCompleted?.Invoke();
+            }
         }
         else if (key == InputKey.Escape)
         {

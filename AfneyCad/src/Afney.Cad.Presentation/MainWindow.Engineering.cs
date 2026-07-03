@@ -1188,8 +1188,24 @@ namespace Afney.Cad.Presentation
                 {
                     var tm = new TransactionManager();
                     var cmd = new DrawCatchmentAreaCommand(_database, tm);
-                    cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); dlg.Show(); };
+                    cmd.SurfaceTypeRequested += (entity, callback) =>
+                    {
+                        var surfDlg = new CatchmentSurfaceDialog(entity.AreaM2) { Owner = this };
+                        if (surfDlg.ShowDialog() == true && surfDlg.ChosenSurface.HasValue)
+                        {
+                            entity.AreaName = surfDlg.AreaName;
+                            callback(surfDlg.ChosenSurface.Value);
+                        }
+                        else
+                        {
+                            callback(null); // iptal
+                        }
+                        dlg.Show();
+                    };
+                    cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+                    dlg.Hide();
                     Viewport.SetActiveCommand(cmd);
+                    cmd.Start();
                 };
 
                 // Kat kopyalama — kolon hariç (ExcludeRisers)
@@ -1226,20 +1242,32 @@ namespace Afney.Cad.Presentation
                     dlg.SetCopyValidationResult(new CopyValidationResult { IsValid = riserCount == 0, RiserPipeCount = riserCount });
                 };
 
-                // Tesisatı Kabul Et — DomainGuardService ile tam validasyon
+                // Tesisatı Kabul Et — DomainGuardService ile tam validasyon (hata + uyarı)
                 dlg.AcceptSystemRequested += () =>
                 {
                     var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
                     var vr = guard.ValidateSystem();
-                    if (!vr.IsValid)
+
+                    // Hataları yaz
+                    foreach (string err in vr.Errors)
+                        dlg.AppendValidationMessage($"  ✗ {err}", true);
+
+                    // Uyarıları yaz (eğim yetersizliği, topoloji vb.)
+                    foreach (string w in vr.Warnings)
+                        dlg.AppendValidationMessage($"  ⚠ {w}", true);
+
+                    // Hatalı borulara kırmızı flag
+                    foreach (var pipe in _database.GetAllEntities().OfType<PipeEntity>())
+                        pipe.HasHydraulicViolation = false;
+                    foreach (var id in vr.ProblematicEntityIds)
                     {
-                        foreach (string err in vr.Errors)
-                            dlg.AppendValidationMessage($"  ✗ {err}", true);
+                        if (_database.GetAllEntities().FirstOrDefault(x => x.Id == id) is PipeEntity p)
+                            p.HasHydraulicViolation = true;
                     }
-                    else
-                    {
+
+                    if (vr.IsValid && vr.Warnings.Count == 0)
                         dlg.AppendValidationMessage("  ✓ DomainGuard: Tüm kontroller geçti.", false);
-                    }
+
                     Viewport.InvalidateViewport();
                 };
 
@@ -1701,24 +1729,47 @@ namespace Afney.Cad.Presentation
                 var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
                 var result = guard.ValidateSystem();
 
-                if (result.IsValid)
-                {
-                    MessageBox.Show("Sistem topolojisi Doğrulandı.\nTers eğim ve açık uçlar bulunamadı.", "Mühendislik Validasyonu", MessageBoxButton.OK, MessageBoxImage.Information);
-                    if (TabOutputs != null) { TabOutputs.IsEnabled = true; }
-                }
-                else
-                {
-                    var errorMsg = "Aşağıdaki hatalar tespit edildi:\n" + string.Join("\n", result.Errors);
-                    MessageBox.Show(errorMsg, "Validasyon Hatası", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // Tüm borularda önceki violation işaretini temizle
+                foreach (var pipe in _database.GetAllEntities().OfType<PipeEntity>())
+                    pipe.HasHydraulicViolation = false;
+                foreach (var ent in _database.GetAllEntities())
+                    ent.IsSelected = false;
 
-                    foreach (var ent in _database.GetAllEntities()) ent.IsSelected = false;
+                if (result.ProblematicEntityIds.Count > 0)
+                {
                     foreach (var id in result.ProblematicEntityIds)
                     {
                         var problemEnt = _database.GetAllEntities().FirstOrDefault(x => x.Id == id);
-                        if (problemEnt != null) problemEnt.IsSelected = true;
+                        if (problemEnt == null) continue;
+                        problemEnt.IsSelected = true;
+                        if (problemEnt is PipeEntity pipeErr) pipeErr.HasHydraulicViolation = true;
                     }
+                }
 
-                    Viewport.InvalidateVisual();
+                Viewport.InvalidateVisual();
+
+                if (result.IsValid && result.Warnings.Count == 0)
+                {
+                    MessageBox.Show("Sistem topolojisi doğrulandı.\nHata ve uyarı yok.", "Mühendislik Validasyonu", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (TabOutputs != null) TabOutputs.IsEnabled = true;
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    if (result.Errors.Count > 0)
+                    {
+                        sb.AppendLine($"■ {result.Errors.Count} HATA (kırmızı vurgulanan borular):");
+                        foreach (var err in result.Errors) sb.AppendLine($"  ✗ {err}");
+                    }
+                    if (result.Warnings.Count > 0)
+                    {
+                        if (sb.Length > 0) sb.AppendLine();
+                        sb.AppendLine($"▲ {result.Warnings.Count} UYARI:");
+                        foreach (var w in result.Warnings) sb.AppendLine($"  ⚠ {w}");
+                    }
+                    var icon = result.IsValid ? MessageBoxImage.Warning : MessageBoxImage.Error;
+                    var title = result.IsValid ? "Uyarılar" : "Validasyon Hatası";
+                    MessageBox.Show(sb.ToString(), title, MessageBoxButton.OK, icon);
                 }
             }
             catch (Exception ex) { MessageBox.Show($"Sistem kontrol hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
