@@ -352,20 +352,30 @@ public class FlowCalculationService
 
             if (pipe.SystemType == MechanicalSystemType.WasteWater)
             {
-                // TS EN 12056 kuralına göre minimum iç çap ihtiyacı
+                // TS EN 12056-2: minimum iç çap ihtiyacı (yük birimlerine göre)
                 double requiredMinID = GetMinDiameterForWasteWater(pipe.TotalFixtureUnits, pipe.IsCarryingWCLoad);
-                
-                // Katalogdan bu iç çapı sağlayan standart dış çapı seç
                 double standardDN = PipeSizer.GetStandardSize(requiredMinID, pipe.PipeMaterialType);
-                
-                // Mevcut çapı koru (Eğer daha büyükse küçültme) - Mühendislik tercihi: Her zaman optimize et
-                // pipe.InnerDiameter = System.Math.Max(pipe.InnerDiameter, PipeCatalog.GetInnerDiameter(pipe.Material, standardDN));
-                // Doğrusu: Hesaplanan çapı ata.
                 pipe.InnerDiameter = PipeCatalog.GetInnerDiameter(pipe.PipeMaterialType, standardDN);
 
-                // --- Step 2: Pis Su Eğim Kontrolü ---
+                // Eğim kontrolü: TS EN 12056-2 min %2 (0.02)
                 pipe.Slope = CalculateGeometricSlope(pipe);
-                if (pipe.Slope < 0.01 && !IsRiser(pipe)) 
+                if (pipe.Slope < 0.02 && !IsRiser(pipe))
+                    pipe.HasHydraulicViolation = true;
+            }
+            else if (pipe.SystemType == MechanicalSystemType.RainWater)
+            {
+                // TS EN 12056-3: debi bazlı minimum DN
+                double qLs = pipe.FlowRate > 0
+                    ? pipe.FlowRate * 1000.0 / 3600.0  // m³/h → l/s
+                    : pipe.TotalFixtureUnits * 0.3;     // yaklaşık: 1 DU ≈ 0.3 l/s yağmur için
+
+                double rainID = GetMinDiameterForRainwater(qLs);
+                double rainDN = PipeSizer.GetStandardSize(rainID, PipeMaterial.PVC_SN4);
+                pipe.InnerDiameter = PipeCatalog.GetInnerDiameter(PipeMaterial.PVC_SN4, rainDN);
+
+                // Eğim kontrolü: yağmur suyu yatay boruları da min %2
+                pipe.Slope = CalculateGeometricSlope(pipe);
+                if (pipe.Slope < 0.02 && !IsRiser(pipe))
                     pipe.HasHydraulicViolation = true;
             }
             else // Temiz Su (Basınçlı)
@@ -408,6 +418,20 @@ public class FlowCalculationService
         if (fu <= 12.0) return System.Math.Max(minID, 115.0);              // DN125
         return 150.0;
     }
+
+    /*
+       NE: Yağmur Suyu Minimum Çap (GetMinDiameterForRainwater)
+       NEDEN: TS EN 12056-3 Tablo 3 — debi bazlı minimum iç çap (mm) seçimi.
+    */
+    private static double GetMinDiameterForRainwater(double qLs) => qLs switch
+    {
+        <= 0.5 => 44.0,  // DN50 iç çap ~44mm
+        <= 1.0 => 64.0,  // DN75 iç çap ~64mm
+        <= 2.0 => 80.0,  // DN90 iç çap ~80mm
+        <= 4.0 => 96.0,  // DN110 iç çap ~96mm
+        <= 8.0 => 115.0, // DN125 iç çap ~115mm
+        _      => 150.0  // DN160 iç çap ~150mm
+    };
 
     // CalculateOptimalDiameter ve GetStandardDiameterForWasteWater (Eski) kaldırıldı.
 }

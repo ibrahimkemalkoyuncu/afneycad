@@ -21,7 +21,8 @@ namespace Afney.Cad.Presentation.Dialogs
         public event Action<MechanicalSystemType>? ModuleChanged;
         public event Action? DrawCatchmentAreaRequested;
         public event Action<bool>? PlaceOutletRequested;   // true = rain, false = sewer
-        public event Action? CreateSplitColumnRequested;
+        // lowerBottomM, lowerTopM, upperBottomM, upperTopM (metre)
+        public event Action<double, double, double, double>? CreateSplitColumnRequested;
         public event Action? ValidateCopySelectionRequested;
         public event Action? FilterAndCopyRequested;
         public event Action? AcceptSystemRequested;
@@ -192,7 +193,7 @@ namespace Afney.Cad.Presentation.Dialogs
             }
 
             // Viewport'a bildir — MainWindow koordinat seçimi için komutu tetikler
-            CreateSplitColumnRequested?.Invoke();
+            CreateSplitColumnRequested?.Invoke(lBot, lTop, uBot, uTop);
             Hide();
         }
 

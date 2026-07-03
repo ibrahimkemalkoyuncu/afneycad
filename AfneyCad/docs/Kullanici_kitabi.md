@@ -2209,4 +2209,31 @@ Ribbon → Akıllı Bağlantı → **Kolon Konumu**:
 
 ---
 
-*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #43 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #44 — Pis Su Sistem Tamamlama: Kolon/Kaynak Modu · Bölünmüş Kolon · Eğim + DN Otomatizasyonu (2026-07-03)
+
+### Düzeltilen ve Tamamlanan Özellikler
+
+| Özellik | Değişiklik |
+|---|---|
+| `GetActiveSystemType()` yardımcı metod | MainWindow.Commands.cs'e eklendi — `PipeSystemCombo`'yu okur; `OnRiserPipeCommand` ve `OnSourcePointCommand` artık aktif sistemi alıyor |
+| `SourcePointCommand` renk/layer | Hardcoded `MEP_TEMIZ_SU` / `MEP_SICAK_SU` → tüm 7 sistem için `GetLayerForSystem` + `GetColorForSystem` |
+| `WasteWaterDesignDialog.CreateSplitColumnRequested` | Event imzası `Action<double,double,double,double>` oldu; MainWindow'da `PickPointCommand` ile XY seçimi + iki `PipeEntity` oluşturma |
+| `DomainGuardService.CheckWastePipeSlopes` | Yeni kontrol: WasteWater + RainWater yatay boruları için Slope < %2 → Warning (TS EN 12056-2) |
+| `FlowCalculationService.AutoSizePipes` — pis su eğimi | Eşik 0.01 → **0.02** düzeltildi |
+| `FlowCalculationService.AutoSizePipes` — yağmur suyu | `RainWater` borular artık `GetMinDiameterForRainwater` (TS EN 12056-3 Tablo 3) ile boyutlandırılıyor |
+| `GetMinDiameterForRainwater` | Yeni metod: Q (l/s) → min iç çap (mm): ≤0.5→DN50, ≤1.0→DN75, ≤2.0→DN90, ≤4.0→DN110, ≤8.0→DN125, >8→DN160 |
+
+### TS EN 12056-3 Yağmur Suyu Min DN Tablosu
+
+| Debi Q (l/s) | Min DN (PVC) |
+|---|---|
+| ≤ 0.5 | DN50 |
+| ≤ 1.0 | DN75 |
+| ≤ 2.0 | DN90 |
+| ≤ 4.0 | DN110 |
+| ≤ 8.0 | DN125 |
+| > 8.0 | DN160 |
+
+---
+
+*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #44 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*

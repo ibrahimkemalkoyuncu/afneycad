@@ -1150,6 +1150,39 @@ namespace Afney.Cad.Presentation
                     Viewport.SetActiveCommand(cmd);
                 };
 
+                // Bölünmüş kolon yaratma — kullanıcı XY'yi tıklar, iki PipeEntity oluşturulur
+                dlg.CreateSplitColumnRequested += (lBot, lTop, uBot, uTop) =>
+                {
+                    var sys = MechanicalSystemType.WasteWater;
+                    var tm0 = new TransactionManager();
+                    // Tek tıklamayla XY alan geçici komut
+                    var pickCmd = new PickPointCommand();
+                    pickCmd.OnPointPicked += xy =>
+                    {
+                        Viewport.SetActiveCommand(null);
+                        double x = xy.X, y = xy.Y;
+                        // Alt kolon
+                        var lower = new PipeEntity(
+                            new Vector3D(x, y, lBot * 1000),
+                            new Vector3D(x, y, lTop * 1000), 100)
+                        { SystemType = sys, Layer = "MEK_PIS_SU" };
+                        lower.ApplySystemColor();
+                        // Üst kolon
+                        var upper = new PipeEntity(
+                            new Vector3D(x, y, uBot * 1000),
+                            new Vector3D(x, y, uTop * 1000), 100)
+                        { SystemType = sys, Layer = "MEK_PIS_SU" };
+                        upper.ApplySystemColor();
+                        tm0.Submit(new AddEntityOperation(_database, lower));
+                        tm0.Submit(new AddEntityOperation(_database, upper));
+                        Viewport.InvalidateViewport();
+                        dlg.Show();
+                        dlg.AppendValidationMessage($"  ✓ Bölünmüş kolon oluşturuldu: Alt {lBot}→{lTop} m, Üst {uBot}→{uTop} m", false);
+                    };
+                    Viewport.SetActiveCommand(pickCmd);
+                    pickCmd.Start();
+                };
+
                 // Yağmur düşme alanı çizimi
                 dlg.DrawCatchmentAreaRequested += () =>
                 {

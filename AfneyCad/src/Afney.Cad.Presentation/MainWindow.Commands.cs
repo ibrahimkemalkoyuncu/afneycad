@@ -182,7 +182,7 @@ namespace Afney.Cad.Presentation
 
         private void OnRiserPipeCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new RiserPipeCommand(_database, _history.TransactionManager);
+            var cmd = new RiserPipeCommand(_database, _history.TransactionManager, GetActiveSystemType());
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -191,7 +191,7 @@ namespace Afney.Cad.Presentation
 
         private void OnSourcePointCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new SourcePointCommand(_database, _history.TransactionManager);
+            var cmd = new SourcePointCommand(_database, _history.TransactionManager, GetActiveSystemType());
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -644,6 +644,25 @@ namespace Afney.Cad.Presentation
         {
             if (_activeContext == null) return;
             SyncMechanicalSettings();
+        }
+
+        // PipeSystemCombo'dan aktif sistem tipini okur — RiserPipe/SourcePoint komutları bunu kullanır
+        private MechanicalSystemType GetActiveSystemType()
+        {
+            if (PipeSystemCombo?.SelectedItem is ComboBoxItem item)
+            {
+                return (item.Content?.ToString() ?? "") switch
+                {
+                    "Soğuk Su" => MechanicalSystemType.DomesticColdWater,
+                    "Sıcak Su" => MechanicalSystemType.DomesticHotWater,
+                    "Pis Su"   => MechanicalSystemType.WasteWater,
+                    "Yangın"   => MechanicalSystemType.FireProtection,
+                    "Gaz"      => MechanicalSystemType.Gas,
+                    "Yağmur"   => MechanicalSystemType.RainWater,
+                    _          => MechanicalSystemType.DomesticColdWater
+                };
+            }
+            return MechanicalSystemType.DomesticColdWater;
         }
 
         private void OnWBlockCommand(object sender, RoutedEventArgs e)

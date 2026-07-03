@@ -52,6 +52,9 @@ namespace Afney.Cad.Mechanical.Services
             // 5. Sistem Tipi Tutarlılığı
             CheckSystemConsistency(result);
 
+            // 6. Pis Su / Yağmur Suyu Boru Eğim Kontrolü (TS EN 12056-2, min %2)
+            CheckWastePipeSlopes(result);
+
             if (result.Errors.Any())
             {
                 result.IsValid = false;
@@ -208,6 +211,47 @@ namespace Afney.Cad.Mechanical.Services
                         if (neighbor.EntityId != parent)
                             stack.Push((neighbor.EntityId, current));
                     }
+                }
+            }
+        }
+
+        /*
+           NE: Pis Su / Yağmur Suyu Boru Eğim Kontrolü (CheckWastePipeSlopes)
+           NEDEN: TS EN 12056-2 — yatay atık su borularının minimum eğimi %2 (0.02) olmalı.
+                  Dikey kolonlar (|dZ/L| > 0.8) bu kontrolün dışındadır.
+        */
+        private void CheckWastePipeSlopes(ValidationResult result)
+        {
+            if (_database == null) return;
+            const double MinSlope = 0.02;
+
+            var wastePipes = _database.GetAllEntities()
+                .OfType<PipeEntity>()
+                .Where(p => p.SystemType is MechanicalSystemType.WasteWater
+                                        or MechanicalSystemType.RainWater)
+                .ToList();
+
+            foreach (var pipe in wastePipes)
+            {
+                // Dikey kolon borular eğim kontrolünden muaf
+                var dir = (pipe.EndPoint - pipe.StartPoint);
+                double length = dir.Length();
+                if (length < 1) continue;
+                double verticalRatio = Math.Abs(dir.Z) / length;
+                if (verticalRatio > 0.8) continue;
+
+                // Slope = 0 ise geometriden hesapla
+                double slope = pipe.Slope > 0
+                    ? pipe.Slope
+                    : (length > 0 ? Math.Abs(dir.Z) / Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y + 0.0001) : 0);
+
+                if (slope < MinSlope)
+                {
+                    string sys = pipe.SystemType == MechanicalSystemType.WasteWater ? "Pis Su" : "Yağmur Suyu";
+                    result.Warnings.Add(
+                        $"Eğim Yetersiz ({sys}): Boru DN{pipe.InnerDiameter:F0} — " +
+                        $"mevcut eğim %{slope * 100:F1}, minimum %{MinSlope * 100:F0} olmalı (TS EN 12056-2).");
+                    result.ProblematicEntityIds.Add(pipe.Id);
                 }
             }
         }

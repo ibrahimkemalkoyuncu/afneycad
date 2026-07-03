@@ -11,7 +11,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 
 public class SourcePointCommand : ICadCommand
 {
-    private readonly CadDatabase        _database;
+    private readonly CadDatabase _database;
     private readonly TransactionManager _tm;
     private readonly MechanicalSystemType _systemType;
 
@@ -30,8 +30,7 @@ public class SourcePointCommand : ICadCommand
 
     public void Start()
     {
-        string name = _systemType == MechanicalSystemType.DomesticColdWater ? "Soğuk Su" : "Sıcak Su";
-        OnFeedback?.Invoke($"BAŞLANGIÇ NOKTASI ({name}): Başlangıç noktasını tıklayın (boru ucuna snap yapın).");
+        OnFeedback?.Invoke($"BAŞLANGIÇ NOKTASI ({SystemLabel(_systemType)}): Başlangıç noktasını tıklayın (boru ucuna snap yapın).");
     }
 
     public void OnPointerPressed(Vector3D point)
@@ -39,13 +38,12 @@ public class SourcePointCommand : ICadCommand
         var loadNode = new MechanicalLoadNode(point, 1.0)
         {
             SystemType = _systemType,
-            Layer = _systemType == MechanicalSystemType.DomesticColdWater ? "MEP_TEMIZ_SU" : "MEP_SICAK_SU",
-            Color = _systemType == MechanicalSystemType.DomesticColdWater ? 0xFF00DDFF : 0xFFFF6666
+            Layer      = GetLayerForSystem(_systemType),
+            Color      = GetColorForSystem(_systemType)
         };
         _tm.Submit(new AddEntityOperation(_database, loadNode));
 
-        string name = _systemType == MechanicalSystemType.DomesticColdWater ? "Soğuk Su" : "Sıcak Su";
-        OnFeedback?.Invoke($"BAŞLANGIÇ NOKTASI: {name} başlangıç noktası yerleştirildi ({point.X:F2}, {point.Y:F2}).");
+        OnFeedback?.Invoke($"BAŞLANGIÇ NOKTASI: {SystemLabel(_systemType)} giriş noktası yerleştirildi ({point.X:F0}, {point.Y:F0}).");
         OnCompleted?.Invoke();
     }
 
@@ -53,4 +51,37 @@ public class SourcePointCommand : ICadCommand
     public void OnKeyDown(InputKey key) { }
     public void Draw(IRenderContext ctx) { }
     public void Cancel() { }
+
+    private static string SystemLabel(MechanicalSystemType t) => t switch
+    {
+        MechanicalSystemType.DomesticColdWater => "Soğuk Su",
+        MechanicalSystemType.DomesticHotWater  => "Sıcak Su",
+        MechanicalSystemType.WasteWater        => "Pis Su",
+        MechanicalSystemType.RainWater         => "Yağmur Suyu",
+        MechanicalSystemType.FireProtection    => "Yangın",
+        MechanicalSystemType.Gas               => "Gaz",
+        _                                      => t.ToString()
+    };
+
+    private static string GetLayerForSystem(MechanicalSystemType t) => t switch
+    {
+        MechanicalSystemType.DomesticColdWater => "MEK_TEMIZ_SU",
+        MechanicalSystemType.DomesticHotWater  => "MEK_SICAK_SU",
+        MechanicalSystemType.WasteWater        => "MEK_PIS_SU",
+        MechanicalSystemType.RainWater         => "MEK_YAGMUR",
+        MechanicalSystemType.FireProtection    => "MEK_YANGIN",
+        MechanicalSystemType.Gas               => "MEK_GAZ",
+        _                                      => "MEK_GENEL"
+    };
+
+    private static uint GetColorForSystem(MechanicalSystemType t) => t switch
+    {
+        MechanicalSystemType.DomesticColdWater => 0xFF0077CC,
+        MechanicalSystemType.DomesticHotWater  => 0xFFCC2200,
+        MechanicalSystemType.WasteWater        => 0xFF886633,
+        MechanicalSystemType.RainWater         => 0xFF00BBDD,
+        MechanicalSystemType.FireProtection    => 0xFFFF0000,
+        MechanicalSystemType.Gas               => 0xFFFFCC00,
+        _                                      => 0xFFCCCCCC
+    };
 }
