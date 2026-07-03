@@ -111,17 +111,35 @@ public class BillOfMaterialsService
     {
         return type switch
         {
-            Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater => $"25.310.{1000 + diameter}",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater        => $"25.310.{1000 + diameter}",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.RainWater         => $"25.315.{1000 + diameter}",
             Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticColdWater => $"25.305.{2000 + diameter}",
-            Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticHotWater => $"25.305.{3000 + diameter}",
-            _ => "25.xxx.xxxx"
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticHotWater  => $"25.305.{3000 + diameter}",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.FireProtection    => $"25.320.{4000 + diameter}",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.Gas               => $"25.325.{5000 + diameter}",
+            _                                                                  => "25.xxx.xxxx"
         };
     }
 
     private string GetPipeDescription(Afney.Cad.Mechanical.Enums.MechanicalSystemType type, int diameter)
     {
-        string mat = type == Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater ? "PVC-U" : "PP-R";
-        string sys = type == Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater ? "Pis Su" : "Temiz Su";
+        string mat = type switch
+        {
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater        => "PVC-U",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.RainWater         => "PVC-U",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.FireProtection    => "Galv. Çelik",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.Gas               => "Galv. Çelik",
+            _                                                                  => "PP-R"
+        };
+        string sys = type switch
+        {
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater        => "Pis Su",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.RainWater         => "Yağmur Suyu",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.FireProtection    => "Yangın",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.Gas               => "Gaz",
+            Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticHotWater  => "Sıcak Su",
+            _                                                                  => "Soğuk Su"
+        };
         return $"{mat} {sys} Borusu (DN {diameter})";
     }
 

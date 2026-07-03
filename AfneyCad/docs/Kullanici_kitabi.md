@@ -2007,4 +2007,68 @@ Kayit yeri: `%LOCALAPPDATA%/AfneyCAD/user_settings.json`
 
 ---
 
-*Son guncelleme: 2026-06-28 | AfneyCAD v4.0.0 — Session #37 Final | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+---
+
+## Session #39-40 — MEP Temel İş Akışı: Mahal · Vitrifiye · Boru Sistemi · Bağlantı (2026-07-03)
+
+### Tamamlanan
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | MahalEntity birim dönüşümü | ✅ | `CalculateGeometry()` mm²→m² ve mm→m dönüşümü eksikti — düzeltildi |
+| 2 | RoomEntity Perimeter + Net | ✅ | `Perimeter` (brüt), `NetPerimeter`, `SetOpenings()` eklendi — kapı/pencere düşümü desteği |
+| 3 | SanitaryFixtureEntity LU fix | ✅ | `InitializeDefaults()` artık LU/FixtureUnit değerini ezmez — TS 1258 katalog değerleri geçerli |
+| 4 | MahalDefineCommand katalog | ✅ | Hardcoded LU (0.5/1.0/0.8) → `FixtureLibraryService` 17 keyword + 7 kategori |
+| 5 | Boru Sistemi Ribbon UI | ✅ | `PipeSystemCombo` (6 sistem) + `PipeDiameterCombo` (DN15–150) ribbon'a eklendi |
+| 6 | SyncMechanicalSettings fix | ✅ | Artık sistem tipi, çap ve eğimi UI'dan okuyor — önceden tümü hardcode idi |
+| 7 | ApplySystemColor — 7 tip | ✅ | Soğuk=#0077CC · Sıcak=#CC2200 · Pis=#886633 · Yağmur=#00BBDD · Yangın=#FF0000 · Gaz=#FFCC00 |
+| 8 | GetLayerNameForSystem tüm tipler | ✅ | MEK_YANGIN / MEK_GAZ / MEK_YAGMUR / MEK_HAVALAND eklendi |
+| 9 | GetMaterialForSystem | ✅ | Sistem tipine göre otomatik malzeme: Soğuk/Sıcak=PPRC, Pis/Yağmur=PVC, Yangın/Gaz=Çelik |
+| 10 | Branşman çapı fix | ✅ | `port.Diameter` kullanılıyor — WC=DN100, Duş=DN50, Lavabo=DN40 (TS 1258) |
+| 11 | AutoBranchingService temizlik | ✅ | Duplicate SystemType ataması + hardcoded renk kaldırıldı; `ApplySystemColor()` kullanılıyor |
+
+### Katman İsimlendirme Standardı (Güncel)
+
+| Sistem | Katman Adı | Renk (ARGB) | Malzeme |
+|---|---|---|---|
+| Soğuk Su | `MEK_TEMIZ_SU` | `#0077CC` Koyu Mavi | PPRC PN20 |
+| Sıcak Su | `MEK_SICAK_SU` | `#CC2200` Koyu Kırmızı | PPRC PN20 |
+| Pis Su | `MEK_PIS_SU` | `#886633` Kahverengi | PVC SN4 |
+| Yağmur Suyu | `MEK_YAGMUR` | `#00BBDD` Cyan | PVC SN4 |
+| Yangın | `MEK_YANGIN` | `#FF0000` Kırmızı | Galv. Çelik |
+| Gaz | `MEK_GAZ` | `#FFCC00` Sarı | Çelik |
+| Havalandırma | `MEK_HAVALAND` | `#88AAAA` Gri-Mavi | — |
+
+### Boru Çizim İş Akışı (Güncel)
+
+1. Ribbon → **Boru Çizimi** grubunda **Sistem** seçin (Soğuk Su / Sıcak Su / Pis Su / …)
+2. **DN** açılır listesinden çap seçin (DN15 → DN150)
+3. **Eğim%** seçin (pis su için min %2 önerilir)
+4. **Boru Çiz** butonuna tıklayın veya komut satırına `P` yazın
+5. Başlangıç → nokta nokta rota → ESC ile bitir
+6. Mevcut boruya tıklarsanız otomatik T-parçası + branşman oluşur
+
+### Vitrifiye → Boru Otomatik Bağlantı
+
+| Komut | Açıklama |
+|---|---|
+| **Bağla** (🔗) | Tüm/seçili vitrifiye portlarını en yakın uygun sisteme bağlar |
+| **Oto Bağlantı** | Seçili vitrifiyeleri seçilen boruya branşmanla bağlar |
+| **Kolon Bağlantısı** | Yatay dağıtım borusunu dikey kolona T ile bağlar |
+
+Port çap standardı (TS 1258):
+- Klozet drain → DN100
+- Duş/Küvet/Eviye drain → DN50
+- Lavabo drain → DN40
+- Soğuk/Sıcak su girişi → DN15
+
+### Bir Sonraki Session Öncelikleri
+
+1. **Hidrolik Hesap** — `OnRecalculateSystem` → TS 1258 Tablo 2 debi, Darcy-Weisbach basınç kaybı, kritik hat
+2. **Otomatik Çaplama** — `OnAutoPipeSizing` → toplam LU → Q (l/s) → DN seçimi
+3. **BOM/Metraj** — Boru uzunlukları (m, sistem tipine göre) + vitrifiye adedi → HTML/Excel
+4. **Basınç Haritası** — Viewport overlay renk gradyanı ile hat basıncı görselleştirme
+
+---
+
+*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #39-40 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
