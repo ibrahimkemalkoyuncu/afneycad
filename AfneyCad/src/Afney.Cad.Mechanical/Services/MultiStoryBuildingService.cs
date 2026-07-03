@@ -134,13 +134,8 @@ public class MultiStoryBuildingService
                 new Vector3D(xyPosition.X, xyPosition.Y, upper.Elevation),
                 diameter);
             pipe.SystemType = systemType;
-            pipe.Color = systemType switch
-            {
-                MechanicalSystemType.DomesticColdWater => 0xFF0088FF,
-                MechanicalSystemType.DomesticHotWater => 0xFFFF4444,
-                MechanicalSystemType.WasteWater => 0xFF808080,
-                _ => 0xFFCCCCCC
-            };
+            pipe.Layer = GetLayerForSystem(systemType);
+            pipe.ApplySystemColor();
 
             pipes.Add(pipe);
             lower.RiserIds.Add(pipe.Id);
@@ -218,6 +213,18 @@ public class MultiStoryBuildingService
     }
 
     // --- YARDIMCI ---
+
+    private static string GetLayerForSystem(MechanicalSystemType sysType) => sysType switch
+    {
+        MechanicalSystemType.DomesticColdWater => "MEK_TEMIZ_SU",
+        MechanicalSystemType.DomesticHotWater  => "MEK_SICAK_SU",
+        MechanicalSystemType.WasteWater        => "MEK_PIS_SU",
+        MechanicalSystemType.RainWater         => "MEK_YAGMUR",
+        MechanicalSystemType.FireProtection    => "MEK_YANGIN",
+        MechanicalSystemType.Gas               => "MEK_GAZ",
+        MechanicalSystemType.Ventilation       => "MEK_HAVALAND",
+        _                                      => "MEK_GENEL"
+    };
 
     private double GetEntityZ(MechanicalEntity entity)
     {

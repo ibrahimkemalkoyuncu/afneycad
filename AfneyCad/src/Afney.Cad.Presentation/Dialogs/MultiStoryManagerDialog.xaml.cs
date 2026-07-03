@@ -28,8 +28,7 @@ namespace Afney.Cad.Presentation.Dialogs
                 bool hasBasement = BasementCheck.IsChecked == true;
 
                 var floors = _buildingService.InitializeStandardBuilding(floorCount, floorHeight, hasBasement);
-                FloorGrid.ItemsSource = null;
-                FloorGrid.ItemsSource = floors;
+                RefreshGrid();
                 InfoText.Text = $"Bina oluşturuldu: {floors.Count} kat | Toplam yükseklik: {_buildingService.GetTotalBuildingHeight():F1} m";
             }
             catch (Exception ex)
@@ -42,23 +41,19 @@ namespace Afney.Cad.Presentation.Dialogs
         {
             if (FloorGrid.SelectedItem is not FloorDefinition source)
             {
-                MessageBox.Show("Lütfen kaynak katı seçin."); return;
+                MessageBox.Show("Lütfen Grid'den kaynak katı seçin."); return;
             }
-            var floors = _buildingService.GetAllFloors();
-            if (floors.Count < 2)
+            if (TargetFloorCombo.SelectedItem is not FloorDefinition target)
             {
-                MessageBox.Show("En az 2 kat gerekli."); return;
+                MessageBox.Show("Lütfen 'Hedef Kat' açılır listesinden hedef katı seçin."); return;
             }
-            // İlk farklı katı hedef olarak seç
-            FloorDefinition? target = null;
-            foreach (var f in floors)
+            if (source.Id == target.Id)
             {
-                if (f.Id != source.Id) { target = f; break; }
+                MessageBox.Show("Kaynak ve hedef kat aynı olamaz."); return;
             }
-            if (target == null) return;
 
             int copied = _buildingService.CopyFloorPlumbing(source.Id, target.Id);
-            MessageBox.Show($"{copied} adet tesisat bileşeni '{source.Name}' → '{target.Name}' katına kopyalandı.");
+            InfoText.Text = $"{copied} bileşen '{source.Name}' → '{target.Name}' kopyalandı.";
             RefreshGrid();
         }
 
@@ -66,10 +61,33 @@ namespace Afney.Cad.Presentation.Dialogs
         {
             try
             {
-                var riserPos = new Vector3D(1000, 1000, 0);
-                var pipes = _buildingService.CreateRiser(riserPos, 100, MechanicalSystemType.DomesticColdWater);
+                // Sistem tipi
+                string sysText = (RiserSystemCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Soğuk Su";
+                var systemType = sysText switch
+                {
+                    "Sıcak Su" => MechanicalSystemType.DomesticHotWater,
+                    "Pis Su"   => MechanicalSystemType.WasteWater,
+                    "Yangın"   => MechanicalSystemType.FireProtection,
+                    "Gaz"      => MechanicalSystemType.Gas,
+                    "Yağmur"   => MechanicalSystemType.RainWater,
+                    _          => MechanicalSystemType.DomesticColdWater
+                };
+
+                // Çap
+                string dnText = (RiserDnCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "DN50";
+                double diameter = double.TryParse(dnText.Replace("DN", ""), out double d) ? d : 50.0;
+
+                // Hedef kat aralığı
+                string? fromFloor = null, toFloor = null;
+                if (TargetFloorCombo.SelectedItem is FloorDefinition targetFloor)
+                {
+                    toFloor = targetFloor.Name;
+                }
+
+                var riserPos = new Vector3D(0, 0, 0);
+                var pipes = _buildingService.CreateRiser(riserPos, diameter, systemType, fromFloor, toFloor);
                 foreach (var p in pipes) _database.AddEntity(p);
-                MessageBox.Show($"{pipes.Count} adet dikey kolon segmenti oluşturuldu (DN100, Soğuk Su).");
+                InfoText.Text = $"{pipes.Count} kolon segmenti oluşturuldu ({dnText}, {sysText}).";
                 RefreshGrid();
             }
             catch (Exception ex)
@@ -80,8 +98,11 @@ namespace Afney.Cad.Presentation.Dialogs
 
         private void RefreshGrid()
         {
+            var floors = _buildingService.GetAllFloors();
             FloorGrid.ItemsSource = null;
-            FloorGrid.ItemsSource = _buildingService.GetAllFloors();
+            FloorGrid.ItemsSource = floors;
+            TargetFloorCombo.ItemsSource = null;
+            TargetFloorCombo.ItemsSource = floors;
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();

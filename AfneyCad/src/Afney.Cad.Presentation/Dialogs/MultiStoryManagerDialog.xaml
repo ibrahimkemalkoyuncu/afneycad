@@ -112,10 +112,42 @@
                 </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10">
-            <Button Content="📋 Kat Kopyala" Click="CopyFloor_Click" Width="120" Height="30" Background="#005A9C" Foreground="White" BorderThickness="0" Margin="0,0,5,0"/>
-            <Button Content="🔗 Kolon Oluştur" Click="CreateRiser_Click" Width="120" Height="30" Background="#005A9C" Foreground="White" BorderThickness="0" Margin="5,0"/>
-            <TextBlock x:Name="InfoText" Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0"/>
+        <StackPanel Grid.Row="3" Margin="0,10">
+            <!-- Kat kopyalama -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="Hedef Kat:" VerticalAlignment="Center" Foreground="#AAA" Margin="0,0,6,0"/>
+                <ComboBox x:Name="TargetFloorCombo" Width="160" Height="28" Background="#333" Foreground="White"
+                          DisplayMemberPath="Name" ToolTip="Kopyalama / kolon için hedef kat"/>
+                <Button Content="📋 Kat Kopyala" Click="CopyFloor_Click" Width="130" Height="28"
+                        Background="#005A9C" Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+            </StackPanel>
+            <!-- Kolon oluşturma -->
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Sistem:" VerticalAlignment="Center" Foreground="#AAA" Margin="0,0,6,0"/>
+                <ComboBox x:Name="RiserSystemCombo" Width="110" Height="28" Background="#333" Foreground="White">
+                    <ComboBoxItem Content="Soğuk Su"  IsSelected="True"/>
+                    <ComboBoxItem Content="Sıcak Su"/>
+                    <ComboBoxItem Content="Pis Su"/>
+                    <ComboBoxItem Content="Yangın"/>
+                    <ComboBoxItem Content="Gaz"/>
+                    <ComboBoxItem Content="Yağmur"/>
+                </ComboBox>
+                <TextBlock Text="DN:" VerticalAlignment="Center" Foreground="#AAA" Margin="10,0,4,0"/>
+                <ComboBox x:Name="RiserDnCombo" Width="70" Height="28" Background="#333" Foreground="White">
+                    <ComboBoxItem Content="DN25"/>
+                    <ComboBoxItem Content="DN32"/>
+                    <ComboBoxItem Content="DN40"/>
+                    <ComboBoxItem Content="DN50" IsSelected="True"/>
+                    <ComboBoxItem Content="DN65"/>
+                    <ComboBoxItem Content="DN80"/>
+                    <ComboBoxItem Content="DN100"/>
+                    <ComboBoxItem Content="DN125"/>
+                    <ComboBoxItem Content="DN150"/>
+                </ComboBox>
+                <Button Content="🔗 Kolon Oluştur" Click="CreateRiser_Click" Width="130" Height="28"
+                        Background="#2E6B2E" Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                <TextBlock x:Name="InfoText" Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
+            </StackPanel>
         </StackPanel>
         <Button Grid.Row="4" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
     </Grid>

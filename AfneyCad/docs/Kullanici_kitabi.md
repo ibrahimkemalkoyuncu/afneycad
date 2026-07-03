@@ -2071,4 +2071,53 @@ Port çap standardı (TS 1258):
 
 ---
 
-*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #39-40 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #41 — Basınç Haritası · MultiStory İyileştirme · BOM 7 Sistem (2026-07-03)
+
+### Tamamlanan
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | BOM 7 sistem tipi | ✅ | `GetPipePoz` + `GetPipeDescription` → Yangın/Gaz/Yağmur poz no + Galv. Çelik/PVC-U malzeme |
+| 2 | Basınç haritası doğrulama | ✅ | `PressureMapService` eksiksiz: Apply/Restore/GetSummary + yeşil→sarı→kırmızı gradyan |
+| 3 | MultiStory renk standardı | ✅ | `CreateRiser` hardcoded renkler kaldırıldı → `pipe.ApplySystemColor()` + `GetLayerForSystem()` |
+| 4 | MultiStory Kolon UI | ✅ | `RiserSystemCombo` (6 sistem) + `RiserDnCombo` (DN25–DN150) dialog'a eklendi |
+| 5 | MultiStory Hedef Kat | ✅ | `TargetFloorCombo` → `CopyFloor` ve `CreateRiser` artık UI'dan hedef kat seçiyor |
+| 6 | RefreshGrid güncellendi | ✅ | `FloorGrid` + `TargetFloorCombo` senkronize güncelleniyor |
+
+### Basınç Haritası Kullanımı
+
+1. Önce **Hesapla** (TS 1258 hidrolik analiz) butonuna basın — tüm boruların `PressureDrop` değeri hesaplanır
+2. Ribbon → Analiz → **Basınç Haritası** (`BtnPressureMap`) → borular renk gradyanı alır
+   - **Yeşil** → düşük basınç kaybı (verimli hat)
+   - **Sarı** → orta basınç kaybı
+   - **Kırmızı** → kritik hat (en fazla kayıp)
+3. Status bar'da: `max=X mSS · ort=Y mSS · Z kritik boru`
+4. Tekrar tıklayınca orijinal renklere döner
+
+### Çok Katlı Bina İş Akışı (Güncel)
+
+```
+1. Ribbon → MEP Araçları → 🏢 Çok Katlı Yönetimi
+2. "Kat Sayısı" girin (örn. 5), "Kat Yüks." (mm, varsayılan 3000)
+3. 🏗️ Standart Bina Oluştur → Grid dolar, Hedef Kat combo güncellenir
+4. Grid'den kaynak katı seçin → Hedef Kat combo'dan hedef seçin → 📋 Kat Kopyala
+5. Sistem + DN seçin → 🔗 Kolon Oluştur (tüm katlara dikey boru ekler)
+```
+
+| Eylem | Detay |
+|-------|-------|
+| Kat Kopyalama | Kaynak kat tüm tesisat entity'leri Z kaydırılarak hedefe kopyalanır |
+| Kolon Oluşturma | Seçilen sistem tipine göre kat elevasyonları arası PipeEntity zinciri |
+| Statik Yükseklik | `GetStaticHeadBetweenFloors()` → Bernoulli statik basınç bileşeni (mSS) |
+| Kolon Rengi | `ApplySystemColor()` → sistem renk standardı (soğuk=mavi, pis=kahve vb.) |
+
+### Bir Sonraki Session Öncelikleri
+
+1. **HTML Hidrolik Rapor** — `OnGenerateHydraulicReport` → kritik hat + boru tablosu + pompa seçimi sonucu → tarayıcıda aç
+2. **Şantiye Şartnamesi** — `OnAnalyzeSpecClick` → seçilen standart (TS/DIN) + malzeme + poz no → Word/PDF export
+3. **İzometrik Şema** — `OnShowIsometricScheme` → sistem bazlı 2D izometrik + etiket (DN, sistem, uzunluk)
+4. **Otomatik Kolon Konumlandırma** — Vitrifiye gruplarından optimum riser XY konumu (merkroid hesabı)
+
+---
+
+*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #41 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
