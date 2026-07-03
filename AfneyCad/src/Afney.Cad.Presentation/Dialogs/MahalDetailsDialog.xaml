@@ -136,6 +136,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Başlık -->
             <RowDefinition Height="Auto"/>  <!-- Ad + Tip giriş -->
+            <RowDefinition Height="Auto"/>  <!-- Tip öneri paneli -->
             <RowDefinition Height="Auto"/>  <!-- Alan + Çevre bilgisi -->
             <RowDefinition Height="Auto"/>  <!-- Vitrifiye başlığı -->
             <RowDefinition Height="*"/>     <!-- Vitrifiye tablosu -->
@@ -180,7 +181,8 @@
                     <TextBlock Text="MAHAL TİPİ" Style="{StaticResource FieldLabel}"/>
                     <ComboBox x:Name="MahalTypeCombo"
                               Style="{StaticResource DarkComboBox}"
-                              SelectedIndex="1">
+                              SelectedIndex="1"
+                              SelectionChanged="OnMahalTypeChanged">
                         <!-- Konut -->
                         <ComboBoxItem Content="— KONUT —" IsEnabled="False" FontWeight="Bold" Foreground="#888"/>
                         <ComboBoxItem Content="Banyo"/>
@@ -226,8 +228,32 @@
             </Grid>
         </Border>
 
+        <!-- ══════════════════════ TİP ÖNERİ PANELİ ══════════════════════ -->
+        <Border x:Name="TypeHintPanel" Grid.Row="2" Background="#1A2218" Padding="20,8"
+                BorderBrush="#2A4A2A" BorderThickness="0,0,0,1"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock x:Name="TypeHintTitle" FontSize="11" FontWeight="Bold"
+                               Foreground="#66BB66" Margin="0,0,0,2"/>
+                    <TextBlock x:Name="TypeHintDetail" FontSize="11"
+                               Foreground="#AAAAAA" TextWrapping="Wrap"/>
+                </StackPanel>
+                <Button x:Name="AddStandardSetBtn" Grid.Column="1"
+                        Content="+ Standart Set Ekle"
+                        Click="OnAddStandardFixtureSet"
+                        Visibility="Collapsed"
+                        Background="#1A5C1A" Foreground="White" BorderThickness="0"
+                        Padding="10,5" FontSize="11" Cursor="Hand"/>
+            </Grid>
+        </Border>
+
         <!-- ══════════════════════ ALAN & ÇEVRE ══════════════════════ -->
-        <Border Grid.Row="2" Background="#181820" Padding="20,10">
+        <Border Grid.Row="3" Background="#181820" Padding="20,10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <!-- Alan -->
                 <Border Background="#1E2B1E" CornerRadius="6" Padding="14,8" Margin="0,0,10,0">
@@ -259,7 +285,7 @@
         </Border>
 
         <!-- ══════════════════════ VİTRİFİYE BAŞLIK ══════════════════════ -->
-        <Border Grid.Row="3" Background="#1A1A22" Padding="20,8,20,4">
+        <Border Grid.Row="4" Background="#1A1A22" Padding="20,8,20,4">
             <TextBlock Text="BAĞLI VİTRİFİYE / SARFIYAT BİRİMLERİ"
                        FontSize="10" FontWeight="Bold"
                        Foreground="#00CCAA"/>
@@ -267,7 +293,7 @@
 
         <!-- ══════════════════════ VİTRİFİYE TABLOSU ══════════════════════ -->
         <DataGrid x:Name="FixtureGrid"
-                  Grid.Row="4"
+                  Grid.Row="5"
                   Margin="20,0,20,0"
                   Background="#16161E"
                   Foreground="#DDDDDD"
@@ -334,7 +360,7 @@
         </DataGrid>
 
         <!-- ══════════════════════ TOPLAM FU ══════════════════════ -->
-        <Border Grid.Row="5"
+        <Border Grid.Row="6"
                 Background="#1A1A22"
                 BorderBrush="#333340" BorderThickness="0,1,0,0"
                 Padding="20,10" Margin="0,4,0,0">
@@ -362,7 +388,7 @@
         </Border>
 
         <!-- ══════════════════════ BUTONLAR ══════════════════════ -->
-        <Border Grid.Row="6"
+        <Border Grid.Row="7"
                 Background="#0D0D14"
                 Padding="20,12">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

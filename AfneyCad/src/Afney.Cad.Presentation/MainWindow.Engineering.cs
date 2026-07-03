@@ -611,6 +611,44 @@ namespace Afney.Cad.Presentation
             pickCmd.Start();
         }
 
+        private void OnRiserAutoPosition(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var service = new RiserAutoPositionService(_database);
+                var suggestions = service.SuggestRiserPositions();
+
+                if (suggestions.Count == 0)
+                {
+                    MessageBox.Show("Kolon konumlandırması için çizimde vitrifiye bulunamadı.\nÖnce vitrifiye tanımlayın.", "Uyarı");
+                    return;
+                }
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("OTOMATİK KOLON KONUMLANDIRMA ÖNERİLERİ (TS 1258)");
+                sb.AppendLine(new string('─', 52));
+                foreach (var s in suggestions)
+                {
+                    string nearby = s.HasNearbyRiser ? " ⚠ Yakında mevcut riser var" : "";
+                    sb.AppendLine($"● {s.Label,-14} → X:{s.Position.X / 1000:F2} m  Y:{s.Position.Y / 1000:F2} m" +
+                                  $"  ({s.FixtureCount} cihaz · ∑LU={s.WeightedLU:F1}){nearby}");
+                }
+                sb.AppendLine();
+                sb.AppendLine("Bu konumları baz alarak 'Kolon Oluştur' komutunu kullanın.");
+
+                MessageBox.Show(sb.ToString(), "Kolon Konumlandırma Önerisi",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Son öneriyi status bar'a yaz
+                var first = suggestions.First();
+                StatusText.Text = $"Kolon önerisi: {first.Label} → ({first.Position.X / 1000:F2}, {first.Position.Y / 1000:F2}) m";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Kolon konumlandırma hatası: {ex.Message}", "Hata");
+            }
+        }
+
         private void OnRiserConnection(object sender, RoutedEventArgs e)
         {
             StatusText.Text = "KOLONA BAĞLANACAK YATAY BORUYU SEÇİN...";
@@ -766,25 +804,38 @@ namespace Afney.Cad.Presentation
                     return;
                 }
 
-                OnCalculateFlowCommand(sender, e);
-                var pressureService = new PressureDropService(_mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
+                // Önce tam hidrolik hesap çalıştır (FlowCalc + AutoSize)
+                var allEntities = _database.GetAllEntities().ToList();
+                _mechanicalKernel.RecalculateProject(allEntities);
 
-                string projectName = "Aktif_Proje";
+                var pressureService = new PressureDropService(
+                    _mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
+
+                // Aktif dosya adını proje adı olarak kullan
+                string? fp = _activeContext?.FilePath;
+                string projectName = !string.IsNullOrEmpty(fp)
+                    ? System.IO.Path.GetFileNameWithoutExtension(fp)
+                    : "AfneyCAD Projesi";
+
                 var reportService = new HydraulicReportService(pressureService);
-                string htmlContent = reportService.GenerateHtmlReport(pipes, projectName);
+                // Hesaplanmış borular (FlowRate > 0 olanlar önce, sonra diğerleri)
+                var orderedPipes = pipes.OrderBy(p => p.SystemType)
+                                        .ThenByDescending(p => p.FlowRate)
+                                        .ToList();
+                string htmlContent = reportService.GenerateHtmlReport(orderedPipes, projectName);
 
-                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "HydraulicReport_" + Guid.NewGuid().ToString() + ".html");
+                string tempPath = System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(), $"HydraulicReport_{Guid.NewGuid():N}.html");
                 System.IO.File.WriteAllText(tempPath, htmlContent, System.Text.Encoding.UTF8);
-
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = tempPath,
-                    UseShellExecute = true
+                    FileName = tempPath, UseShellExecute = true
                 });
 
-                StatusText.Text = "Hidrolik analiz raporu oluşturuldu ve tarayıcıda açıldı.";
+                Viewport.InvalidateVisual();
+                StatusText.Text = $"Hidrolik rapor: {orderedPipes.Count} boru analiz edildi, tarayıcıda açıldı.";
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show($"Hidrolik Rapor Hatası: {ex.Message}", "Hata");
             }
@@ -900,12 +951,103 @@ namespace Afney.Cad.Presentation
         {
             try
             {
+                var pipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
+                var fixtures = _database.GetAllEntities().OfType<SanitaryFixtureEntity>().ToList();
+
+                if (!pipes.Any() && !fixtures.Any())
+                {
+                    MessageBox.Show("İzometrik şema için çizimde boru veya vitrifiye bulunamadı.", "Uyarı");
+                    return;
+                }
+
+                // IsoSyncService ile 30-30 izometrik dönüşüm
                 var isoEntities = _mechanicalKernel.IsoSync.GenerateIsometricScheme();
-                MessageBox.Show(
-                    $"{isoEntities.Count} adet tesisat bileşeni 30-30 projeksiyon kuralına göre izometrik düzleme düşürüldü.\n\nSistem: Temsili İzometrik Şema Verisi Hazır.",
-                    "AfneyCAD Live ISO-Sync", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // SVG + HTML izometrik şema üret ve tarayıcıda aç
+                string html = GenerateIsometricHtml(pipes, fixtures, _mechanicalKernel.IsoSync);
+                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"IsometricScheme_{Guid.NewGuid():N}.html");
+                System.IO.File.WriteAllText(tempPath, html, System.Text.Encoding.UTF8);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+
+                StatusText.Text = $"İzometrik şema: {pipes.Count} boru · {fixtures.Count} vitrifiye → tarayıcıda açıldı.";
             }
             catch (Exception ex) { MessageBox.Show($"İzometrik şema hatası: {ex.Message}"); }
+        }
+
+        private string GenerateIsometricHtml(
+            IEnumerable<PipeEntity> pipes,
+            IEnumerable<SanitaryFixtureEntity> fixtures,
+            Afney.Cad.Mechanical.Services.IsoSyncService isoSync)
+        {
+            // İzometrik koordinatları hesapla
+            var pipeList = pipes.ToList();
+            var fixList  = fixtures.ToList();
+
+            // Tüm noktaları topla, sınır kutusu belirle
+            var allIsoPoints = new List<Afney.Cad.Geometry.Primitives.Vector3D>();
+            foreach (var p in pipeList)
+            {
+                allIsoPoints.Add(isoSync.ProjectToIsometric(p.StartPoint));
+                allIsoPoints.Add(isoSync.ProjectToIsometric(p.EndPoint));
+            }
+            foreach (var f in fixList) allIsoPoints.Add(isoSync.ProjectToIsometric(f.Position));
+
+            if (!allIsoPoints.Any()) return "<html><body>Veri yok</body></html>";
+
+            double minX = allIsoPoints.Min(p => p.X), maxX = allIsoPoints.Max(p => p.X);
+            double minY = allIsoPoints.Min(p => p.Y), maxY = allIsoPoints.Max(p => p.Y);
+            double rangeX = Math.Max(maxX - minX, 1), rangeY = Math.Max(maxY - minY, 1);
+            double scale = Math.Min(900.0 / rangeX, 600.0 / rangeY) * 0.85;
+            double offX = 50 - minX * scale, offY = 650 - minY * (-scale); // Y eksenini çevir
+
+            Func<double, double, (double sx, double sy)> toSvg = (wx, wy) =>
+                (wx * scale + offX, -wy * scale + offY);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='UTF-8'>");
+            sb.AppendLine("<title>AfneyCAD — İzometrik Tesisat Şeması</title>");
+            sb.AppendLine("<style>body{background:#1a1a2e;margin:0;padding:10px;font-family:Segoe UI,sans-serif;}");
+            sb.AppendLine("h2{color:#7FC3FF;margin:8px 0 4px;}p{color:#888;font-size:12px;margin:0 0 8px;}");
+            sb.AppendLine("svg{background:#12141a;border:1px solid #333;display:block;}</style></head><body>");
+            sb.AppendLine($"<h2>İzometrik Tesisat Şeması</h2>");
+            sb.AppendLine($"<p>{pipeList.Count} boru · {fixList.Count} vitrifiye · 30° izometrik projeksiyon (TS 1258)</p>");
+            sb.AppendLine("<svg width='1000' height='700' xmlns='http://www.w3.org/2000/svg'>");
+
+            // Izgaralar (yatay çizgiler)
+            sb.AppendLine("<g opacity='0.15'>");
+            for (int y = 50; y <= 650; y += 50)
+                sb.AppendLine($"<line x1='0' y1='{y}' x2='1000' y2='{y}' stroke='#ffffff' stroke-width='0.5'/>");
+            sb.AppendLine("</g>");
+
+            // Borular
+            foreach (var pipe in pipeList)
+            {
+                var s = isoSync.ProjectToIsometric(pipe.StartPoint);
+                var ep = isoSync.ProjectToIsometric(pipe.EndPoint);
+                var (x1, y1) = toSvg(s.X, s.Y);
+                var (x2, y2) = toSvg(ep.X, ep.Y);
+                string color = $"#{pipe.Color & 0xFFFFFF:X6}";
+                double thickness = Math.Max(1.5, Math.Min(pipe.InnerDiameter / 20.0, 8.0));
+                string label = $"DN{pipe.InnerDiameter:F0}";
+                sb.AppendLine($"<line x1='{x1:F1}' y1='{y1:F1}' x2='{x2:F1}' y2='{y2:F1}' stroke='{color}' stroke-width='{thickness:F1}' stroke-linecap='round'/>");
+                double mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+                sb.AppendLine($"<text x='{mx:F0}' y='{my - 3:F0}' fill='{color}' font-size='9' text-anchor='middle' opacity='0.8'>{label}</text>");
+            }
+
+            // Vitrifiyeler — daire sembol
+            foreach (var fix in fixList)
+            {
+                var p = isoSync.ProjectToIsometric(fix.Position);
+                var (cx, cy) = toSvg(p.X, p.Y);
+                string col = $"#{fix.Color & 0xFFFFFF:X6}";
+                sb.AppendLine($"<circle cx='{cx:F1}' cy='{cy:F1}' r='6' fill='{col}' stroke='white' stroke-width='1'/>");
+                sb.AppendLine($"<text x='{cx:F0}' y='{cy - 9:F0}' fill='#DDD' font-size='8' text-anchor='middle'>{fix.FixtureType}</text>");
+            }
+
+            sb.AppendLine("</svg>");
+            sb.AppendLine($"<p style='margin-top:6px'>AfneyCAD Engine · {DateTime.Now:yyyy-MM-dd HH:mm}</p>");
+            sb.AppendLine("</body></html>");
+            return sb.ToString();
         }
 
         private void OnAutoAnnotate(object sender, RoutedEventArgs e)

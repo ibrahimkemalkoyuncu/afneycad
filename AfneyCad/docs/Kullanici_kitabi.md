@@ -2071,6 +2071,59 @@ Port çap standardı (TS 1258):
 
 ---
 
+## Session #42 — MahalDetailsDialog LU · İzometrik Şema · Hidrolik Rapor · Kolon Konumlandırma (2026-07-03)
+
+### Tamamlanan
+
+| # | Özellik | Durum | Detay |
+|---|---------|-------|-------|
+| 1 | MahalDetailsDialog — Tip kataloğu | ✅ | 25 oda tipi, TS 1258 standart LU seti, kategori grupları (Konut/Ofis/Ticari/Hastane/Eğitim/Endüstri) |
+| 2 | MahalDetailsDialog — Otomatik LU önerisi | ✅ | Tip seçilince: `TypeHintPanel` → standart cihaz listesi + ∑LU gösterir |
+| 3 | MahalDetailsDialog — Standart Set Ekle | ✅ | Vitrifiye yoksa `AddStandardSetBtn` görünür — tıklanınca TS 1258 setini mahal'e ekler |
+| 4 | OnShowIsometricScheme — SVG/HTML render | ✅ | MessageBox kaldırıldı → `GenerateIsometricHtml()` → SVG tabanlı izometrik şema tarayıcıda açılır |
+| 5 | OnGenerateHydraulicReport — tam hesap | ✅ | Önce `RecalculateProject()` çalıştırılıyor; proje adı dosya adından alınıyor |
+| 6 | RiserAutoPositionService | ✅ | LU ağırlıklı centroid hesabı, sistem bazlı gruplama, mevcut riser çakışma kontrolü |
+| 7 | Ribbon — Kolon Konumu butonu | ✅ | "📍 Kolon Konumu" → `OnRiserAutoPosition` → sistem bazlı XY önerileri + ∑LU |
+
+### MahalDetailsDialog — Mahal Tipi Kataloğu (TS 1258)
+
+| Mahal Tipi | Standart Set | ∑LU |
+|-----------|-------------|-----|
+| Banyo | Küvet (3.0) + Lavabo (1.5) | 4.5 |
+| WC | Klozet (3.0) + Lavabo (1.5) | 4.5 |
+| Mutfak | Eviye (2.0) + Bulaşık Makinesi (1.5) | 3.5 |
+| Çamaşır Odası | Çamaşır Makinesi (1.5) | 1.5 |
+| Ofis WC (Erkek) | 2×Pisuvar (4.0) + Klozet (3.0) + Lavabo (1.5) | 8.5 |
+| Ofis WC (Kadın) | 2×Klozet (6.0) + Lavabo (1.5) | 7.5 |
+| Otel Odası Banyo | Küvet (3.0) + Lavabo (1.5) + Klozet (3.0) | 7.5 |
+| Restoran Mutfak | 2×Eviye (4.0) + Bulaşık Makinesi (1.5) | 5.5 |
+| Soyunma/Duş | 4×Duş (8.0) + Lavabo (1.5) | 9.5 |
+
+### İzometrik Şema (Güncel)
+
+Ribbon → Şemalar → **İzometrik Şema** butonuna tıklayın:
+- 3D koordinatlar 30° izometrik projektif dönüşümle (cos30/sin30) SVG'ye yazılır
+- Her boru sistem renginde çizilir, DN etiketi gösterilir
+- Vitrifiyeler daire sembolle gösterilir
+- Koyu tema SVG → HTML → tarayıcıda açılır
+
+### Otomatik Kolon Konumlandırma
+
+Ribbon → Akıllı Bağlantı → **Kolon Konumu**:
+1. Vitrifiyeler sistem tipine göre gruplandırılır (Pis Su / Soğuk Su ayrı)
+2. Her grup için LU ağırlıklı centroid = optimum XY kolon noktası
+3. Mevcut riser 500mm içindeyse ⚠ uyarı verilir
+4. Sonuç koordinatları görüntülenir → elle `CreateRiser` komutuyla uygulayın
+
+### Bir Sonraki Session Öncelikleri
+
+1. **Şantiye Şartnamesi** — `OnAnalyzeSpecClick` → TS/DIN standart metin + poz no → tam HTML rapor
+2. **Mahal Bazlı Hidrolik Özet** — Her mahal için LU + Q + önerilen DN → tablo rapor
+3. **Kat Bazlı Filtreleme** — Viewport'ta aktif katı seçince diğer katlar gizlenir (MultiStory entegrasyonu)
+4. **SaveLoad — Mahal/Vitrifiye persist** — JSON kayıt/yüklemede MahalEntity fixtures dahil
+
+---
+
 ## Session #41 — Basınç Haritası · MultiStory İyileştirme · BOM 7 Sistem (2026-07-03)
 
 ### Tamamlanan

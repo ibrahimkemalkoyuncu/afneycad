@@ -710,7 +710,8 @@
                                                     <Button Content="🔧 Vana Kütüphanesi" Click="OnValveLibrary"       Style="{StaticResource RbnBtn}" ToolTip="Vana kütüphanesi (TS EN 1074)"/>
                                                     <Button Content="⚙ Boru Sihirbazı"   Click="OnPipeWizard"         Style="{StaticResource RbnBtn}"/>
                                                     <Button Content="🤖 Oto Bağlantı"     Click="OnAutoBranchingClick" Style="{StaticResource RbnBtn}" ToolTip="Otomatik Şube Bağlantısı"/>
-                                                    <Button Content="📐 Kolon Bağlantısı" Click="OnRiserConnection"   Style="{StaticResource RbnBtn}"/>
+                                                    <Button Content="📐 Kolon Bağlantısı" Click="OnRiserConnection"    Style="{StaticResource RbnBtn}"/>
+                                                    <Button Content="📍 Kolon Konumu"    Click="OnRiserAutoPosition"  Style="{StaticResource RbnBtn}" ToolTip="Vitrifiye merkezinden optimum riser XY önerisi"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Akıllı Bağlantı" Foreground="#6B6F88" FontSize="10"
