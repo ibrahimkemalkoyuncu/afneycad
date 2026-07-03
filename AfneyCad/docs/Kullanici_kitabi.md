@@ -2325,4 +2325,36 @@ Fizibilite: f_perc ≥ 10 L/m²/gün şartı (TS 7880)
 
 ---
 
-*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #46 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #47 — OtoNET Çıktı Dosyası İş Akışı + BOM Katalog Entegrasyonu (2026-07-04)
+
+### Tamamlanan Özellikler
+
+| Özellik | Değişiklik |
+|---|---|
+| `LayoutSheetDialog` — CaptureAll | "🏗 Tüm Katları Ekle": `FloorSnapshotService.DetectFloors` ile tüm katları yakalar, 2 sütunlu ızgara (10 000 mm aralık) düzeninde paftaya otomatik yerleştirir |
+| `LayoutSheetDialog` — ExplodeAll | "💥 Tümünü Patlat": paftadaki tüm `BlockReferenceEntity`'leri tek seferinde patlatır; yeniden patlama koruması (Layer == EXPLODED kontrolü) |
+| `LayoutSheetDialog` — ExportMerged | "📤 DXF Merge (Tümü)": geçici DB klonunda tüm blokları yerinde patlatarak tek DXF dosyasına aktar |
+| `BillOfMaterialsService` — katalog | `PozKatalogService.FindForPipe` / `FindForFixture` ile gerçek 2024 Bayındırlık poz numaraları; katalogda eşleşme yoksa eski hardcode fallback devrede |
+
+### OtoNET Çıktı Dosyası İş Akışı
+
+| Adım | OtoNET | AfneyCAD |
+|---|---|---|
+| 1 | Her katı ayrı DWG'ye kaydet | **Pafta → Ekran Çizimi** → kat bazlı `SNAP_KAT1` vb. blokları oluştur |
+| 2 | Pafta sayfasına blok olarak yerleştir | **Pafta Düzeni → Tüm Katları Ekle** (2 sütun ızgara) |
+| 3 | Blokları patlat | **Pafta Düzeni → Tümünü Patlat** |
+| 4 | DXF olarak çıktı al | **Pafta Düzeni → DXF Merge (Tümü)** — tek dosya |
+
+### BOM Katalog Akışı
+
+```
+PipeEntity (sistem + DN)
+    → PozKatalogService.FindForPipe(systemType, innerDiamMm)
+    → PozKalemi { PozNo, Tanim, Birim, BirimFiyat }
+    → TableEntity hücrelerine poz no + açıklama
+    (eşleşme yoksa → hardcode GetPipePoz / GetPipeDescription fallback)
+```
+
+---
+
+*Son guncelleme: 2026-07-04 | AfneyCAD v4.0.0 — Session #47 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
