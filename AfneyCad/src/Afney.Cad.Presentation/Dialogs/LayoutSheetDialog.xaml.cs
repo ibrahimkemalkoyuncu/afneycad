@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Domain.Tables;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
@@ -206,6 +207,181 @@ public partial class LayoutSheetDialog : Window
         catch (Exception ex)
         {
             MessageBox.Show($"DXF hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ── Tüm Katları Yakala & Izgara Düzende Paftaya Ekle ─────────────────────
+    private void CaptureAll_Click(object sender, RoutedEventArgs e)
+    {
+        var floors = _svc.DetectFloors(_database);
+        if (floors.Count == 0)
+        {
+            MessageBox.Show("Tespit edilebilir kat bulunamadı.", "Bilgi",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var ans = MessageBox.Show(
+            $"{floors.Count} kat tespit edildi:\n" +
+            string.Join("\n", floors.Select(f => $"  • {f.Name}")) +
+            "\n\nTüm katlar snapshot bloğuna alınıp paftaya ızgara düzende yerleştirilsin mi?",
+            "Tüm Katları Ekle", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (ans != MessageBoxResult.Yes) return;
+
+        // Izgara parametreleri — 2 sütun, satır/sütun arası 10 000 mm boşluk
+        const double colSpacing = 10_000;
+        const double rowSpacing = 10_000;
+        const int columns = 2;
+
+        int added = 0;
+        for (int i = 0; i < floors.Count; i++)
+        {
+            var floor = floors[i];
+            string safeName = floor.Name.Replace(" ", "_").Replace(".", "").ToUpperInvariant();
+
+            // Snapshot bloğu oluştur (mevcut varsa günceller)
+            _svc.CaptureToBlock(_database, safeName, null, floor.ZMin, floor.ZMax);
+
+            // Izgara konumu
+            int col = i % columns;
+            int row = i / columns;
+            double x = col * colSpacing;
+            double y = -(row * rowSpacing); // Y aşağı gidiyor
+
+            var block = _database.GetBlock("SNAP_" + safeName);
+            if (block is null) continue;
+
+            // Aynı isimli referans varsa ekleme
+            bool alreadyPlaced = _database.GetAllEntities()
+                .OfType<BlockReferenceEntity>()
+                .Any(r => r.BlockName.Equals("SNAP_" + safeName, StringComparison.OrdinalIgnoreCase));
+
+            if (!alreadyPlaced)
+            {
+                var refEnt = new BlockReferenceEntity("SNAP_" + safeName, new Vector3D(x, y, 0))
+                {
+                    Definition = block,
+                    Scale = 1.0
+                };
+                _database.AddEntity(refEnt);
+                added++;
+            }
+        }
+
+        TxtStatus.Text = $"✅ {floors.Count} kat snapshot alındı, {added} yeni blok paftaya eklendi.";
+        Refresh();
+    }
+
+    // ── Tümünü Patlat ────────────────────────────────────────────────────────
+    private void ExplodeAll_Click(object sender, RoutedEventArgs e)
+    {
+        var refs = _database.GetAllEntities()
+            .OfType<BlockReferenceEntity>()
+            .Where(r => r.Layer != "EXPLODED")
+            .ToList();
+
+        if (refs.Count == 0)
+        {
+            MessageBox.Show("Patlatılacak blok referansı bulunamadı.", "Bilgi",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var ans = MessageBox.Show(
+            $"{refs.Count} blok referansı patlatılacak.\n\n" +
+            "⚠ Bu işlem geri alınamaz. Devam edilsin mi?",
+            "Tümünü Patlat", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (ans != MessageBoxResult.Yes) return;
+
+        int totalAdded = 0;
+        foreach (var refEntity in refs)
+        {
+            if (refEntity.Definition is null) continue;
+
+            var matrix = Matrix4x4.TranslationMatrix(
+                             refEntity.Definition.BasePoint.X * -1,
+                             refEntity.Definition.BasePoint.Y * -1,
+                             refEntity.Definition.BasePoint.Z * -1)
+                       * Matrix4x4.Scaling(refEntity.Scale, refEntity.Scale, refEntity.Scale)
+                       * Matrix4x4.RotationZ(refEntity.Rotation * Math.PI / 180.0)
+                       * Matrix4x4.TranslationMatrix(refEntity.Position.X, refEntity.Position.Y, refEntity.Position.Z);
+
+            foreach (var src in refEntity.Definition.Entities)
+            {
+                var clone = src.Clone();
+                clone.Transform(matrix);
+                clone.Layer = "EXPLODED";
+                _database.AddEntity(clone);
+                totalAdded++;
+            }
+            _database.RemoveEntity(refEntity.Id);
+        }
+
+        TxtStatus.Text = $"✅ {refs.Count} blok patlatıldı — {totalAdded} nesne eklendi.";
+        Refresh();
+    }
+
+    // ── DXF Merge: tüm blokları patlatarak tek DXF'e aktar ──────────────────
+    private void ExportMerged_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title      = "Birleşik Pafta DXF Çıktısı",
+            Filter     = "DXF|*.dxf",
+            FileName   = $"AfneyCAD_BirlesikPafta_{DateTime.Now:yyyyMMdd}",
+            DefaultExt = ".dxf"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+
+        try
+        {
+            // Geçici DB klon: tüm referansları yerinde patlat
+            var tempDb = new CadDatabase();
+            foreach (var layer in _database.GetLayers())
+            {
+                if (tempDb.GetLayer(layer.Name) is null)
+                    tempDb.AddLayer(new CadLayer(layer.Name) { Color = layer.Color });
+            }
+
+            // Referans olmayan entity'ler doğrudan kopyala
+            foreach (var ent in _database.GetAllEntities().Where(e => e is not BlockReferenceEntity))
+                tempDb.AddEntity(ent.Clone());
+
+            // Blok referanslarını patlatarak ekle
+            foreach (var refEntity in _database.GetAllEntities().OfType<BlockReferenceEntity>())
+            {
+                if (refEntity.Definition is null)
+                {
+                    tempDb.AddEntity(refEntity.Clone());
+                    continue;
+                }
+
+                var matrix = Matrix4x4.TranslationMatrix(
+                                 refEntity.Definition.BasePoint.X * -1,
+                                 refEntity.Definition.BasePoint.Y * -1,
+                                 refEntity.Definition.BasePoint.Z * -1)
+                           * Matrix4x4.Scaling(refEntity.Scale, refEntity.Scale, refEntity.Scale)
+                           * Matrix4x4.RotationZ(refEntity.Rotation * Math.PI / 180.0)
+                           * Matrix4x4.TranslationMatrix(refEntity.Position.X, refEntity.Position.Y, refEntity.Position.Z);
+
+                foreach (var src in refEntity.Definition.Entities)
+                {
+                    var clone = src.Clone();
+                    clone.Transform(matrix);
+                    tempDb.AddEntity(clone);
+                }
+            }
+
+            var writer = new Afney.Cad.Infrastructure.Export.DxfWriterService(tempDb);
+            writer.WriteToFile(dlg.FileName);
+
+            TxtStatus.Text = $"✅ Birleşik DXF kaydedildi: {System.IO.Path.GetFileName(dlg.FileName)} " +
+                             $"({tempDb.GetAllEntities().Count()} nesne)";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"DXF Merge hatası: {ex.Message}", "Hata",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

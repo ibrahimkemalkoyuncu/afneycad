@@ -96,8 +96,12 @@
                     <TextBlock Grid.Row="2" Text="Offset (mm) — boş bırakılırsa otomatik yerleştirilir"
                                FontSize="9" Foreground="#666" Margin="0,0,0,4"/>
 
-                    <Button Grid.Row="3" x:Name="BtnInsert" Content="➕ Paftaya Ekle (Blok Ekle)"
-                            Click="Insert_Click" Background="#2E7D32" IsEnabled="False" Margin="0,2,0,0"/>
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,2,0,0">
+                        <Button x:Name="BtnInsert" Content="➕ Seçiliyi Ekle"
+                                Click="Insert_Click" Background="#2E7D32" IsEnabled="False" Margin="0,0,4,0"/>
+                        <Button Content="🏗 Tüm Katları Ekle"
+                                Click="CaptureAll_Click" Background="#1565C0" ToolTip="Tüm katları yakala ve paftaya ızgara düzende yerleştir"/>
+                    </StackPanel>
                 </Grid>
             </GroupBox>
 
@@ -141,8 +145,12 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="🗒 Antet Ekle" Click="TitleBlock_Click" Background="#5D4037" Margin="0,0,8,0"/>
-                    <Button Content="💾 DXF Çıktı" Click="ExportDxf_Click"  Background="#1B5E20" Margin="0,0,8,0"/>
+                    <Button Content="🗒 Antet Ekle"       Click="TitleBlock_Click"   Background="#5D4037" Margin="0,0,6,0"/>
+                    <Button Content="💾 DXF Çıktı"        Click="ExportDxf_Click"    Background="#1B5E20" Margin="0,0,6,0"/>
+                    <Button Content="📤 DXF Merge (Tümü)" Click="ExportMerged_Click" Background="#004D40" Margin="0,0,6,0"
+                            ToolTip="Tüm yerleştirilen blokları patlatıp tek DXF dosyasına aktar"/>
+                    <Button Content="💥 Tümünü Patlat"    Click="ExplodeAll_Click"   Background="#E65100" Margin="0,0,6,0"
+                            ToolTip="Paftadaki tüm blok referanslarını tek seferinde patlatır"/>
                     <TextBlock x:Name="TxtStatus" VerticalAlignment="Center"
                                Foreground="#90CAF9" FontSize="10" TextWrapping="Wrap"
                                Text="⚠ Patlat işlemi yalnızca bir kez yapılmalıdır."/>
