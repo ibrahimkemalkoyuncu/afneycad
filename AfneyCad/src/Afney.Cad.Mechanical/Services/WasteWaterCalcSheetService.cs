@@ -92,6 +92,31 @@ public class WasteWaterCalcSheetService
         public List<string> Notes        { get; set; } = [];
     }
 
+    // ── Emdirme Çukuru Hesabı (Perkolasyon) ──────────────────────────────────
+    public class SoakPitInput
+    {
+        public int    PersonCount       { get; set; } = 10;
+        public double DailyWaterLiters  { get; set; } = 150;   // L/kişi/gün
+        public double PercolationRate   { get; set; } = 50;    // L/m²/gün (saha testi)
+        public double SafetyFactor      { get; set; } = 2.0;   // emniyet faktörü
+        public double PitDepthM         { get; set; } = 2.0;   // çukur derinliği (m)
+        public double PitDiameterM      { get; set; } = 1.5;   // çukur çapı (m)
+    }
+
+    public class SoakPitResult
+    {
+        public double DailyFlowM3       { get; set; }
+        public double DesignFlowM3      { get; set; }   // güvenlik faktörlü
+        public double RequiredAreaM2    { get; set; }   // m² (temas yüzeyi)
+        public double PitLateralAreaM2  { get; set; }   // yan yüzey = π × D × H
+        public double PitCount          { get; set; }   // gerekli çukur adedi
+        public double RecommendedDepthM { get; set; }
+        public double RecommendedDiamM  { get; set; }
+        public bool   IsFeasible        { get; set; }
+        public string Standard          { get; set; } = "TS 7880 / BS 6297";
+        public List<string> Notes       { get; set; } = [];
+    }
+
     // ── Pis Su Pompası Hesabı ─────────────────────────────────────────────────
     public class SewagePumpResult
     {
@@ -258,6 +283,63 @@ public class WasteWaterCalcSheetService
         result.Notes.Add($"Günlük debi: {result.DailyFlowM3:F2} m³/gün ({input.PersonCount} kişi × {input.DailyWaterLiters} lt/kişi)");
         result.Notes.Add($"Bekleme süresi: {input.RetentionDays} gün | Çamur faktörü: {input.SludgeFactor}");
         result.Notes.Add($"Önerilen boyut: {result.RecommendedWidthM:F1} m × {result.RecommendedLengthM:F1} m × {result.RecommendedDepthM:F1} m = {result.TotalVolumeM3:F1} m³");
+
+        return result;
+    }
+
+    // ── Emdirme Çukuru (Perkolasyon) ──────────────────────────────────────────
+
+    /*
+       FORMÜL: BS EN 12566-2 / TS 7880
+       Gerekli temas alanı: A = Q_tasarım / f_perc
+         Q_tasarım   = kişi × günlük debi × güvenlik faktörü (m³/gün)
+         f_perc      = perkolasyon hızı (L/m²/gün) — saha testi (VTP veya TS 7880 Ek A)
+       Çukur kapasitesi: A_çukur = π × D × H (silindir yan yüzey)
+       Gerekli çukur sayısı: n = ⌈A / A_çukur⌉
+    */
+    public SoakPitResult CalculateSoakPit(SoakPitInput input)
+    {
+        double dailyM3     = input.PersonCount * input.DailyWaterLiters / 1000.0;
+        double designM3    = dailyM3 * input.SafetyFactor;
+        double designL     = designM3 * 1000.0;
+
+        // Gerekli temas alanı (m²)
+        double requiredAreaM2 = input.PercolationRate > 0
+            ? designL / input.PercolationRate
+            : 0;
+
+        // Tek çukurun yan yüzey alanı (m²) — taban hariç (drenaj standart yaklaşım)
+        double pitLateralM2 = Math.PI * input.PitDiameterM * input.PitDepthM;
+
+        int pitCount = pitLateralM2 > 0
+            ? (int)Math.Ceiling(requiredAreaM2 / pitLateralM2)
+            : 1;
+
+        bool feasible = input.PercolationRate >= 10; // < 10 L/m²/gün → zemin geçirimsiz
+
+        var result = new SoakPitResult
+        {
+            DailyFlowM3       = Math.Round(dailyM3, 3),
+            DesignFlowM3      = Math.Round(designM3, 3),
+            RequiredAreaM2    = Math.Round(requiredAreaM2, 1),
+            PitLateralAreaM2  = Math.Round(pitLateralM2, 2),
+            PitCount          = pitCount,
+            RecommendedDepthM = input.PitDepthM,
+            RecommendedDiamM  = input.PitDiameterM,
+            IsFeasible        = feasible,
+            Standard          = "TS 7880 / BS EN 12566-2",
+        };
+
+        result.Notes.Add($"Kişi sayısı: {input.PersonCount} kişi × {input.DailyWaterLiters} L/kişi/gün = {dailyM3 * 1000:F0} L/gün");
+        result.Notes.Add($"Tasarım debisi (güvenlik f={input.SafetyFactor}): {designL:F0} L/gün");
+        result.Notes.Add($"Perkolasyon hızı: {input.PercolationRate} L/m²/gün  →  Gerekli alan: {requiredAreaM2:F1} m²");
+        result.Notes.Add($"Tek çukur yan yüzeyi (Ø{input.PitDiameterM:F1} m × {input.PitDepthM:F1} m): {pitLateralM2:F2} m²");
+        result.Notes.Add($"Gerekli çukur adedi: {pitCount} adet");
+
+        if (!feasible)
+            result.Notes.Add("⚠ Perkolasyon hızı < 10 L/m²/gün — zemin emdirme için yeterince geçirgen değil. Alternatif (fosseptik + arıtma) değerlendirin.");
+        else
+            result.Notes.Add($"✓ Emdirme çukuru uygulanabilir (TS 7880 min 10 L/m²/gün şartı karşılandı).");
 
         return result;
     }

@@ -822,7 +822,8 @@ namespace Afney.Cad.Presentation
                 var orderedPipes = pipes.OrderBy(p => p.SystemType)
                                         .ThenByDescending(p => p.FlowRate)
                                         .ToList();
-                string htmlContent = reportService.GenerateHtmlReport(orderedPipes, projectName);
+                var catchments = _database.GetAllEntities().OfType<RainfallCatchmentEntity>().ToList();
+                string htmlContent = reportService.GenerateHtmlReport(orderedPipes, projectName, catchments);
 
                 string tempPath = System.IO.Path.Combine(
                     System.IO.Path.GetTempPath(), $"HydraulicReport_{Guid.NewGuid():N}.html");

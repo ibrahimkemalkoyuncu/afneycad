@@ -111,6 +111,27 @@ public class PipeCostService
 
     public List<UnitPrice> GetCatalog() => _catalog;
 
+    /// <summary>Sistem tipi + iç çap (mm) için m başına malzeme+işçilik birim fiyatı (TL/m) döner.</summary>
+    public double GetUnitPriceForPipe(string systemType, double innerDiameterMm)
+    {
+        var mat   = GuessMaterial(systemType);
+        var price = FindClosestPrice(mat, innerDiameterMm);
+        return price.PricePerMeterTl + price.LaborPerMeterTl;
+    }
+
+    /// <summary>Cihaz tipi için adet birim fiyatı (TL/adet) döner.</summary>
+    public double GetUnitPriceForFixture(string fixtureType)
+    {
+        string s = fixtureType.ToLowerInvariant();
+        if (s.Contains("klozet") || s.Contains("wc"))     return 3500;
+        if (s.Contains("lavabo"))                          return 2200;
+        if (s.Contains("duş")  || s.Contains("banyo"))    return 2800;
+        if (s.Contains("evye") || s.Contains("mutfak"))   return 1800;
+        if (s.Contains("pisuar"))                         return 2500;
+        if (s.Contains("küvet"))                          return 4500;
+        return 2000;
+    }
+
     public void UpdatePrice(PipeMaterial material, double diameterMm, double pricePerMeter, double laborPerMeter)
     {
         var existing = _catalog.FirstOrDefault(p => p.Material == material &&
