@@ -144,7 +144,72 @@ namespace Afney.Cad.Mechanical.Services
         */
         private void CheckTopologyConsistency(ValidationResult result)
         {
-            // İleride ağacın (Tree) yapısının kontrolü, ters akış tespiti (Reverse Flow) gibi mantıklar buraya eklenecektir.
+            var allNodes = _topology.Nodes.ToList();
+            if (allNodes.Count == 0) return;
+
+            // BFS ile bağlı bileşen sayısını bul
+            var visited = new HashSet<Guid>();
+            int componentCount = 0;
+            int isolatedCount  = 0;
+
+            foreach (var startNode in allNodes)
+            {
+                if (visited.Contains(startNode.EntityId)) continue;
+
+                componentCount++;
+                var queue = new Queue<Guid>();
+                queue.Enqueue(startNode.EntityId);
+                visited.Add(startNode.EntityId);
+
+                while (queue.Count > 0)
+                {
+                    var current = queue.Dequeue();
+                    foreach (var neighbor in _topology.GetNeighbors(current))
+                    {
+                        if (!visited.Contains(neighbor.EntityId))
+                        {
+                            visited.Add(neighbor.EntityId);
+                            queue.Enqueue(neighbor.EntityId);
+                        }
+                    }
+                }
+
+                // Tek başına kopuk kalan entity = izole bileşen
+                if (componentCount > 1)
+                    isolatedCount++;
+            }
+
+            if (isolatedCount > 0)
+            {
+                result.Warnings.Add($"Topoloji Uyarısı: Şebekede {isolatedCount} adet izole (bağlantısız) tesisat grubu tespit edildi. Bu gruplar hesaplamalara dahil edilmeyecek.");
+            }
+
+            // Döngü tespiti: BFS'de ziyaret edilen düğüm sayısı ile toplam düğüm sayısını karşılaştır
+            // Tek bileşenli bir ağaçta |kenar| = |düğüm| - 1; döngü varsa fazla kenar mevcuttur.
+            // Basit yaklaşım: geriye bağlantı (back-edge) tespiti
+            var parentMap = new Dictionary<Guid, Guid?>();
+            foreach (var startNode in allNodes)
+            {
+                if (parentMap.ContainsKey(startNode.EntityId)) continue;
+                var stack = new Stack<(Guid Id, Guid? Parent)>();
+                stack.Push((startNode.EntityId, null));
+
+                while (stack.Count > 0)
+                {
+                    var (current, parent) = stack.Pop();
+                    if (parentMap.ContainsKey(current))
+                    {
+                        result.Warnings.Add("Topoloji Uyarısı: Şebekede kapalı çevrim (döngü) tespit edildi. Kapalı sistem ısıtma dışı sistemlerde beklenmedik hesap sonuçlarına yol açabilir.");
+                        break;
+                    }
+                    parentMap[current] = parent;
+                    foreach (var neighbor in _topology.GetNeighbors(current))
+                    {
+                        if (neighbor.EntityId != parent)
+                            stack.Push((neighbor.EntityId, current));
+                    }
+                }
+            }
         }
 
         private string GetEntityDisplayName(MechanicalEntity entity)

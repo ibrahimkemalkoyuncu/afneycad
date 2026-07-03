@@ -2173,4 +2173,40 @@ Ribbon → Akıllı Bağlantı → **Kolon Konumu**:
 
 ---
 
-*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #41 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #43 — OtoNET Pis Su İş Akışı Gap Kapama (2026-07-03)
+
+### Yeni Komutlar
+
+| Komut | Açıklama |
+|---|---|
+| `PlaceDrainageOutletCommand` | Pis su rögar / yağmur boşaltma noktası interaktif yerleştirme |
+| `DrawCatchmentAreaCommand` | Poligon tıklama ile `RainfallCatchmentEntity` oluşturma (TS EN 12056-3) |
+
+### Düzeltilen Özellikler
+
+| Özellik | Önceki Durum | Yeni Durum |
+|---|---|---|
+| `OnWasteWaterDesign` dialog event wiring | Tüm event'ler (PlaceOutlet, DrawCatchment, FilterAndCopy, AcceptSystem) bağlı değildi | Tüm event'ler MainWindow'a bağlandı; dialog butonları viewport'u tetikliyor |
+| `DomainGuardService.CheckTopologyConsistency` | Boş placeholder | BFS ile bağlı bileşen sayısı + döngü tespiti implemente edildi |
+| `RiserPipeCommand` | Renk ve layer hardcoded (sadece soğuk/sıcak su); Z kotu her zaman 0–6 m | `ApplySystemColor()` + `GetLayerForSystem()` ile tüm 7 sistem; komut satırından kot girişi (Enter ile onay) |
+| `FloorCopyService.FloorCopyOptions` | `ExcludeRisers` bayrağı yoktu | `ExcludeRisers = true` ile dikey borular kopyadan hariç tutulur |
+| `SanitaryFixtureEntity.IsPortOnly` | Her zaman tam vitrifiye sembolü çiziliyordu | `IsPortOnly = true` iken sadece bağlantı noktaları (soğuk/sıcak/gider) çarpı sembolü ile gösterilir |
+
+### OtoNET Pis Su İş Akışı Karşılaştırması
+
+| OtoNET Adımı | AfneyCAD Durumu |
+|---|---|
+| Uygulama Seç (sistem modu) | VAR — `PipeSystemCombo` tüm borulama komutlarını besliyor |
+| Katman görünürlüğü | VAR — 6 sistem toggle butonu + `WasteWaterDesignDialog` sekme |
+| ST Cihazları — akıllı bağlantı noktaları | VAR (`IsPortOnly`) |
+| Kolon borusu + kot girişi | VAR — `RiserPipeCommand` komut satırından m cinsinden kot okur |
+| Dik nokta yakalama (⊥) | VAR — `SnapEngine.EnablePerpendicular` + `BtnOsnapPerp` |
+| Tesisat kopyala kolon hariç | VAR — `FloorCopyOptions.ExcludeRisers` + dialog FilterAndCopy event |
+| Boşaltma noktası (rögar/yağmur) | VAR — `PlaceDrainageOutletCommand`, dialog butonlarına bağlı |
+| Yağmur düşme alanı poligonu | VAR — `DrawCatchmentAreaCommand`, dialog butonuna bağlı |
+| Yağmur gideri fixture | VAR — `FixtureLibraryService` YG-001…YG-004 |
+| Tesisatı Kabul Et validasyon | VAR — `DomainGuardService` BFS topoloji + açık uç + kaynak kontrolü |
+
+---
+
+*Son guncelleme: 2026-07-03 | AfneyCAD v4.0.0 — Session #43 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*

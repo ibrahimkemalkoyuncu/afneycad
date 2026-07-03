@@ -33,10 +33,16 @@ public class RiserPipeCommand : ICadCommand
         _systemType = systemType;
     }
 
+    // Komut satırından gelen son sayısal giriş (metre cinsinden kot)
+    private string _inputBuffer = "";
+
     public void Start()
     {
         _step = 0;
-        OnFeedback?.Invoke($"KOLON BORU ({_systemType}): Kolon borusunun XY konumunu tıklayın.");
+        _bottomZ = 0;
+        _topZ    = 3.0; // varsayılan kat yüksekliği 3 m
+        _inputBuffer = "";
+        OnFeedback?.Invoke($"KOLON BORU ({_systemType}): Kolon XY konumunu tıklayın.");
     }
 
     public void OnPointerPressed(Vector3D point)
@@ -45,47 +51,78 @@ public class RiserPipeCommand : ICadCommand
         {
             _xyPosition = point;
             _step = 1;
-            OnFeedback?.Invoke("KOLON BORU: Taban yüksekliğini girin (varsayılan: 0). ENTER ile onaylayın.");
-            _bottomZ = 0;
-            _step = 2;
-            OnFeedback?.Invoke("KOLON BORU: Son kat yüksekliğini tıklayarak belirtin veya komut satırına metre girin.");
+            OnFeedback?.Invoke("KOLON BORU: Taban kotunu girin (m, varsayılan 0) → ENTER. Veya bir sonraki tıklama için tekrar tıklayın.");
         }
         else if (_step == 2)
         {
-            _topZ = 6.0;
+            // Tıklama ile üst kot belirleme: Z koordinatından al
+            _topZ = point.Z != 0 ? point.Z : _topZ;
             CreateRiserPipe();
         }
     }
 
     public void OnKeyDown(InputKey key)
     {
-        if (key == InputKey.Enter && _step == 2)
+        if (key == InputKey.Enter)
         {
-            _topZ = 6.0;
-            CreateRiserPipe();
+            if (_step == 1)
+            {
+                if (double.TryParse(_inputBuffer, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double bot))
+                    _bottomZ = bot;
+                _inputBuffer = "";
+                _step = 2;
+                OnFeedback?.Invoke($"KOLON BORU: Taban kotu = {_bottomZ:F1} m. Şimdi üst kotunu girin (m) → ENTER.");
+            }
+            else if (_step == 2)
+            {
+                if (double.TryParse(_inputBuffer, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double top))
+                    _topZ = top;
+                _inputBuffer = "";
+                CreateRiserPipe();
+            }
         }
+    }
+
+    // Komut satırı karakterlerini biriktir (CadViewport "TextInput" olayından beslenir)
+    public void OnTextInput(char c)
+    {
+        if (char.IsDigit(c) || c == '.' || c == ',')
+            _inputBuffer += c == ',' ? '.' : c;
+        else if (c == '\b' && _inputBuffer.Length > 0)
+            _inputBuffer = _inputBuffer[..^1];
     }
 
     private void CreateRiserPipe()
     {
         if (_xyPosition == null) return;
 
-        var startPt = new Vector3D(_xyPosition.Value.X, _xyPosition.Value.Y, _bottomZ);
-        var endPt   = new Vector3D(_xyPosition.Value.X, _xyPosition.Value.Y, _topZ);
+        var startPt = new Vector3D(_xyPosition.Value.X, _xyPosition.Value.Y, _bottomZ * 1000);
+        var endPt   = new Vector3D(_xyPosition.Value.X, _xyPosition.Value.Y, _topZ   * 1000);
 
-        var pipe = new PipeEntity(startPt, endPt, 32)
-        {
-            SystemType    = _systemType,
-            Layer         = _systemType == MechanicalSystemType.DomesticColdWater ? "MEP_TEMIZ_SU" : "MEP_SICAK_SU",
-            Color         = _systemType == MechanicalSystemType.DomesticColdWater ? 0xFF0088FF : 0xFFFF4444
-        };
+        var pipe = new PipeEntity(startPt, endPt, 50) { SystemType = _systemType };
+        pipe.Layer = GetLayerForSystem(_systemType);
+        pipe.ApplySystemColor();
+
         _tm.Submit(new AddEntityOperation(_database, pipe));
 
-        OnFeedback?.Invoke($"KOLON BORU: {_systemType} kolon borusu oluşturuldu (Z: {_bottomZ} → {_topZ} m).");
+        OnFeedback?.Invoke($"KOLON BORU: {_systemType} kolon oluşturuldu ({_bottomZ:F1}m → {_topZ:F1}m).");
         _xyPosition = null;
         _step = 0;
         OnCompleted?.Invoke();
     }
+
+    private static string GetLayerForSystem(MechanicalSystemType t) => t switch
+    {
+        MechanicalSystemType.DomesticColdWater => "MEK_TEMIZ_SU",
+        MechanicalSystemType.DomesticHotWater  => "MEK_SICAK_SU",
+        MechanicalSystemType.WasteWater        => "MEK_PIS_SU",
+        MechanicalSystemType.RainWater         => "MEK_YAGMUR",
+        MechanicalSystemType.FireProtection    => "MEK_YANGIN",
+        MechanicalSystemType.Gas               => "MEK_GAZ",
+        _                                      => "MEK_GENEL"
+    };
 
     public void OnPointerMoved(Vector3D point) { }
     public void Draw(IRenderContext ctx) { }

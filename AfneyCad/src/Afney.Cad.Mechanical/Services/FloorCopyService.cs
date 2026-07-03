@@ -34,6 +34,11 @@ public class FloorCopyService
                 continue;
             if (!options.CopyMEP && entity is MechanicalEntity)
                 continue;
+            if (options.ExcludeRisers && entity is PipeEntity rp)
+            {
+                var dir = (rp.EndPoint - rp.StartPoint).Normalize();
+                if (Math.Abs(dir.Z) > 0.8) continue; // dikey kolon boru → atla
+            }
 
             var clone = entity.Clone();
             clone.Id = Guid.NewGuid();
@@ -127,6 +132,7 @@ public class FloorCopyOptions
     public bool CopyArchitectural { get; set; } = true;
     public bool CopyMEP { get; set; } = true;
     public bool RenameLayer { get; set; } = false;
+    public bool ExcludeRisers { get; set; } = false;
 }
 
 public class FloorCopyResult

@@ -1137,7 +1137,81 @@ namespace Afney.Cad.Presentation
 
         private void OnWasteWaterDesign(object sender, RoutedEventArgs e)
         {
-            try { new WasteWaterDesignDialog(_database) { Owner = this }.ShowDialog(); }
+            try
+            {
+                var dlg = new WasteWaterDesignDialog(_database) { Owner = this };
+
+                // Boşaltma noktası yerleştirme (rögar veya yağmur)
+                dlg.PlaceOutletRequested += isRain =>
+                {
+                    var tm = new TransactionManager();
+                    var cmd = new PlaceDrainageOutletCommand(_database, tm, isRain);
+                    cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); dlg.Show(); };
+                    Viewport.SetActiveCommand(cmd);
+                };
+
+                // Yağmur düşme alanı çizimi
+                dlg.DrawCatchmentAreaRequested += () =>
+                {
+                    var tm = new TransactionManager();
+                    var cmd = new DrawCatchmentAreaCommand(_database, tm);
+                    cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); dlg.Show(); };
+                    Viewport.SetActiveCommand(cmd);
+                };
+
+                // Kat kopyalama — kolon hariç (ExcludeRisers)
+                dlg.FilterAndCopyRequested += () =>
+                {
+                    var selection = Viewport.GetSelectedEntities().ToList();
+                    if (selection.Count == 0) { MessageBox.Show("Önce kopyalanacak tesisat entity'lerini seçin.", "Seçim Yok", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+                    const double zOffset = 3000;
+                    int copied = 0;
+                    var tm2 = new TransactionManager();
+                    foreach (var entity in selection)
+                    {
+                        if (entity is PipeEntity pipe)
+                        {
+                            var dir = (pipe.EndPoint - pipe.StartPoint).Normalize();
+                            if ((double)Math.Abs(dir.Z) > 0.8) continue; // kolon boru → atla
+                        }
+                        var clone = entity.Clone();
+                        clone.Id = Guid.NewGuid();
+                        clone.Transform(Matrix4x4.TranslationMatrix(0, 0, zOffset));
+                        tm2.Submit(new AddEntityOperation(_database, clone));
+                        copied++;
+                    }
+                    Viewport.InvalidateViewport();
+                    MessageBox.Show($"{copied} entity kopyalandı (kolonlar hariç).", "Kopyalama Tamam", MessageBoxButton.OK, MessageBoxImage.Information);
+                };
+
+                // Seçimdeki kolon boru sayısını say (ValidateCopySelection)
+                dlg.ValidateCopySelectionRequested += () =>
+                {
+                    var selection = Viewport.GetSelectedEntities().ToList();
+                    int riserCount = selection.OfType<PipeEntity>()
+                        .Count(p => { var d = (p.EndPoint - p.StartPoint).Normalize(); return (double)Math.Abs(d.Z) > 0.8; });
+                    dlg.SetCopyValidationResult(new CopyValidationResult { IsValid = riserCount == 0, RiserPipeCount = riserCount });
+                };
+
+                // Tesisatı Kabul Et — DomainGuardService ile tam validasyon
+                dlg.AcceptSystemRequested += () =>
+                {
+                    var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
+                    var vr = guard.ValidateSystem();
+                    if (!vr.IsValid)
+                    {
+                        foreach (string err in vr.Errors)
+                            dlg.AppendValidationMessage($"  ✗ {err}", true);
+                    }
+                    else
+                    {
+                        dlg.AppendValidationMessage("  ✓ DomainGuard: Tüm kontroller geçti.", false);
+                    }
+                    Viewport.InvalidateViewport();
+                };
+
+                dlg.ShowDialog();
+            }
             catch (Exception ex) { MessageBox.Show($"Pis su hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

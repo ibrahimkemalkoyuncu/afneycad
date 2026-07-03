@@ -49,6 +49,10 @@ public class SanitaryFixtureEntity : MechanicalEntity
     public Vector3D HotWaterOffset { get; set; } = new Vector3D(-100, 0, 0); // Sol
     public Vector3D DrainOffset { get; set; } = new Vector3D(0, 50, -500); // Alt
 
+    // NE: Sadece Bağlantı Noktası Modu (OtoNET "ST Cihazları" akıllı bağlantı noktaları)
+    // NEDEN: Plan yoğun olduğunda vitrifiye sembolü yerine sadece port konumunu işaretlemek için.
+    public bool IsPortOnly { get; set; } = false;
+
     /*
        NE: SanitaryFixtureEntity Yapıcı Metodu
        NEDEN: Vitrifiye tipine (Washbasin, WC vb.) göre varsayılan boyut ve port ofsetlerini yükleyerek yeni bir uç birim oluşturmak için.
@@ -201,9 +205,16 @@ public class SanitaryFixtureEntity : MechanicalEntity
     */
     public override void Draw(IRenderContext context)
     {
+        // Port-only mod: vitrifiye sembolü yerine her bağlantı noktasına küçük çarpı sembolü çiz
+        if (IsPortOnly)
+        {
+            DrawPortSymbols(context);
+            return;
+        }
+
         double halfW = Width / 2.0;
         double halfD = Depth / 2.0;
-        
+
         // 1. Dış Çerçeve (Tüm Vitrifiyeler İçin Dörtgen)
         double cos = Math.Cos(Rotation);
         double sin = Math.Sin(Rotation);
@@ -408,6 +419,34 @@ public class SanitaryFixtureEntity : MechanicalEntity
         // Rotasyon matristen çıkarılmalı ama şimdilik sadece pozisyon.
     }
 
+    // Port-only sembolü: her bağlantı noktasına artı (+) çizer, tipe ait kısa etiket ekler
+    private void DrawPortSymbols(IRenderContext context)
+    {
+        const double r = 80; // çarpı yarı kolu, mm
+        uint colCold  = 0xFF00BBFF;
+        uint colHot   = 0xFFFF6644;
+        uint colDrain = 0xFF886633;
+        uint colLabel = 0xFFCCCCCC;
+
+        void DrawCross(Vector3D pt, uint col)
+        {
+            context.DrawLine(new Vector3D(pt.X - r, pt.Y, pt.Z), new Vector3D(pt.X + r, pt.Y, pt.Z), col, 1.5);
+            context.DrawLine(new Vector3D(pt.X, pt.Y - r, pt.Z), new Vector3D(pt.X, pt.Y + r, pt.Z), col, 1.5);
+        }
+
+        var coldPt  = new Vector3D(Position.X + ColdWaterOffset.X, Position.Y + ColdWaterOffset.Y, Position.Z);
+        var hotPt   = new Vector3D(Position.X + HotWaterOffset.X,  Position.Y + HotWaterOffset.Y,  Position.Z);
+        var drainPt = new Vector3D(Position.X + DrainOffset.X,     Position.Y + DrainOffset.Y,     Position.Z);
+
+        DrawCross(coldPt,  colCold);
+        DrawCross(hotPt,   colHot);
+        DrawCross(drainPt, colDrain);
+
+        // Cihaz tipi kısa etiketi ortada
+        string shortLabel = FixtureType.Length > 10 ? FixtureType[..10] : FixtureType;
+        context.DrawText(shortLabel, Position + new Vector3D(0, r + 40, 0), 0, 80, colLabel);
+    }
+
     public override CadEntity Clone()
     {
         return new SanitaryFixtureEntity(Position, FixtureType, FixtureUnit)
@@ -421,7 +460,8 @@ public class SanitaryFixtureEntity : MechanicalEntity
             DrainOffset = this.DrainOffset,
             Color = this.Color,
             Layer = this.Layer,
-            SystemType = this.SystemType
+            SystemType = this.SystemType,
+            IsPortOnly = this.IsPortOnly
         };
     }
 
