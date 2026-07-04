@@ -2384,4 +2384,72 @@ PozNo;Tanim;Birim;BirimFiyat;IsGrubu
 
 ---
 
-*Son guncelleme: 2026-07-04 | AfneyCAD v4.0.0 — Session #47 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #48 — Katalog Override, Riser Kat Atama, DXF/PNG Çıktı, TS 825
+
+### 1. Pis Su Hesap Föyü — Override Katalog Otomatik Yükleme
+
+Kaydedilmiş bir proje açıkken **Pis Su Hesap Föyü** dialogu açıldığında, proje
+klasöründe `poz_katalog_override.json` varsa birim fiyatlar otomatik olarak bu
+kullanıcı kataloğundan yüklenir (dahili 2024 listesi üzerine merge).
+
+| Unsur | Açıklama |
+|---|---|
+| Tetikleme | Dialog açılışında proje klasörü taranır (`_activeContext.FilePath` → klasör) |
+| Kaynak dosya | `poz_katalog_override.json` (aynı `PozNo` → override kazanır) |
+| Bilgi etiketi | Keşif Listesi sekmesi: "Katalog: override JSON kullanılıyor" / "dahili 2024 listesi" |
+| Geriye uyumluluk | `projectDir` parametresi nullable — eski çağrılar bozulmaz |
+
+### 2. Kolon Şeması — Z Bazlı Kat Atama (2D Plan Desteği)
+
+İzometrik/kolon şeması artık tüm boruların Z=0 olduğu **2D plan** projelerinde
+bile anlamlı riser üretir. Üç strateji sırayla uygulanır:
+
+| Öncelik | Koşul | Kat Z Ataması |
+|---|---|---|
+| 1 | Gerçek Z farkı ≥ 500 mm | Koordinatlar aynen (çok katlı) — `FloorSnapshotService.DetectFloors` |
+| 2 | Layer'da kat bilgisi | `KAT_1`, `FLOOR_2`, `GROUND`, `ZEMIN`, `BODRUM` → kat × 3000 mm |
+| 3 | Bilgi yok | Sistem içi sıraya göre 3000 mm artan sanal kat |
+
+- Şemada **kat bazlı özet tablosu**: her kat için boru sayısı + DN dağılımı + toplam uzunluk.
+- `OnShowIsometricScheme` **async** (Task.Run) — büyük projelerde UI donmaz.
+
+### 3. Kolon Şeması — DXF / PNG Çıktı
+
+Kolon şeması artık 3 biçimde alınabilir (çıktı seçim penceresi):
+
+| Seçenek | Buton | Çıktı |
+|---|---|---|
+| 🌐 HTML | EVET | Tarayıcıda SVG kolon şeması (mevcut davranış) |
+| 📐 DXF | HAYIR | AutoCAD R12 — `LineEntity` + `TextEntity` + `CircleEntity` (DxfWriterService) |
+| 🖼 PNG | İPTAL | SkiaSharp raster — A4 300 dpi (2480×3508) |
+
+- Ortak `BuildRiserPrimitives` ile tek geometri modeli üç çıktıyı besler.
+- DXF/PNG hedefi `SaveFileDialog` ile seçilir; üretim arka planda yapılır.
+
+### 4. TS 825 Isı Yalıtım Hesabı (Yeni)
+
+**Isıtma menüsü → 🧱 TS 825 Isı Yalıtım** — `TS825InsulationService` +
+`TS825InsulationDialog`.
+
+| Girdi | Açıklama |
+|---|---|
+| İklim Bölgesi | 1–4. Bölge (TS 825 Tablo 1) |
+| Yapı Elemanı | Dış Duvar / Çatı-Teras / Döşeme / Pencere-Kapı |
+| Katmanlar | Malzeme · λ (W/mK) · kalınlık (m) — DataGrid |
+| Sıcaklık | İç (varsayılan 20 °C) / dış (boş = TS 825 bölge değeri) |
+| Yalıtım λ | Eklenecek yalıtım iletkenliği (EPS ≈ 0.035) |
+
+| Çıktı | Bağıntı / Referans |
+|---|---|
+| Mevcut U | `U = 1 / (Rsi + Σ(d/λ) + Rse)` — TS EN ISO 6946 |
+| Sınır U (max) | TS 825:2013 Tablo 2 (bölge × eleman) |
+| Gerekli yalıtım | `d = λ · (1/Umax − 1/Umevcut)` |
+| Isı kaybı Q | `U · A · (Ti − Te)` (W) |
+| Yıllık enerji | `U · A · DD · 24 / 1000` (kWh/yıl) — TS 825 derece-gün |
+
+- **Uygun/Sınır Aşıldı** durum göstergesi, açıklama satırları (referanslı).
+- Butonlar: **Hesapla**, **HTML Rapor**, **Çizime Metin Ekle** (katman `TS825_HESAP`).
+
+---
+
+*Son guncelleme: 2026-07-04 | AfneyCAD v4.0.0 — Session #48 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
