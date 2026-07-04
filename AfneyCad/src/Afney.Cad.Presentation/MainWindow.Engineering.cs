@@ -965,17 +965,58 @@ namespace Afney.Cad.Presentation
                 int detectedFloors = new Afney.Cad.Mechanical.Services.FloorSnapshotService()
                     .DetectFloors(_database).Count;
 
-                StatusText.Text = "İzometrik şema üretiliyor…";
+                // ── Çıktı biçimi seçimi ───────────────────────────────────────
+                var choice = MessageBox.Show(
+                    "İzometrik kolon şeması çıktı biçimini seçin:\n\n" +
+                    "EVET  → 🌐 Tarayıcıda Aç (HTML)\n" +
+                    "HAYIR → 📐 DXF Çıktısı (CAD)\n" +
+                    "İPTAL → 🖼 PNG Çıktısı (A4 300dpi)",
+                    "İzometrik Şema Çıktısı",
+                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
-                // Büyük projelerde UI donmasın — HTML üretimi arka planda.
-                string html = await System.Threading.Tasks.Task.Run(
-                    () => GenerateIsometricHtml(pipes, fixtures, detectedFloors));
+                if (choice == MessageBoxResult.Yes)
+                {
+                    StatusText.Text = "İzometrik şema üretiliyor…";
+                    // Büyük projelerde UI donmasın — HTML üretimi arka planda.
+                    string html = await System.Threading.Tasks.Task.Run(
+                        () => GenerateIsometricHtml(pipes, fixtures, detectedFloors));
 
-                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"IsometricScheme_{Guid.NewGuid():N}.html");
-                System.IO.File.WriteAllText(tempPath, html, System.Text.Encoding.UTF8);
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+                    string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"IsometricScheme_{Guid.NewGuid():N}.html");
+                    System.IO.File.WriteAllText(tempPath, html, System.Text.Encoding.UTF8);
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
 
-                StatusText.Text = $"İzometrik şema: {pipes.Count} boru · {fixtures.Count} vitrifiye → tarayıcıda açıldı.";
+                    StatusText.Text = $"İzometrik şema: {pipes.Count} boru · {fixtures.Count} vitrifiye → tarayıcıda açıldı.";
+                }
+                else if (choice == MessageBoxResult.No)
+                {
+                    var dlg = new Microsoft.Win32.SaveFileDialog
+                    {
+                        Title = "İzometrik Şema — DXF Çıktısı",
+                        Filter = "DXF (AutoCAD R12)|*.dxf",
+                        FileName = $"AfneyCAD_KolonSemasi_{DateTime.Now:yyyyMMdd}",
+                        DefaultExt = ".dxf"
+                    };
+                    if (dlg.ShowDialog(this) != true) return;
+                    await System.Threading.Tasks.Task.Run(
+                        () => ExportRiserDxf(pipes, fixtures, detectedFloors, dlg.FileName));
+                    StatusText.Text = $"İzometrik şema DXF olarak kaydedildi: {dlg.FileName}";
+                    MessageBox.Show($"DXF kaydedildi:\n{dlg.FileName}", "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (choice == MessageBoxResult.Cancel)
+                {
+                    var dlg = new Microsoft.Win32.SaveFileDialog
+                    {
+                        Title = "İzometrik Şema — PNG Çıktısı",
+                        Filter = "PNG Görüntü|*.png",
+                        FileName = $"AfneyCAD_KolonSemasi_{DateTime.Now:yyyyMMdd}",
+                        DefaultExt = ".png"
+                    };
+                    if (dlg.ShowDialog(this) != true) return;
+                    await System.Threading.Tasks.Task.Run(
+                        () => ExportRiserPng(pipes, fixtures, detectedFloors, dlg.FileName));
+                    StatusText.Text = $"İzometrik şema PNG olarak kaydedildi: {dlg.FileName}";
+                    MessageBox.Show($"PNG kaydedildi:\n{dlg.FileName}", "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex) { MessageBox.Show($"İzometrik şema hatası: {ex.Message}"); }
         }
@@ -1323,6 +1364,244 @@ namespace Afney.Cad.Presentation
             }
             return pipeZ.TryGetValue(best, out var v) ? (v.z1 + v.z2) / 2.0 : 0;
         }
+
+        // ── Kolon şeması ilkel geometrisi (SVG/DXF/PNG ortak kaynağı) ────────────
+        // Piksel uzayında (Y aşağı, tuval 1100×720) çizim ilkelleri üretir; HTML,
+        // DXF ve PNG çıktı üreticileri bu tek modeli kullanır.
+        // anchor: 0=sol, 1=orta, 2=sağ (metin hizası)
+        private (List<(double x1, double y1, double x2, double y2, uint color, double w, bool dashed)> lines,
+                 List<(double x, double y, string t, uint color, double size, int anchor)> texts,
+                 List<(double cx, double cy, double r, uint color)> circles,
+                 int width, int height)
+            BuildRiserPrimitives(List<PipeEntity> pipeList, List<SanitaryFixtureEntity> fixList, int detectedFloorCount)
+        {
+            var lines   = new List<(double, double, double, double, uint, double, bool)>();
+            var texts   = new List<(double, double, string, uint, double, int)>();
+            var circles = new List<(double, double, double, uint)>();
+
+            var systemMeta = new Dictionary<MechanicalSystemType, (uint Color, string Label, string Short)>
+            {
+                [MechanicalSystemType.DomesticColdWater] = (0xFF2196F3, "Soğuk Su",     "SK"),
+                [MechanicalSystemType.DomesticHotWater]  = (0xFFF44336, "Sıcak Su",     "SH"),
+                [MechanicalSystemType.WasteWater]        = (0xFF795548, "Pis Su",       "PS"),
+                [MechanicalSystemType.RainWater]         = (0xFF00BCD4, "Yağmur",       "YS"),
+                [MechanicalSystemType.FireProtection]    = (0xFFFF9800, "Yangın",       "YG"),
+                [MechanicalSystemType.Gas]               = (0xFFFFEB3B, "Gaz",          "GZ"),
+                [MechanicalSystemType.Ventilation]       = (0xFF9C27B0, "Havalandırma", "HV"),
+            };
+            const uint gridColor = 0xFF2A3A4A, labelColor = 0xFF557799, frameColor = 0xFF1E2E3E;
+
+            var activeSystems = pipeList.Select(p => p.SystemType).Distinct().OrderBy(s => (int)s).ToList();
+            if (!activeSystems.Any()) activeSystems.Add(MechanicalSystemType.DomesticColdWater);
+
+            var (effZ, effFZ, _) = ResolveFloorLevels(pipeList, fixList, detectedFloorCount);
+            double PZ1(PipeEntity p) => effZ.TryGetValue(p, out var v) ? v.z1 : p.StartPoint.Z;
+            double PZ2(PipeEntity p) => effZ.TryGetValue(p, out var v) ? v.z2 : p.EndPoint.Z;
+            double FZ(SanitaryFixtureEntity f) => effFZ.TryGetValue(f, out var v) ? v : f.Position.Z;
+
+            var allZ = pipeList.SelectMany(p => new[] { PZ1(p), PZ2(p) }).Concat(fixList.Select(FZ)).OrderBy(z => z).ToList();
+            var floorZs = new List<double>();
+            foreach (double z in allZ) { if (!floorZs.Any() || z - floorZs.Last() > 500) floorZs.Add(z); }
+            if (floorZs.Count < 2) { floorZs.Clear(); floorZs.Add(0); floorZs.Add(3000); }
+            double zMin = floorZs.First(), zMax = floorZs.Last();
+            double zRange = Math.Max(zMax - zMin, 3000);
+
+            const int svgW = 1100, svgH = 720, marginLeft = 80, marginBottom = 60, marginTop = 40;
+            int drawH = svgH - marginTop - marginBottom;
+            int drawW = svgW - marginLeft - 20;
+            int colW = Math.Max(60, drawW / Math.Max(activeSystems.Count, 1));
+            double zToY(double z) => marginTop + drawH - (z - zMin) / zRange * drawH;
+            double colX(int ci) => marginLeft + ci * colW + colW / 2.0;
+
+            texts.Add((marginLeft, 22, "Tesisat Kolon Şeması", 0xFF7FC3FF, 15, 0));
+
+            // Kat çizgileri
+            for (int fi = 0; fi < floorZs.Count; fi++)
+            {
+                double y = zToY(floorZs[fi]);
+                string fl = fi == 0 ? "Zemin" : $"{fi}. Kat";
+                lines.Add((marginLeft, y, svgW - 10, y, gridColor, 1, true));
+                texts.Add((marginLeft - 6, y + 4, fl, labelColor, 10, 2));
+            }
+
+            // Sistem kolonları
+            for (int ci = 0; ci < activeSystems.Count; ci++)
+            {
+                var sys = activeSystems[ci];
+                if (!systemMeta.TryGetValue(sys, out var meta))
+                    meta = (0xFFAAAAAA, sys.ToString(), sys.ToString()[..2].ToUpper());
+                double cx = colX(ci);
+                var sysPipes = pipeList.Where(p => p.SystemType == sys).ToList();
+
+                double headerY = marginTop - 14;
+                texts.Add((cx, headerY, meta.Short, meta.Color, 11, 1));
+                texts.Add((cx, headerY + 12, meta.Label, meta.Color, 8, 1));
+
+                if (sysPipes.Any())
+                {
+                    double rz1 = sysPipes.Min(p => Math.Min(PZ1(p), PZ2(p)));
+                    double rz2 = sysPipes.Max(p => Math.Max(PZ1(p), PZ2(p)));
+                    lines.Add((cx, zToY(rz2), cx, zToY(rz1), meta.Color, 3, false));
+                }
+
+                foreach (var pipe in sysPipes)
+                {
+                    double z1 = PZ1(pipe), z2 = PZ2(pipe);
+                    double dz = Math.Abs(z2 - z1);
+                    double dxy = Math.Sqrt(Math.Pow(pipe.EndPoint.X - pipe.StartPoint.X, 2) +
+                                           Math.Pow(pipe.EndPoint.Y - pipe.StartPoint.Y, 2));
+                    double strokeW = Math.Max(1.5, Math.Min(pipe.InnerDiameter / 25.0, 6.0));
+                    string label = $"DN{pipe.InnerDiameter:F0}";
+                    if (dz > 200 && dz >= dxy * 0.5)
+                    {
+                        double py1 = zToY(Math.Max(z1, z2)), py2 = zToY(Math.Min(z1, z2));
+                        lines.Add((cx, py1, cx, py2, meta.Color, strokeW, false));
+                    }
+                    else
+                    {
+                        double by = zToY((z1 + z2) / 2.0);
+                        double branchLen = Math.Max(dxy / 1000.0 * 0.3 * colW, 18);
+                        double bx2 = cx + branchLen;
+                        lines.Add((cx, by, bx2, by, meta.Color, strokeW, false));
+                        texts.Add(((cx + bx2) / 2, by - 3, label, meta.Color, 8, 1));
+                    }
+                }
+
+                if (sysPipes.Any())
+                {
+                    double totalM = sysPipes.Sum(p => p.GetLength()) / 1000.0;
+                    texts.Add((cx, svgH - marginBottom + 14, $"{totalM:F1} m", meta.Color, 9, 1));
+                }
+            }
+
+            // Armatürler
+            foreach (var fix in fixList)
+            {
+                double fy = zToY(FZ(fix));
+                uint fcol = 0xFF000000 | (fix.Color & 0xFFFFFF);
+                int nearestCol = 0;
+                if (pipeList.Any())
+                {
+                    nearestCol = activeSystems
+                        .Select((s, i) => (i, dist: pipeList.Where(p => p.SystemType == s).DefaultIfEmpty()
+                            .Min(p => p is null ? double.MaxValue :
+                                Math.Sqrt(Math.Pow(p.StartPoint.X - fix.Position.X, 2) +
+                                          Math.Pow(p.StartPoint.Y - fix.Position.Y, 2)))))
+                        .OrderBy(t => t.dist).First().i;
+                }
+                double fx = colX(nearestCol) + 22;
+                circles.Add((fx, fy, 6, fcol));
+                string shortName = fix.FixtureType.Length > 4 ? fix.FixtureType[..4] : fix.FixtureType;
+                texts.Add((fx, fy - 9, shortName, 0xFFCCCCCC, 7, 1));
+                lines.Add((colX(nearestCol), fy, fx - 7, fy, 0xFF445566, 0.8, true));
+            }
+
+            // Çerçeve
+            lines.Add((marginLeft, marginTop, svgW - 20, marginTop, frameColor, 1, false));
+            lines.Add((marginLeft, marginTop + drawH, svgW - 20, marginTop + drawH, frameColor, 1, false));
+            lines.Add((marginLeft, marginTop, marginLeft, marginTop + drawH, frameColor, 1, false));
+            lines.Add((svgW - 20, marginTop, svgW - 20, marginTop + drawH, frameColor, 1, false));
+
+            // Legend
+            int lx = marginLeft, ly = svgH - marginBottom + 28;
+            for (int idx = 0; idx < activeSystems.Count; idx++)
+            {
+                if (!systemMeta.TryGetValue(activeSystems[idx], out var m)) continue;
+                int lxi = lx + idx * 130;
+                lines.Add((lxi, ly - 4, lxi + 12, ly - 4, m.Color, 6, false));
+                texts.Add((lxi + 16, ly, m.Label, 0xFFAABBCC, 10, 0));
+            }
+
+            return (lines, texts, circles, svgW, svgH);
+        }
+
+        // ── Kolon şeması → DXF (AutoCAD R12) ─────────────────────────────────────
+        private void ExportRiserDxf(List<PipeEntity> pipes, List<SanitaryFixtureEntity> fixtures,
+                                    int detectedFloors, string path)
+        {
+            var (lines, texts, circles, _, h) = BuildRiserPrimitives(pipes, fixtures, detectedFloors);
+            var db = new Afney.Cad.Database.Core.CadDatabase();
+
+            // Piksel (Y aşağı) → CAD (Y yukarı): worldY = h - pixelY
+            foreach (var l in lines)
+            {
+                db.AddEntity(new Afney.Cad.Domain.Entities.Basic.LineEntity(
+                    new Vector3D(l.x1, h - l.y1, 0), new Vector3D(l.x2, h - l.y2, 0))
+                { Color = l.color, Layer = "ISO_KOLON" });
+            }
+            foreach (var c in circles)
+            {
+                db.AddEntity(new Afney.Cad.Domain.Entities.Basic.CircleEntity(
+                    new Vector3D(c.cx, h - c.cy, 0), c.r)
+                { Color = c.color, Layer = "ISO_ARMATUR" });
+            }
+            foreach (var t in texts)
+            {
+                // DXF TEXT sol-alt referanslı; orta/sağ hizayı yaklaşık ofsetle
+                double tx = t.x - t.anchor switch { 1 => t.t.Length * t.size * 0.28, 2 => t.t.Length * t.size * 0.55, _ => 0 };
+                db.AddEntity(new Afney.Cad.Domain.Entities.Basic.TextEntity(
+                    t.t, new Vector3D(tx, h - t.y, 0), t.size)
+                { Color = t.color, Layer = "ISO_YAZI" });
+            }
+
+            new Afney.Cad.Infrastructure.Export.DxfWriterService(db).WriteToFile(path);
+        }
+
+        // ── Kolon şeması → PNG (A4 300 dpi) ──────────────────────────────────────
+        private void ExportRiserPng(List<PipeEntity> pipes, List<SanitaryFixtureEntity> fixtures,
+                                    int detectedFloors, string path)
+        {
+            var (lines, texts, circles, w, h) = BuildRiserPrimitives(pipes, fixtures, detectedFloors);
+            const int PW = 2480, PH = 3508, pad = 120; // A4 300 dpi portrait
+            double scale = Math.Min((PW - 2.0 * pad) / w, (PH - 2.0 * pad) / h);
+            double ox = (PW - w * scale) / 2.0, oy = (PH - h * scale) / 2.0;
+            float SX(double x) => (float)(ox + x * scale);
+            float SY(double y) => (float)(oy + y * scale);
+
+            using var bmp = new SkiaSharp.SKBitmap(PW, PH);
+            using var canvas = new SkiaSharp.SKCanvas(bmp);
+            canvas.Clear(new SkiaSharp.SKColor(0x0E, 0x0E, 0x1C));
+
+            foreach (var l in lines)
+            {
+                using var paint = new SkiaSharp.SKPaint
+                {
+                    Color = ArgbToSk(l.color),
+                    StrokeWidth = (float)Math.Max(1.0, l.w * scale),
+                    IsAntialias = true,
+                    Style = SkiaSharp.SKPaintStyle.Stroke
+                };
+                if (l.dashed) paint.PathEffect = SkiaSharp.SKPathEffect.CreateDash(new float[] { 8f, 5f }, 0);
+                canvas.DrawLine(SX(l.x1), SY(l.y1), SX(l.x2), SY(l.y2), paint);
+            }
+            foreach (var c in circles)
+            {
+                using var paint = new SkiaSharp.SKPaint
+                { Color = ArgbToSk(c.color), IsAntialias = true, Style = SkiaSharp.SKPaintStyle.Fill };
+                canvas.DrawCircle(SX(c.cx), SY(c.cy), (float)(c.r * scale), paint);
+            }
+            foreach (var t in texts)
+            {
+                using var paint = new SkiaSharp.SKPaint
+                {
+                    Color = ArgbToSk(t.color),
+                    IsAntialias = true,
+                    TextSize = (float)(t.size * scale),
+                    TextAlign = t.anchor == 1 ? SkiaSharp.SKTextAlign.Center
+                              : t.anchor == 2 ? SkiaSharp.SKTextAlign.Right
+                              : SkiaSharp.SKTextAlign.Left
+                };
+                canvas.DrawText(t.t, SX(t.x), SY(t.y), paint);
+            }
+
+            using var img = SkiaSharp.SKImage.FromBitmap(bmp);
+            using var data = img.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+            using var fs = System.IO.File.OpenWrite(path);
+            data.SaveTo(fs);
+        }
+
+        private static SkiaSharp.SKColor ArgbToSk(uint argb) =>
+            new SkiaSharp.SKColor((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
 
         private void OnAutoAnnotate(object sender, RoutedEventArgs e)
         {
