@@ -85,32 +85,50 @@ namespace Afney.Cad.Infrastructure.FileFormats
             // 2. BLOKLARI HAZIRLA
             var blockRecords = new List<CadBlockRecord>();
             // doc.BlockRecords normalde List değil Table olabilir, foreach çalışır
-            foreach (var item in doc.BlockRecords) 
+            foreach (var item in doc.BlockRecords)
             {
-                dynamic block = item;
-                Vector3D bp = Vector3D.Zero;
-                
-                // Koordinat Okuma (Origin vs BasePoint)
-                try { 
-                    var p = block.Origin; 
-                    bp = new Vector3D(p.X, p.Y, p.Z);
-                } catch { 
-                     try { var p = block.BasePoint; bp = new Vector3D(p.X, p.Y, p.Z); } catch {}
-                }
-                
-                var bRec = new CadBlockRecord { Name = block.Name, BasePoint = bp };
-                foreach (var ent in block.Entities) 
+                // Partial recovery: tek bir bozuk blok tüm blok hazırlığını durdurmamalı.
+                try
                 {
-                    bRec.Entities.AddRange(Convert(ent, asReference, null));
+                    dynamic block = item;
+                    Vector3D bp = Vector3D.Zero;
+
+                    // Koordinat Okuma (Origin vs BasePoint)
+                    try {
+                        var p = block.Origin;
+                        bp = new Vector3D(p.X, p.Y, p.Z);
+                    } catch {
+                         try { var p = block.BasePoint; bp = new Vector3D(p.X, p.Y, p.Z); } catch {}
+                    }
+
+                    var bRec = new CadBlockRecord { Name = block.Name, BasePoint = bp };
+                    foreach (var ent in block.Entities)
+                    {
+                        // Her blok-içi entity ayrı korunur; biri patlarsa diğerleri yüklenir.
+                        try { bRec.Entities.AddRange(Convert(ent, asReference, null)); }
+                        catch (Exception exEnt) { System.Diagnostics.Debug.WriteLine($"[DXF] Blok entity atlandı: {exEnt.Message}"); }
+                    }
+                    blockRecords.Add(bRec);
                 }
-                blockRecords.Add(bRec);
+                catch (Exception exBlock)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DXF] Blok atlandı: {exBlock.Message}");
+                }
             }
 
             // 3. ENTITY DÖNÜŞÜMÜ
             foreach (var entity in doc.Entities)
             {
-                var converted = Convert(entity, asReference, blockRecords);
-                foreach (var c in converted) db.AddEntity(c);
+                // Partial recovery: tek bir hatalı entity tüm import'u iptal etmemeli.
+                try
+                {
+                    var converted = Convert(entity, asReference, blockRecords);
+                    foreach (var c in converted) db.AddEntity(c);
+                }
+                catch (Exception exEnt)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DXF] Entity atlandı: {exEnt.Message}");
+                }
             }
 
             return db;

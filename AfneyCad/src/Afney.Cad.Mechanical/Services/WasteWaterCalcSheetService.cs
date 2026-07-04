@@ -299,8 +299,12 @@ public class WasteWaterCalcSheetService
     */
     public SoakPitResult CalculateSoakPit(SoakPitInput input)
     {
+        // Emniyet faktörü en az 1.0 olmalıdır; 0 veya negatif girilirse tasarım debisi
+        // sıfırlanır ve gerekli alan/çukur adedi yanıltıcı biçimde 0 çıkar. (TS 7880 min f=1.5–2.0)
+        double safetyFactor = input.SafetyFactor >= 1.0 ? input.SafetyFactor : 1.0;
+
         double dailyM3     = input.PersonCount * input.DailyWaterLiters / 1000.0;
-        double designM3    = dailyM3 * input.SafetyFactor;
+        double designM3    = dailyM3 * safetyFactor;
         double designL     = designM3 * 1000.0;
 
         // Gerekli temas alanı (m²)
@@ -331,7 +335,9 @@ public class WasteWaterCalcSheetService
         };
 
         result.Notes.Add($"Kişi sayısı: {input.PersonCount} kişi × {input.DailyWaterLiters} L/kişi/gün = {dailyM3 * 1000:F0} L/gün");
-        result.Notes.Add($"Tasarım debisi (güvenlik f={input.SafetyFactor}): {designL:F0} L/gün");
+        if (input.SafetyFactor < 1.0)
+            result.Notes.Add($"⚠ Girilen emniyet faktörü ({input.SafetyFactor}) < 1.0 — hesapta 1.0 kullanıldı (TS 7880 önerisi 1.5–2.0).");
+        result.Notes.Add($"Tasarım debisi (güvenlik f={safetyFactor}): {designL:F0} L/gün");
         result.Notes.Add($"Perkolasyon hızı: {input.PercolationRate} L/m²/gün  →  Gerekli alan: {requiredAreaM2:F1} m²");
         result.Notes.Add($"Tek çukur yan yüzeyi (Ø{input.PitDiameterM:F1} m × {input.PitDepthM:F1} m): {pitLateralM2:F2} m²");
         result.Notes.Add($"Gerekli çukur adedi: {pitCount} adet");
