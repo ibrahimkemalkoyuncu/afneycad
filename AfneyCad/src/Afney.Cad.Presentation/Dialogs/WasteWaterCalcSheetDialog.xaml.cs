@@ -376,8 +376,16 @@ public partial class WasteWaterCalcSheetDialog : Window
         foreach (var r in _bomRows)
             sb.AppendLine($"{r.PozNo};{r.Material};{r.Dn};{r.Length};{r.Count};{r.Unit};{r.UnitPrice};{r.TotalPrice}");
 
-        File.WriteAllText(dlg.FileName, sb.ToString(), Encoding.UTF8);
-        MessageBox.Show($"CSV kaydedildi:\n{dlg.FileName}", "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+        try
+        {
+            File.WriteAllText(dlg.FileName, sb.ToString(), Encoding.UTF8);
+            MessageBox.Show($"CSV kaydedildi:\n{dlg.FileName}", "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"CSV kaydedilemedi (dosya başka programda açık veya yazma izni yok olabilir):\n{ex.Message}",
+                "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExportBomHtml_Click(object sender, RoutedEventArgs e)
@@ -422,9 +430,16 @@ tr:nth-child(even){background:#f9f9f9}
         sb.AppendLine("<div class='footer'>AfneyCAD — Otomatik keşif listesi</div>");
         sb.AppendLine("</body></html>");
 
-        string tempPath = Path.Combine(Path.GetTempPath(), $"AfneyCAD_Kesif_{DateTime.Now:yyyyMMddHHmm}.html");
-        File.WriteAllText(tempPath, sb.ToString(), Encoding.UTF8);
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+        try
+        {
+            string tempPath = Path.Combine(Path.GetTempPath(), $"AfneyCAD_Kesif_{DateTime.Now:yyyyMMddHHmm}.html");
+            File.WriteAllText(tempPath, sb.ToString(), Encoding.UTF8);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"HTML rapor oluşturulamadı:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExportHtml_Click(object sender, RoutedEventArgs e)

@@ -201,9 +201,16 @@ th{background:#e8f0fb}
         sb.AppendLine("<div class='footer'>AfneyCAD — TS 825 Isı Yalıtım Hesabı (yaklaşık; onay projesi için resmî TS 825 hesap tablosu esastır)</div>");
         sb.AppendLine("</body></html>");
 
-        string path = Path.Combine(Path.GetTempPath(), $"AfneyCAD_TS825_{DateTime.Now:yyyyMMddHHmm}.html");
-        File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+        try
+        {
+            string path = Path.Combine(Path.GetTempPath(), $"AfneyCAD_TS825_{DateTime.Now:yyyyMMddHHmm}.html");
+            File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"HTML rapor oluşturulamadı:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // ── Çizime metin ekle ─────────────────────────────────────────────────────
