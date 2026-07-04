@@ -126,6 +126,79 @@ public class PozKatalogService
         catch { /* Bozuk JSON — built-in kullan */ }
     }
 
+    /// <summary>
+    /// CSV dosyasından poz listesi yükle ve built-in kataloga merge et.
+    /// Format: PozNo;Tanim;Birim;BirimFiyat;IsGrubu  (header satırı zorunlu, sıra önemli değil)
+    /// Ayraç: noktalı virgül (;) veya virgül (,) — otomatik tespit.
+    /// Yorum satırları (#) ve boş satırlar atlanır.
+    /// </summary>
+    public (int Imported, int Skipped, string? Error) LoadFromCsv(string csvPath)
+    {
+        if (!File.Exists(csvPath)) return (0, 0, "Dosya bulunamadı: " + csvPath);
+        try
+        {
+            var lines = File.ReadAllLines(csvPath, System.Text.Encoding.UTF8)
+                            .Where(l => !string.IsNullOrWhiteSpace(l) && !l.TrimStart().StartsWith('#'))
+                            .ToList();
+            if (lines.Count < 2) return (0, 0, "CSV boş veya sadece başlık satırı var.");
+
+            // Ayraç tespiti: ilk satırdaki ; veya , sayısına bak
+            char sep = lines[0].Count(c => c == ';') >= lines[0].Count(c => c == ',') ? ';' : ',';
+
+            string[] headers = lines[0].Split(sep, StringSplitOptions.TrimEntries);
+            int iNo    = FindCol(headers, "PozNo", "Poz No", "poz_no");
+            int iTanim = FindCol(headers, "Tanim", "Tanım", "Açıklama", "aciklama");
+            int iBirim = FindCol(headers, "Birim");
+            int iFiyat = FindCol(headers, "BirimFiyat", "Birim Fiyat", "Fiyat", "fiyat");
+            int iGrup  = FindCol(headers, "IsGrubu", "Is Grubu", "Grup", "grup");
+
+            if (iNo < 0 || iTanim < 0 || iBirim < 0 || iFiyat < 0)
+                return (0, 0, $"Zorunlu sütun bulunamadı (PozNo, Tanim, Birim, BirimFiyat). Başlıklar: {string.Join(", ", headers)}");
+
+            var imported = new List<PozKalemi>();
+            int skipped = 0;
+            foreach (var line in lines.Skip(1))
+            {
+                var cols = line.Split(sep, StringSplitOptions.TrimEntries);
+                if (cols.Length <= Math.Max(iNo, Math.Max(iTanim, Math.Max(iBirim, iFiyat))))
+                { skipped++; continue; }
+
+                string pozNo = cols[iNo];
+                string tanim = cols[iTanim];
+                string birim = cols[iBirim];
+                string isGrubu = iGrup >= 0 && iGrup < cols.Length ? cols[iGrup] : "Import";
+                if (!decimal.TryParse(cols[iFiyat].Replace(',', '.'),
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal fiyat))
+                { skipped++; continue; }
+
+                if (string.IsNullOrWhiteSpace(pozNo)) { skipped++; continue; }
+                imported.Add(new PozKalemi(pozNo, tanim, birim, fiyat, isGrubu));
+            }
+
+            // Merge: import same-PozNo wins
+            _aktifKatalog = _aktifKatalog
+                .Where(b => !imported.Any(i => i.PozNo == b.PozNo))
+                .Concat(imported)
+                .ToList();
+
+            return (imported.Count, skipped, null);
+        }
+        catch (Exception ex)
+        {
+            return (0, 0, "CSV okuma hatası: " + ex.Message);
+        }
+    }
+
+    private static int FindCol(string[] headers, params string[] candidates)
+    {
+        foreach (var cand in candidates)
+            for (int i = 0; i < headers.Length; i++)
+                if (string.Equals(headers[i], cand, StringComparison.OrdinalIgnoreCase))
+                    return i;
+        return -1;
+    }
+
     public void SaveToJson(string jsonPath)
     {
         var dtos = _aktifKatalog.Select(k => new PozKalemiDto

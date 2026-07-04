@@ -975,78 +975,207 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"İzometrik şema hatası: {ex.Message}"); }
         }
 
+        // ── Kolon Şeması (Riser Diagram) ─────────────────────────────────────────
         private string GenerateIsometricHtml(
             IEnumerable<PipeEntity> pipes,
             IEnumerable<SanitaryFixtureEntity> fixtures,
-            Afney.Cad.Mechanical.Services.IsoSyncService isoSync)
+            Afney.Cad.Mechanical.Services.IsoSyncService _)
         {
-            // İzometrik koordinatları hesapla
             var pipeList = pipes.ToList();
             var fixList  = fixtures.ToList();
+            if (!pipeList.Any() && !fixList.Any()) return "<html><body>Veri yok</body></html>";
 
-            // Tüm noktaları topla, sınır kutusu belirle
-            var allIsoPoints = new List<Afney.Cad.Geometry.Primitives.Vector3D>();
-            foreach (var p in pipeList)
+            // ── Sistem renk ve label tablosu ──────────────────────────────────
+            var systemMeta = new Dictionary<Afney.Cad.Mechanical.Enums.MechanicalSystemType, (string Color, string Label, string Short)>
             {
-                allIsoPoints.Add(isoSync.ProjectToIsometric(p.StartPoint));
-                allIsoPoints.Add(isoSync.ProjectToIsometric(p.EndPoint));
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticColdWater] = ("#2196F3", "Soğuk Su",    "SK"),
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticHotWater]  = ("#F44336", "Sıcak Su",   "SH"),
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.WasteWater]        = ("#795548", "Pis Su",      "PS"),
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.RainWater]         = ("#00BCD4", "Yağmur",      "YS"),
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.FireProtection]    = ("#FF9800", "Yangın",      "YG"),
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.Gas]               = ("#FFEB3B", "Gaz",         "GZ"),
+                [Afney.Cad.Mechanical.Enums.MechanicalSystemType.Ventilation]       = ("#9C27B0", "Havalandırma","HV"),
+            };
+
+            var activeSystems = pipeList.Select(p => p.SystemType).Distinct()
+                .OrderBy(s => (int)s).ToList();
+            if (!activeSystems.Any()) activeSystems.Add(Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticColdWater);
+
+            // ── Kat seviyeleri (Z kümeleme, 500 mm tolerans) ──────────────────
+            var allZ = pipeList.SelectMany(p => new[] { p.StartPoint.Z, p.EndPoint.Z })
+                               .Concat(fixList.Select(f => f.Position.Z))
+                               .OrderBy(z => z).ToList();
+            var floorZs = new List<double>();
+            foreach (double z in allZ)
+            {
+                if (!floorZs.Any() || z - floorZs.Last() > 500)
+                    floorZs.Add(z);
             }
-            foreach (var f in fixList) allIsoPoints.Add(isoSync.ProjectToIsometric(f.Position));
+            if (floorZs.Count < 2) { floorZs.Clear(); floorZs.Add(0); floorZs.Add(3000); }
 
-            if (!allIsoPoints.Any()) return "<html><body>Veri yok</body></html>";
+            double zMin = floorZs.First(), zMax = floorZs.Last();
+            double zRange = Math.Max(zMax - zMin, 3000);
 
-            double minX = allIsoPoints.Min(p => p.X), maxX = allIsoPoints.Max(p => p.X);
-            double minY = allIsoPoints.Min(p => p.Y), maxY = allIsoPoints.Max(p => p.Y);
-            double rangeX = Math.Max(maxX - minX, 1), rangeY = Math.Max(maxY - minY, 1);
-            double scale = Math.Min(900.0 / rangeX, 600.0 / rangeY) * 0.85;
-            double offX = 50 - minX * scale, offY = 650 - minY * (-scale); // Y eksenini çevir
+            // ── SVG boyutları ─────────────────────────────────────────────────
+            const int svgW = 1100;
+            const int svgH = 720;
+            const int marginLeft = 80;   // kat etiketi alanı
+            const int marginBottom = 60; // legend alanı
+            const int marginTop = 40;
+            int drawH = svgH - marginTop - marginBottom;
+            int drawW = svgW - marginLeft - 20;
+            int colW   = Math.Max(60, drawW / Math.Max(activeSystems.Count, 1));
 
-            Func<double, double, (double sx, double sy)> toSvg = (wx, wy) =>
-                (wx * scale + offX, -wy * scale + offY);
+            double zToY(double z) => marginTop + drawH - (z - zMin) / zRange * drawH;
+            double colX(int ci)   => marginLeft + ci * colW + colW / 2.0;
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("<!DOCTYPE html><html lang='tr'><head><meta charset='UTF-8'>");
-            sb.AppendLine("<title>AfneyCAD — İzometrik Tesisat Şeması</title>");
-            sb.AppendLine("<style>body{background:#1a1a2e;margin:0;padding:10px;font-family:Segoe UI,sans-serif;}");
-            sb.AppendLine("h2{color:#7FC3FF;margin:8px 0 4px;}p{color:#888;font-size:12px;margin:0 0 8px;}");
-            sb.AppendLine("svg{background:#12141a;border:1px solid #333;display:block;}</style></head><body>");
-            sb.AppendLine($"<h2>İzometrik Tesisat Şeması</h2>");
-            sb.AppendLine($"<p>{pipeList.Count} boru · {fixList.Count} vitrifiye · 30° izometrik projeksiyon (TS 1258)</p>");
-            sb.AppendLine("<svg width='1000' height='700' xmlns='http://www.w3.org/2000/svg'>");
+            sb.AppendLine("<title>AfneyCAD — Kolon Şeması</title>");
+            sb.AppendLine($"<style>body{{background:#131320;margin:0;padding:12px;font-family:'Segoe UI',sans-serif;}}");
+            sb.AppendLine("h2{color:#7FC3FF;margin:6px 0 2px;font-size:16px;}");
+            sb.AppendLine(".info{color:#777;font-size:11px;margin:0 0 8px;}");
+            sb.AppendLine("svg{background:#0e0e1c;border:1px solid #2a2a3c;display:block;}");
+            sb.AppendLine("</style></head><body>");
+            sb.AppendLine("<h2>Tesisat Kolon Şeması</h2>");
+            sb.AppendLine($"<p class='info'>{pipeList.Count} boru · {fixList.Count} armatür · " +
+                          $"{activeSystems.Count} sistem · TS 1258 / AfneyCAD v4.0</p>");
+            sb.AppendLine($"<svg width='{svgW}' height='{svgH}' xmlns='http://www.w3.org/2000/svg'>");
 
-            // Izgaralar (yatay çizgiler)
-            sb.AppendLine("<g opacity='0.15'>");
-            for (int y = 50; y <= 650; y += 50)
-                sb.AppendLine($"<line x1='0' y1='{y}' x2='1000' y2='{y}' stroke='#ffffff' stroke-width='0.5'/>");
-            sb.AppendLine("</g>");
-
-            // Borular
-            foreach (var pipe in pipeList)
+            // ── Kat çizgileri ─────────────────────────────────────────────────
+            for (int fi = 0; fi < floorZs.Count; fi++)
             {
-                var s = isoSync.ProjectToIsometric(pipe.StartPoint);
-                var ep = isoSync.ProjectToIsometric(pipe.EndPoint);
-                var (x1, y1) = toSvg(s.X, s.Y);
-                var (x2, y2) = toSvg(ep.X, ep.Y);
-                string color = $"#{pipe.Color & 0xFFFFFF:X6}";
-                double thickness = Math.Max(1.5, Math.Min(pipe.InnerDiameter / 20.0, 8.0));
-                string label = $"DN{pipe.InnerDiameter:F0}";
-                sb.AppendLine($"<line x1='{x1:F1}' y1='{y1:F1}' x2='{x2:F1}' y2='{y2:F1}' stroke='{color}' stroke-width='{thickness:F1}' stroke-linecap='round'/>");
-                double mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-                sb.AppendLine($"<text x='{mx:F0}' y='{my - 3:F0}' fill='{color}' font-size='9' text-anchor='middle' opacity='0.8'>{label}</text>");
+                double y = zToY(floorZs[fi]);
+                string floorLabel = fi == 0 ? "Zemin" : $"{fi}. Kat";
+                sb.AppendLine($"<line x1='{marginLeft}' y1='{y:F0}' x2='{svgW - 10}' y2='{y:F0}' " +
+                              "stroke='#2a3a4a' stroke-width='1' stroke-dasharray='6,4'/>");
+                sb.AppendLine($"<text x='{marginLeft - 6}' y='{y + 4:F0}' fill='#557799' font-size='10' " +
+                              $"text-anchor='end'>{floorLabel}</text>");
+                // Z seviyesi (mm)
+                sb.AppendLine($"<text x='4' y='{y + 4:F0}' fill='#334455' font-size='9'>{floorZs[fi]:F0}</text>");
             }
 
-            // Vitrifiyeler — daire sembol
+            // ── Her sistem için kolon ─────────────────────────────────────────
+            for (int ci = 0; ci < activeSystems.Count; ci++)
+            {
+                var sys = activeSystems[ci];
+                if (!systemMeta.TryGetValue(sys, out var meta))
+                    meta = ("#AAAAAA", sys.ToString(), sys.ToString()[..2].ToUpper());
+
+                double cx = colX(ci);
+                var sysPipes = pipeList.Where(p => p.SystemType == sys).ToList();
+
+                // Sistem başlığı
+                double headerY = marginTop - 14;
+                sb.AppendLine($"<text x='{cx:F0}' y='{headerY:F0}' fill='{meta.Color}' " +
+                              $"font-size='11' font-weight='bold' text-anchor='middle'>{meta.Short}</text>");
+                sb.AppendLine($"<text x='{cx:F0}' y='{headerY + 12:F0}' fill='{meta.Color}' " +
+                              $"font-size='8' text-anchor='middle' opacity='0.7'>{meta.Label}</text>");
+
+                // Ana kolon (riser) — tüm Z aralığında kalın dikey çizgi
+                if (sysPipes.Any())
+                {
+                    double riserZ1 = sysPipes.Min(p => Math.Min(p.StartPoint.Z, p.EndPoint.Z));
+                    double riserZ2 = sysPipes.Max(p => Math.Max(p.StartPoint.Z, p.EndPoint.Z));
+                    double ry1 = zToY(riserZ2), ry2 = zToY(riserZ1);
+                    sb.AppendLine($"<line x1='{cx:F0}' y1='{ry1:F0}' x2='{cx:F0}' y2='{ry2:F0}' " +
+                                  $"stroke='{meta.Color}' stroke-width='3' stroke-linecap='round' opacity='0.9'/>");
+                }
+
+                // Her boru — dal olarak çiz
+                foreach (var pipe in sysPipes)
+                {
+                    double z1 = pipe.StartPoint.Z, z2 = pipe.EndPoint.Z;
+                    double dz = Math.Abs(z2 - z1);
+                    double dxy = Math.Sqrt(Math.Pow(pipe.EndPoint.X - pipe.StartPoint.X, 2) +
+                                           Math.Pow(pipe.EndPoint.Y - pipe.StartPoint.Y, 2));
+
+                    double strokeW = Math.Max(1.5, Math.Min(pipe.InnerDiameter / 25.0, 6.0));
+                    string label = $"DN{pipe.InnerDiameter:F0}";
+
+                    if (dz > 200 && dz >= dxy * 0.5)
+                    {
+                        // Dikey (riser) segment — kolon üzerinde ince kaplama
+                        double py1 = zToY(Math.Max(z1, z2)), py2 = zToY(Math.Min(z1, z2));
+                        sb.AppendLine($"<line x1='{cx:F0}' y1='{py1:F0}' x2='{cx:F0}' y2='{py2:F0}' " +
+                                      $"stroke='{meta.Color}' stroke-width='{strokeW:F1}' opacity='0.8'/>");
+                    }
+                    else
+                    {
+                        // Yatay (dal) — Z ortasında yatay kol
+                        double branchZ = (z1 + z2) / 2.0;
+                        double by = zToY(branchZ);
+                        double branchLen = Math.Max(dxy / 1000.0 * 0.3 * colW, 18); // mm→pixel, en az 18px
+                        double bx1 = cx, bx2 = cx + branchLen;
+                        sb.AppendLine($"<line x1='{bx1:F0}' y1='{by:F0}' x2='{bx2:F0}' y2='{by:F0}' " +
+                                      $"stroke='{meta.Color}' stroke-width='{strokeW:F1}' stroke-linecap='round'/>");
+                        // DN etiketi
+                        sb.AppendLine($"<text x='{(bx1 + bx2) / 2:F0}' y='{by - 3:F0}' fill='{meta.Color}' " +
+                                      $"font-size='8' text-anchor='middle' opacity='0.85'>{label}</text>");
+
+                        // Bitiş noktası ok/sembol
+                        sb.AppendLine($"<polygon points='{bx2:F0},{by:F0} {bx2 - 5:F0},{by - 4:F0} {bx2 - 5:F0},{by + 4:F0}' " +
+                                      $"fill='{meta.Color}' opacity='0.7'/>");
+                    }
+                }
+
+                // Toplam uzunluk bilgisi
+                if (sysPipes.Any())
+                {
+                    double totalM = sysPipes.Sum(p => p.GetLength()) / 1000.0;
+                    double footerY = svgH - marginBottom + 14;
+                    sb.AppendLine($"<text x='{cx:F0}' y='{footerY:F0}' fill='{meta.Color}' " +
+                                  $"font-size='9' text-anchor='middle'>{totalM:F1} m</text>");
+                }
+            }
+
+            // ── Armatürler ────────────────────────────────────────────────────
             foreach (var fix in fixList)
             {
-                var p = isoSync.ProjectToIsometric(fix.Position);
-                var (cx, cy) = toSvg(p.X, p.Y);
-                string col = $"#{fix.Color & 0xFFFFFF:X6}";
-                sb.AppendLine($"<circle cx='{cx:F1}' cy='{cy:F1}' r='6' fill='{col}' stroke='white' stroke-width='1'/>");
-                sb.AppendLine($"<text x='{cx:F0}' y='{cy - 9:F0}' fill='#DDD' font-size='8' text-anchor='middle'>{fix.FixtureType}</text>");
+                double fz = fix.Position.Z;
+                double fy = zToY(fz);
+                string fcol = $"#{fix.Color & 0xFFFFFF:X6}";
+
+                // En yakın sisteme yasla
+                int nearestCol = 0;
+                if (pipeList.Any())
+                {
+                    nearestCol = activeSystems
+                        .Select((s, i) => (i, dist: pipeList.Where(p => p.SystemType == s)
+                            .DefaultIfEmpty()
+                            .Min(p => p is null ? double.MaxValue :
+                                Math.Sqrt(Math.Pow(p.StartPoint.X - fix.Position.X, 2) +
+                                          Math.Pow(p.StartPoint.Y - fix.Position.Y, 2)))))
+                        .OrderBy(t => t.dist).First().i;
+                }
+                double fx = colX(nearestCol) + 22;
+
+                // Armatür sembolü (dikdörtgen)
+                sb.AppendLine($"<rect x='{fx - 7:F0}' y='{fy - 5:F0}' width='14' height='10' " +
+                              $"fill='{fcol}' rx='2' opacity='0.85'/>");
+                string shortName = fix.FixtureType.Length > 4 ? fix.FixtureType[..4] : fix.FixtureType;
+                sb.AppendLine($"<text x='{fx:F0}' y='{fy - 7:F0}' fill='#CCC' font-size='7' text-anchor='middle'>{shortName}</text>");
+                // Armatürden kolona bağlantı çizgisi
+                sb.AppendLine($"<line x1='{colX(nearestCol):F0}' y1='{fy:F0}' x2='{fx - 7:F0}' y2='{fy:F0}' " +
+                              "stroke='#445566' stroke-width='0.8' stroke-dasharray='3,2'/>");
+            }
+
+            // ── Çerçeve ───────────────────────────────────────────────────────
+            sb.AppendLine($"<rect x='{marginLeft}' y='{marginTop}' width='{svgW - marginLeft - 20}' height='{drawH}' " +
+                          "fill='none' stroke='#1e2e3e' stroke-width='1'/>");
+
+            // ── Legend ────────────────────────────────────────────────────────
+            int lx = marginLeft, ly = svgH - marginBottom + 28;
+            foreach (var (sys, idx) in activeSystems.Select((s, i) => (s, i)))
+            {
+                if (!systemMeta.TryGetValue(sys, out var m)) continue;
+                int lxi = lx + idx * 130;
+                sb.AppendLine($"<rect x='{lxi}' y='{ly - 8}' width='12' height='8' fill='{m.Color}' rx='1'/>");
+                sb.AppendLine($"<text x='{lxi + 15}' y='{ly}' fill='#AABBCC' font-size='10'>{m.Label}</text>");
             }
 
             sb.AppendLine("</svg>");
-            sb.AppendLine($"<p style='margin-top:6px'>AfneyCAD Engine · {DateTime.Now:yyyy-MM-dd HH:mm}</p>");
+            sb.AppendLine($"<p class='info' style='margin-top:6px'>AfneyCAD v4.0 · Kolon Şeması · {DateTime.Now:yyyy-MM-dd HH:mm}</p>");
             sb.AppendLine("</body></html>");
             return sb.ToString();
         }
@@ -1134,6 +1263,48 @@ namespace Afney.Cad.Presentation
         {
             try { new UserFixtureCatalogDialog(new FixtureLibraryService()) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Katalog yönetimi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnImportPozCsv(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title  = "Birim Fiyat CSV Seç",
+                Filter = "CSV Dosyası|*.csv|Tüm Dosyalar|*.*",
+                DefaultExt = ".csv"
+            };
+            if (dlg.ShowDialog(this) != true) return;
+
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.PozKatalogService();
+                var (imported, skipped, error) = svc.LoadFromCsv(dlg.FileName);
+
+                if (error is not null)
+                {
+                    MessageBox.Show($"CSV import hatası:\n{error}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Proje klasörüne override JSON olarak kaydet — tüm servisler bu JSON'u kullanır
+                string projDir = System.IO.Path.GetDirectoryName(
+                    _activeContext?.FilePath ?? System.IO.Path.GetTempPath()) ?? System.IO.Path.GetTempPath();
+                string jsonOut = System.IO.Path.Combine(projDir, "poz_katalog_override.json");
+                svc.SaveToJson(jsonOut);
+
+                StatusText.Text = $"✅ Poz CSV içe aktarıldı: {imported} kayıt, {skipped} atlandı → {System.IO.Path.GetFileName(jsonOut)}";
+                MessageBox.Show(
+                    $"CSV başarıyla içe aktarıldı.\n\n" +
+                    $"İçe aktarılan: {imported} kalem\n" +
+                    $"Atlanan (hatalı satır): {skipped}\n\n" +
+                    $"Override JSON: {jsonOut}\n\n" +
+                    "WasteWaterCalcSheetDialog ve BillOfMaterialsService bu fiyatları kullanacak.",
+                    "Poz CSV İçe Aktarma", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"İçe aktarma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void OnWasteWaterDesign(object sender, RoutedEventArgs e)
