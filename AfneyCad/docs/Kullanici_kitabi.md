@@ -2357,4 +2357,31 @@ PipeEntity (sistem + DN)
 
 ---
 
+### Kolon Şeması Çıktısı
+
+| Unsur | Açıklama |
+|---|---|
+| Dikey eksen | Gerçek Z koordinatı (mm) — kat seviyeleri dashed yatay çizgi |
+| Sistem kolonları | Her sistem tipi (SK/SH/PS/YS/YG/GZ/HV) ayrı dikey sütun |
+| Riser segment | ΔZ > 200 mm → kalın dikey çizgi |
+| Dal segment | ΔZ < 200 mm → yatay çizgi + DN etiketi + ok |
+| Armatür sembolü | En yakın sisteme bağlı dikdörtgen + tip adı |
+| Legend | Sistem renkleri + toplam uzunluk (m) |
+
+### Poz CSV Format
+
+```csv
+PozNo;Tanim;Birim;BirimFiyat;IsGrubu
+22.001/1;Çelik boru DN15 — sıhhi tesisat;m;420;22-Temiz Su
+27.001/3;PVC-U SN4 boru DN100 — pis su;m;680;27-Pis Su
+27.102;Seramik klozet (alçıpan montaj);adet;1850;27-Vitrifiye
+```
+
+- Ayraç: noktalı virgül (`;`) veya virgül (`,`) — otomatik tespit
+- Header satırı zorunlu (sütun sırası serbest)
+- `#` ile başlayan satırlar yorum, boş satırlar atlanır
+- İçe aktarma sonrası proje klasörüne `poz_katalog_override.json` kaydedilir
+
+---
+
 *Son guncelleme: 2026-07-04 | AfneyCAD v4.0.0 — Session #47 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
