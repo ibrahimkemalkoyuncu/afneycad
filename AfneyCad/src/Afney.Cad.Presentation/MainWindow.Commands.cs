@@ -268,22 +268,44 @@ namespace Afney.Cad.Presentation
             }
             else
             {
-                foreach (var file in files)
+                foreach (var (file, idx) in files.Select((f, i) => (f, i)))
                 {
+                    bool exists = System.IO.File.Exists(file);
+                    string fileName  = System.IO.Path.GetFileNameWithoutExtension(file);
+                    string folder    = System.IO.Path.GetDirectoryName(file) ?? "";
+                    string shortDir  = folder.Length > 40 ? "…" + folder[^38..] : folder;
+                    string modDate   = exists ? System.IO.File.GetLastWriteTime(file).ToString("dd.MM.yyyy") : "—";
+
+                    // Her dosya için içerik paneli
+                    var panel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0) };
+                    panel.Children.Add(new TextBlock
+                    {
+                        Text = $"{idx + 1}.  📄  {fileName}",
+                        Foreground = new System.Windows.Media.SolidColorBrush(
+                            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(
+                                exists ? "#D4D6E8" : "#666880")),
+                        FontSize = 12
+                    });
+                    panel.Children.Add(new TextBlock
+                    {
+                        Text = $"      {shortDir}   ·   {modDate}",
+                        Foreground = new System.Windows.Media.SolidColorBrush(
+                            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#555770")),
+                        FontSize = 10
+                    });
+
                     var btn = new Button
                     {
-                        Content = $"📄  {System.IO.Path.GetFileName(file)}",
+                        Content = panel,
                         ToolTip = file,
-                        Height = 30,
+                        Height = 42,
                         Background = System.Windows.Media.Brushes.Transparent,
-                        Foreground = new System.Windows.Media.SolidColorBrush(
-                            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#D4D6E8")),
                         BorderThickness = new Thickness(0),
                         HorizontalContentAlignment = HorizontalAlignment.Left,
-                        Padding = new Thickness(8, 0, 8, 0),
-                        FontSize = 12,
+                        Padding = new Thickness(8, 4, 8, 4),
                         Cursor = Cursors.Hand,
-                        Tag = file
+                        Tag = file,
+                        Opacity = exists ? 1.0 : 0.5
                     };
                     btn.Click += (s, args) =>
                     {
@@ -298,12 +320,44 @@ namespace Afney.Cad.Presentation
                         }
                         else
                         {
-                            MessageBox.Show($"Dosya bulunamadı:\n{path}", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show($"Dosya bulunamadı:\n{path}\n\nListeden kaldırılıyor.",
+                                "Dosya Bulunamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
                             _recentFiles.RemoveFile(path);
                         }
                     };
                     RecentFilesList.Children.Add(btn);
+
+                    // İnce ayraç
+                    if (idx < files.Count - 1)
+                        RecentFilesList.Children.Add(new Separator
+                        {
+                            Background = new System.Windows.Media.SolidColorBrush(
+                                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#252535")),
+                            Margin = new Thickness(8, 0, 8, 0), Height = 1
+                        });
                 }
+
+                // "Tümünü Temizle" butonu
+                RecentFilesList.Children.Add(new Separator { Margin = new Thickness(0, 4, 0, 2) });
+                var clearBtn = new Button
+                {
+                    Content = "🗑  Tümünü Temizle",
+                    Height = 28,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    Foreground = new System.Windows.Media.SolidColorBrush(
+                        (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#B04040")),
+                    BorderThickness = new Thickness(0),
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Padding = new Thickness(8, 0, 8, 0),
+                    FontSize = 11,
+                    Cursor = Cursors.Hand
+                };
+                clearBtn.Click += (_, _) =>
+                {
+                    _recentFiles.Clear();
+                    RecentFilesPopup.IsOpen = false;
+                };
+                RecentFilesList.Children.Add(clearBtn);
             }
 
             RecentFilesPopup.IsOpen = !RecentFilesPopup.IsOpen;
