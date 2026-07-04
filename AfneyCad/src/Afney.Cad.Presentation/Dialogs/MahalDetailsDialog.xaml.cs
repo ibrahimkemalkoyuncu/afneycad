@@ -20,6 +20,7 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class MahalDetailsDialog : Window
 {
     private readonly MahalEntity _mahal;
+    private bool _uiReady;
 
     // ─── TS 1258 Mahal Tipi Kataloğu ──────────────────────────────────────────
     // (tip adı → (açıklama, önerilen vitrifiye listesi [(ad, LU)]))
@@ -59,6 +60,7 @@ public partial class MahalDetailsDialog : Window
     {
         _mahal = mahal;
         InitializeComponent();
+        _uiReady = true;
 
         Loaded += (_, _) => PopulateDialog();
     }
@@ -162,6 +164,8 @@ public partial class MahalDetailsDialog : Window
     // ─── Mahal Tipi Değişti ────────────────────────────────────────────────────
     private void OnMahalTypeChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!_uiReady) return;
+
         string? selected = (MahalTypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
         if (string.IsNullOrEmpty(selected) || !s_typeMap.TryGetValue(selected, out var info))
         {
