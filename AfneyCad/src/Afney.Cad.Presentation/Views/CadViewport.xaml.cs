@@ -1285,7 +1285,7 @@ namespace Afney.Cad.Presentation.Views;
             }
             else if (e.Key == Key.Delete)
             {
-                if (_selectionManager != null && _selectionManager.SelectedCount > 0)
+                if (_selectionManager != null && _database != null && _selectionManager.SelectedCount > 0)
                 {
                     var toDelete = _selectionManager.GetSelectedEntities().ToList();
                     _selectionManager.ClearSelection();
@@ -1349,7 +1349,7 @@ namespace Afney.Cad.Presentation.Views;
     */
     private void OnContextMenu_Move(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
         var selected = _selectionManager.GetSelectedEntities();
         var cmd = new Afney.Cad.Commands.BasicCommands.MoveCommand(_database, _database.TransactionManager, selected);
         cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
@@ -1360,7 +1360,7 @@ namespace Afney.Cad.Presentation.Views;
 
     private void OnContextMenu_Mirror(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
         var selected = _selectionManager.GetSelectedEntities();
         var cmd = new Afney.Cad.Commands.BasicCommands.MirrorCommand(_database, _database.TransactionManager, selected);
         cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
@@ -1371,7 +1371,7 @@ namespace Afney.Cad.Presentation.Views;
 
     private void OnContextMenu_Rotate(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
         var selected = _selectionManager.GetSelectedEntities();
         var cmd = new Afney.Cad.Commands.BasicCommands.RotateCommand(_database, _database.TransactionManager, selected);
         cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
@@ -1382,7 +1382,7 @@ namespace Afney.Cad.Presentation.Views;
 
     private void OnContextMenu_Scale(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
         var selected = _selectionManager.GetSelectedEntities();
         var cmd = new Afney.Cad.Commands.BasicCommands.ScaleCommand(_database, _database.TransactionManager, selected);
         cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
@@ -1403,7 +1403,7 @@ namespace Afney.Cad.Presentation.Views;
 
     private void OnContextMenu_Copy(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
         var selected = _selectionManager.GetSelectedEntities();
         var cmd = new Afney.Cad.Commands.BasicCommands.CopyCommand(_database, _database.TransactionManager, selected);
         cmd.OnFeedback += msg => OnFeedback?.Invoke(msg);
@@ -1547,7 +1547,7 @@ namespace Afney.Cad.Presentation.Views;
             foreach (var item in toRemove) ctx.Items.Remove(item);
 
             // 4. Sadece tek bir boru seçiliyse debi/çap bilgisini direkt menüye ekle (Bonus Bilgi)
-            if (hasSelection && _selectionManager.SelectedCount == 1)
+            if (hasSelection && _selectionManager != null && _selectionManager.SelectedCount == 1)
             {
                 var ent = _selectionManager.GetSelectedEntities().First();
                 if (ent is Mechanical.Entities.PipeEntity pipe)
