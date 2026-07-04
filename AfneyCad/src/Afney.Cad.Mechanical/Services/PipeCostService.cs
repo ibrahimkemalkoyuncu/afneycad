@@ -159,7 +159,7 @@ public class PipeCostService
         foreach (var pipe in pipes)
         {
             var mat = GuessMaterial(pipe.SystemType.ToString());
-            double dia = pipe.InnerDiameter * 1000; // m → mm
+            double dia = pipe.InnerDiameter; // mm
             var price = FindClosestPrice(mat, dia);
 
             double materialCost = price.PricePerMeterTl * pipe.Length;

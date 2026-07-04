@@ -72,7 +72,7 @@ public class AutoSizingService
 
         foreach (var pipe in pipes)
         {
-            double oldDia = pipe.InnerDiameter * 1000; // m → mm
+            double oldDia = pipe.InnerDiameter; // mm
 
             double flowLs  = FuToDesignFlow(pipe.LoadUnits, pipe.SystemType);
             double flowM3h = flowLs * 3.6;
@@ -101,7 +101,7 @@ public class AutoSizingService
                 ? flowLs / (Math.PI * Math.Pow(newDia / 1000.0 / 2, 2)) / 1000.0
                 : 0;
 
-            pipe.InnerDiameter = newDia / 1000.0; // mm → m
+            pipe.InnerDiameter = newDia; // mm
             pipe.FlowRate      = flowM3h;
             pipe.Velocity      = actualVelocity;
 

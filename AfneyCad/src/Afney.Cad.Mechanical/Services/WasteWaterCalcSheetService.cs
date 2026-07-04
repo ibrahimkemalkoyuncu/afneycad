@@ -196,7 +196,7 @@ public class WasteWaterCalcSheetService
     private CalcRow CalculateSegment(PipeEntity pipe, CircuitOptions options, int segNo)
     {
         bool isVertical = IsVerticalPipe(pipe);
-        double dia = pipe.InnerDiameter * 1000; // m → mm
+        double dia = pipe.InnerDiameter; // mm
         double slope = pipe.Slope > 0 ? pipe.Slope : options.DefaultSlopePct / 100.0;
         double n = _manningN.TryGetValue(options.PipeMaterial, out double nv) ? nv : options.RoughnessN;
 
