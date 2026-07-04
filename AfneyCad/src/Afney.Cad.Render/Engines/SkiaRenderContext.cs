@@ -244,7 +244,7 @@ public class SkiaRenderContext : IRenderContext
                 Color = new SKColor(color),
                 IsAntialias = true,
                 Style = SKPaintStyle.Fill,
-                TextSize = (float)(fontSize * _zoomFactor), // Font, zoom ile büyümeli
+                TextSize = (float)Math.Min(fontSize * _zoomFactor, 300.0), // Max 300px — büyük model-space yükseklikleri ekranı kaplamasın
                 TextAlign = centerAlign ? SKTextAlign.Center : SKTextAlign.Left,
                 Typeface = typeface, 
                 SubpixelText = true,
@@ -256,7 +256,7 @@ public class SkiaRenderContext : IRenderContext
         {
              // TextSize dinamik olduğu için cache'den gelse bile güncellemek gerekebilir (Performans optimizasyonu için burada basitleştirildi)
              // Doğrusu: Font boyutu değiştiyse yeni paint. Şimdilik her frame'de TextSize güncelliyoruz.
-             paint.TextSize = (float)(fontSize * _zoomFactor); 
+             paint.TextSize = (float)Math.Min(fontSize * _zoomFactor, 300.0);
         }
 
         var p = Project(position);

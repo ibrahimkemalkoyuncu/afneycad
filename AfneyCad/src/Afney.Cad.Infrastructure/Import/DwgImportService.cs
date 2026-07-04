@@ -340,10 +340,14 @@ public class DwgImportService
 
                 if (!string.IsNullOrEmpty(dimText))
                 {
+                    // DimStyle text height; 0 = "use style default", fall back to 2.5 model-units
+                    double dimTxtH = 2.5;
+                    try { var h = dimension.Style?.TextHeight; if (h.HasValue && h.Value > 0) dimTxtH = h.Value; } catch { }
+
                     dimTextEntity = new Afney.Cad.Domain.Entities.Basic.TextEntity(
                         dimText,
                         new Vector3D(textMidPoint.X, textMidPoint.Y, textMidPoint.Z),
-                        250
+                        dimTxtH
                     ) { Layer = dimLayer, Color = resolvedColor };
                     dimTextEntity.Transform(transform);
                 }

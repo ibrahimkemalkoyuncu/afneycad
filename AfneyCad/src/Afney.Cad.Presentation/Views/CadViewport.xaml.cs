@@ -396,8 +396,8 @@ namespace Afney.Cad.Presentation.Views;
                                 (float)Math.Abs(pTop.Y - pBase.Y) + 4, _hoverBoxPaint);
             }
             
-            // Selection Highlighting (Glow)
-            _selectionManager?.DrawSelection(renderContext);
+            // Selection Highlighting (Glow) — hidden layer filter prevents invisible entities from appearing
+            _selectionManager?.DrawSelection(renderContext, HiddenLayers);
             
             // Grip Noktaları (Mavi Kareler)
             _selectionManager?.DrawGrips(canvas, vec => {

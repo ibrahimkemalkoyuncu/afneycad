@@ -306,7 +306,7 @@ public class SelectionManager
         NEDEN: Kullanıcı seçili entityleri görebilmeli
         PERFORMANS: Reflection kaldırıldı, SKPoint kullanılıyor.
     */
-    public void DrawSelection(IRenderContext renderContext)
+    public void DrawSelection(IRenderContext renderContext, HashSet<string>? hiddenLayers = null)
     {
         if (_selectedEntityIds.Count == 0) return;
 
@@ -320,13 +320,17 @@ public class SelectionManager
                  entity = _database.GetEntity(id);
                  if (entity != null) _selectedEntityCache[id] = entity;
             }
-            
+
             if (entity != null)
             {
+                // Gizli katmandaki entity'leri highlight etme
+                if (hiddenLayers != null && entity.Layer != null && hiddenLayers.Contains(entity.Layer))
+                    continue;
+
                 entity.Draw(renderContext);
             }
         }
-        
+
         renderContext.IsHighlightMode = false;
     }
 
