@@ -57,8 +57,8 @@ public partial class MahalDetailsDialog : Window
     // ─── Constructor ───────────────────────────────────────────────────────────
     public MahalDetailsDialog(MahalEntity mahal)
     {
-        InitializeComponent();
         _mahal = mahal;
+        InitializeComponent();
 
         Loaded += (_, _) => PopulateDialog();
     }
