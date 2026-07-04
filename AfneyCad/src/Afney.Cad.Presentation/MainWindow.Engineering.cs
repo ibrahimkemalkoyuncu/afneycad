@@ -948,7 +948,7 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void OnShowIsometricScheme(object sender, RoutedEventArgs e)
+        private async void OnShowIsometricScheme(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -961,11 +961,16 @@ namespace Afney.Cad.Presentation
                     return;
                 }
 
-                // IsoSyncService ile 30-30 izometrik dönüşüm
-                var isoEntities = _mechanicalKernel.IsoSync.GenerateIsometricScheme();
+                // Gerçek kat sayısı (çok katlı projeler) — UI thread'de tespit et.
+                int detectedFloors = new Afney.Cad.Mechanical.Services.FloorSnapshotService()
+                    .DetectFloors(_database).Count;
 
-                // SVG + HTML izometrik şema üret ve tarayıcıda aç
-                string html = GenerateIsometricHtml(pipes, fixtures, _mechanicalKernel.IsoSync);
+                StatusText.Text = "İzometrik şema üretiliyor…";
+
+                // Büyük projelerde UI donmasın — HTML üretimi arka planda.
+                string html = await System.Threading.Tasks.Task.Run(
+                    () => GenerateIsometricHtml(pipes, fixtures, detectedFloors));
+
                 string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"IsometricScheme_{Guid.NewGuid():N}.html");
                 System.IO.File.WriteAllText(tempPath, html, System.Text.Encoding.UTF8);
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = tempPath, UseShellExecute = true });
@@ -976,10 +981,12 @@ namespace Afney.Cad.Presentation
         }
 
         // ── Kolon Şeması (Riser Diagram) ─────────────────────────────────────────
+        // detectedFloorCount: FloorSnapshotService.DetectFloors ile bulunan gerçek
+        //                     kat sayısı (çok katlı projelerde etiket için).
         private string GenerateIsometricHtml(
             IEnumerable<PipeEntity> pipes,
             IEnumerable<SanitaryFixtureEntity> fixtures,
-            Afney.Cad.Mechanical.Services.IsoSyncService _)
+            int detectedFloorCount)
         {
             var pipeList = pipes.ToList();
             var fixList  = fixtures.ToList();
@@ -1001,9 +1008,17 @@ namespace Afney.Cad.Presentation
                 .OrderBy(s => (int)s).ToList();
             if (!activeSystems.Any()) activeSystems.Add(Afney.Cad.Mechanical.Enums.MechanicalSystemType.DomesticColdWater);
 
-            // ── Kat seviyeleri (Z kümeleme, 500 mm tolerans) ──────────────────
-            var allZ = pipeList.SelectMany(p => new[] { p.StartPoint.Z, p.EndPoint.Z })
-                               .Concat(fixList.Select(f => f.Position.Z))
+            // ── Efektif kat Z çözümü ──────────────────────────────────────────
+            // 2D plan (tüm borular Z=0) projelerde bile anlamlı riser diyagramı
+            // üretmek için: gerçek Z → layer bazlı kat → sanal index sırasıyla.
+            var (effZ, effFZ, floorMode) = ResolveFloorLevels(pipeList, fixList, detectedFloorCount);
+            double PZ1(PipeEntity p) => effZ.TryGetValue(p, out var v) ? v.z1 : p.StartPoint.Z;
+            double PZ2(PipeEntity p) => effZ.TryGetValue(p, out var v) ? v.z2 : p.EndPoint.Z;
+            double FZ(SanitaryFixtureEntity f) => effFZ.TryGetValue(f, out var v) ? v : f.Position.Z;
+
+            // ── Kat seviyeleri (efektif Z kümeleme, 500 mm tolerans) ──────────
+            var allZ = pipeList.SelectMany(p => new[] { PZ1(p), PZ2(p) })
+                               .Concat(fixList.Select(FZ))
                                .OrderBy(z => z).ToList();
             var floorZs = new List<double>();
             foreach (double z in allZ)
@@ -1015,6 +1030,28 @@ namespace Afney.Cad.Presentation
 
             double zMin = floorZs.First(), zMax = floorZs.Last();
             double zRange = Math.Max(zMax - zMin, 3000);
+
+            // ── Kat bazlı özet (boru sayısı + DN dağılımı) ────────────────────
+            var floorSummaries = new List<(string Label, int Count, string DnBreak, double TotalM)>();
+            for (int fi = 0; fi < floorZs.Count; fi++)
+            {
+                double fz = floorZs[fi];
+                double lo = fi == 0 ? double.MinValue : (floorZs[fi - 1] + fz) / 2.0;
+                double hi = fi == floorZs.Count - 1 ? double.MaxValue : (fz + floorZs[fi + 1]) / 2.0;
+                var onFloor = pipeList.Where(p =>
+                {
+                    double pz = (PZ1(p) + PZ2(p)) / 2.0;
+                    return pz >= lo && pz < hi;
+                }).ToList();
+                if (onFloor.Count == 0) continue;
+                string dnBreak = string.Join(" · ", onFloor
+                    .GroupBy(p => Math.Round(p.InnerDiameter))
+                    .OrderBy(g => g.Key)
+                    .Select(g => $"DN{g.Key:F0}×{g.Count()}"));
+                double totalM = onFloor.Sum(p => p.GetLength()) / 1000.0;
+                string label = fi == 0 ? "Zemin" : $"{fi}. Kat";
+                floorSummaries.Add((label, onFloor.Count, dnBreak, totalM));
+            }
 
             // ── SVG boyutları ─────────────────────────────────────────────────
             const int svgW = 1100;
@@ -1039,7 +1076,7 @@ namespace Afney.Cad.Presentation
             sb.AppendLine("</style></head><body>");
             sb.AppendLine("<h2>Tesisat Kolon Şeması</h2>");
             sb.AppendLine($"<p class='info'>{pipeList.Count} boru · {fixList.Count} armatür · " +
-                          $"{activeSystems.Count} sistem · TS 1258 / AfneyCAD v4.0</p>");
+                          $"{activeSystems.Count} sistem · {floorZs.Count} kat · Kat modeli: {floorMode} · TS 1258 / AfneyCAD v4.0</p>");
             sb.AppendLine($"<svg width='{svgW}' height='{svgH}' xmlns='http://www.w3.org/2000/svg'>");
 
             // ── Kat çizgileri ─────────────────────────────────────────────────
@@ -1075,8 +1112,8 @@ namespace Afney.Cad.Presentation
                 // Ana kolon (riser) — tüm Z aralığında kalın dikey çizgi
                 if (sysPipes.Any())
                 {
-                    double riserZ1 = sysPipes.Min(p => Math.Min(p.StartPoint.Z, p.EndPoint.Z));
-                    double riserZ2 = sysPipes.Max(p => Math.Max(p.StartPoint.Z, p.EndPoint.Z));
+                    double riserZ1 = sysPipes.Min(p => Math.Min(PZ1(p), PZ2(p)));
+                    double riserZ2 = sysPipes.Max(p => Math.Max(PZ1(p), PZ2(p)));
                     double ry1 = zToY(riserZ2), ry2 = zToY(riserZ1);
                     sb.AppendLine($"<line x1='{cx:F0}' y1='{ry1:F0}' x2='{cx:F0}' y2='{ry2:F0}' " +
                                   $"stroke='{meta.Color}' stroke-width='3' stroke-linecap='round' opacity='0.9'/>");
@@ -1085,7 +1122,7 @@ namespace Afney.Cad.Presentation
                 // Her boru — dal olarak çiz
                 foreach (var pipe in sysPipes)
                 {
-                    double z1 = pipe.StartPoint.Z, z2 = pipe.EndPoint.Z;
+                    double z1 = PZ1(pipe), z2 = PZ2(pipe);
                     double dz = Math.Abs(z2 - z1);
                     double dxy = Math.Sqrt(Math.Pow(pipe.EndPoint.X - pipe.StartPoint.X, 2) +
                                            Math.Pow(pipe.EndPoint.Y - pipe.StartPoint.Y, 2));
@@ -1132,7 +1169,7 @@ namespace Afney.Cad.Presentation
             // ── Armatürler ────────────────────────────────────────────────────
             foreach (var fix in fixList)
             {
-                double fz = fix.Position.Z;
+                double fz = FZ(fix);
                 double fy = zToY(fz);
                 string fcol = $"#{fix.Color & 0xFFFFFF:X6}";
 
@@ -1175,9 +1212,116 @@ namespace Afney.Cad.Presentation
             }
 
             sb.AppendLine("</svg>");
-            sb.AppendLine($"<p class='info' style='margin-top:6px'>AfneyCAD v4.0 · Kolon Şeması · {DateTime.Now:yyyy-MM-dd HH:mm}</p>");
+
+            // ── Kat bazlı özet tablosu ────────────────────────────────────────
+            if (floorSummaries.Count > 0)
+            {
+                sb.AppendLine("<h2 style='margin-top:14px'>Kat Bazlı Özet</h2>");
+                sb.AppendLine("<table style='border-collapse:collapse;font-size:12px;color:#c8d4e0;margin-top:4px'>");
+                sb.AppendLine("<tr style='background:#182030;color:#7FC3FF'>" +
+                              "<th style='border:1px solid #2a3a4a;padding:4px 10px;text-align:left'>Kat</th>" +
+                              "<th style='border:1px solid #2a3a4a;padding:4px 10px'>Boru Sayısı</th>" +
+                              "<th style='border:1px solid #2a3a4a;padding:4px 10px'>Toplam Uzunluk</th>" +
+                              "<th style='border:1px solid #2a3a4a;padding:4px 10px;text-align:left'>DN Dağılımı</th></tr>");
+                foreach (var fs in Enumerable.Reverse(floorSummaries).ToList())
+                {
+                    sb.AppendLine("<tr>" +
+                        $"<td style='border:1px solid #2a3a4a;padding:4px 10px'>{fs.Label}</td>" +
+                        $"<td style='border:1px solid #2a3a4a;padding:4px 10px;text-align:center'>{fs.Count}</td>" +
+                        $"<td style='border:1px solid #2a3a4a;padding:4px 10px;text-align:right'>{fs.TotalM:F1} m</td>" +
+                        $"<td style='border:1px solid #2a3a4a;padding:4px 10px'>{fs.DnBreak}</td></tr>");
+                }
+                sb.AppendLine("</table>");
+            }
+
+            sb.AppendLine($"<p class='info' style='margin-top:6px'>AfneyCAD v4.0 · Kolon Şeması · Kat modeli: {floorMode} · {DateTime.Now:yyyy-MM-dd HH:mm}</p>");
             sb.AppendLine("</body></html>");
             return sb.ToString();
+        }
+
+        // ── Efektif kat Z çözücü ─────────────────────────────────────────────────
+        // NE: Riser diyagramı için her boru/armatüre bir "kat Z" değeri atar.
+        // NEDEN: 2D planlarda (tüm entity Z=0) borular tek yatay çizgiye çökerek
+        //        anlamsız bir şema oluşturur. Sırayla üç strateji uygulanır:
+        //        (1) Gerçek Z farkı ≥ 500 mm  → koordinatları aynen kullan (çok katlı)
+        //        (2) Layer'da kat bilgisi var → "KAT_1", "GROUND" vb. → kat×3000 mm
+        //        (3) Bilgi yok               → sistem içi index'e göre 3000 mm artan sanal Z
+        private static (Dictionary<PipeEntity, (double z1, double z2)> pipeZ,
+                        Dictionary<SanitaryFixtureEntity, double> fixZ,
+                        string mode)
+            ResolveFloorLevels(List<PipeEntity> pipes, List<SanitaryFixtureEntity> fixtures, int detectedFloorCount)
+        {
+            const double FloorHeight = 3000.0; // mm — tipik kat yüksekliği
+            var pipeZ = new Dictionary<PipeEntity, (double, double)>();
+            var fixZ  = new Dictionary<SanitaryFixtureEntity, double>();
+
+            var zVals = pipes.SelectMany(p => new[] { p.StartPoint.Z, p.EndPoint.Z })
+                             .Concat(fixtures.Select(f => f.Position.Z)).ToList();
+            double span = zVals.Count > 0 ? zVals.Max() - zVals.Min() : 0;
+
+            // (1) Çok katlı — gerçek Z değerleri anlamlı
+            if (span >= 500.0)
+            {
+                foreach (var p in pipes)    pipeZ[p] = (p.StartPoint.Z, p.EndPoint.Z);
+                foreach (var f in fixtures) fixZ[f]  = f.Position.Z;
+                int floors = Math.Max(detectedFloorCount, 1);
+                return (pipeZ, fixZ, $"Gerçek Z (çok katlı · {floors} kat)");
+            }
+
+            // (2) Düz plan — layer bazlı kat tespiti
+            var layerFloors = pipes.ToDictionary(p => p, p => ParseFloorFromLayer(p.Layer));
+            if (layerFloors.Values.Any(v => v.HasValue))
+            {
+                foreach (var p in pipes)
+                {
+                    double z = (layerFloors[p] ?? 0) * FloorHeight;
+                    pipeZ[p] = (z, z);
+                }
+                foreach (var f in fixtures) fixZ[f] = NearestPipeZ(f, pipes, pipeZ);
+                return (pipeZ, fixZ, "Layer bazlı kat tespiti");
+            }
+
+            // (3) Katman bilgisi yok — sistem içi sıraya göre sanal kat
+            foreach (var grp in pipes.GroupBy(p => p.SystemType))
+            {
+                int idx = 0;
+                foreach (var p in grp.OrderBy(p => p.StartPoint.X).ThenBy(p => p.StartPoint.Y))
+                {
+                    double z = idx * FloorHeight;
+                    pipeZ[p] = (z, z);
+                    idx++;
+                }
+            }
+            foreach (var f in fixtures) fixZ[f] = NearestPipeZ(f, pipes, pipeZ);
+            return (pipeZ, fixZ, "Sanal kat (index bazlı)");
+        }
+
+        // Layer adından kat numarası çıkar: "KAT_2", "FLOOR 3", "GROUND", "ZEMIN", "BODRUM".
+        private static int? ParseFloorFromLayer(string? layer)
+        {
+            if (string.IsNullOrWhiteSpace(layer)) return null;
+            string u = layer.ToUpperInvariant();
+            if (u.Contains("BODRUM") || u.Contains("BASEMENT")) return -1;
+            if (u.Contains("ZEMIN") || u.Contains("ZEMİN") || u.Contains("GROUND") || u.Contains("GRND")) return 0;
+            var m = System.Text.RegularExpressions.Regex.Match(u, @"(?:KAT|FLOOR|LEVEL|STOREY|K)[_\-\s]?(\d+)");
+            if (m.Success && int.TryParse(m.Groups[1].Value, out int n)) return n;
+            return null;
+        }
+
+        // Armatürü, XY düzleminde en yakın borunun kat Z'sine yasla.
+        private static double NearestPipeZ(SanitaryFixtureEntity f, List<PipeEntity> pipes,
+                                           Dictionary<PipeEntity, (double z1, double z2)> pipeZ)
+        {
+            if (pipes.Count == 0) return 0;
+            PipeEntity best = pipes[0];
+            double bestD = double.MaxValue;
+            foreach (var p in pipes)
+            {
+                double d = Math.Pow(p.StartPoint.X - f.Position.X, 2) +
+                           Math.Pow(p.StartPoint.Y - f.Position.Y, 2);
+                if (d < bestD) { bestD = d; best = p; }
+            }
+            return pipeZ.TryGetValue(best, out var v) ? (v.z1 + v.z2) / 2.0 : 0;
         }
 
         private void OnAutoAnnotate(object sender, RoutedEventArgs e)
