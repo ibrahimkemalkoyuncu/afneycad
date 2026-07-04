@@ -41,14 +41,45 @@ public partial class WasteWaterCalcSheetDialog : Window
     private readonly ObservableCollection<WasteWaterCalcSheetService.CalcRow> _calcRows = [];
     private readonly ObservableCollection<BomRow> _bomRows = [];
 
+    // Poz katalog servisi — proje klasöründe override JSON varsa onunla yüklenir.
+    private readonly PozKatalogService _pozSvc = new();
+    private bool _usingOverrideCatalog;
+
     // ── Constructor ───────────────────────────────────────────────────────────
-    public WasteWaterCalcSheetDialog(CadDatabase database)
+    // projectDir: Aktif proje klasörü (opsiyonel). Verilirse ve içinde
+    //             "poz_katalog_override.json" bulunursa, birim fiyatlar bu
+    //             kullanıcı kataloğundan (built-in üzerine merge) yüklenir.
+    public WasteWaterCalcSheetDialog(CadDatabase database, string? projectDir = null)
     {
         InitializeComponent();
         _database = database;
         CalcGrid.ItemsSource = _calcRows;
         BomGrid.ItemsSource  = _bomRows;
         LoadReferenceTable();
+        TryLoadOverrideCatalog(projectDir);
+    }
+
+    // Proje klasöründe override poz kataloğu varsa yükle ve info etiketini güncelle.
+    private void TryLoadOverrideCatalog(string? projectDir)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(projectDir) && Directory.Exists(projectDir))
+            {
+                string overridePath = Path.Combine(projectDir, "poz_katalog_override.json");
+                if (File.Exists(overridePath))
+                {
+                    _pozSvc.LoadFromJson(overridePath);
+                    _usingOverrideCatalog = true;
+                }
+            }
+        }
+        catch { /* Bozuk/erişilemez JSON — dahili katalog kullanılır */ }
+
+        if (TxtCatalogInfo != null)
+            TxtCatalogInfo.Text = _usingOverrideCatalog
+                ? "Katalog: override JSON kullanılıyor (poz_katalog_override.json)"
+                : "Katalog: dahili 2024 listesi";
     }
 
     // ── Reference table (TS EN 12056-2) ──────────────────────────────────────
@@ -234,7 +265,7 @@ public partial class WasteWaterCalcSheetDialog : Window
     private void RefreshBOM_Click(object sender, RoutedEventArgs e)
     {
         _bomRows.Clear();
-        var pozSvc = new PozKatalogService();
+        var pozSvc = _pozSvc;
 
         // ── Borular ─────────────────────────────────────────────────────────
         var pipeGroups = _database.GetAllEntities()

@@ -1450,7 +1450,16 @@ namespace Afney.Cad.Presentation
 
         private void OnWasteWaterCalcSheet(object sender, RoutedEventArgs e)
         {
-            try { new WasteWaterCalcSheetDialog(_database) { Owner = this }.ShowDialog(); }
+            try
+            {
+                // Aktif proje kaydedilmişse klasörünü çıkar — override poz kataloğu için.
+                string? projectDir = null;
+                string? filePath = _activeContext?.FilePath;
+                if (!string.IsNullOrWhiteSpace(filePath))
+                    projectDir = System.IO.Path.GetDirectoryName(filePath);
+
+                new WasteWaterCalcSheetDialog(_database, projectDir) { Owner = this }.ShowDialog();
+            }
             catch (Exception ex) { MessageBox.Show($"Hesap Föyü hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
