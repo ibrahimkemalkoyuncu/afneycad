@@ -1910,6 +1910,20 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        // TS 825 — Binalarda Isı Yalıtım Kuralları: U değeri, yalıtım kalınlığı,
+        // ısı kaybı ve yıllık enerji hesabı.
+        private void OnTS825Insulation(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new TS825InsulationDialog(_database) { Owner = this };
+                dlg.DrawingChanged += (_, _) => Viewport.InvalidateViewport();
+                dlg.ShowDialog();
+                Viewport.InvalidateViewport();
+            }
+            catch (Exception ex) { MessageBox.Show($"TS 825 hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnHvacDesign(object sender, RoutedEventArgs e)
         {
             try { new HvacDesignDialog() { Owner = this }.ShowDialog(); }

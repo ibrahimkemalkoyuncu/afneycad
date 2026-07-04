@@ -748,6 +748,10 @@
                                                 <Button Content="🧯 Fosseptik"       Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}" Margin="2,2,0,0"/>
                                                 <Button Content="🌧 Yağmur Suyu"     Click="OnRainWaterCalc"    Style="{StaticResource RbnBtn}" Margin="2,2,0,0"/>
                                             </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="🧱 TS 825 Isı Yalıtım" Click="OnTS825Insulation" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"
+                                                        ToolTip="TS 825 — U değeri · yalıtım kalınlığı · ısı kaybı · yıllık enerji"/>
+                                            </StackPanel>
                                             <TextBlock Text="Sistem Tasarımı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
