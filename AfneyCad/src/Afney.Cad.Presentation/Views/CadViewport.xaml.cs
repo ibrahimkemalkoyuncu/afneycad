@@ -1496,12 +1496,17 @@ namespace Afney.Cad.Presentation.Views;
     */
     private void OnContextMenu_Delete(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager != null && _selectionManager.SelectedCount > 0)
-        {
-            _selectionManager.DeleteSelected();
-            InvalidateViewport();
-            OnFeedback?.Invoke("Seçili nesneler silindi.");
-        }
+        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
+
+        var toDelete = _selectionManager.GetSelectedEntities().ToList();
+        _selectionManager.ClearSelection();
+
+        foreach (var ent in toDelete)
+            _database.TransactionManager.Submit(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
+
+        SelectionChanged?.Invoke(System.Linq.Enumerable.Empty<CadEntity>());
+        InvalidateViewport();
+        OnFeedback?.Invoke($"{toDelete.Count} obje silindi. (Ctrl+Z ile geri alınabilir)");
     }
 
     /*
