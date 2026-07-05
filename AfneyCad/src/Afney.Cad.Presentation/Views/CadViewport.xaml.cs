@@ -1028,7 +1028,7 @@ namespace Afney.Cad.Presentation.Views;
             }
 
             if (_snapEngine != null)
-                _activeSnap = _snapEngine.FindSnapPoint(worldPos, 15.0 / _zoom, _activeCommand?.ActivePoint);
+                _activeSnap = _snapEngine.FindSnapPoint(worldPos, _zoom, _activeCommand?.ActivePoint);
 
             if (_activeSnap.HasValue)
             {
