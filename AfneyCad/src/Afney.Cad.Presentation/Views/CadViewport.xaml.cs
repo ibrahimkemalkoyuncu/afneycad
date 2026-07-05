@@ -196,6 +196,104 @@ namespace Afney.Cad.Presentation.Views;
            NEDEN: Şu an hangi komutun (Line, Pipe vb.) çalıştığını öğrenmek için.
         */
         public ICadCommand? GetActiveCommand() => _activeCommand;
+        public bool HasActiveCommand => _activeCommand != null;
+
+        /*
+           NE: Koordinat/Mesafe Girişini Kabul Et (Direct Distance Entry)
+           NEDEN: AutoCAD gibi komut aktifken klavyeyle mesafe veya koordinat girilmesine izin vermek için.
+           FORMAT:
+             "10000"        → fare yönünde 10000 birim (ORTHO aktifse 90° snap)
+             "1000,2000"    → mutlak X,Y koordinatı
+             "@1000,2000"   → son noktaya göre rölatif X,Y
+             "@1000<45"     → son noktadan 45 derecede 1000 birim (polar)
+        */
+        public bool AcceptCoordinateInput(string raw)
+        {
+            if (_activeCommand == null) return false;
+            raw = raw.Trim();
+            if (string.IsNullOrEmpty(raw)) return false;
+
+            Vector3D? targetPoint = null;
+            var lastPt = _activeCommand.ActivePoint;
+
+            try
+            {
+                // FORMAT: @dist<angle  (polar)
+                if (raw.StartsWith("@") && raw.Contains('<'))
+                {
+                    var parts = raw.Substring(1).Split('<');
+                    if (parts.Length == 2 &&
+                        double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dist) &&
+                        double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double angleDeg))
+                    {
+                        var rad = angleDeg * Math.PI / 180.0;
+                        var from = lastPt ?? _lastMouseWorldPos ?? new Vector3D(0, 0, 0);
+                        targetPoint = new Vector3D(from.X + dist * Math.Cos(rad), from.Y + dist * Math.Sin(rad), 0);
+                    }
+                }
+                // FORMAT: @dx,dy  (rölatif)
+                else if (raw.StartsWith("@") && raw.Contains(','))
+                {
+                    var parts = raw.Substring(1).Split(',');
+                    if (parts.Length >= 2 &&
+                        double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dx) &&
+                        double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dy))
+                    {
+                        var from = lastPt ?? _lastMouseWorldPos ?? new Vector3D(0, 0, 0);
+                        targetPoint = new Vector3D(from.X + dx, from.Y + dy, 0);
+                    }
+                }
+                // FORMAT: x,y  (mutlak koordinat)
+                else if (raw.Contains(','))
+                {
+                    var parts = raw.Split(',');
+                    if (parts.Length >= 2 &&
+                        double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ax) &&
+                        double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ay))
+                    {
+                        targetPoint = new Vector3D(ax, ay, 0);
+                    }
+                }
+                // FORMAT: mesafe  (Direct Distance Entry — fare yönünde)
+                else if (double.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double distance))
+                {
+                    var from = lastPt ?? _lastMouseWorldPos;
+                    var mouse = _lastMouseWorldPos;
+                    if (from.HasValue && mouse.HasValue)
+                    {
+                        double dx = mouse.Value.X - from.Value.X;
+                        double dy = mouse.Value.Y - from.Value.Y;
+
+                        // ORTHO aktifse 90° açı snap
+                        if (IsOrthoEnabled)
+                        {
+                            if (Math.Abs(dx) >= Math.Abs(dy))
+                                targetPoint = new Vector3D(from.Value.X + (dx >= 0 ? distance : -distance), from.Value.Y, 0);
+                            else
+                                targetPoint = new Vector3D(from.Value.X, from.Value.Y + (dy >= 0 ? distance : -distance), 0);
+                        }
+                        else
+                        {
+                            double len = Math.Sqrt(dx * dx + dy * dy);
+                            if (len > 0)
+                                targetPoint = new Vector3D(from.Value.X + (dx / len) * distance, from.Value.Y + (dy / len) * distance, 0);
+                        }
+                    }
+                    else if (from.HasValue)
+                    {
+                        // Mouse pozisyonu yok — sağa doğru varsay
+                        targetPoint = new Vector3D(from.Value.X + distance, from.Value.Y, 0);
+                    }
+                }
+            }
+            catch { return false; }
+
+            if (targetPoint == null) return false;
+
+            _activeCommand.OnPointerPressed(targetPoint.Value);
+            InvalidateViewport();
+            return true;
+        }
 
         /*
            NE: Seçili Nesneleri Al (GetSelectedEntities)

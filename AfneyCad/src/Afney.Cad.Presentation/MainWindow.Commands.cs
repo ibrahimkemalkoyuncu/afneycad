@@ -1042,8 +1042,27 @@ namespace Afney.Cad.Presentation
         {
             if (e.Key == Key.Enter)
             {
-                string cmdText = CommandInput.Text.Trim().ToLower();
+                string rawText = CommandInput.Text.Trim();
+                string cmdText = rawText.ToLower();
                 CommandInput.Clear();
+
+                // Aktif komut varsa: koordinat/mesafe girişi olarak dene
+                if (Viewport.HasActiveCommand && !string.IsNullOrEmpty(rawText))
+                {
+                    // Boş Enter → komuta Enter ilet (polyline/line bitir)
+                    if (string.IsNullOrEmpty(rawText))
+                    {
+                        Viewport.GetActiveCommand()?.OnKeyDown(Afney.Cad.Commands.Abstractions.InputKey.Enter);
+                        return;
+                    }
+
+                    if (Viewport.AcceptCoordinateInput(rawText))
+                    {
+                        StatusText.Text = $"→ {rawText}";
+                        e.Handled = true;
+                        return;
+                    }
+                }
 
                 switch (cmdText)
                 {
