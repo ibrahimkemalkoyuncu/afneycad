@@ -28,6 +28,9 @@ public class TransactionManager
     public bool CanUndo => _undoStack.Count > 0;
     public bool CanRedo => _redoStack.Count > 0;
 
+    public string? PeekUndoName() => _undoStack.Count > 0 ? _undoStack.Peek().Name : null;
+    public string? PeekRedoName() => _redoStack.Count > 0 ? _redoStack.Peek().Name : null;
+
     /*
        NE: İşlemi Gönder (Submit)
        NEDEN: Yeni bir komutu (Ekle, Sil, Taşı vb.) yürütmek, redo geçmişini temizlemek ve işlemi geri alınabilirler listesine dahil etmek için.

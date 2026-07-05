@@ -108,6 +108,22 @@ namespace Afney.Cad.Presentation
             var viewport = new Afney.Cad.Presentation.Views.CadViewport();
             viewport.Initialize(ctx.Database, ctx.SnapEngine, ctx.SelectionManager);
             viewport.OnFeedback += (msg) => StatusText.Text = msg;
+            viewport.OnUndoRequested += () =>
+            {
+                if (!ctx.History.CanUndo) return;
+                string? opName = ctx.History.TransactionManager.PeekUndoName();
+                ctx.History.Undo();
+                viewport.InvalidateViewport();
+                StatusText.Text = $"Geri alındı: {opName ?? "işlem"}";
+            };
+            viewport.OnRedoRequested += () =>
+            {
+                if (!ctx.History.CanRedo) return;
+                string? opName = ctx.History.TransactionManager.PeekRedoName();
+                ctx.History.Redo();
+                viewport.InvalidateViewport();
+                StatusText.Text = $"Yinelendi: {opName ?? "işlem"}";
+            };
             viewport.SelectionChanged += (items) =>
             {
                 RightPanel.UpdateEntityInfo(items.FirstOrDefault());
@@ -202,20 +218,35 @@ namespace Afney.Cad.Presentation
 
             if (isCtrlDown && e.Key == System.Windows.Input.Key.Z)
             {
-                _history.Undo();
-                _activeContext.Viewport.InvalidateViewport();
+                if (_history.CanUndo)
+                {
+                    string? opName = _history.TransactionManager.PeekUndoName();
+                    _history.Undo();
+                    _activeContext.Viewport.InvalidateViewport();
+                    StatusText.Text = $"Geri alındı: {opName ?? "işlem"}";
+                }
                 e.Handled = true;
             }
             else if (isCtrlDown && e.Key == System.Windows.Input.Key.Y)
             {
-                _history.Redo();
-                _activeContext.Viewport.InvalidateViewport();
+                if (_history.CanRedo)
+                {
+                    string? opName = _history.TransactionManager.PeekRedoName();
+                    _history.Redo();
+                    _activeContext.Viewport.InvalidateViewport();
+                    StatusText.Text = $"Yinelendi: {opName ?? "işlem"}";
+                }
                 e.Handled = true;
             }
             else if (isCtrlDown && System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) && e.Key == System.Windows.Input.Key.Z)
             {
-                _history.Redo();
-                _activeContext.Viewport.InvalidateViewport();
+                if (_history.CanRedo)
+                {
+                    string? opName = _history.TransactionManager.PeekRedoName();
+                    _history.Redo();
+                    _activeContext.Viewport.InvalidateViewport();
+                    StatusText.Text = $"Yinelendi: {opName ?? "işlem"}";
+                }
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.F8)

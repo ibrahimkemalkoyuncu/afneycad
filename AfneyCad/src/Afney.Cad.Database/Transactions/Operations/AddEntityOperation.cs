@@ -22,7 +22,7 @@ public class AddEntityOperation : IOperation
     private readonly CadDatabase _database;
     private readonly CadEntity _entity;
 
-    public string Name => "Add Entity";
+    public string Name => "Nesne ekleme";
 
     public AddEntityOperation(CadDatabase database, CadEntity entity)
     {

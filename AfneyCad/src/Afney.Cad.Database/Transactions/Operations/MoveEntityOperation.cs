@@ -17,7 +17,7 @@ public class MoveEntityOperation : IOperation
     private readonly Vector3D _delta;
     private readonly CadDatabase? _database; // YENİ: Topoloji güncellemesi için
 
-    public string Name => "Move Entity";
+    public string Name => "Nesne taşıma";
 
     public MoveEntityOperation(CadEntity entity, Vector3D delta, CadDatabase? database = null)
     {

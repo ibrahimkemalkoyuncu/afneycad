@@ -90,6 +90,8 @@ namespace Afney.Cad.Presentation.Views;
         public event Action<System.Collections.Generic.IEnumerable<CadEntity>>? SelectionChanged;
         public event Action<bool>? OrthoToggled;
         public event Action<CadEntity>? EntityDoubleClicked;
+        public event Action? OnUndoRequested;
+        public event Action? OnRedoRequested;
 
         public bool IsOrthoEnabled { get; private set; } = false;
 
@@ -1290,14 +1292,14 @@ namespace Afney.Cad.Presentation.Views;
                     var toDelete = _selectionManager.GetSelectedEntities().ToList();
                     _selectionManager.ClearSelection();
 
+                    var composite = new Afney.Cad.Database.Transactions.CompositeOperation($"{toDelete.Count} nesne silindi");
                     foreach (var ent in toDelete)
-                    {
-                        _database.TransactionManager.Submit(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
-                    }
+                        composite.Add(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
+                    _database.TransactionManager.Submit(composite);
 
                     SelectionChanged?.Invoke(System.Linq.Enumerable.Empty<CadEntity>());
                     InvalidateViewport();
-                    OnFeedback?.Invoke($"{toDelete.Count} obje silindi.");
+                    OnFeedback?.Invoke($"{toDelete.Count} obje silindi. (Ctrl+Z ile geri alınabilir)");
                 }
             }
             else if (e.Key == Key.F8)
@@ -1463,18 +1465,12 @@ namespace Afney.Cad.Presentation.Views;
     */
     private void OnContextMenu_Undo(object sender, RoutedEventArgs e)
     {
-        // MainWindow'dan transaction manager'a erişmek gerekli
-        // Şimdilik feedback ver
-        OnFeedback?.Invoke("Undo - Henüz implementasyon yok");
+        OnUndoRequested?.Invoke();
     }
 
-    /*
-       NE: Sağ Tıklama Menüsü - İleri Al (Redo)
-       NEDEN: Geri alınan işlemi tekrar uygulamak için (Placeholder).
-    */
     private void OnContextMenu_Redo(object sender, RoutedEventArgs e)
     {
-        OnFeedback?.Invoke("Redo - Henüz implementasyon yok");
+        OnRedoRequested?.Invoke();
     }
 
     /*
@@ -1501,8 +1497,10 @@ namespace Afney.Cad.Presentation.Views;
         var toDelete = _selectionManager.GetSelectedEntities().ToList();
         _selectionManager.ClearSelection();
 
+        var composite = new Afney.Cad.Database.Transactions.CompositeOperation($"{toDelete.Count} nesne silindi");
         foreach (var ent in toDelete)
-            _database.TransactionManager.Submit(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
+            composite.Add(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
+        _database.TransactionManager.Submit(composite);
 
         SelectionChanged?.Invoke(System.Linq.Enumerable.Empty<CadEntity>());
         InvalidateViewport();
@@ -1524,7 +1522,7 @@ namespace Afney.Cad.Presentation.Views;
         }
 
         bool hasSelection = _selectionManager != null && _selectionManager.SelectedCount > 0;
-        
+
         // 2. Statik menü elemanlarını etkinleştir/devre dışı bırak
         if (this.FindName("CtxMenu_ClearSelection") is MenuItem clearMenu) clearMenu.IsEnabled = hasSelection;
         if (this.FindName("CtxMenu_Properties") is MenuItem propsMenu) propsMenu.IsEnabled = hasSelection;
@@ -1536,6 +1534,22 @@ namespace Afney.Cad.Presentation.Views;
         if (this.FindName("CtxMenu_Stretch") is MenuItem stretchMenu) stretchMenu.IsEnabled = hasSelection;
         if (this.FindName("CtxMenu_GripPoint") is MenuItem gripMenu) gripMenu.IsEnabled = hasSelection;
         if (this.FindName("CtxMenu_Copy") is MenuItem copyMenu) copyMenu.IsEnabled = hasSelection;
+
+        // Geri Al / Yinele durumu + dinamik başlık
+        bool canUndo = _database?.TransactionManager.CanUndo == true;
+        bool canRedo = _database?.TransactionManager.CanRedo == true;
+        if (this.FindName("CtxMenu_Undo") is MenuItem undoMenu)
+        {
+            undoMenu.IsEnabled = canUndo;
+            string? undoName = _database?.TransactionManager.PeekUndoName();
+            undoMenu.Header = undoName != null ? $"Geri Al: {undoName}" : "Geri Al";
+        }
+        if (this.FindName("CtxMenu_Redo") is MenuItem redoMenu)
+        {
+            redoMenu.IsEnabled = canRedo;
+            string? redoName = _database?.TransactionManager.PeekRedoName();
+            redoMenu.Header = redoName != null ? $"Yinele: {redoName}" : "Yinele";
+        }
 
         var ctx = CadCanvas.ContextMenu;
         if (ctx != null)

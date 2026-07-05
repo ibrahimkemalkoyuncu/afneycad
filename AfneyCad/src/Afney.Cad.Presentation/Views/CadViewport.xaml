@@ -53,6 +53,7 @@
                     <MenuItem x:Name="CtxMenu_GripPoint" Header="Tutma Noktası" Click="OnContextMenu_GripPoint"/>
                     <MenuItem x:Name="CtxMenu_Copy" Header="Kopyala" Click="OnContextMenu_Copy" InputGestureText="CO"/>
                     <MenuItem x:Name="CtxMenu_Undo" Header="Geri Al" Click="OnContextMenu_Undo" InputGestureText="Ctrl+Z"/>
+                    <MenuItem x:Name="CtxMenu_Redo" Header="Yinele" Click="OnContextMenu_Redo" InputGestureText="Ctrl+Y"/>
                     <Separator/>
                     <MenuItem x:Name="CtxMenu_Properties" Header="Özellikler..." Click="OnContextMenu_Properties"/>
                     <Separator/>

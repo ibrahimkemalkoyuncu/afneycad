@@ -27,7 +27,7 @@ public class ModifyEntityPropertyOperation : IOperation
 
     public ModifyEntityPropertyOperation(string propertyName, Action doAction, Action undoAction)
     {
-        _name = $"Modify Property: {propertyName}";
+        _name = $"Özellik değişikliği: {propertyName}";
         _doAction = doAction;
         _undoAction = undoAction;
     }

@@ -12,7 +12,7 @@ public class RemoveEntityOperation : IOperation
     private readonly CadDatabase _database;
     private readonly CadEntity _entity;
 
-    public string Name => "Remove Entity";
+    public string Name => "Nesne silme";
 
     public RemoveEntityOperation(CadDatabase database, CadEntity entity)
     {

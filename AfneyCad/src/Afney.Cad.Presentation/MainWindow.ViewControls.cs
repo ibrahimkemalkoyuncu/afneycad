@@ -128,8 +128,24 @@ namespace Afney.Cad.Presentation
 
         #endregion
 
-        private void OnUndo(object sender, RoutedEventArgs e) => _history.Undo();
-        private void OnRedo(object sender, RoutedEventArgs e) => _history.Redo();
+        private void OnUndo(object sender, RoutedEventArgs e)
+        {
+            if (!_history.CanUndo) return;
+            var opName = _history.TransactionManager.PeekUndoName();
+            _history.Undo();
+            _activeContext?.Viewport.InvalidateViewport();
+            StatusText.Text = $"Geri alındı: {opName ?? "işlem"}";
+        }
+
+        private void OnRedo(object sender, RoutedEventArgs e)
+        {
+            if (!_history.CanRedo) return;
+            var opName = _history.TransactionManager.PeekRedoName();
+            _history.Redo();
+            _activeContext?.Viewport.InvalidateViewport();
+            StatusText.Text = $"Yinelendi: {opName ?? "işlem"}";
+        }
+
         private void UpdateUndoLabels() { }
     }
 }

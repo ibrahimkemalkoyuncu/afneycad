@@ -19,7 +19,7 @@ public class TransformEntityOperation : IOperation
     private readonly CadDatabase? _database; // YENİ: Topoloji güncellemesi için
 
 
-    public string Name => "Transform Entity";
+    public string Name => "Nesne dönüşümü";
 
     public TransformEntityOperation(CadEntity entity, Matrix4x4 transform, Matrix4x4 inverseTransform, CadDatabase? database = null)
     {
