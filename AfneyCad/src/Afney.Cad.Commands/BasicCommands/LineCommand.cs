@@ -24,9 +24,7 @@ public class LineCommand : ICadCommand
     public string CommandName => "LINE";
     public Vector3D? ActivePoint => _startPoint;
     public event Action<string>? OnFeedback;
-#pragma warning disable CS0067
     public event Action? OnCompleted;
-#pragma warning restore CS0067
 
     public LineCommand(CadDatabase database, TransactionManager transactionManager)
     {
@@ -90,7 +88,16 @@ public class LineCommand : ICadCommand
         }
     }
 
-    public void OnKeyDown(InputKey key) { } // No special key handling for Line yet (auto finish on 2nd point)
+    public void OnKeyDown(InputKey key)
+    {
+        if (key == InputKey.Enter || key == InputKey.Space)
+        {
+            _ghostLine = null;
+            _startPoint = null;
+            OnFeedback?.Invoke("LINE: Tamamlandı.");
+            OnCompleted?.Invoke();
+        }
+    }
 
     /*
        NE: Hayalet Çizim (Draw)
