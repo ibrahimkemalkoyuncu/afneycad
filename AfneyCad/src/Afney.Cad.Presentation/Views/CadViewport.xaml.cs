@@ -1140,7 +1140,34 @@ namespace Afney.Cad.Presentation.Views;
 
             // Temel Özellikler
             contentPanel.Children.Add(new TextBlock { Text = $"Katman: {entity.Layer}", Foreground = System.Windows.Media.Brushes.LightGray });
-            
+
+            // Geometrik bilgiler (Line, Circle, Polyline)
+            if (entity is Afney.Cad.Domain.Entities.Basic.LineEntity line)
+            {
+                double lenMm = line.GetLength();
+                string lenStr = lenMm >= 1000
+                    ? $"{lenMm / 1000.0:F3} m  ({lenMm:F0} mm)"
+                    : $"{lenMm:F1} mm";
+                contentPanel.Children.Add(new TextBlock { Text = $"Uzunluk: {lenStr}", FontWeight = FontWeights.SemiBold, Foreground = System.Windows.Media.Brushes.White });
+                contentPanel.Children.Add(new TextBlock { Text = $"Başlangıç: ({line.StartPoint.X:F0}, {line.StartPoint.Y:F0})", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 10 });
+                contentPanel.Children.Add(new TextBlock { Text = $"Bitiş:      ({line.EndPoint.X:F0}, {line.EndPoint.Y:F0})", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 10 });
+            }
+            else if (entity is Afney.Cad.Domain.Entities.Basic.CircleEntity circle)
+            {
+                contentPanel.Children.Add(new TextBlock { Text = $"Yarıçap: {circle.Radius / 1000.0:F3} m  ({circle.Radius:F0} mm)", FontWeight = FontWeights.SemiBold, Foreground = System.Windows.Media.Brushes.White });
+                contentPanel.Children.Add(new TextBlock { Text = $"Çap: {circle.Radius * 2 / 1000.0:F3} m", Foreground = System.Windows.Media.Brushes.LightGray });
+                contentPanel.Children.Add(new TextBlock { Text = $"Çevre: {2 * Math.PI * circle.Radius / 1000.0:F3} m", Foreground = System.Windows.Media.Brushes.LightGray });
+            }
+            else if (entity is Afney.Cad.Domain.Entities.Basic.LwPolylineEntity poly)
+            {
+                double totalLen = 0;
+                var verts = poly.Vertices;
+                for (int i = 1; i < verts.Count; i++)
+                    totalLen += (verts[i] - verts[i-1]).Length();
+                contentPanel.Children.Add(new TextBlock { Text = $"Toplam uzunluk: {totalLen / 1000.0:F3} m", FontWeight = FontWeights.SemiBold, Foreground = System.Windows.Media.Brushes.White });
+                contentPanel.Children.Add(new TextBlock { Text = $"Köşe sayısı: {verts.Count}", Foreground = System.Windows.Media.Brushes.LightGray });
+            }
+
             // Mekanik Nesnelere (Domain/Mechanical) özel bilgiler
             if (entity is MechanicalEntity mech)
             {

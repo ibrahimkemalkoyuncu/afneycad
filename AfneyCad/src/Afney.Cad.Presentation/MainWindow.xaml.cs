@@ -198,6 +198,19 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        // Komut aktifken canvas'ta yazılan her karakter otomatik CommandInput'a yönlenir (AutoCAD davranışı)
+        private void Window_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            if (_activeContext?.Viewport?.HasActiveCommand != true) return;
+            if (CommandInput.IsFocused) return;
+            if (string.IsNullOrEmpty(e.Text)) return;
+
+            CommandInput.Text += e.Text;
+            CommandInput.Focus();
+            CommandInput.CaretIndex = CommandInput.Text.Length;
+            e.Handled = true;
+        }
+
         private void OnLayerVisibilityChanged(string layerName, bool isVisible)
         {
             if (_activeContext?.Viewport == null) return;
