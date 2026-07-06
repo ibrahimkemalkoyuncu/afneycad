@@ -27,8 +27,11 @@ public class WallChainBuilder
 {
     // ─── Sabitler ──────────────────────────────────────────────────────────────
 
-    /// Varsayılan gap toleransı (mm): İki ardışık endpoint bu mesafeden yakınsa birleştirilir.
-    public double GapTolerance { get; set; } = 200.0; // 200mm = 20cm
+    /// Varsayılan gap toleransı (mm): Kapı (~900mm) ve pencere (~2400mm) boşluklarını otomatik köprüler.
+    public double GapTolerance { get; set; } = 2500.0;
+
+    /// Kapı/pencere açıklık maksimum genişliği (mm): Bu mesafeye kadar otomatik kapanır.
+    private const double MaxOpeningBridge = 3000.0;
 
     // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -57,25 +60,26 @@ public class WallChainBuilder
 
         // 2. Closure kontrolü: ilk ve son nokta birleşiyor mu?
         double closureGap = chain[chain.Count - 1].DistanceTo(chain[0]);
-        // Gap noktaları kullanıldığında polygon kapanmayabilir — daha büyük closure toleransı
-        double effectiveTolerance = GapTolerance * 5.0; // 200mm * 5 = 1000mm max closure gap
-        Serilog.Log.Information("[WallChain] Zincir köşe sayısı: {Count}, Closure gap: {Gap:F1}mm (tolerans: {Tol:F1}mm)",
-            chain.Count, closureGap, effectiveTolerance);
+        Serilog.Log.Information("[WallChain] Zincir köşe sayısı: {Count}, Closure gap: {Gap:F1}mm (max açıklık: {Tol:F1}mm)",
+            chain.Count, closureGap, MaxOpeningBridge);
 
-        if (closureGap <= effectiveTolerance)
+        if (closureGap <= MaxOpeningBridge)
         {
-            // Son noktayı ilk noktaya snap'le (tam kapatma)
+            // Kapı/pencere boşluğu dahil otomatik kapat — son nokta ilk noktaya snap'lenir.
+            // Bu "açıklık çizgisi" zaten doğru alan hesabını sağlar (FINE MEP standardı).
             chain[chain.Count - 1] = chain[0];
-            // Kapalı polygon için son noktayı çıkar (çakışma)
             chain.RemoveAt(chain.Count - 1);
-            statusMessage = $"Mahal oluşturuldu: {chain.Count} köşe.";
+            string openingNote = closureGap > 10.0
+                ? $" (açıklık: {closureGap:F0}mm otomatik köprülendi)"
+                : string.Empty;
+            statusMessage = $"Mahal oluşturuldu: {chain.Count} köşe.{openingNote}";
             return chain;
         }
         else
         {
-            statusMessage = $"Duvar uçları kapanmıyor. Son boşluk: {closureGap:F0}mm (tolerans: {effectiveTolerance:F0}mm).\n" +
-                            $"İpucu: Kapatmak için boşlukları tıklayarak Gap noktası ekleyin.";
-            Serilog.Log.Warning("[WallChain] Closure başarısız: {Gap:F1}mm > {Tol:F1}mm", closureGap, effectiveTolerance);
+            statusMessage = $"Duvar zinciri kapanamadı. Son boşluk: {closureGap:F0}mm — " +
+                            $"Eksik duvar olabilir, lütfen kontrol edin.";
+            Serilog.Log.Warning("[WallChain] Closure başarısız: {Gap:F1}mm > {Tol:F1}mm", closureGap, MaxOpeningBridge);
             return null;
         }
     }

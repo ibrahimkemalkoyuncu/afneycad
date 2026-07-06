@@ -98,7 +98,7 @@ Seçili nesnenin özelliklerini ve sistem uyarılarını gösterir.
 **7. Durum Çubuğu — En altta**
 - Sol: Komut girişi kutusu
 - Orta: Durum metni (program o an ne yapmanızı beklediğini yazar — buraya sık sık bakın!)
-- Sağ: **ORTHO / OSNAP / POLAR** açma-kapama düğmeleri ve **Zoom** yüzdesi
+- Sağ: **ORTHO** (F8) / **OSNAP** (F3) / **POLAR** (F10) açma-kapama düğmeleri ve **Zoom** yüzdesi
 
 > 💡 **İpucu:** Bir şeyin nasıl yapılacağından emin değilseniz, ekranın alt-orta kısmındaki **durum metnini** okuyun. Program size sürekli "şimdi şunu tıklayın" der.
 
@@ -242,7 +242,7 @@ Boyut araçları **📐 Boyut** sekmesindedir.
 C: Alt sağdaki **ORTHO** düğmesini açın (veya **F8**'e basın). Ortho modu çizimi 90 derece açılara kilitler.
 
 **S: Nesnenin tam köşesine/uç noktasına yapışamıyorum.**
-C: Nesne yakalama (OSNAP) açık olmalı. Alt çubuktaki **OSNAP** göstergesine ve fareyle yaklaştığınızda beliren yakalama işaretlerine dikkat edin.
+C: Nesne yakalama (OSNAP) açık olmalı. **F3** tuşuna basın veya alt çubuktaki **OSNAP** düğmesine tıklayın — mavi renk yandığında aktiftir. Fareyle yaklaştığınızda beliren kare/üçgen işareti gördükten sonra tıklayın.
 
 **S: Yanlış çizdim, nasıl geri alırım?**
 C: **Ctrl+Z** (Geri Al). Tekrar getirmek için **Ctrl+Y** (İleri Al).
@@ -798,7 +798,9 @@ C: 2024 yaklaşık değerleridir. Kesin teklif için kendi güncel CSV'nizi yük
 | **Ctrl+V** | Yapıştır |
 | **Ctrl+L** | Katman yöneticisi |
 | **Ctrl+F** | Bul/ara |
+| **F3** | OSNAP (nesne yakalama) aç/kapat |
 | **F8** | Ortho modu aç/kapat |
+| **F10** | Polar takip aç/kapat |
 | **Esc** | Aktif komutu iptal et |
 | **Enter** | Komutu onayla/bitir |
 
@@ -869,10 +871,13 @@ Alt soldaki komut kutusuna yazıp **Enter**'a basın. En sık kullanılanlar:
 | `print` / `plot` | Yazdır |
 | `kabul` / `validate` | Tesisatı doğrula |
 
-### 10.3 OSNAP (Nesne Yakalama)
+### 10.3 OSNAP (Nesne Yakalama) — F3
 
 OSNAP, farenin mevcut nesnelerin özel noktalarına (uç, orta, merkez, kesişim) tam olarak yapışmasını sağlar. Doğru çizim için şarttır.
-- Alt çubuktaki **OSNAP** göstergesi yakalamanın durumunu gösterir.
+
+- **F3** tuşuyla veya alt çubuktaki **OSNAP** düğmesine tıklayarak açıp kapatabilirsiniz.
+- Aktifken OSNAP düğmesi **mavi** renkte yanar; pasifken gri kalır.
+- Durum çubuğunda "OSNAP: AÇIK" veya "OSNAP: KAPALI" mesajı görünür.
 - Fareyi bir çizginin ucuna yaklaştırdığınızda beliren küçük kare/işaret, oraya yapışacağınızı gösterir.
 
 > 💡 **İpucu:** Borular ve çizgiler tam köşeye oturmuyorsa, büyük olasılıkla yakalama işaretini görmeden tıklıyorsunuzdur. Tıklamadan önce yakalama işaretinin belirmesini bekleyin.
@@ -880,6 +885,13 @@ OSNAP, farenin mevcut nesnelerin özel noktalarına (uç, orta, merkez, kesişim
 ### 10.4 Ortho Modu (F8)
 
 Ortho açıkken çizim yalnızca yatay ve dikey (90°) yönlerde ilerler. Düz boru ve duvar çizerken açın, serbest/eğik çizim için kapatın.
+
+- **F8** tuşuyla veya alt çubuktaki **ORTHO** düğmesine tıklayarak açıp kapatabilirsiniz.
+- Aktifken ORTHO düğmesi **mavi** renkte yanar.
+
+### 10.4b Polar Takip Modu (F10)
+
+Polar takip, çizim yönünü belirli açılara (45°, 90° vb.) kilitler. **F10** tuşu veya alt çubuktaki **POLAR** düğmesiyle açılır/kapatılır.
 
 ### 10.5 Zoom ve Pan (Kaydırma)
 

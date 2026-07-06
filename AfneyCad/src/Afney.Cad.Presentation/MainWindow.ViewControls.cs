@@ -69,6 +69,22 @@ namespace Afney.Cad.Presentation
 
         #region -- OSNAP (YAKALAMA) KONTROLLERİ --
 
+        private void OnOsnapModeToggle(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext?.SnapEngine == null) return;
+            bool isOn = _activeContext.SnapEngine.IsOsnapEnabled = !_activeContext.SnapEngine.IsOsnapEnabled;
+            if (BtnOsnapMode != null) BtnOsnapMode.IsChecked = isOn;
+            StatusText.Text = isOn ? "OSNAP: AÇIK (F3)" : "OSNAP: KAPALI (F3)";
+            _activeContext.Viewport.InvalidateViewport();
+        }
+
+        private void OnPolarModeToggle(object sender, RoutedEventArgs e)
+        {
+            if (BtnPolarMode == null) return;
+            bool isOn = BtnPolarMode.IsChecked == true;
+            StatusText.Text = isOn ? "POLAR: AÇIK (F10)" : "POLAR: KAPALI (F10)";
+        }
+
         private void OnOsnapMasterToggle(object sender, RoutedEventArgs e)
         {
             if (_activeContext?.SnapEngine == null) return;

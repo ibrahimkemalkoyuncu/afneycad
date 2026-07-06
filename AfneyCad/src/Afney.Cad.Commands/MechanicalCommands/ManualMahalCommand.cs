@@ -53,7 +53,7 @@ public class ManualMahalCommand : ICadCommand
     public event Action? OnCompleted;
 
     // ─── Constructor ───────────────────────────────────────────────────────────
-    public ManualMahalCommand(CadDatabase database, Action<MahalEntity> onRoomCreated, double gapTolerance = 200.0)
+    public ManualMahalCommand(CadDatabase database, Action<MahalEntity> onRoomCreated, double gapTolerance = 2500.0)
     {
         _database = database;
         _onRoomCreated = onRoomCreated;
@@ -67,7 +67,7 @@ public class ManualMahalCommand : ICadCommand
         _selectedWalls.Clear();
         _freePoints.Clear();
         Serilog.Log.Information("[ManualMahal] Komut başlatıldı.");
-        OnFeedback?.Invoke("Duvarları tıklayın. Kapı/pencere boşluklarında boş alana tıklayın → [Enter/Sağ Tık] Mahal oluştur | [ESC] İptal");
+        OnFeedback?.Invoke("Oda duvarlarını tıklayın (kapı/pencere boşlukları otomatik köprülenir) → [Enter] Mahal oluştur | [ESC] İptal");
     }
 
     /*
@@ -148,10 +148,9 @@ public class ManualMahalCommand : ICadCommand
     */
     private void FinalizeRoom()
     {
-        int totalElements = _selectedWalls.Count + _freePoints.Count;
-        if (totalElements < 2)
+        if (_selectedWalls.Count < 2)
         {
-            OnFeedback?.Invoke("En az 2 duvar veya nokta seçilmeli. Devam edin.");
+            OnFeedback?.Invoke("En az 2 duvar seçilmeli. Devam edin.");
             return;
         }
 

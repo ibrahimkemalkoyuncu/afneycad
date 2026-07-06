@@ -262,9 +262,30 @@ namespace Afney.Cad.Presentation
                 }
                 e.Handled = true;
             }
+            else if (e.Key == System.Windows.Input.Key.F3)
+            {
+                if (_activeContext?.SnapEngine != null)
+                {
+                    bool isOn = _activeContext.SnapEngine.IsOsnapEnabled = !_activeContext.SnapEngine.IsOsnapEnabled;
+                    if (BtnOsnapMode != null) BtnOsnapMode.IsChecked = isOn;
+                    StatusText.Text = isOn ? "OSNAP: AÇIK (F3)" : "OSNAP: KAPALI (F3)";
+                    _activeContext.Viewport.InvalidateViewport();
+                }
+                e.Handled = true;
+            }
             else if (e.Key == System.Windows.Input.Key.F8)
             {
                 _activeContext.Viewport.ToggleOrtho();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.F10 || e.SystemKey == System.Windows.Input.Key.F10)
+            {
+                if (BtnPolarMode != null)
+                {
+                    BtnPolarMode.IsChecked = !(BtnPolarMode.IsChecked == true);
+                    bool isOn = BtnPolarMode.IsChecked == true;
+                    StatusText.Text = isOn ? "POLAR: AÇIK (F10)" : "POLAR: KAPALI (F10)";
+                }
                 e.Handled = true;
             }
             else if (isCtrlDown && e.Key == System.Windows.Input.Key.S)
