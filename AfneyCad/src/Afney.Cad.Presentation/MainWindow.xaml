@@ -468,7 +468,7 @@
                                                                         </ListBox.ItemContainerStyle>
                                                                         <ListBox.ItemTemplate>
                                                                             <DataTemplate>
-                                                                                <Grid Margin="2,1" Height="28">
+                                                                                <Grid Margin="2,0" Height="24">
                                                                                     <Grid.ColumnDefinitions>
                                                                                         <ColumnDefinition Width="26"/>
                                                                                         <ColumnDefinition Width="26"/>
@@ -507,7 +507,7 @@
                                                                                         </Viewbox>
                                                                                     </Button>
                                                                                     <Border Grid.Column="3"
-                                                                                            Width="14" Height="14" CornerRadius="7"
+                                                                                            Width="14" Height="14" CornerRadius="2"
                                                                                             Background="{Binding ColorBrush}"
                                                                                             BorderBrush="#00000055" BorderThickness="1"
                                                                                             VerticalAlignment="Center"/>

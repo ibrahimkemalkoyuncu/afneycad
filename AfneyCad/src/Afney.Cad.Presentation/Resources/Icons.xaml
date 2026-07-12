@@ -49,6 +49,9 @@
 
     <!-- ══ Katman / Görünürlük ══════════════════════════════════════════════ -->
     <Geometry x:Key="Ico.Eye">M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z</Geometry>
+    <Geometry x:Key="Ico.Lightbulb">M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z</Geometry>
+    <Geometry x:Key="Ico.LightbulbOff">M3.27,1L2,2.27L6.5,6.77C6.19,7.44 6,8.19 6,9C6,11.38 7.19,13.47 9,14.74V17A1,1 0 0,0 10,18H12.73L19.73,25L21,23.73L14.65,17.38L13.27,16L3.27,6M13,2A7,7 0 0,1 20,9C20,10.85 19.23,12.5 18,13.69L16.11,11.8C16.68,11.11 17,10.24 17,9.32C17,7.11 15.21,5.32 13,5.32V2M10,21A1,1 0 0,0 11,22H13A1,1 0 0,0 14,21V20H10V21Z</Geometry>
+    <Geometry x:Key="Ico.LockOutline">M18,20H6V10H18M18,8H15V6A3,3 0 0,0 12,3A3,3 0 0,0 9,6V8H6A2,2 0 0,0 4,10V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V10A2,2 0 0,0 18,8M10.2,6C10.2,5 10.9,4.2 12,4.2C13,4.2 13.8,5 13.8,6V8H10.2Z</Geometry>
     <Geometry x:Key="Ico.EyeOff">M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z</Geometry>
     <Geometry x:Key="Ico.Snowflake">M11,2H13V4.28L14.5,3.4L15.5,5.1L13,6.5V9.6L15.6,8.1L16.6,6.4L18.3,7.4L17.3,9.1L19.9,10.6L18.9,12.3L16.3,10.8L13.9,12.2L16.3,13.6L18.9,12.1L19.9,13.8L17.3,15.3L18.3,17L16.6,18L15.6,16.3L13,14.8V17.9L15.5,19.3L14.5,21L13,20.12V22H11V20.12L9.5,21L8.5,19.3L11,17.9V14.8L8.4,16.3L7.4,18L5.7,17L6.7,15.3L4.1,13.8L5.1,12.1L7.7,13.6L10.1,12.2L7.7,10.8L5.1,12.3L4.1,10.6L6.7,9.1L5.7,7.4L7.4,6.4L8.4,8.1L11,9.6V6.5L8.5,5.1L9.5,3.4L11,4.28V2Z</Geometry>
     <Geometry x:Key="Ico.LockClosed">M12,17A2,2 0 0,0 14,15A2,2 0 0,0 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z</Geometry>
@@ -68,28 +71,32 @@
     <Geometry x:Key="Ico.Folder">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</Geometry>
     <Geometry x:Key="Ico.Save">M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z</Geometry>
 
-    <!-- ══ Yeniden Kullanılabilir DataTrigger Stilleri (Katman satırları) ══════ -->
+    <!-- ══ Yeniden Kullanılabilir DataTrigger Stilleri (Katman satırları) ══════
+         AutoCAD 2026 kuralı: ikonlar varsayılan durumda da RENKLİ (soluk gri değil) —
+         ampul=sarı, güneş/kartanesi=turuncu/camgöbeği, kilit=camgöbeği-mavi. -->
     <Style x:Key="Icon.LayerVisibility" TargetType="Path">
-        <Setter Property="Data" Value="{StaticResource Ico.Eye}"/>
-        <Setter Property="Fill" Value="{StaticResource IconFillDefault}"/>
+        <Setter Property="Data" Value="{StaticResource Ico.Lightbulb}"/>
+        <Setter Property="Fill" Value="#FFD24B"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsVisible}" Value="False">
+                <Setter Property="Data" Value="{StaticResource Ico.LightbulbOff}"/>
                 <Setter Property="Fill" Value="{StaticResource IconFillMuted}"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
     <Style x:Key="Icon.LayerFreeze" TargetType="Path">
-        <Setter Property="Data" Value="{StaticResource Ico.Snowflake}"/>
-        <Setter Property="Fill" Value="{StaticResource IconFillMuted}"/>
+        <Setter Property="Data" Value="{StaticResource Ico.Sun}"/>
+        <Setter Property="Fill" Value="#FF9F45"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsFrozen}" Value="True">
+                <Setter Property="Data" Value="{StaticResource Ico.Snowflake}"/>
                 <Setter Property="Fill" Value="{StaticResource IconFillAccent}"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
     <Style x:Key="Icon.LayerLock" TargetType="Path">
-        <Setter Property="Data" Value="{StaticResource Ico.LockOpen}"/>
-        <Setter Property="Fill" Value="{StaticResource IconFillMuted}"/>
+        <Setter Property="Data" Value="{StaticResource Ico.LockOutline}"/>
+        <Setter Property="Fill" Value="#5AC8FA"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsLocked}" Value="True">
                 <Setter Property="Data" Value="{StaticResource Ico.LockClosed}"/>

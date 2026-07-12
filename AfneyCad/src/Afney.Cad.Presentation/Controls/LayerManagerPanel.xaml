@@ -25,10 +25,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListViewItem">
-                        <Border x:Name="RowBd" Background="{TemplateBinding Background}" Padding="0,4">
+                        <Border x:Name="RowBd" Background="{TemplateBinding Background}" Padding="0,2.5">
                             <Grid>
-                                <Rectangle x:Name="AccentBar" Width="3" HorizontalAlignment="Left" Fill="Transparent" RadiusX="1.5" RadiusY="1.5"/>
-                                <ContentPresenter Margin="8,0,0,0"/>
+                                <Rectangle x:Name="AccentBar" Width="2.5" HorizontalAlignment="Left" Fill="Transparent"/>
+                                <ContentPresenter Margin="6,0,0,0"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -172,7 +172,7 @@
                         <Viewbox Grid.Column="2" Style="{StaticResource RowIcon}" Width="14" Height="14" ToolTip="Kilitle">
                             <Path Data="{StaticResource Ico.LockClosed}" Fill="#6B7484"/>
                         </Viewbox>
-                        <Ellipse Grid.Column="3" Width="10" Height="10" Fill="#6B7484" HorizontalAlignment="Center" ToolTip="Renk"/>
+                        <Rectangle Grid.Column="3" Width="11" Height="11" RadiusX="2" RadiusY="2" Fill="#6B7484" HorizontalAlignment="Center" ToolTip="Renk"/>
                         <TextBlock Grid.Column="4" Text="Katman Adı" FontSize="11" FontWeight="SemiBold" Foreground="#6B7484" Margin="8,0"/>
                     </Grid>
                 </Border>
@@ -232,7 +232,7 @@
                                         Tag="{Binding Name}"
                                         Click="OnColorClick"
                                         ToolTip="Rengi değiştir">
-                                    <Ellipse Width="13" Height="13"
+                                    <Rectangle Width="14" Height="14" RadiusX="2" RadiusY="2"
                                              Fill="{Binding ColorBrush}"
                                              Stroke="#00000066" StrokeThickness="1"/>
                                 </Button>
