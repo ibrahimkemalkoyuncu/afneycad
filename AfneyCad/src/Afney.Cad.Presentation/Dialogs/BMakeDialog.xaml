@@ -64,9 +64,9 @@
             </Grid.ColumnDefinitions>
 
             <!-- Base Point Section -->
-            <GroupBox Grid.Column="0" Header="Base point">
+            <GroupBox Grid.Column="0" Header="Baz Noktası">
                 <StackPanel>
-                    <Button x:Name="BtnPickPoint" Content="Pick point" HorizontalAlignment="Left" Click="BtnPickPoint_Click" Margin="0,0,0,10" Width="100"/>
+                    <Button x:Name="BtnPickPoint" Content="Nokta Seç" HorizontalAlignment="Left" Click="BtnPickPoint_Click" Margin="0,0,0,10" Width="100"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -92,15 +92,15 @@
             </GroupBox>
 
             <!-- Objects Section -->
-            <GroupBox Grid.Column="1" Header="Objects">
+            <GroupBox Grid.Column="1" Header="Nesneler">
                 <StackPanel>
-                    <Button x:Name="BtnSelectObjects" Content="Select objects" HorizontalAlignment="Left" Click="BtnSelectObjects_Click" Margin="0,0,0,10" Width="100"/>
-                    
-                    <TextBlock x:Name="LblObjectsSelected" Text="0 objects selected" Foreground="LightSkyBlue" Margin="0,0,0,10"/>
-                    
-                    <RadioButton x:Name="RbRetain" Content="Retain (Keep objects)" IsChecked="False" Foreground="White" Margin="0,0,0,5"/>
-                    <RadioButton x:Name="RbConvert" Content="Convert to block" IsChecked="True" Foreground="White" Margin="0,0,0,5"/>
-                    <RadioButton x:Name="RbDelete" Content="Delete" IsChecked="False" Foreground="White"/>
+                    <Button x:Name="BtnSelectObjects" Content="Nesne Seç" HorizontalAlignment="Left" Click="BtnSelectObjects_Click" Margin="0,0,0,10" Width="100"/>
+
+                    <TextBlock x:Name="LblObjectsSelected" Text="0 nesne seçildi" Foreground="LightSkyBlue" Margin="0,0,0,10"/>
+
+                    <RadioButton x:Name="RbRetain" Content="Koru (Nesneleri sakla)" IsChecked="False" Foreground="White" Margin="0,0,0,5"/>
+                    <RadioButton x:Name="RbConvert" Content="Bloğa dönüştür" IsChecked="True" Foreground="White" Margin="0,0,0,5"/>
+                    <RadioButton x:Name="RbDelete" Content="Sil" IsChecked="False" Foreground="White"/>
                 </StackPanel>
             </GroupBox>
         </Grid>
@@ -111,16 +111,16 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            
-            <GroupBox Grid.Column="0" Header="Behavior">
+
+            <GroupBox Grid.Column="0" Header="Davranış">
                 <StackPanel>
-                    <CheckBox x:Name="ChkAnnotative" Content="Annotative" Foreground="White" Margin="0,0,0,5" IsEnabled="False"/>
-                    <CheckBox x:Name="ChkScaleUniformly" Content="Scale uniformly" Foreground="White" Margin="0,0,0,5" IsChecked="True"/>
-                    <CheckBox x:Name="ChkAllowExploding" Content="Allow exploding" Foreground="White" IsChecked="True"/>
+                    <CheckBox x:Name="ChkAnnotative" Content="Açıklamalı (Annotative)" Foreground="White" Margin="0,0,0,5" IsEnabled="False"/>
+                    <CheckBox x:Name="ChkScaleUniformly" Content="Orantılı ölçekle" Foreground="White" Margin="0,0,0,5" IsChecked="True"/>
+                    <CheckBox x:Name="ChkAllowExploding" Content="Patlatmaya izin ver" Foreground="White" IsChecked="True"/>
                 </StackPanel>
             </GroupBox>
 
-            <GroupBox Grid.Column="1" Header="Description">
+            <GroupBox Grid.Column="1" Header="Açıklama">
                 <TextBox x:Name="TxtDescription" TextWrapping="Wrap" AcceptsReturn="True" Height="70" VerticalContentAlignment="Top"/>
             </GroupBox>
         </Grid>

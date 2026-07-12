@@ -40,7 +40,7 @@ namespace Afney.Cad.Presentation.Dialogs
     public void UpdateSelectionCount()
     {
         int count = _database.GetSelectedEntities().Count();
-        LblObjectsSelected.Text = $"{count} objects selected";
+        LblObjectsSelected.Text = $"{count} nesne seçildi";
     }
 
     public void SetBasePoint(Vector3D point)
@@ -74,13 +74,13 @@ namespace Afney.Cad.Presentation.Dialogs
     {
         if (string.IsNullOrWhiteSpace(TxtBlockName.Text))
         {
-            MessageBox.Show("Please enter a block name.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Lütfen bir blok adı girin.", "Doğrulama Hatası", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         if (_database.GetSelectedEntities().Count() == 0)
         {
-            MessageBox.Show("No objects selected. Please select objects to define the block.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Nesne seçilmedi. Bloğu tanımlamak için nesne seçin.", "Doğrulama Hatası", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -92,7 +92,7 @@ namespace Afney.Cad.Presentation.Dialogs
         }
         else
         {
-            MessageBox.Show("Invalid Base Point coordinates.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("Geçersiz baz noktası koordinatları.", "Doğrulama Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
