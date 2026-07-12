@@ -2452,4 +2452,31 @@ Kolon şeması artık 3 biçimde alınabilir (çıktı seçim penceresi):
 
 ---
 
-*Son guncelleme: 2026-07-04 | AfneyCAD v4.0.0 — Session #48 | FINE MEP: 10/10 | AutoCAD 2026: 10/10*
+## Session #49 — Canlı QA Testi, Kritik Hata Düzeltmeleri, Görsel Yenileme (2026-07-12)
+
+Bu oturumda ilk kez **canlı UI testi** (gerçek DWG üzerinde, UI Automation ile) yapıldı; kod okumasıyla görünmeyen gerçek hatalar bulundu ve düzeltildi.
+
+### Bulunan ve Düzeltilen Kritik Hatalar
+
+| Hata | Kök Neden | Çözüm |
+|---|---|---|
+| Boru çizim komutu sağ-tık ile bitmiyor | `RoutePipeCommand.OnKeyDown` sadece ESC dinliyordu | Enter/Space/sağ-tık desteği eklendi (`LineCommand` ile tutarlı), `PipeRoutingEngine.Reset()` eklendi |
+| "Duvara Cihaz Yerleştir" hiç çalışmıyor | `PlaceFixtureOnWallCommand` ham DWG çizgilerini değil, **önceden tanınmış** `ArchitecturalObstacle` nesnelerini arıyor — AutoBLD→Eleman Tanı çalıştırılmadan boş liste | Önkoşul kontrolü + açık uyarı: "Önce AutoBLD → Eleman Tanı" |
+| 35 dialogda ComboBox metni görünmüyor (beyaz-üstü-beyaz) | `Style TargetType="ComboBox"` sadece Background/Foreground Setter'ı var, gerçek `ControlTemplate` yok — WPF varsayılan şablonu kapalı kutu rengini değiştirmiyor | 34 dosyaya tam `ControlTemplate` eklendi |
+| Katman popup'ında fare tekerleği çalışmıyor | İç içe (nested) `ScrollViewer` — dış ScrollViewer, ListBox'ın kendi iç ScrollViewer'ıyla çakışıyordu | Dış ScrollViewer kaldırıldı, `ScrollViewer.VerticalScrollBarVisibility="Auto"` doğrudan ListBox'a taşındı |
+
+### Görsel Yenileme — Merkezi İkon Kütüphanesi
+
+`src/Afney.Cad.Presentation/Resources/Icons.xaml` oluşturuldu (App.xaml'e merge edilir):
+- Emoji glifleri yerine font-bağımsız vektör `Geometry` ikonlar (göz, kar tanesi, kilit, çöp kutusu, kalem, güneş, artı, arama, yenile...)
+- Paylaşılan `Icon.LayerVisibility` / `Icon.LayerFreeze` / `Icon.LayerLock` stilleri (DataTrigger ile durum rengi)
+- `IconButtonRound` — tüm ikon butonları için tutarlı yuvarlak hover efekti
+
+Katmanlar paneli (sol dock + ribbon popup) bu kütüphaneyle yenilendi. **Karar:** AfneyCAD'in koyu tema kimliği korunuyor (AutoCAD'e karşı rekabet avantajı) — AutoCAD 2026'nın açık temasından sadece düzen/hizalama/ikon sadeliği disiplini alınıyor, renk paleti değil.
+
+### Otomasyon Ortamı Notu
+Canlı test için UI Automation (PowerShell + System.Windows.Automation) kullanıldı. Bilinen kısıtlar: Türkçe karakterli buton adları encoding sorunu yaşayabilir (ASCII alt-dizeyle eşleştirme gerekir), özel WPF dialogları (MessageBox değil) `SendKeys` yerine `WM_CLOSE` ile daha güvenilir kapatılıyor, PowerShell dosya yazımında **mutlaka UTF-8 (BOM'suz) via `[System.IO.File]::WriteAllText`** kullanılmalı — `Get-Content -Raw` + `Set-Content -Encoding UTF8` Türkçe karakterleri (ı, ş, ç, ğ, ü, ö) ve emojileri bozabiliyor (mojibake).
+
+---
+
+*Son guncelleme: 2026-07-12 | AfneyCAD v4.0.0 — Session #49*

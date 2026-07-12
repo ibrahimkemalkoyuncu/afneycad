@@ -3,6 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Icons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
             <!-- AutoCAD Dark Theme Colors -->
             <SolidColorBrush x:Key="DarkBackground" Color="#1e1e1e"/>
             <SolidColorBrush x:Key="MediumDark" Color="#2d2d2d"/>

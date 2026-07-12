@@ -66,7 +66,6 @@
 | Özellik | Öncelik | Açıklama |
 |---|---|---|
 | Real-time Çakışma Vurgusu | ✅ **Tamamlandı** | `ClashHighlightService` — Critical=kırmızı, Warning=turuncu; 🔴 Çakışma Vurgusu toggle butonu (Session #32) |
-| Bulut Senkronizasyonu | Orta | Proje dosyası cloud backup (Azure/GDrive) |
 | Boru Ağı Animasyonu | ✅ **Tamamlandı** | `PipeFlowAnimationService` — DispatcherTimer 30fps, hareketli nokta animasyonu; ▶ Akış Animasyonu toggle butonu (Session #33) |
 | Mobil Görüntüleyici | ✅ **Tamamlandı** | `HtmlViewerExportService` — inline SVG, sistem renkleri, pan+zoom JS, mobil viewport; 🌐 Mobil HTML butonu (Session #33) |
 | Bulut Senkronizasyonu | ✅ **Tamamlandı** | `CloudBackupService` — zaman damgalı .afney.bak, otomatik yedek, maks 20 yedek; ☁️ Yedekle butonu + CloudBackupDialog (Session #33) |

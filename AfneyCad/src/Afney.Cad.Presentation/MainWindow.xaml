@@ -29,6 +29,8 @@
         <SolidColorBrush x:Key="Orange"    Color="#F39C12"/>
         <SolidColorBrush x:Key="Red"       Color="#E74C3C"/>
 
+        <!-- İkonlar merkezi kütüphaneden gelir: Resources/Icons.xaml (App.xaml'e merge edilmiştir) -->
+
         <!-- ══ RİBBON BUTON STİLLERİ ════════════════════════════════════════════ -->
 
         <!-- Büyük Ikon Buton: Ana eylemler için — 68×72px -->
@@ -435,14 +437,14 @@
                                                                     <TextBlock Text="  Katmanlar" Foreground="#60BAFF"
                                                                                FontSize="11" FontWeight="Bold"/>
                                                                 </Border>
-                                                                <ScrollViewer Grid.Row="1"
-                                                                              VerticalScrollBarVisibility="Auto"
-                                                                              MaxHeight="380"
-                                                                              CanContentScroll="True">
-                                                                    <ListBox x:Name="LayerPickerList"
+                                                                <ListBox x:Name="LayerPickerList"
+                                                                             Grid.Row="1"
                                                                              Background="Transparent"
                                                                              BorderThickness="0"
+                                                                             MaxHeight="380"
                                                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                                             ScrollViewer.CanContentScroll="False"
                                                                              SelectionMode="Single"
                                                                              VirtualizingPanel.IsVirtualizing="True">
                                                                         <ListBox.ItemContainerStyle>
@@ -474,32 +476,40 @@
                                                                                         <ColumnDefinition Width="18"/>
                                                                                         <ColumnDefinition Width="*"/>
                                                                                     </Grid.ColumnDefinitions>
-                                                                                    <Button Grid.Column="0" Content="{Binding VisibilityIcon}"
-                                                                                            FontSize="12" Background="Transparent"
-                                                                                            BorderThickness="0" Cursor="Hand"
+                                                                                    <Button Grid.Column="0"
+                                                                                            Style="{StaticResource IconButtonRound}"
+                                                                                            Width="26" Height="26"
                                                                                             ToolTip="Katmanı Gizle/Göster"
                                                                                             Tag="{Binding Name}"
-                                                                                            Click="OnLayerVisibilityToggle_Click"/>
-                                                                                    <Button Grid.Column="1" Content="{Binding FreezeIcon}"
-                                                                                            FontSize="12" Background="Transparent"
-                                                                                            BorderThickness="0" Cursor="Hand"
+                                                                                            Click="OnLayerVisibilityToggle_Click">
+                                                                                        <Viewbox Width="17" Height="17">
+                                                                                            <Path Style="{StaticResource Icon.LayerVisibility}"/>
+                                                                                        </Viewbox>
+                                                                                    </Button>
+                                                                                    <Button Grid.Column="1"
+                                                                                            Style="{StaticResource IconButtonRound}"
+                                                                                            Width="26" Height="26"
                                                                                             ToolTip="Katmanı Dondur/Çöz"
                                                                                             Tag="{Binding Name}"
                                                                                             Click="OnLayerFreezeToggle_Click">
-                                                                                        <Button.Foreground><SolidColorBrush Color="#44CCFF"/></Button.Foreground>
+                                                                                        <Viewbox Width="17" Height="17">
+                                                                                            <Path Style="{StaticResource Icon.LayerFreeze}"/>
+                                                                                        </Viewbox>
                                                                                     </Button>
-                                                                                    <Button Grid.Column="2" Content="{Binding LockIcon}"
-                                                                                            FontSize="12" Background="Transparent"
-                                                                                            BorderThickness="0" Cursor="Hand"
+                                                                                    <Button Grid.Column="2"
+                                                                                            Style="{StaticResource IconButtonRound}"
+                                                                                            Width="26" Height="26"
                                                                                             ToolTip="Katmanı Kilitle/Aç"
                                                                                             Tag="{Binding Name}"
                                                                                             Click="OnLayerLockToggle_Click">
-                                                                                        <Button.Foreground><SolidColorBrush Color="#F39C12"/></Button.Foreground>
+                                                                                        <Viewbox Width="17" Height="17">
+                                                                                            <Path Style="{StaticResource Icon.LayerLock}"/>
+                                                                                        </Viewbox>
                                                                                     </Button>
                                                                                     <Border Grid.Column="3"
-                                                                                            Width="14" Height="14" CornerRadius="3"
+                                                                                            Width="14" Height="14" CornerRadius="7"
                                                                                             Background="{Binding ColorBrush}"
-                                                                                            BorderBrush="#555" BorderThickness="1"
+                                                                                            BorderBrush="#00000055" BorderThickness="1"
                                                                                             VerticalAlignment="Center"/>
                                                                                     <TextBlock Grid.Column="4"
                                                                                                Text="{Binding Name}"
@@ -512,7 +522,6 @@
                                                                             </DataTemplate>
                                                                         </ListBox.ItemTemplate>
                                                                     </ListBox>
-                                                                </ScrollViewer>
                                                             </Grid>
                                                         </Border>
                                                     </Popup>

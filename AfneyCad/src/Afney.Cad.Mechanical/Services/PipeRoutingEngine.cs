@@ -52,6 +52,15 @@ public class PipeRoutingEngine
         _currentDiameter = diameter;
     }
 
+    /// <summary>
+    /// Aktif rotayı sıfırlar (Enter/Space/ESC ile rota tamamlandığında çağrılır).
+    /// </summary>
+    public void Reset()
+    {
+        _lastPoint = null;
+        _lastPipe = null;
+    }
+
     public void SetSystemType(MechanicalSystemType systemType)
     {
         _currentSystemType = systemType;

@@ -1,48 +1,102 @@
 <UserControl x:Class="Afney.Cad.Presentation.Controls.LayerManagerPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="#1E2226" MinWidth="230">
+             Background="#181A21" MinWidth="240">
 
     <UserControl.Resources>
-        <!-- Row hover style -->
-        <Style x:Key="LayerRowStyle" TargetType="ListViewItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#CCC"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="2,1"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2A3040"/>
-                </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#1F3A5F"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-            </Style.Triggers>
+
+        <!-- İkonlar merkezi kütüphaneden gelir: Resources/Icons.xaml (App.xaml'e merge edilmiştir) -->
+
+        <!-- Bir Geometry'yi renkli, ortalanmış bir simgeye çeviren şablon -->
+        <Style x:Key="RowIcon" TargetType="Viewbox">
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
-        <!-- Icon toggle button (NO hover trigger here — triggers go inside Button.Style in template) -->
+        <!-- Row hover / selection -->
+        <Style x:Key="LayerRowStyle" TargetType="ListViewItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#D3D7E0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="RowBd" Background="{TemplateBinding Background}" Padding="0,4">
+                            <Grid>
+                                <Rectangle x:Name="AccentBar" Width="3" HorizontalAlignment="Left" Fill="Transparent" RadiusX="1.5" RadiusY="1.5"/>
+                                <ContentPresenter Margin="8,0,0,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RowBd" Property="Background" Value="#20242E"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="RowBd" Property="Background" Value="#1A3A56"/>
+                                <Setter TargetName="AccentBar" Property="Fill" Value="#5AC8FA"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Satır içi ikon butonu — hover'da yuvarlak dolgu -->
         <Style x:Key="IconBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Width" Value="22"/>
-            <Setter Property="Height" Value="22"/>
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2B3140"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <!-- Toolbar button -->
+        <!-- Alt araç çubuğu butonu — ikon + etiket -->
         <Style x:Key="TbBtn" TargetType="Button">
-            <Setter Property="Background" Value="#2D3340"/>
-            <Setter Property="Foreground" Value="#CCC"/>
-            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="Background" Value="#1E222C"/>
+            <Setter Property="Foreground" Value="#C3C9D4"/>
+            <Setter Property="BorderBrush" Value="#2E3441"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="Margin" Value="2,0"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="9,5"/>
+            <Setter Property="Margin" Value="0,0,5,5"/>
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#262C3A"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4FC3F7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -55,30 +109,44 @@
         </Grid.RowDefinitions>
 
         <!-- ── Header ──────────────────────────────────────── -->
-        <Border Grid.Row="0" Background="#252A35" Padding="8,5">
+        <Border Grid.Row="0" Padding="12,10" BorderBrush="#4FC3F7" BorderThickness="0,0,0,2">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#1D2129" Offset="0"/>
+                    <GradientStop Color="#191C24" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
             <DockPanel>
-                <TextBlock Text="KATMANLAR" FontSize="10" FontWeight="Bold"
-                           Foreground="#7AA0CC" VerticalAlignment="Center"
+                <TextBlock Text="KATMANLAR" FontSize="11.5" FontWeight="SemiBold"
+                           Foreground="#9FC6EA" VerticalAlignment="Center"
                            DockPanel.Dock="Left"/>
-                <Button Content="⟳" Style="{StaticResource IconBtn}" FontSize="11"
+                <Button Style="{StaticResource IconBtn}" Width="26" Height="26"
                         Click="OnRefresh_Click" ToolTip="Katmanları Yenile"
-                        DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                        DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <Viewbox Style="{StaticResource RowIcon}" Width="15" Height="15">
+                        <Path Data="{StaticResource Ico.Refresh}" Fill="#9FC6EA"/>
+                    </Viewbox>
+                </Button>
             </DockPanel>
         </Border>
 
         <!-- ── Search ─────────────────────────────────────── -->
-        <Border Grid.Row="1" Background="#1A1E28" Padding="4,3" BorderBrush="#333" BorderThickness="0,0,0,1">
-            <DockPanel>
-                <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="#666"/>
-                <TextBox x:Name="SearchBox" Background="#252A35" Foreground="#CCC"
-                         BorderBrush="#444" BorderThickness="1" Padding="4,2"
-                         FontSize="11" ToolTip="Katman adıyla filtrele"
-                         TextChanged="OnSearch_TextChanged"/>
-            </DockPanel>
+        <Border Grid.Row="1" Background="#181A21" Padding="9,8" BorderBrush="#242833" BorderThickness="0,0,0,1">
+            <Border Background="#20242E" CornerRadius="7" BorderBrush="#2E3441" BorderThickness="1" Padding="7,5">
+                <DockPanel>
+                    <Viewbox Style="{StaticResource RowIcon}" Width="14" Height="14" DockPanel.Dock="Left" Margin="0,0,6,0">
+                        <Path Data="{StaticResource Ico.Search}" Fill="#6B7484"/>
+                    </Viewbox>
+                    <TextBox x:Name="SearchBox" Background="Transparent" Foreground="#E4E8EF"
+                             BorderThickness="0" Padding="0" CaretBrush="#4FC3F7"
+                             FontSize="12" ToolTip="Katman adıyla filtrele"
+                             TextChanged="OnSearch_TextChanged"/>
+                </DockPanel>
+            </Border>
         </Border>
 
         <!-- ── Column Header + Layer List ────────────────────── -->
-        <Border Grid.Row="2" Background="#1A1E28">
+        <Border Grid.Row="2" Background="#181A21">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -86,20 +154,26 @@
                 </Grid.RowDefinitions>
 
                 <!-- Column titles -->
-                <Border Grid.Row="0" Background="#252A35" BorderBrush="#333" BorderThickness="0,0,0,1" Padding="2,3">
+                <Border Grid.Row="0" Background="#1D2129" BorderBrush="#242833" BorderThickness="0,0,0,1" Padding="8,7">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="22"/>
+                            <ColumnDefinition Width="26"/>
+                            <ColumnDefinition Width="26"/>
+                            <ColumnDefinition Width="26"/>
                             <ColumnDefinition Width="22"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="💡" FontSize="10" Foreground="#888" HorizontalAlignment="Center" ToolTip="Görünürlük"/>
-                        <TextBlock Grid.Column="1" Text="❄"  FontSize="10" Foreground="#888" HorizontalAlignment="Center" ToolTip="Dondur"/>
-                        <TextBlock Grid.Column="2" Text="🔒" FontSize="10" Foreground="#888" HorizontalAlignment="Center" ToolTip="Kilitle"/>
-                        <TextBlock Grid.Column="3" Text="■"  FontSize="10" Foreground="#888" HorizontalAlignment="Center" ToolTip="Renk"/>
-                        <TextBlock Grid.Column="4" Text="Katman Adı" FontSize="10" Foreground="#888" Margin="4,0"/>
+                        <Viewbox Grid.Column="0" Style="{StaticResource RowIcon}" Width="14" Height="14" ToolTip="Görünürlük">
+                            <Path Data="{StaticResource Ico.Eye}" Fill="#6B7484"/>
+                        </Viewbox>
+                        <Viewbox Grid.Column="1" Style="{StaticResource RowIcon}" Width="14" Height="14" ToolTip="Dondur">
+                            <Path Data="{StaticResource Ico.Snowflake}" Fill="#6B7484"/>
+                        </Viewbox>
+                        <Viewbox Grid.Column="2" Style="{StaticResource RowIcon}" Width="14" Height="14" ToolTip="Kilitle">
+                            <Path Data="{StaticResource Ico.LockClosed}" Fill="#6B7484"/>
+                        </Viewbox>
+                        <Ellipse Grid.Column="3" Width="10" Height="10" Fill="#6B7484" HorizontalAlignment="Center" ToolTip="Renk"/>
+                        <TextBlock Grid.Column="4" Text="Katman Adı" FontSize="11" FontWeight="SemiBold" Foreground="#6B7484" Margin="8,0"/>
                     </Grid>
                 </Border>
 
@@ -115,91 +189,70 @@
                         <DataTemplate>
                             <Grid Margin="0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="22"/>
-                                    <ColumnDefinition Width="22"/>
-                                    <ColumnDefinition Width="22"/>
+                                    <ColumnDefinition Width="26"/>
+                                    <ColumnDefinition Width="26"/>
+                                    <ColumnDefinition Width="26"/>
                                     <ColumnDefinition Width="22"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- 💡 Görünürlük — style only in Button.Style (no duplicate attribute) -->
-                                <Button Grid.Column="0"
-                                        Content="{Binding BulbIcon}"
+                                <!-- Görünürlük -->
+                                <Button Grid.Column="0" Style="{StaticResource IconBtn}"
                                         Tag="{Binding Name}"
                                         Click="OnVisibilityToggle_Click"
                                         ToolTip="Görünürlüğü değiştir">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsVisible}" Value="False">
-                                                    <Setter Property="Opacity" Value="0.35"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
+                                    <Viewbox Style="{StaticResource RowIcon}">
+                                        <Path Style="{StaticResource Icon.LayerVisibility}"/>
+                                    </Viewbox>
                                 </Button>
 
-                                <!-- ❄ Dondur -->
-                                <Button Grid.Column="1"
-                                        Content="{Binding FreezeIcon}"
+                                <!-- Dondur -->
+                                <Button Grid.Column="1" Style="{StaticResource IconBtn}"
                                         Tag="{Binding Name}"
                                         Click="OnFreezeToggle_Click"
                                         ToolTip="Katmanı dondur/çözdür">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsFrozen}" Value="True">
-                                                    <Setter Property="Foreground" Value="#4CF"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
+                                    <Viewbox Style="{StaticResource RowIcon}">
+                                        <Path Style="{StaticResource Icon.LayerFreeze}"/>
+                                    </Viewbox>
                                 </Button>
 
-                                <!-- 🔒 Kilit -->
-                                <Button Grid.Column="2"
-                                        Content="{Binding LockIcon}"
+                                <!-- Kilit -->
+                                <Button Grid.Column="2" Style="{StaticResource IconBtn}"
                                         Tag="{Binding Name}"
                                         Click="OnLockToggle_Click"
                                         ToolTip="Katmanı kilitle/aç">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsLocked}" Value="True">
-                                                    <Setter Property="Foreground" Value="#FA0"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
+                                    <Viewbox Style="{StaticResource RowIcon}">
+                                        <Path Style="{StaticResource Icon.LayerLock}"/>
+                                    </Viewbox>
                                 </Button>
 
-                                <!-- ■ Renk swatch (Tag ile renk hex'i taşınır) -->
+                                <!-- Renk swatch -->
                                 <Button Grid.Column="3"
-                                        Style="{StaticResource IconBtn}"
+                                        Style="{StaticResource IconBtn}" Width="22" Height="26"
                                         Tag="{Binding Name}"
                                         Click="OnColorClick"
-                                        ToolTip="Rengi değiştir"
-                                        Margin="2,2">
-                                    <Rectangle Width="12" Height="12" RadiusX="2" RadiusY="2"
-                                               Fill="{Binding ColorBrush}"/>
+                                        ToolTip="Rengi değiştir">
+                                    <Ellipse Width="13" Height="13"
+                                             Fill="{Binding ColorBrush}"
+                                             Stroke="#00000066" StrokeThickness="1"/>
                                 </Button>
 
                                 <!-- Katman adı -->
                                 <TextBlock Grid.Column="4"
                                            Text="{Binding Name}"
-                                           FontSize="11"
+                                           FontSize="12"
                                            VerticalAlignment="Center"
-                                           Margin="4,0"
+                                           Margin="8,0"
                                            ToolTip="{Binding Description}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="#CCC"/>
+                                            <Setter Property="Foreground" Value="#D3D7E0"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsVisible}" Value="False">
-                                                    <Setter Property="Opacity" Value="0.45"/>
+                                                    <Setter Property="Opacity" Value="0.4"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsFrozen}" Value="True">
-                                                    <Setter Property="Foreground" Value="#4AA"/>
+                                                    <Setter Property="Foreground" Value="#7DD3F0"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -213,16 +266,32 @@
         </Border>
 
         <!-- ── Bottom Toolbar ────────────────────────────── -->
-        <Border Grid.Row="3" Background="#252A35" Padding="4,4" BorderBrush="#333" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="#1D2129" Padding="7,7" BorderBrush="#242833" BorderThickness="0,1,0,0">
             <WrapPanel Orientation="Horizontal">
-                <Button Content="＋ Yeni" Style="{StaticResource TbBtn}"
-                        Click="OnNewLayer_Click" ToolTip="Yeni katman ekle"/>
-                <Button Content="✎ Yeniden Adlandır" Style="{StaticResource TbBtn}"
-                        Click="OnRename_Click" ToolTip="Seçili katmanı yeniden adlandır"/>
-                <Button Content="🗑 Sil" Style="{StaticResource TbBtn}"
-                        Click="OnDelete_Click" ToolTip="Seçili katmanı sil"/>
-                <Button Content="☀ Tümünü Göster" Style="{StaticResource TbBtn}"
-                        Click="OnShowAll_Click" ToolTip="Tüm katmanları görünür yap"/>
+                <Button Style="{StaticResource TbBtn}" Click="OnNewLayer_Click" ToolTip="Yeni katman ekle">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="13" Height="13" Margin="0,0,5,0"><Path Data="{StaticResource Ico.Plus}" Fill="#C3C9D4"/></Viewbox>
+                        <TextBlock Text="Yeni"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource TbBtn}" Click="OnRename_Click" ToolTip="Seçili katmanı yeniden adlandır">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="13" Height="13" Margin="0,0,5,0"><Path Data="{StaticResource Ico.Pencil}" Fill="#C3C9D4"/></Viewbox>
+                        <TextBlock Text="Adlandır"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource TbBtn}" Click="OnDelete_Click" ToolTip="Seçili katmanı sil">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="13" Height="13" Margin="0,0,5,0"><Path Data="{StaticResource Ico.Trash}" Fill="#EF8A82"/></Viewbox>
+                        <TextBlock Text="Sil" Foreground="#EF8A82"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource TbBtn}" Click="OnShowAll_Click" ToolTip="Tüm katmanları görünür yap">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="13" Height="13" Margin="0,0,5,0"><Path Data="{StaticResource Ico.Sun}" Fill="#F7D24F"/></Viewbox>
+                        <TextBlock Text="Tümü"/>
+                    </StackPanel>
+                </Button>
             </WrapPanel>
         </Border>
     </Grid>

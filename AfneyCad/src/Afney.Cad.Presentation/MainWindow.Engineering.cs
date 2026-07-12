@@ -991,16 +991,18 @@ namespace Afney.Cad.Presentation
                 {
                     var dlg = new Microsoft.Win32.SaveFileDialog
                     {
-                        Title = "İzometrik Şema — DXF Çıktısı",
-                        Filter = "DXF (AutoCAD R12)|*.dxf",
+                        Title = "İzometrik Şema — DXF/DWG Çıktısı",
+                        Filter = "DXF (AutoCAD R12)|*.dxf|DWG (AutoCAD R2004+)|*.dwg",
                         FileName = $"AfneyCAD_KolonSemasi_{DateTime.Now:yyyyMMdd}",
                         DefaultExt = ".dxf"
                     };
                     if (dlg.ShowDialog(this) != true) return;
+                    bool asDwg = dlg.FileName.EndsWith(".dwg", StringComparison.OrdinalIgnoreCase);
                     await System.Threading.Tasks.Task.Run(
-                        () => ExportRiserDxf(pipes, fixtures, detectedFloors, dlg.FileName));
-                    StatusText.Text = $"İzometrik şema DXF olarak kaydedildi: {dlg.FileName}";
-                    MessageBox.Show($"DXF kaydedildi:\n{dlg.FileName}", "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+                        () => ExportRiserDxf(pipes, fixtures, detectedFloors, dlg.FileName, asDwg));
+                    string fmt = asDwg ? "DWG" : "DXF";
+                    StatusText.Text = $"İzometrik şema {fmt} olarak kaydedildi: {dlg.FileName}";
+                    MessageBox.Show($"{fmt} kaydedildi:\n{dlg.FileName}", "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else if (choice == MessageBoxResult.Cancel)
                 {
@@ -1515,9 +1517,9 @@ namespace Afney.Cad.Presentation
             return (lines, texts, circles, svgW, svgH);
         }
 
-        // ── Kolon şeması → DXF (AutoCAD R12) ─────────────────────────────────────
+        // ── Kolon şeması → DXF (AutoCAD R12) veya DWG (AutoCAD R2004+) ───────────
         private void ExportRiserDxf(List<PipeEntity> pipes, List<SanitaryFixtureEntity> fixtures,
-                                    int detectedFloors, string path)
+                                    int detectedFloors, string path, bool asDwg = false)
         {
             var (lines, texts, circles, _, h) = BuildRiserPrimitives(pipes, fixtures, detectedFloors);
             var db = new Afney.Cad.Database.Core.CadDatabase();
@@ -1544,7 +1546,10 @@ namespace Afney.Cad.Presentation
                 { Color = t.color, Layer = "ISO_YAZI" });
             }
 
-            new Afney.Cad.Infrastructure.Export.DxfWriterService(db).WriteToFile(path);
+            if (asDwg)
+                new Afney.Cad.Infrastructure.Export.DwgExportService(db).WriteToFile(path);
+            else
+                new Afney.Cad.Infrastructure.Export.DxfWriterService(db).WriteToFile(path);
         }
 
         // ── Kolon şeması → PNG (A4 300 dpi) ──────────────────────────────────────

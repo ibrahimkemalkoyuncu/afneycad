@@ -630,6 +630,18 @@ namespace Afney.Cad.Presentation
 
         private void OnPlaceFixtureOnWall(object sender, RoutedEventArgs e)
         {
+            bool hasRecognizedWalls = _mechanicalKernel.ArchitecturalObstacles
+                .Any(o => o.Type == Afney.Cad.Mechanical.Models.ObstacleType.Wall);
+            if (!hasRecognizedWalls)
+            {
+                MessageBox.Show(
+                    "Bu çizimde henüz tanınmış (mimari olarak algılanmış) duvar yok.\n\n" +
+                    "Cihazı duvara yerleştirebilmek için önce:\n" +
+                    "AutoBLD sekmesi → \"Eleman Tanı\" ile DWG çizgilerini duvar/kapı olarak tanıtın.",
+                    "Duvar Tanınmadı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var cmd = new PlaceFixtureOnWallCommand(_database, _mechanicalKernel);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };

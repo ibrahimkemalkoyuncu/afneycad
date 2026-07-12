@@ -42,6 +42,15 @@ public class PlaceFixtureOnWallCommand : ICadCommand
     public void Start()
     {
         _step = 0;
+
+        bool hasRecognizedWalls = _kernel.ArchitecturalObstacles.Any(o => o.Type == ObstacleType.Wall);
+        if (!hasRecognizedWalls)
+        {
+            OnFeedback?.Invoke("HATA: Tanınmış duvar yok. Önce AutoBLD → Eleman Tanı ile mimariyi tanıtın.");
+            OnCompleted?.Invoke();
+            return;
+        }
+
         OnFeedback?.Invoke("Yerleşim yapılacak DUVARI seçin.");
     }
 
@@ -64,7 +73,7 @@ public class PlaceFixtureOnWallCommand : ICadCommand
             }
             else
             {
-                OnFeedback?.Invoke("HATA: Yakında duvar bulunamadı. Lütfen bir duvar seçin.");
+                OnFeedback?.Invoke("HATA: Yakında tanınmış duvar yok. Tanınmayan bir çizgiye mi tıkladınız? AutoBLD → Eleman Tanı ile mimariyi tanıtıp tekrar deneyin.");
             }
         }
         else if (_step == 1 && _selectedWall != null)

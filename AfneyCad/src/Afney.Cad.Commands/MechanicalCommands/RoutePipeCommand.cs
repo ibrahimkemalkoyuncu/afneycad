@@ -219,7 +219,18 @@ public class RoutePipeCommand : ICadCommand
 
     public void OnKeyDown(InputKey key)
     {
-        if (key == InputKey.Escape) OnCompleted?.Invoke();
+        if (key == InputKey.Escape)
+        {
+            OnCompleted?.Invoke();
+        }
+        else if (key == InputKey.Enter || key == InputKey.Space)
+        {
+            // LINE komutuyla tutarlı: Enter/Space/sağ tık ile mevcut rotayı bitir.
+            _ghostEntities.Clear();
+            _routingEngine.Reset();
+            OnFeedback?.Invoke("BORU ROTALAMA: Tamamlandı.");
+            OnCompleted?.Invoke();
+        }
     }
 
     public void Draw(IRenderContext context)
