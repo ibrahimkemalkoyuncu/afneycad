@@ -175,10 +175,7 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                 BorderBrush="Transparent" BorderThickness="3,0,0,0">
-                            <TextBlock Text="{TemplateBinding Content}"
-                                       FontSize="20" HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Foreground="{TemplateBinding Foreground}"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -231,16 +228,30 @@
                         </StackPanel>
                         <!-- Quick Access Buttons -->
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                            <Button Content="📄" Click="OnNewFile"    ToolTip="Yeni (Ctrl+N)"      Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
-                            <Button Content="📁" Click="OnOpenFile"   ToolTip="Aç (Ctrl+O)"        Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
-                            <Button Content="💾" Click="OnSave"       ToolTip="Kaydet (Ctrl+S)"    Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button Click="OnNewFile"    ToolTip="Yeni (Ctrl+N)"      Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.FileDocument}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
+                            <Button Click="OnOpenFile"   ToolTip="Aç (Ctrl+O)"        Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.Folder}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
+                            <Button Click="OnSave"       ToolTip="Kaydet (Ctrl+S)"    Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.Save}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
                             <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
-                            <Button Content="📂" Click="OnNewProject" ToolTip="Yeni Proje"         Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button Click="OnNewProject" ToolTip="Yeni Proje"         Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.FolderPlus}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
                             <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
-                            <Button Content="ℹ" Click="OnProjectInfoCommand" ToolTip="Proje Bilgileri" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
-                            <Button Content="🖨" Click="OnPrintPreviewCommand" ToolTip="Baskı Önizleme" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button Click="OnProjectInfoCommand" ToolTip="Proje Bilgileri" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.InformationOutline}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
+                            <Button Click="OnPrintPreviewCommand" ToolTip="Baskı Önizleme" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.Printer}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
                             <Rectangle Width="1" Fill="#2E3148" Margin="6,6"/>
-                            <Button x:Name="BtnRecentFiles" Content="🕐" Click="OnRecentFilesClick" ToolTip="Son Açılan Dosyalar" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" FontSize="16" Cursor="Hand"/>
+                            <Button x:Name="BtnRecentFiles" Click="OnRecentFilesClick" ToolTip="Son Açılan Dosyalar" Width="34" Height="30" Background="Transparent" Foreground="#A0A3B8" BorderThickness="0" Cursor="Hand">
+                                <Path Data="{StaticResource Ico.History}" Fill="#A0A3B8" Width="15" Height="15" Stretch="Uniform"/>
+                            </Button>
                             <Popup x:Name="RecentFilesPopup" PlacementTarget="{Binding ElementName=BtnRecentFiles}"
                                    Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide">
                                 <Border Background="#1A1C24" BorderBrush="#0A84FF" BorderThickness="1" CornerRadius="6"
@@ -314,7 +325,7 @@
                                                     Click="OnStandardSelection"
                                                     ToolTip="Hesap standardı seçin">
                                                 <StackPanel>
-                                                    <TextBlock Text="⚙" FontSize="24" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                    <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="24" Height="24" Stretch="Uniform" Margin="0,4,0,0"/>
                                                     <TextBlock Text="Norm" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     <TextBlock Text="Seçimi" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
@@ -331,19 +342,19 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnBuildingProperties" ToolTip="Bina özellikleri">
                                                     <StackPanel>
-                                                        <TextBlock Text="🏠" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Home}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Özellikler" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnLevelManager" ToolTip="Kat Yöneticisi">
                                                     <StackPanel>
-                                                        <TextBlock Text="📶" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Layers}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Kat Yön." FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLargeAccent}" Click="OnMultiStoryManager" ToolTip="Çok Katlı Yöneticisi">
                                                     <StackPanel>
-                                                        <TextBlock Text="🏢" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Çok Katlı" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -361,7 +372,7 @@
                                                     Click="OnConfirmSystemSettings"
                                                     ToolTip="Sonraki adımların kilidini açar">
                                                 <StackPanel>
-                                                    <TextBlock Text="✅" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                     <TextBlock Text="Ayarları" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     <TextBlock Text="Onayla" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
@@ -526,10 +537,12 @@
                                                         </Border>
                                                     </Popup>
                                                 </Grid>
-                                                <Button Content="🗂" Click="OnToggleLayerPanel"
+                                                <Button Click="OnToggleLayerPanel"
                                                         Style="{StaticResource RbnBtn}"
                                                         ToolTip="Katman Yöneticisi (Ctrl+L)"
-                                                        Width="32" Height="30" Margin="4,0,0,0" FontSize="16"/>
+                                                        Width="32" Height="30" Margin="4,0,0,0">
+                                                    <Path Data="{StaticResource Ico.Layers}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="15" Height="15" Stretch="Uniform"/>
+                                                </Button>
                                             </StackPanel>
                                             <TextBlock Text="Katman" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
@@ -554,20 +567,35 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeAccent}" Click="OnAutoDetectSpacesCommand" ToolTip="Tüm mimariyi tara — tüm odaları otonom tespit et">
                                                     <StackPanel>
-                                                        <TextBlock Text="🤖" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Otonom" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLargeGreen}" Click="OnSmartDetectRoomClick" ToolTip="Tıklanan bölgedeki odayı otomatik tanıma">
                                                     <StackPanel>
-                                                        <TextBlock Text="🏠" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Home}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Akıllı" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel Margin="4,8,0,0">
-                                                    <Button Content="📍 Manuel"     Click="OnManualMahalDefine" Style="{StaticResource RbnBtn}" ToolTip="Manuel Mahal"/>
-                                                    <Button Content="⬛ Dikdörtgen" Click="OnRectMahalDefine"  Style="{StaticResource RbnBtn}" ToolTip="Dikdörtgen Mahal"/>
-                                                    <Button Content="🏷️ Tag"        Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}"/>
+                                                    <Button Click="OnManualMahalDefine" Style="{StaticResource RbnBtn}" ToolTip="Manuel Mahal">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.MapMarker}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Manuel" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnRectMahalDefine"  Style="{StaticResource RbnBtn}" ToolTip="Dikdörtgen Mahal">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Rectangle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Dikdörtgen" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Tag}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Tag" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Mahal Tanımı" Foreground="#6B6F88" FontSize="10"
@@ -581,19 +609,19 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnFixtureLibrary" ToolTip="Reseptör Kütüphanesi">
                                                     <StackPanel>
-                                                        <TextBlock Text="📚" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Package}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Library" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnPlaceFixtureOnWall" ToolTip="Duvara Cihaz Yerleştir">
                                                     <StackPanel>
-                                                        <TextBlock Text="🔧" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Wrench}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Fixture" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnManageCatalog" ToolTip="Vitrifiye Kataloğunu Yönet">
                                                     <StackPanel>
-                                                        <TextBlock Text="🗂" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Package}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Katalog" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -607,7 +635,7 @@
                                         <StackPanel>
                                             <Button Style="{StaticResource RbnLargeGreen}" Click="OnConfirmTerminals" ToolTip="Tesisat çiziminin kilidini açar">
                                                 <StackPanel>
-                                                    <TextBlock Text="✅" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                     <TextBlock Text="Yükleri" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     <TextBlock Text="Onayla" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
@@ -636,7 +664,7 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeAccent}" Click="OnDrawPipeCommand" ToolTip="Boru Çiz (P)">
                                                     <StackPanel>
-                                                        <TextBlock Text="🔵" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Circle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Boru Çiz" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -647,7 +675,12 @@
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel Margin="4,4,0,0">
-                                                    <Button Content="⬌ Paralel Boru" Click="OnWallParallelRoute" Style="{StaticResource RbnBtn}" ToolTip="Duvara Paralel Boru"/>
+                                                    <Button Click="OnWallParallelRoute" Style="{StaticResource RbnBtn}" ToolTip="Duvara Paralel Boru">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Paralel Boru" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <!-- Sistem Tipi -->
                                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                         <TextBlock Text="Sistem:" Foreground="#858899" FontSize="9" VerticalAlignment="Center" Margin="0,0,3,0"/>
@@ -712,16 +745,41 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeGreen}" Click="OnConnectReceptors" ToolTip="Armatürleri Ana Hatta Bağla (TS 1258)">
                                                     <StackPanel>
-                                                        <TextBlock Text="🔗" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Link}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Bağla" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel Margin="4,8,0,0">
-                                                    <Button Content="🔧 Vana Kütüphanesi" Click="OnValveLibrary"       Style="{StaticResource RbnBtn}" ToolTip="Vana kütüphanesi (TS EN 1074)"/>
-                                                    <Button Content="⚙ Boru Sihirbazı"   Click="OnPipeWizard"         Style="{StaticResource RbnBtn}"/>
-                                                    <Button Content="🤖 Oto Bağlantı"     Click="OnAutoBranchingClick" Style="{StaticResource RbnBtn}" ToolTip="Otomatik Şube Bağlantısı"/>
-                                                    <Button Content="📐 Kolon Bağlantısı" Click="OnRiserConnection"    Style="{StaticResource RbnBtn}"/>
-                                                    <Button Content="📍 Kolon Konumu"    Click="OnRiserAutoPosition"  Style="{StaticResource RbnBtn}" ToolTip="Vitrifiye merkezinden optimum riser XY önerisi"/>
+                                                    <Button Click="OnValveLibrary"       Style="{StaticResource RbnBtn}" ToolTip="Vana kütüphanesi (TS EN 1074)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Wrench}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Vana Kütüphanesi" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnPipeWizard"         Style="{StaticResource RbnBtn}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Boru Sihirbazı" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnAutoBranchingClick" Style="{StaticResource RbnBtn}" ToolTip="Otomatik Şube Bağlantısı">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Oto Bağlantı" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnRiserConnection"    Style="{StaticResource RbnBtn}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Kolon Bağlantısı" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnRiserAutoPosition"  Style="{StaticResource RbnBtn}" ToolTip="Vitrifiye merkezinden optimum riser XY önerisi">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.MapMarker}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Kolon Konumu" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Akıllı Bağlantı" Foreground="#6B6F88" FontSize="10"
@@ -736,31 +794,51 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeOrange}" Click="OnHeatingDesign" ToolTip="Isı kaybı (TS 825) · Radyatör · Kazan · Pompa (TS EN 12831)">
                                                     <StackPanel>
-                                                        <TextBlock Text="🔥" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Isıtma" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLargeAccent}" Click="OnCoolingDesign" ToolTip="Soğutma yük hesabı (ASHRAE / TS EN 12831-3)">
                                                     <StackPanel>
-                                                        <TextBlock Text="❄" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Snowflake}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Soğutma" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnHvacDesign" ToolTip="Kanal boyutlandırma · Fan seçimi (TS EN 13779)">
                                                     <StackPanel>
-                                                        <TextBlock Text="🌬" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Fan}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="HVAC" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="🚿 Pis Su"         Click="OnWasteWaterDesign"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                                <Button Content="🧯 Fosseptik"       Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}" Margin="2,2,0,0"/>
-                                                <Button Content="🌧 Yağmur Suyu"     Click="OnRainWaterCalc"    Style="{StaticResource RbnBtn}" Margin="2,2,0,0"/>
+                                                <Button Click="OnWasteWaterDesign"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.ShowerHead}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Pis Su" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnSepticTankDesign" Style="{StaticResource RbnBtn}" Margin="2,2,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Fosseptik" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnRainWaterCalc"    Style="{StaticResource RbnBtn}" Margin="2,2,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Yağmur Suyu" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="🧱 TS 825 Isı Yalıtım" Click="OnTS825Insulation" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"
-                                                        ToolTip="TS 825 — U değeri · yalıtım kalınlığı · ısı kaybı · yıllık enerji"/>
+                                                <Button Click="OnTS825Insulation" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"
+                                                        ToolTip="TS 825 — U değeri · yalıtım kalınlığı · ısı kaybı · yıllık enerji">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Brick}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="TS 825 Isı Yalıtım" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <TextBlock Text="Sistem Tasarımı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
@@ -772,12 +850,42 @@
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
                                             <StackPanel>
-                                                <Button Content="🏗️ Depo / Hidrofor"  Click="OnDepoHidrofor"       Style="{StaticResource RbnBtn}" ToolTip="Su deposu + hidrofor seçimi (TS 1258)"/>
-                                                <Button Content="💧 Su Sayacı"         Click="OnWaterMeter"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                                <Button Content="♻ Genleşme Tankı"    Click="OnExpansionTank"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 12828"/>
-                                                <Button Content="🛡 Geri Akış Önl."   Click="OnBackflowPreventer"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 1717"/>
-                                                <Button Content="⛽ Doğalgaz Hesabı"  Click="OnGasCalc"            Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 1775"/>
-                                                <Button Content="📋 Pis Su Hesap Föyü" Click="OnWasteWaterCalcSheet" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                                <Button Click="OnDepoHidrofor"       Style="{StaticResource RbnBtn}" ToolTip="Su deposu + hidrofor seçimi (TS 1258)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Depo / Hidrofor" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnWaterMeter"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Su Sayacı" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnExpansionTank"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 12828">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Genleşme Tankı" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnBackflowPreventer"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 1717">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Shield}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Geri Akış Önl." VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnGasCalc"            Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 1775">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Doğalgaz Hesabı" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnWasteWaterCalcSheet" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Pis Su Hesap Föyü" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <TextBlock Text="Tesisat Ekipmanları" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
@@ -791,21 +899,31 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeAccent}" Click="OnLineCommand"   ToolTip="Çizgi Çiz (L)">
                                                     <StackPanel>
-                                                        <TextBlock Text="✏" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Çizgi" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLargeAccent}" Click="OnCircleCommand" ToolTip="Daire Çiz (C)">
                                                     <StackPanel>
-                                                        <TextBlock Text="⬤" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Circle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Daire" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel Margin="4,8,0,0">
-                                                    <Button Content="✂ Buda (TR)"   Click="OnTrimCommand"    Style="{StaticResource RbnMedRed}"/>
+                                                    <Button Click="OnTrimCommand"    Style="{StaticResource RbnMedRed}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Scissors}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Buda (TR)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button Content="↔ Uzat (EX)"   Click="OnExtendCommand"  Style="{StaticResource RbnMedGreen}" Margin="0,2,0,0"/>
                                                     <Button Content="⟺ Ayna (MI)"  Click="OnMirrorCommand"  Style="{StaticResource RbnMedOrange}" Margin="0,2,0,0"/>
-                                                    <Button Content="⛏ Patlat (X)"  Click="OnExplodeCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                                    <Button Click="OnExplodeCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Patlat (X)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Yardımcı Çizim" Foreground="#6B6F88" FontSize="10"
@@ -819,13 +937,18 @@
                                         <StackPanel>
                                             <Button Style="{StaticResource RbnLargeRed}" Click="OnFireFightingDesign" ToolTip="Yangın Tesisat Tasarımı">
                                                 <StackPanel>
-                                                    <TextBlock Text="🔥" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                    <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                     <TextBlock Text="Yangın" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     <TextBlock Text="Tesisatı" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <Button Content="🔧 İleri Araçlar" Click="OnAdvancedTools" Style="{StaticResource RbnBtn}"
-                                                    Margin="0,2,0,0" ToolTip="Yağmur Oluğu · Gürültü Analizi"/>
+                                            <Button Click="OnAdvancedTools" Style="{StaticResource RbnBtn}"
+                                                    Margin="0,2,0,0" ToolTip="Yağmur Oluğu · Gürültü Analizi">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Wrench}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="İleri Araçlar" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Yangın &amp; İleri" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -836,7 +959,7 @@
                                         <StackPanel>
                                             <Button Style="{StaticResource RbnLargeGreen}" Click="OnConfirmRouting" ToolTip="Hesaplamanın kilidini açar">
                                                 <StackPanel>
-                                                    <TextBlock Text="✅" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                     <TextBlock Text="Boruyu" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     <TextBlock Text="Onayla" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
@@ -866,18 +989,38 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeRed}" Click="OnAuditSystem" ToolTip="Açık uçları ve ters debileri bulur">
                                                     <StackPanel>
-                                                        <TextBlock Text="🛡" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Shield}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Sistem" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Check" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel Margin="4,8,0,0">
-                                                    <Button Content="💥 Çakışma Analizi"    Click="OnClashDetectionClick" Style="{StaticResource RbnMedRed}"   ToolTip="3D Çakışma Analizi"/>
-                                                    <Button Content="🔗 Topoloji"            Click="OnNetworkTopology"     Style="{StaticResource RbnBtn}"    Margin="0,2,0,0"/>
+                                                    <Button Click="OnClashDetectionClick" Style="{StaticResource RbnMedRed}"   ToolTip="3D Çakışma Analizi">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Warning}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Çakışma Analizi" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnNetworkTopology"     Style="{StaticResource RbnBtn}"    Margin="0,2,0,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Link}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Topoloji" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button x:Name="BtnPressureMap"
-                                                            Content="🌡 Basınç Haritası"     Click="OnPressureMapToggle"   Style="{StaticResource RbnBtn}"    Margin="0,2,0,0"/>
+                                                            Click="OnPressureMapToggle"   Style="{StaticResource RbnBtn}"    Margin="0,2,0,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Thermometer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Basınç Haritası" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button x:Name="BtnClashHighlight"
-                                                            Content="🔴 Çakışma Vurgusu"    Click="OnClashHighlightToggle" Style="{StaticResource RbnBtn}"   Margin="0,2,0,0"/>
+                                                            Click="OnClashHighlightToggle" Style="{StaticResource RbnBtn}"   Margin="0,2,0,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Circle}" Fill="{StaticResource IconFillDanger}" Width="11" Height="11" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Çakışma Vurgusu" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Validasyon &amp; Çakışma" Foreground="#6B6F88" FontSize="10"
@@ -892,13 +1035,23 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeGreen}" Click="OnRecalculateSystem" ToolTip="Tüm sistemi hesapla">
                                                     <StackPanel>
-                                                        <TextBlock Text="⚡" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Flash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="HESAPLA" FontSize="9" HorizontalAlignment="Center" FontWeight="Bold" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <StackPanel Margin="4,8,0,0">
-                                                    <Button Content="📊 Sistem Analizi"  Click="OnAutoPipeSizing"       Style="{StaticResource RbnBtn}"/>
-                                                    <Button Content="🔄 Tesisat (Sadece)" Click="OnRecalculatePlumbing" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                                    <Button Click="OnAutoPipeSizing"       Style="{StaticResource RbnBtn}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Sistem Analizi" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnRecalculatePlumbing" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Tesisat (Sadece)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Sizing Motoru" Foreground="#6B6F88" FontSize="10"
@@ -909,8 +1062,18 @@
                                     <!-- Kritik Hat -->
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4">
                                         <StackPanel>
-                                            <Button Content="📉 Basınç Kaybı" Click="OnPressureDropCalc" Style="{StaticResource RbnMed}" ToolTip="Kritik Hat Basınç Kaybı"/>
-                                            <Button Content="💧 Pompa Seçimi" Click="OnPumpSelection"    Style="{StaticResource RbnMedAccent}" Margin="0,4,0,0"/>
+                                            <Button Click="OnPressureDropCalc" Style="{StaticResource RbnMed}" ToolTip="Kritik Hat Basınç Kaybı">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ChartLineDown}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Basınç Kaybı" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnPumpSelection"    Style="{StaticResource RbnMedAccent}" Margin="0,4,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.WaterDrop}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Pompa Seçimi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Kritik Hat &amp; Cihaz" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -933,8 +1096,18 @@
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4"
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
-                                            <Button Content="✏️ Çapları Yazdır" Click="OnAutoAnnotate"     Style="{StaticResource RbnMedGreen}"/>
-                                            <Button Content="🗑️ Temizle"         Click="OnClearAnnotations" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                            <Button Click="OnAutoAnnotate"     Style="{StaticResource RbnMedGreen}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Çapları Yazdır" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnClearAnnotations" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Temizle" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Anotasyon" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -944,9 +1117,24 @@
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4"
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
-                                            <Button Content="📊 Hesaplama Tab."  Click="OnCalculationTable"       Style="{StaticResource RbnMedAccent}"/>
-                                            <Button Content="📈 Hidrolik Rapor"  Click="OnGenerateHydraulicReport" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="📄 Sistem Raporu"   Click="OnReportExport"           Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="HTML/CSV/RTF"/>
+                                            <Button Click="OnCalculationTable"       Style="{StaticResource RbnMedAccent}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Hesaplama Tab." VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnGenerateHydraulicReport" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ChartLineUp}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Hidrolik Rapor" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnReportExport"           Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="HTML/CSV/RTF">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Sistem Raporu" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Föyler" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -956,8 +1144,18 @@
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4"
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
-                                            <Button Content="📐 Kolon Şeması"  Click="OnRiserDiagramExport"   Style="{StaticResource RbnMed}"/>
-                                            <Button Content="📊 İzometrik Şema" Click="OnShowIsometricScheme" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                            <Button Click="OnRiserDiagramExport"   Style="{StaticResource RbnMed}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Kolon Şeması" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnShowIsometricScheme" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="İzometrik Şema" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Şemalar" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -967,10 +1165,30 @@
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4"
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
-                                            <Button Content="📝 Metraj (BOQ)"  Click="OnGenerateBOQ_Click"      Style="{StaticResource RbnMedGreen}"/>
-                                            <Button Content="📜 Lejant"         Click="OnGenerateLegend"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="📋 Şartname"       Click="OnSpecificationExport"    Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="📄 PDF Rapor"      Click="OnPdfExport"              Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                            <Button Click="OnGenerateBOQ_Click"      Style="{StaticResource RbnMedGreen}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Metraj (BOQ)" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnGenerateLegend"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Lejant" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnSpecificationExport"    Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Şartname" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnPdfExport"              Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="PDF Rapor" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Listeler" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -981,29 +1199,94 @@
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="📤 DXF"       Click="OnExportDxfCommand"  Style="{StaticResource RbnMedAccent}" ToolTip="DXF R12 dışa aktar"/>
-                                                <Button Content="💾 DWG"       Click="OnExportDwgCommand"  Style="{StaticResource RbnMed}"       Margin="2,0,0,0"/>
-                                                <Button Content="📊 Excel"     Click="OnExportExcel"       Style="{StaticResource RbnMedGreen}"  Margin="2,0,0,0"/>
+                                                <Button Click="OnExportDxfCommand"  Style="{StaticResource RbnMedAccent}" ToolTip="DXF R12 dışa aktar">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.TrayUpload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="DXF" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnExportDwgCommand"  Style="{StaticResource RbnMed}"       Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="DWG" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnExportExcel"       Style="{StaticResource RbnMedGreen}"  Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Button Content="🖼 PNG"        Click="OnExportPng"         Style="{StaticResource RbnBtn}"/>
-                                                <Button Content="🌐 Mobil"      Click="OnExportHtmlViewer"  Style="{StaticResource RbnBtn}" Margin="2,0,0,0"/>
-                                                <Button Content="📥 IFC"        Click="OnIfcImportCommand"  Style="{StaticResource RbnBtn}" Margin="2,0,0,0"/>
+                                                <Button Click="OnExportPng"         Style="{StaticResource RbnBtn}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Image}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="PNG" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnExportHtmlViewer"  Style="{StaticResource RbnBtn}" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Globe}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Mobil" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnIfcImportCommand"  Style="{StaticResource RbnBtn}" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.TrayDownload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="IFC" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Button Content="🏢 BIM Özellik"   Click="OnBimProperties"          Style="{StaticResource RbnBtn}"/>
-                                                <Button Content="🧱 DWG→BIM"      Click="OnSmartBimConvert"        Style="{StaticResource RbnBtn}" Margin="2,0,0,0"/>
+                                                <Button Click="OnBimProperties"          Style="{StaticResource RbnBtn}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="BIM Özellik" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnSmartBimConvert"        Style="{StaticResource RbnBtn}" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Brick}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="DWG→BIM" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Button Content="🏗 Mimari Ktph." Click="OnArchitecturalLibrary"   Style="{StaticResource RbnBtn}"/>
-                                                <Button Content="📐 Axonometrik"  Click="OnAxonometricExport"      Style="{StaticResource RbnBtn}" Margin="2,0,0,0"/>
+                                                <Button Click="OnArchitecturalLibrary"   Style="{StaticResource RbnBtn}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Mimari Ktph." VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnAxonometricExport"      Style="{StaticResource RbnBtn}" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Axonometrik" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Button Content="📦 Üretici Ktlg." Click="OnManufacturerCatalog"   Style="{StaticResource RbnBtn}" ToolTip="Grundfos · Wilo · Valsir · Wavin · Geberit"/>
-                                                <Button Content="🖨 Pafta"         Click="OnPrintLayout"           Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="A3/A2 antetli pafta"/>
+                                                <Button Click="OnManufacturerCatalog"   Style="{StaticResource RbnBtn}" ToolTip="Grundfos · Wilo · Valsir · Wavin · Geberit">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Package}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Üretici Ktlg." VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnPrintLayout"           Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="A3/A2 antetli pafta">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Printer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Pafta" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Button Content="📥 Poz CSV İçe"   Click="OnImportPozCsv"          Style="{StaticResource RbnBtn}" ToolTip="Bayındırlık birim fiyat CSV içe aktar (PozNo;Tanim;Birim;BirimFiyat;IsGrubu)"/>
+                                                <Button Click="OnImportPozCsv"          Style="{StaticResource RbnBtn}" ToolTip="Bayındırlık birim fiyat CSV içe aktar (PozNo;Tanim;Birim;BirimFiyat;IsGrubu)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.TrayDownload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Poz CSV İçe" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <TextBlock Text="Dışa / İçeri" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
@@ -1014,10 +1297,20 @@
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4"
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
-                                            <Button Content="🖨️ Yazdır"               Click="OnPrintViewport"       Style="{StaticResource RbnMedGreen}" ToolTip="A3/A4 yazıcı"/>
+                                            <Button Click="OnPrintViewport"       Style="{StaticResource RbnMedGreen}" ToolTip="A3/A4 yazıcı">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Printer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Yazdır" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <Button x:Name="BtnFlowAnim"
                                                     Content="▶ Akış Animasyonu"       Click="OnFlowAnimationToggle" Style="{StaticResource RbnBtn}"     Margin="0,2,0,0"/>
-                                            <Button Content="☁️ Bulut Yedek"          Click="OnCloudBackup"         Style="{StaticResource RbnBtn}"     Margin="0,2,0,0"/>
+                                            <Button Click="OnCloudBackup"         Style="{StaticResource RbnBtn}"     Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Cloud}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Bulut Yedek" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Baskı &amp; Yedek" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -1027,11 +1320,36 @@
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4"
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
-                                            <Button Content="♻️ Resirkülasyon"   Click="OnHotWaterCirculation" Style="{StaticResource RbnBtn}" ToolTip="Sıcak su resirkülasyon devresi"/>
-                                            <Button Content="🔵 Basınç Bölgesi" Click="OnPressureZoneDesign"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="PRV basınç bölgesi"/>
-                                            <Button Content="💰 Maliyet Analizi" Click="OnPipeCostAnalysis"   Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="📐 Oto Boyutlandır" Click="OnAutoSizing"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 806-3 oto boyut"/>
-                                            <Button Content="⚙ Pompaj Grubu"    Click="OnPumpGroup"          Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                            <Button Click="OnHotWaterCirculation" Style="{StaticResource RbnBtn}" ToolTip="Sıcak su resirkülasyon devresi">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Resirkülasyon" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnPressureZoneDesign"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="PRV basınç bölgesi">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Circle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="11" Height="11" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Basınç Bölgesi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnPipeCostAnalysis"   Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Cash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Maliyet Analizi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnAutoSizing"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="TS EN 806-3 oto boyut">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Oto Boyutlandır" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnPumpGroup"          Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Pompaj Grubu" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="İleri Analiz" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -1048,37 +1366,57 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource RbnLargeGreen}" Click="OnNewProjectWizard" ToolTip="Şablon sihirbazı — Konut/Otel/AVM/Hastane">
                                                     <StackPanel>
-                                                        <TextBlock Text="🚀" FontSize="22" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        <Path Data="{StaticResource Ico.FolderPlus}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Yeni" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Proje" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnRevisionTracking" ToolTip="Rev.A/B/C değişiklik takibi · onay akışı">
                                                     <StackPanel>
-                                                        <TextBlock Text="📋" FontSize="22" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Revizyon" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnFanSelection" ToolTip="Systemair · Halton · S&amp;P — SFP EN 13779">
                                                     <StackPanel>
-                                                        <TextBlock Text="💨" FontSize="22" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Fan}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Fan" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Seçimi" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLargeOrange}" Click="OnHeatPump" ToolTip="Daikin · Vaillant · Mitsubishi — COP/SCOP/SEER (EN 14825)">
                                                     <StackPanel>
-                                                        <TextBlock Text="🌡" FontSize="22" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Thermometer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Isı" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                                         <TextBlock Text="Pompası" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                                <Button Content="🌡 Yerden Isıtma"  Click="OnFloorHeating"       Style="{StaticResource RbnBtn}" ToolTip="TS EN 1264 — boru aralığı · devre · basınç"/>
-                                                <Button Content="🔥 Sprinkler"      Click="OnSprinklerDesign"    Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="NFPA 13 yoğunluk/alan"/>
-                                                <Button Content="⚡ EKB"            Click="OnEnergyPerformance"  Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="TS 825:2023 / EPBD A++→G"/>
-                                                <Button Content="💨 AHU Tasarım"    Click="OnAHUDesign"          Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="AHU ısıtma/soğutma/nem/fan"/>
+                                                <Button Click="OnFloorHeating"       Style="{StaticResource RbnBtn}" ToolTip="TS EN 1264 — boru aralığı · devre · basınç">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Thermometer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Yerden Isıtma" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnSprinklerDesign"    Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="NFPA 13 yoğunluk/alan">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Sprinkler" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnEnergyPerformance"  Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="TS 825:2023 / EPBD A++→G">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Flash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="EKB" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnAHUDesign"          Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="AHU ısıtma/soğutma/nem/fan">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Fan}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="AHU Tasarım" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <TextBlock Text="Enerji &amp; Yangın &amp; HVAC" Foreground="#2ECC71" FontSize="9"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
@@ -1088,11 +1426,36 @@
                                     <!-- Pafta & Çıktı -->
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4">
                                         <StackPanel>
-                                            <Button Content="📷 Ekran Çizimi"    Click="OnViewportCapture"  Style="{StaticResource RbnBtn}"/>
-                                            <Button Content="🔗 Xref Yöneticisi" Click="OnXrefManager"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="📄 Pafta Düzeni"    Click="OnLayoutSheet"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="🗒 Antet"           Click="OnTitleBlock"       Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
-                                            <Button Content="🔄 Kat Senkron"     Click="OnSyncSystemLayers" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"/>
+                                            <Button Click="OnViewportCapture"  Style="{StaticResource RbnBtn}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Camera}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Ekran Çizimi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnXrefManager"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Link}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Xref Yöneticisi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnLayoutSheet"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Pafta Düzeni" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnTitleBlock"       Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Antet" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnSyncSystemLayers" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Kat Senkron" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Pafta &amp; Çıktı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -1106,7 +1469,7 @@
                     <!-- ══════════════════════════════════════════════════════════ -->
                     <!-- TAB 6: BOYUTLANDIRMA                                      -->
                     <!-- ══════════════════════════════════════════════════════════ -->
-                    <TabItem Header="📐 Boyut" x:Name="TabDimension">
+                    <TabItem Header="Boyut" x:Name="TabDimension">
                         <Border Background="#1E2029" Padding="4,6,4,4">
                             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <StackPanel Orientation="Horizontal">
@@ -1191,7 +1554,7 @@
                     <!-- ══════════════════════════════════════════════════════════ -->
                     <!-- TAB 7: AutoBLD (MİMARİ)                                   -->
                     <!-- ══════════════════════════════════════════════════════════ -->
-                    <TabItem Header="🏗 AutoBLD" x:Name="TabAutoBLD">
+                    <TabItem Header="AutoBLD" x:Name="TabAutoBLD">
                         <Border Background="#1E2029" Padding="4,6,4,4">
                             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <StackPanel Orientation="Horizontal">
@@ -1205,7 +1568,7 @@
                                                         Click="OnBuildingProperties"
                                                         ToolTip="Bina/Aktif Kat Belirle — Mimari çizimi programa girin">
                                                     <StackPanel>
-                                                        <TextBlock Text="🏠" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Home}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Mimari" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Belirle" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1214,7 +1577,7 @@
                                                         Click="OnLevelManager"
                                                         ToolTip="Katman Yöneticisi">
                                                     <StackPanel>
-                                                        <TextBlock Text="📶" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Layers}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Katman" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Yönet" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1223,7 +1586,7 @@
                                                         Click="OnMultiStoryManager"
                                                         ToolTip="Kat Kopyala — Tesisatı başka kata kopyala">
                                                     <StackPanel>
-                                                        <TextBlock Text="📋" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Layers}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Kat" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Kopyala" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1243,7 +1606,7 @@
                                                         Click="OnRecognizeArchitecture"
                                                         ToolTip="Mimari Eleman Seç — DWG çizgilerini tanı">
                                                     <StackPanel>
-                                                        <TextBlock Text="🧱" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Brick}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Eleman" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Tanı" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1252,7 +1615,7 @@
                                                         Click="OnSmartBimConvert"
                                                         ToolTip="DWG → BIM Dönüşüm">
                                                     <StackPanel>
-                                                        <TextBlock Text="🔄" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="DWG→" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="BIM" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1261,7 +1624,7 @@
                                                         Click="OnArchitecturalLibrary"
                                                         ToolTip="Yapı Elemanları Kütüphanesi">
                                                     <StackPanel>
-                                                        <TextBlock Text="📚" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Package}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Kütüphane" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -1280,7 +1643,7 @@
                                                         Click="OnBlockCommand"
                                                         ToolTip="Blok Tanımla (BLOCK)">
                                                     <StackPanel>
-                                                        <TextBlock Text="🔲" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Rectangle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Blok" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Tanımla" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1289,7 +1652,7 @@
                                                         Click="OnWBlockCommand"
                                                         ToolTip="Blok Oluştur / Dışa Kaydet (WBLOCK)">
                                                     <StackPanel>
-                                                        <TextBlock Text="💾" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="WBlock" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Kaydet" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1298,7 +1661,7 @@
                                                         Click="OnInsertCommand"
                                                         ToolTip="Blok Ekle (INSERT)">
                                                     <StackPanel>
-                                                        <TextBlock Text="📥" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.TrayDownload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Blok" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Ekle" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1318,7 +1681,7 @@
                                                         Click="OnDistCommand"
                                                         ToolTip="Uzaklık Ölç (DIST) — İki nokta arası mesafe">
                                                     <StackPanel>
-                                                        <TextBlock Text="📏" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Uzaklık" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -1326,7 +1689,7 @@
                                                         Click="OnTitleBlock"
                                                         ToolTip="Pafta / Antet Ekle">
                                                     <StackPanel>
-                                                        <TextBlock Text="🗒" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Pafta" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Antet" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1335,7 +1698,7 @@
                                                         Click="OnToggle3DView"
                                                         ToolTip="3D Görünüm — Aksonometrik">
                                                     <StackPanel>
-                                                        <TextBlock Text="🧊" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="3D" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                         <TextBlock Text="Görünüm" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
@@ -1354,7 +1717,7 @@
                     <!-- ══════════════════════════════════════════════════════════ -->
                     <!-- TAB 8: GÖRÜNÜM                                            -->
                     <!-- ══════════════════════════════════════════════════════════ -->
-                    <TabItem Header="👁 Görünüm" x:Name="TabView">
+                    <TabItem Header="Görünüm" x:Name="TabView">
                         <Border Background="#1E2029" Padding="4,6,4,4">
                             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <StackPanel Orientation="Horizontal">
@@ -1365,7 +1728,7 @@
                                         <StackPanel>
                                             <Button Style="{StaticResource RbnLargeAccent}" Click="OnZoomExtents" ToolTip="Tüm çizimi sığdır">
                                                 <StackPanel>
-                                                    <TextBlock Text="🔎" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                    <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                     <TextBlock Text="Zoom" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     <TextBlock Text="Extents" FontSize="9" HorizontalAlignment="Center"/>
                                                 </StackPanel>
@@ -1394,7 +1757,7 @@
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}" Click="OnPipe3DView" ToolTip="3D Boru Görünümü">
                                                     <StackPanel>
-                                                        <TextBlock Text="🧊" FontSize="22" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="3D Boru" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -1409,16 +1772,51 @@
                                             BorderBrush="#252836" BorderThickness="0,0,1,0">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Button x:Name="BtnToggleColdWater"  Content="💧 Temiz Su"    Click="OnToggleColdWater"  Style="{StaticResource RbnBtn}" Tag="MEP_TEMIZ_SU"     ToolTip="Temiz su göster/gizle"/>
-                                                <Button x:Name="BtnToggleHotWater"   Content="🔴 Sıcak Su"    Click="OnToggleHotWater"   Style="{StaticResource RbnBtn}" Tag="MEP_SICAK_SU"     ToolTip="Sıcak su göster/gizle" Margin="2,0,0,0"/>
-                                                <Button x:Name="BtnToggleWasteWater" Content="🟤 Pis Su"      Click="OnToggleWasteWater" Style="{StaticResource RbnBtn}" Tag="MEP_PIS_SU"       ToolTip="Pis su göster/gizle" Margin="2,0,0,0"/>
+                                                <Button x:Name="BtnToggleColdWater"  Click="OnToggleColdWater"  Style="{StaticResource RbnBtn}" Tag="MEP_TEMIZ_SU"     ToolTip="Temiz su göster/gizle">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Temiz Su" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnToggleHotWater"   Click="OnToggleHotWater"   Style="{StaticResource RbnBtn}" Tag="MEP_SICAK_SU"     ToolTip="Sıcak su göster/gizle" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Circle}" Fill="#E74C3C" Width="11" Height="11" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Sıcak Su" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnToggleWasteWater" Click="OnToggleWasteWater" Style="{StaticResource RbnBtn}" Tag="MEP_PIS_SU"       ToolTip="Pis su göster/gizle" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Circle}" Fill="#8D6E63" Width="11" Height="11" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Pis Su" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Button x:Name="BtnToggleFire"       Content="🔥 Yangın"      Click="OnToggleFire"       Style="{StaticResource RbnBtn}" Tag="MEP_YANGIN"       ToolTip="Yangın göster/gizle"/>
-                                                <Button x:Name="BtnToggleGas"        Content="⛽ Gaz"          Click="OnToggleGas"        Style="{StaticResource RbnBtn}" Tag="MEP_GAZ"          ToolTip="Gaz göster/gizle" Margin="2,0,0,0"/>
-                                                <Button x:Name="BtnToggleVent"       Content="🌀 Havaland."   Click="OnToggleVent"       Style="{StaticResource RbnBtn}" Tag="MEP_HAVALANDIRMA" ToolTip="Havalandırma göster/gizle" Margin="2,0,0,0"/>
+                                                <Button x:Name="BtnToggleFire"       Click="OnToggleFire"       Style="{StaticResource RbnBtn}" Tag="MEP_YANGIN"       ToolTip="Yangın göster/gizle">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Yangın" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnToggleGas"        Click="OnToggleGas"        Style="{StaticResource RbnBtn}" Tag="MEP_GAZ"          ToolTip="Gaz göster/gizle" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Gaz" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnToggleVent"       Click="OnToggleVent"       Style="{StaticResource RbnBtn}" Tag="MEP_HAVALANDIRMA" ToolTip="Havalandırma göster/gizle" Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Fan}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Havaland." VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
-                                            <Button Content="✅ Tümünü Göster" Click="OnShowAllSystems" Style="{StaticResource RbnOk}" Margin="0,2,0,0"/>
+                                            <Button Click="OnShowAllSystems" Style="{StaticResource RbnOk}" Margin="0,2,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Tümünü Göster" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Sistem Görünürlüğü" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -1427,8 +1825,18 @@
                                     <!-- Paneller -->
                                     <Border Margin="0,0,2,0" Padding="6,0,6,4">
                                         <StackPanel>
-                                            <Button Content="📁 Navigator"    Click="OnToggleProjectNavigator" Style="{StaticResource RbnMed}"/>
-                                            <Button Content="🧠 Intelligence" Click="OnToggleIntelligencePanel" Style="{StaticResource RbnMed}" Margin="0,4,0,0"/>
+                                            <Button Click="OnToggleProjectNavigator" Style="{StaticResource RbnMed}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Navigator" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnToggleIntelligencePanel" Style="{StaticResource RbnMed}" Margin="0,4,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.Lightbulb}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Intelligence" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Paneller" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -1462,23 +1870,27 @@
                     BorderBrush="#252836" BorderThickness="0,0,1,0">
                 <StackPanel VerticalAlignment="Top">
                     <Button x:Name="TabNavBtn"
-                            Content="📁"
                             Style="{StaticResource ActivityBtn}"
                             Click="OnLeftTab_Navigator"
-                            ToolTip="Proje Gezgini"/>
+                            ToolTip="Proje Gezgini">
+                        <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="18" Height="18" Stretch="Uniform"/>
+                    </Button>
                     <Button x:Name="TabLayerBtn"
-                            Content="🗂"
                             Style="{StaticResource ActivityBtn}"
                             Click="OnLeftTab_Layers"
-                            ToolTip="Katman Yöneticisi"/>
-                    <Button Content="🔍"
-                            Style="{StaticResource ActivityBtn}"
+                            ToolTip="Katman Yöneticisi">
+                        <Path Data="{StaticResource Ico.Layers}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="18" Height="18" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource ActivityBtn}"
                             Click="OnInspectMahalCommand"
-                            ToolTip="Mahal Analizi"/>
-                    <Button Content="🧠"
-                            Style="{StaticResource ActivityBtn}"
+                            ToolTip="Mahal Analizi">
+                        <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="18" Height="18" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource ActivityBtn}"
                             Click="OnToggleIntelligencePanel"
-                            ToolTip="Akıllı Asistan"/>
+                            ToolTip="Akıllı Asistan">
+                        <Path Data="{StaticResource Ico.Lightbulb}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="18" Height="18" Stretch="Uniform"/>
+                    </Button>
                 </StackPanel>
             </Border>
 
@@ -1531,10 +1943,12 @@
                                     Width="24" Height="20"
                                     Background="#24273A" Foreground="#60BAFF"
                                     BorderThickness="0" FontSize="12" Cursor="Hand" Margin="0,0,2,0"/>
-                            <Button Content="📂" Click="OnOpenFile"  ToolTip="Dosya Aç"
+                            <Button Click="OnOpenFile"  ToolTip="Dosya Aç"
                                     Width="24" Height="20"
                                     Background="#24273A" Foreground="#858899"
-                                    BorderThickness="0" FontSize="11" Cursor="Hand" Margin="0,0,4,0"/>
+                                    BorderThickness="0" Cursor="Hand" Margin="0,0,4,0">
+                                <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="10" Height="10" Stretch="Uniform"/>
+                            </Button>
                             <TextBlock x:Name="TxtTabCount" Text="" Foreground="#35374A"
                                        FontSize="10" VerticalAlignment="Center" Margin="4,0,0,0"/>
                         </StackPanel>
