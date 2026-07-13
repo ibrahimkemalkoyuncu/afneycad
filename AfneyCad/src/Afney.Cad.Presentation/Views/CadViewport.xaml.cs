@@ -843,23 +843,31 @@ namespace Afney.Cad.Presentation.Views;
             if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && _activeCommand == null
                 && _database != null && _lastMouseWorldPos.HasValue)
             {
-                // Çift tıkla → Entity Properties
+                // Çift tıkla → Entity Properties (QuadTree ile bölgesel sorgu — bkz. hover hit-test notu)
                 double ht = 12.0 / Math.Max(0.001, _zoom);
                 var wp = _lastMouseWorldPos.Value;
-                var all = _database.GetAllEntities().ToList();
-                for (int i = all.Count - 1; i >= 0; i--)
+                var queryBox = new CadBoundingBox(
+                    new Vector3D(wp.X - ht, wp.Y - ht, -1e9),
+                    new Vector3D(wp.X + ht, wp.Y + ht, 1e9));
+
+                CadEntity? bestEnt = null;
+                double bestDist = ht;
+                foreach (var ent in _database.QueryEntities(queryBox))
                 {
-                    var ent = all[i];
                     if (HiddenLayers.Contains(ent.Layer)) continue;
-                    var bb = ent.GetBoundingBox();
-                    if (wp.X >= bb.Min.X - ht && wp.X <= bb.Max.X + ht &&
-                        wp.Y >= bb.Min.Y - ht && wp.Y <= bb.Max.Y + ht &&
-                        ent.DistanceTo(wp) < ht)
+                    double dist = ent.DistanceTo(wp);
+                    if (dist < bestDist)
                     {
-                        EntityDoubleClicked?.Invoke(ent);
-                        e.Handled = true;
-                        return;
+                        bestDist = dist;
+                        bestEnt = ent;
                     }
+                }
+
+                if (bestEnt != null)
+                {
+                    EntityDoubleClicked?.Invoke(bestEnt);
+                    e.Handled = true;
+                    return;
                 }
             }
 
@@ -1067,30 +1075,29 @@ namespace Afney.Cad.Presentation.Views;
                 _lastMouseMoveTime = DateTime.Now;
                 
                 // MÜHENDİSLİK: Faz 26 - Hover detection (Hit-Testing)
+                // NOT: Önceden tüm veritabanını (_database.GetAllEntities()) doğrusal taranıyordu —
+                // 10.000+ nesneli çizimlerde her fare hareketinde O(n) maliyet yaratıyordu.
+                // Artık QuadTree'den (aynı indeks render/box-select'te de kullanılıyor) sadece imlecin
+                // etrafındaki küçük bölgeyi sorguluyoruz; en yakın nesne "en üstteki" olarak seçilir.
                 if (!_isPanning && !_isSelecting && _database != null && _activeCommand == null)
                 {
                     double hitTolerance = 10.0 / Math.Max(0.001, _zoom); // Ekranda 10px tolerans
                     CadEntity? foundHit = null;
+                    double bestDistance = hitTolerance;
 
-                    // Ters döngü: Üstte çizilmiş (son eklenmiş) objeleri önce bul
-                    var allEntities = _database.GetAllEntities().ToList();
-                    for (int i = allEntities.Count - 1; i >= 0; i--)
+                    var queryBox = new CadBoundingBox(
+                        new Vector3D(worldPos.X - hitTolerance, worldPos.Y - hitTolerance, -1e9),
+                        new Vector3D(worldPos.X + hitTolerance, worldPos.Y + hitTolerance, 1e9));
+
+                    foreach (var ent in _database.QueryEntities(queryBox))
                     {
-                        var ent = allEntities[i];
-                        if (!HiddenLayers.Contains(ent.Layer))
+                        if (HiddenLayers.Contains(ent.Layer)) continue;
+
+                        double dist = ent.DistanceTo(worldPos);
+                        if (dist < bestDistance)
                         {
-                            var bbox = ent.GetBoundingBox();
-                            // Hızlı BoundingBox ön-filtresi (Genişletilmiş tolerance ile)
-                            if (worldPos.X >= bbox.Min.X - hitTolerance && worldPos.X <= bbox.Max.X + hitTolerance &&
-                                worldPos.Y >= bbox.Min.Y - hitTolerance && worldPos.Y <= bbox.Max.Y + hitTolerance)
-                            {
-                                // Detaylı mesafe ölçümü
-                                if (ent.DistanceTo(worldPos) < hitTolerance)
-                                {
-                                    foundHit = ent;
-                                    break;
-                                }
-                            }
+                            bestDistance = dist;
+                            foundHit = ent;
                         }
                     }
 
