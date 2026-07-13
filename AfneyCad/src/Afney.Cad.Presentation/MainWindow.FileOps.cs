@@ -403,19 +403,6 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void OnCloseEditor(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Editör kapatıldı (Simülasyon).", "Bilgi");
-        }
-
-        private void OnCloseFolder(object sender, RoutedEventArgs e)
-        {
-        }
-
-        private void OnCloseWindow(object sender, RoutedEventArgs e)
-        {
-            System.Windows.Application.Current.Shutdown();
-        }
 
         private void OnIfcImportCommand(object sender, RoutedEventArgs e)
         {

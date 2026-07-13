@@ -173,7 +173,7 @@ namespace Afney.Cad.Presentation.Dialogs
             foreach(var l in Levels) if (l.IsNormalized) l.IsAligned = true;
             LevelsGrid.Items.Refresh();
 
-            MessageBox.Show("Bina stack işlemi başarıyla tamamlandı.\nKolonlar otomatik hizalandı.", "Assembly Engine");
+            MessageBox.Show("Bina stack işlemi başarıyla tamamlandı.\nKolonlar otomatik hizalandı.", "Montaj Motoru", MessageBoxButton.OK, MessageBoxImage.Information);
             SaveDefinitions();
         }
 

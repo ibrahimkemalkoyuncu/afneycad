@@ -50,14 +50,22 @@ public partial class LevelManagerDialog : Window
     */
     private void AddButton_Click(object sender, RoutedEventArgs e)
     {
+        var name = NameTextBox.Text;
+        if (!double.TryParse(ElevationTextBox.Text, out var elevation))
+        {
+            MessageBox.Show("Kot alanına geçerli bir sayı girin.", "Geçersiz Değer", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (!double.TryParse(HeightTextBox.Text, out var height))
+        {
+            MessageBox.Show("Yükseklik alanına geçerli bir sayı girin.", "Geçersiz Değer", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         try
         {
-            var name = NameTextBox.Text;
-            var elevation = double.Parse(ElevationTextBox.Text);
-            var height = double.Parse(HeightTextBox.Text);
-            
             _levelManager.AddLevel(new MepLevel(name, elevation, height));
-            MessageBox.Show("Kat eklendi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+            StatusText.Text = $"'{name}' katı eklendi.";
         }
         catch (System.Exception ex)
         {
@@ -73,15 +81,22 @@ public partial class LevelManagerDialog : Window
     {
         if (LevelsGrid.SelectedItem is MepLevel selected)
         {
+            var name = NameTextBox.Text;
+            if (!double.TryParse(ElevationTextBox.Text, out var elevation))
+            {
+                MessageBox.Show("Kot alanına geçerli bir sayı girin.", "Geçersiz Değer", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!double.TryParse(HeightTextBox.Text, out var height))
+            {
+                MessageBox.Show("Yükseklik alanına geçerli bir sayı girin.", "Geçersiz Değer", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
-                var name = NameTextBox.Text;
-                var elevation = double.Parse(ElevationTextBox.Text);
-                var height = double.Parse(HeightTextBox.Text);
-                
                 _levelManager.UpdateLevel(selected.Name, name, elevation, height);
-                // MessageBox.Show("Kat güncellendi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information); 
-                // Artık otomatik refresh event'i tetikleniyor.
+                StatusText.Text = $"'{name}' katı güncellendi.";
             }
             catch (System.Exception ex)
             {
@@ -103,8 +118,9 @@ public partial class LevelManagerDialog : Window
             
             if (result == MessageBoxResult.Yes)
             {
-                _levelManager.RemoveLevel(selected.Name);
-                // MessageBox.Show("Kat silindi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                var removedName = selected.Name;
+                _levelManager.RemoveLevel(removedName);
+                StatusText.Text = $"'{removedName}' katı silindi.";
             }
         }
     }
@@ -139,11 +155,7 @@ public partial class LevelManagerDialog : Window
             // LevelManager zaten in-memory değişiklikleri tutuyor.
             // Bu buton kullanıcıya görsel geri bildirim verir.
             RefreshLevels();
-            MessageBox.Show(
-                $"Toplam {Levels.Count} kat bilgisi başarıyla kaydedildi.",
-                "💾 Kaydedildi",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            StatusText.Text = $"Toplam {Levels.Count} kat bilgisi kaydedildi.";
         }
         catch (System.Exception ex)
         {
@@ -182,11 +194,7 @@ public partial class LevelManagerDialog : Window
         {
             var oldName = selected.Name;
             _levelManager.UpdateLevel(oldName, newName, selected.Elevation, selected.Height);
-            MessageBox.Show(
-                $"'{oldName}' → '{newName}' olarak değiştirildi.",
-                "✏️ İsim Değiştirildi",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            StatusText.Text = $"'{oldName}' → '{newName}' olarak değiştirildi.";
         }
         catch (System.Exception ex)
         {

@@ -175,8 +175,11 @@
 
             <!-- Sol: İsim Değiştir -->
             <Button Grid.Column="0" Content="✏️ İsim Değiştir" Click="RenameButton_Click" Width="120"
-                    Background="#4A3A6A" Foreground="White" Padding="8,6" FontWeight="SemiBold" 
+                    Background="#4A3A6A" Foreground="White" Padding="8,6" FontWeight="SemiBold"
                     BorderThickness="0" Cursor="Hand" ToolTip="Seçili katın ismini değiştir"/>
+
+            <TextBlock Grid.Column="1" x:Name="StatusText" Foreground="#44DD88" FontSize="12"
+                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
             <!-- Sağ: Ana butonlar -->
             <StackPanel Grid.Column="2" Orientation="Horizontal">
