@@ -339,7 +339,7 @@ namespace Afney.Cad.Presentation
                     File.Delete(stateFile);
                 }
             }
-            catch { }
+            catch (Exception ex) { Log.Debug("[Katman Durumu] Kaydedilemedi: {Error}", ex.Message); }
         }
 
         private void LoadLayerState(string filePath)
@@ -357,7 +357,7 @@ namespace Afney.Cad.Presentation
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { Log.Debug("[Katman Durumu] Yüklenemedi: {Error}", ex.Message); }
         }
 
         private void OnExportDwgCommand(object sender, RoutedEventArgs e)

@@ -68,7 +68,10 @@ namespace Afney.Cad.Presentation.Dialogs
                     });
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning("[Yeni Proje] Klasör listesi okunamadı: {Error}", ex.Message);
+            }
         }
 
         public string SelectedFilePath { get; private set; } = string.Empty;
@@ -84,7 +87,7 @@ namespace Afney.Cad.Presentation.Dialogs
                 string name = ProjectNameBox.Text.Trim();
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    MessageBox.Show("Lütfen bir proje ismi giriniz.");
+                    MessageBox.Show("Lütfen bir proje ismi giriniz.", "Eksik Bilgi", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -99,7 +102,7 @@ namespace Afney.Cad.Presentation.Dialogs
             }
             catch(Exception ex)
             {
-                MessageBox.Show("Hata: " + ex.Message);
+                MessageBox.Show("Hata: " + ex.Message, "Proje Oluşturulamadı", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

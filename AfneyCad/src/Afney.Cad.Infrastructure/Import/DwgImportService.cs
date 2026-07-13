@@ -342,7 +342,8 @@ public class DwgImportService
                 {
                     // DimStyle text height; 0 = "use style default", fall back to 2.5 model-units
                     double dimTxtH = 2.5;
-                    try { var h = dimension.Style?.TextHeight; if (h.HasValue && h.Value > 0) dimTxtH = h.Value; } catch { }
+                    try { var h = dimension.Style?.TextHeight; if (h.HasValue && h.Value > 0) dimTxtH = h.Value; }
+                    catch (Exception ex) { Serilog.Log.Debug("[DWG] Dimension text height okunamadı, varsayılan kullanıldı: {Error}", ex.Message); }
 
                     dimTextEntity = new Afney.Cad.Domain.Entities.Basic.TextEntity(
                         dimText,
@@ -352,7 +353,7 @@ public class DwgImportService
                     dimTextEntity.Transform(transform);
                 }
             }
-            catch { }
+            catch (Exception ex) { Serilog.Log.Debug("[DWG] Dimension metni çıkarılamadı, etiketsiz devam edildi: {Error}", ex.Message); }
             if (dimTextEntity != null) yield return dimTextEntity;
 
             // Anonymous block'taki geometriyi çıkar
@@ -384,7 +385,7 @@ public class DwgImportService
 
                 isSolid = patternName.Equals("SOLID", StringComparison.OrdinalIgnoreCase);
             }
-            catch { }
+            catch (Exception ex) { Serilog.Log.Debug("[DWG] Hatch pattern adı okunamadı, varsayılan (ANSI31) kullanıldı: {Error}", ex.Message); }
 
             foreach (var path in hatch.Paths)
             {
@@ -538,7 +539,7 @@ public class DwgImportService
                     }
                 }
             }
-            catch { /* Normal vector okunamazsa atla */ }
+            catch (Exception ex) { Serilog.Log.Debug("[DWG] OCS normal vektörü okunamadı, entity WCS'de bırakıldı: {Error}", ex.Message); }
 
             // Parent transform uygula
             result.Transform(transform);
@@ -615,7 +616,7 @@ public class DwgImportService
                 _ => "TopLeft"
             };
         }
-        catch { }
+        catch (Exception ex) { Serilog.Log.Debug("[DWG] MText hizalaması okunamadı, varsayılan (TopLeft) kullanıldı: {Error}", ex.Message); }
 
         // MText drawing direction
         try
@@ -627,7 +628,7 @@ public class DwgImportService
                 if (dir == 3 || dir == 4) textEntity.Rotation = 90.0; // Vertical
             }
         }
-        catch { }
+        catch (Exception ex) { Serilog.Log.Debug("[DWG] MText yazı yönü okunamadı, varsayılan yatay kullanıldı: {Error}", ex.Message); }
 
         return textEntity;
     }
@@ -739,8 +740,9 @@ public class DwgImportService
             var ep = dynEllipse.EndMajorPoint;
             majorX = ep.X; majorY = ep.Y; majorZ = ep.Z;
         }
-        catch
+        catch (Exception ex)
         {
+            Serilog.Log.Warning("[DWG] Ellipse major axis noktası okunamadı, birim X ekseni varsayıldı (şekil hatalı olabilir): {Error}", ex.Message);
             majorX = 1; majorY = 0; majorZ = 0;
         }
 

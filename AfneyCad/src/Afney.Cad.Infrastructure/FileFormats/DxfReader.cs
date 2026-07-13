@@ -50,9 +50,9 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     using (var r = new ACadSharp.IO.DwgReader(path)) { doc = r.Read(); } 
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Okuma Hatası: {ex.Message}");
+                Serilog.Log.Error("[DXF] Dosya okunamadı: {Error}", ex.Message);
                 return db;
             }
 
@@ -106,13 +106,13 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     {
                         // Her blok-içi entity ayrı korunur; biri patlarsa diğerleri yüklenir.
                         try { bRec.Entities.AddRange(Convert(ent, asReference, null)); }
-                        catch (Exception exEnt) { System.Diagnostics.Debug.WriteLine($"[DXF] Blok entity atlandı: {exEnt.Message}"); }
+                        catch (Exception exEnt) { Serilog.Log.Warning("[DXF] Blok entity atlandı: {Error}", exEnt.Message); }
                     }
                     blockRecords.Add(bRec);
                 }
                 catch (Exception exBlock)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[DXF] Blok atlandı: {exBlock.Message}");
+                    Serilog.Log.Warning("[DXF] Blok atlandı: {Error}", exBlock.Message);
                 }
             }
 
@@ -127,7 +127,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
                 }
                 catch (Exception exEnt)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[DXF] Entity atlandı: {exEnt.Message}");
+                    Serilog.Log.Warning("[DXF] Entity atlandı: {Error}", exEnt.Message);
                 }
             }
 
@@ -181,7 +181,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
                             result.Add(cloned);
                         }
                     }
-                } catch {}
+                } catch (Exception exInsert) { Serilog.Log.Warning("[DXF] INSERT (blok yerleştirme) atlandı: {Error}", exInsert.Message); }
                 return result;
             }
 
@@ -311,7 +311,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     }
                 }
             }
-            catch { /* Okuma hatası — entity sessizce atlanır */ }
+            catch (Exception exHatch) { Serilog.Log.Warning("[DXF] Hatch entity okunamadı ve atlandı: {Error}", exHatch.Message); }
             return result;
         }
 

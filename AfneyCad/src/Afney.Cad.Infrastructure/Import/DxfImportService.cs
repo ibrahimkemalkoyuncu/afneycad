@@ -246,7 +246,8 @@ public class DxfImportService
     {
         var center = new Vector3D(ellipse.Center.X, ellipse.Center.Y, ellipse.Center.Z);
         double majorX = 1, majorY = 0;
-        try { dynamic d = ellipse; majorX = d.EndMajorPoint.X; majorY = d.EndMajorPoint.Y; } catch { }
+        try { dynamic d = ellipse; majorX = d.EndMajorPoint.X; majorY = d.EndMajorPoint.Y; }
+        catch (Exception ex) { Serilog.Log.Warning("[DXF] Ellipse major axis noktası okunamadı, birim X ekseni varsayıldı (şekil hatalı olabilir): {Error}", ex.Message); }
         double majorLen = Math.Sqrt(majorX * majorX + majorY * majorY);
         if (majorLen < 1e-9) majorLen = 1;
         double minorLen = majorLen * ellipse.RadiusRatio;

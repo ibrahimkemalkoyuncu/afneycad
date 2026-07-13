@@ -56,7 +56,10 @@ public class RecentFilesService
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("[Son Dosyalar] Liste okunamadı: {Error}", ex.Message);
+        }
     }
 
     private void Save()
@@ -66,6 +69,9 @@ public class RecentFilesService
             var json = JsonSerializer.Serialize(_files, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_configPath, json);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("[Son Dosyalar] Liste kaydedilemedi: {Error}", ex.Message);
+        }
     }
 }

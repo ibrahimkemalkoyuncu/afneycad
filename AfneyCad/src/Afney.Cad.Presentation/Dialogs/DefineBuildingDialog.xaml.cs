@@ -70,7 +70,10 @@ namespace Afney.Cad.Presentation.Dialogs
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning("[Bina Tanımları] building_def.json okunamadı: {Error}", ex.Message);
+            }
         }
 
         /*

@@ -103,7 +103,7 @@ public class EnhancedAutoSaveService
         foreach (var old in toDelete)
         {
             try { File.Delete(old.FilePath); }
-            catch { }
+            catch (Exception ex) { Serilog.Log.Debug("[AutoSave] Eski yedek silinemedi: {File} — {Error}", old.FilePath, ex.Message); }
         }
     }
 
@@ -114,7 +114,7 @@ public class EnhancedAutoSaveService
         {
             foreach (var file in Directory.GetFiles(_backupFolder, "*.bak"))
             {
-                try { File.Delete(file); } catch { }
+                try { File.Delete(file); } catch (Exception ex) { Serilog.Log.Debug("[AutoSave] Yedek silinemedi: {File} — {Error}", file, ex.Message); }
             }
         }
     }

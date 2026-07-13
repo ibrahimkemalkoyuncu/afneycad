@@ -49,7 +49,10 @@ public class UserSettingsService
                 if (s != null) _settings = s;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("[Ayarlar] Kullanıcı ayarları okunamadı, varsayılanlar kullanılıyor: {Error}", ex.Message);
+        }
     }
 
     public void Save()
@@ -59,6 +62,9 @@ public class UserSettingsService
             var json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_configPath, json);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("[Ayarlar] Kullanıcı ayarları kaydedilemedi: {Error}", ex.Message);
+        }
     }
 }

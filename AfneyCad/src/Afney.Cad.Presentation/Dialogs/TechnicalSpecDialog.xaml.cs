@@ -47,7 +47,7 @@ public partial class TechnicalSpecDialog : Window
                 MessageBoxButton.OK, MessageBoxImage.Information);
 
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
-            catch { }
+            catch (Exception exOpen) { Serilog.Log.Warning("[Rapor] Dosya kaydedildi ama açılamadı: {File} — {Error}", dlg.FileName, exOpen.Message); }
 
             DialogResult = true;
         }

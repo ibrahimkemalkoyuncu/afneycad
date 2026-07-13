@@ -389,7 +389,8 @@ namespace Afney.Cad.Presentation
                     string html = svc.ExportToHtml(bom, _activeContext?.ProjectName);
                     System.IO.File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
                     StatusText.Text = $"Mimari Metraj: {bom.WallCount} duvar, {bom.ColumnCount} kolon, {bom.DoorCount} kapi, {bom.WindowCount} pencere, {bom.RoomCount} mahal";
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); } catch { }
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
+                    catch (Exception exOpen) { Serilog.Log.Warning("[Rapor] Dosya kaydedildi ama açılamadı: {File} — {Error}", dlg.FileName, exOpen.Message); }
                 }
             }
             catch (Exception ex)
@@ -455,7 +456,7 @@ namespace Afney.Cad.Presentation
                     string html = svc.ExportToHtml(result);
                     System.IO.File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
-                    catch { }
+                    catch (Exception exOpen) { Serilog.Log.Warning("[Rapor] Dosya kaydedildi ama açılamadı: {File} — {Error}", dlg.FileName, exOpen.Message); }
                 }
             }
         }
@@ -491,7 +492,7 @@ namespace Afney.Cad.Presentation
                     StatusText.Text = $"HVAC Metraj: {bom.DuctCount} kanal, {bom.TotalDuctLength:F1} m, {bom.TotalCost:N0} TRY";
 
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
-                    catch { }
+                    catch (Exception exOpen) { Serilog.Log.Warning("[Rapor] Dosya kaydedildi ama açılamadı: {File} — {Error}", dlg.FileName, exOpen.Message); }
                 }
             }
             catch (Exception ex)
