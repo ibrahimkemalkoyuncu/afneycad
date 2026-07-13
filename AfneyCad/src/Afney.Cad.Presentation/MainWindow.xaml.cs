@@ -15,6 +15,7 @@ namespace Afney.Cad.Presentation
         private System.Collections.ObjectModel.ObservableCollection<CadDocumentContext> _documents = new System.Collections.ObjectModel.ObservableCollection<CadDocumentContext>();
         private CadDocumentContext? _activeContext;
         private Afney.Cad.Presentation.Services.AutoSaveService? _autoSaveService;
+        private Action? _lastRepeatableCommand;
         private readonly Afney.Cad.Mechanical.Services.PressureMapService _pressureMapService = new();
         private readonly Afney.Cad.Mechanical.Services.ClashHighlightService _clashHighlightService = new();
         private readonly Afney.Cad.Presentation.Services.PipeFlowAnimationService _flowAnimService = new();
@@ -66,6 +67,9 @@ namespace Afney.Cad.Presentation
             CreateNewDocument("Boş Proje");
 
             Viewport.EntityDoubleClicked += OnEntityDoubleClicked;
+
+            CheckCrashRecovery();
+            MarkSessionActive();
 
             _autoSaveService = new Afney.Cad.Presentation.Services.AutoSaveService(ActiveContext.Database, TimeSpan.FromMinutes(5));
             _autoSaveService.OnAutoSaveCompleted += (path) =>
@@ -172,6 +176,82 @@ namespace Afney.Cad.Presentation
             _userSettings.Settings.LeftPanelVisible = LeftPanelBorder.Visibility == Visibility.Visible;
             _userSettings.Settings.DimTextHeight = _dimTextHeight;
             _userSettings.Save();
+            ClearSessionActive();
+        }
+
+        private static string AutoSaveDirectory => System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "AfneyCAD", "AutoSave");
+
+        private static string SessionLockPath => System.IO.Path.Combine(AutoSaveDirectory, ".session.lock");
+
+        /*
+           NE: Çökme Sonrası Kurtarma Kontrolü (CheckCrashRecovery)
+           NEDEN: Uygulama önceki oturumda düzgün kapatılmadıysa (crash/elektrik kesintisi) kullanıcının
+                  saatler süren çalışmasını kaybetmemesi için en son otomatik kaydı geri yükleme seçeneği sunar.
+                  Önceden AutoSaveService periyodik olarak diske yazıyordu ama başlangıçta hiç kontrol edilmiyordu —
+                  kullanıcı crash sonrası hiçbir kurtarma penceresi görmüyordu.
+        */
+        private void CheckCrashRecovery()
+        {
+            try
+            {
+                if (!System.IO.File.Exists(SessionLockPath)) return; // Önceki oturum temiz kapanmış
+
+                string autoSaveFile = System.IO.Path.Combine(AutoSaveDirectory, "autosave.afney.bak");
+                if (!System.IO.File.Exists(autoSaveFile)) return;
+
+                var lastWrite = System.IO.File.GetLastWriteTime(autoSaveFile);
+                var answer = MessageBox.Show(
+                    $"AfneyCAD önceki oturumda düzgün kapatılmamış olabilir.\n\n" +
+                    $"En son otomatik kayıt: {lastWrite:dd.MM.yyyy HH:mm}\n\n" +
+                    "Bu otomatik kaydı geri yüklemek ister misiniz?",
+                    "Kurtarma Kontrolü", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (answer != MessageBoxResult.Yes) return;
+
+                string json = System.IO.File.ReadAllText(autoSaveFile);
+                var serializer = new Afney.Cad.Database.Persistence.CadSerializer();
+                var data = serializer.Deserialize(json);
+                if (data?.Entities == null) return;
+
+                _database.Clear();
+                foreach (var layer in data.Layers ?? new())
+                    if (_database.GetLayer(layer.Name) == null) _database.AddLayer(layer);
+                foreach (var ent in data.Entities)
+                    _database.AddEntity(ent);
+
+                Viewport.InvalidateViewport();
+                StatusText.Text = $"Otomatik kayıttan kurtarıldı: {data.Entities.Count} nesne ({lastWrite:HH:mm}).";
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "[Kurtarma] Otomatik kayıt geri yüklenemedi.");
+            }
+        }
+
+        private void MarkSessionActive()
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(AutoSaveDirectory);
+                System.IO.File.WriteAllText(SessionLockPath, DateTime.Now.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                Log.Debug("[Kurtarma] Oturum kilidi yazılamadı: {Error}", ex.Message);
+            }
+        }
+
+        private void ClearSessionActive()
+        {
+            try
+            {
+                if (System.IO.File.Exists(SessionLockPath)) System.IO.File.Delete(SessionLockPath);
+            }
+            catch (Exception ex)
+            {
+                Log.Debug("[Kurtarma] Oturum kilidi silinemedi: {Error}", ex.Message);
+            }
         }
 
         private void ApplyUserSettings()
@@ -309,13 +389,11 @@ namespace Afney.Cad.Presentation
                 var selected = _activeContext?.SelectionManager?.GetSelectedEntities();
                 if (selected != null && selected.Any())
                 {
-                    var center = selected.First().GetBoundingBox().Center;
-                    _clipboard.Cut(selected, center);
-                    foreach (var ent in selected.ToList())
-                        _database.RemoveEntity(ent.Id);
-                    _activeContext?.SelectionManager?.ClearSelection();
-                    Viewport.InvalidateViewport();
-                    StatusText.Text = $"Kesildi: {_clipboard.Count} nesne";
+                    var toCut = selected.ToList();
+                    var center = toCut.First().GetBoundingBox().Center;
+                    _clipboard.Cut(toCut, center);
+                    Viewport.DeleteEntities(toCut);
+                    StatusText.Text = $"Kesildi: {_clipboard.Count} nesne (Ctrl+Z ile geri alınabilir)";
                 }
                 e.Handled = true;
             }
@@ -342,6 +420,25 @@ namespace Afney.Cad.Presentation
             {
                 _activeContext?.Viewport?.ZoomToSelection();
                 e.Handled = true;
+            }
+            else if (!isCtrlDown && e.Key == System.Windows.Input.Key.Space && _activeContext?.Viewport?.HasActiveCommand != true)
+            {
+                // AutoCAD standardı: hiçbir komut aktif değilken Space = son komutu tekrarla.
+                if (_lastRepeatableCommand != null)
+                {
+                    _lastRepeatableCommand.Invoke();
+                    e.Handled = true;
+                }
+            }
+            else if (!isCtrlDown && e.Key == System.Windows.Input.Key.F2 && _activeContext?.Viewport?.HasActiveCommand != true)
+            {
+                // AutoCAD/Revit standardı: F2 = seçili tek nesnenin özelliklerini düzenle.
+                var selected = _activeContext?.SelectionManager?.GetSelectedEntities()?.ToList();
+                if (selected != null && selected.Count == 1)
+                {
+                    OnEntityDoubleClicked(selected[0]);
+                    e.Handled = true;
+                }
             }
         }
 

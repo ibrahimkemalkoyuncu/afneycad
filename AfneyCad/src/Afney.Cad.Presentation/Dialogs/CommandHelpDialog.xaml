@@ -1,0 +1,28 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.CommandHelpDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Komut Yardımı" Height="560" Width="620"
+        WindowStartupLocation="CenterOwner" Background="#1A1C24" Foreground="#E1E4EE">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="KOMUT SATIRI YARDIMI" FontSize="14" FontWeight="Bold" Foreground="#0A84FF"/>
+            <TextBlock Text="Komut satırına kısaltmayı yazıp Enter'a basın. Örn: L (Çizgi), TR (Buda), DIM (Ölçü)."
+                       FontSize="11" Foreground="#858899" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <TextBox x:Name="TxtBody" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                     Foreground="#D4D6E8" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"/>
+        </ScrollViewer>
+
+        <Button Grid.Row="2" Content="Kapat" Width="90" Height="32" HorizontalAlignment="Right" Margin="0,12,0,0"
+                Background="#0A84FF" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand"
+                IsDefault="True" IsCancel="True" Click="Close_Click"/>
+    </Grid>
+</Window>

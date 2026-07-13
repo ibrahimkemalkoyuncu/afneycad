@@ -26,14 +26,24 @@ namespace Afney.Cad.Presentation
             try
             {
                 StatusText.Text = "Hidrolik analiz yapılıyor (TS 1258)...";
+                MainProgressBar.IsIndeterminate = false;
+                MainProgressBar.Minimum = 0;
+                MainProgressBar.Maximum = 100;
+                MainProgressBar.Value = 0;
                 MainProgressBar.Visibility = Visibility.Visible;
                 TabCalculation.IsEnabled = false;
 
                 var entities = _database.GetAllEntities().ToList();
 
+                var progress = new Progress<(int Percent, string Stage)>(p =>
+                {
+                    MainProgressBar.Value = p.Percent;
+                    StatusText.Text = $"Hidrolik analiz: %{p.Percent} — {p.Stage}";
+                });
+
                 await System.Threading.Tasks.Task.Run(() =>
                 {
-                    _mechanicalKernel.RecalculateProject(entities);
+                    _mechanicalKernel.RecalculateProject(entities, progress);
                 });
 
                 Viewport.InvalidateVisual();
@@ -53,6 +63,7 @@ namespace Afney.Cad.Presentation
             finally
             {
                 MainProgressBar.Visibility = Visibility.Collapsed;
+                MainProgressBar.IsIndeterminate = true;
                 TabCalculation.IsEnabled = true;
             }
         }

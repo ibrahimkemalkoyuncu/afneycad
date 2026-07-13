@@ -518,7 +518,7 @@ public class MechanicalKernel
 
     // NE: Projeyi Baştan Hesapla ve Çaplandır
     // NEDEN: Kullanıcı çizimi bitirdiğinde veya bir değişiklik yaptığında tüm projenin TS 1258 standartlarına uygunluğunu tek tıkla doğrulamak için.
-    public void RecalculateProject(IEnumerable<Afney.Cad.Domain.Abstractions.CadEntity> entities)
+    public void RecalculateProject(IEnumerable<Afney.Cad.Domain.Abstractions.CadEntity> entities, IProgress<(int Percent, string Stage)>? progress = null)
     {
         if (entities == null) return;
         var mechanicalEntities = entities.OfType<MechanicalEntity>().Where(e => e != null).ToList();
@@ -555,32 +555,38 @@ public class MechanicalKernel
         try
         {
             // 1. Akış Yüklerini (FU) Topla ve Debileri (Q) Hesapla
+            progress?.Report((10, "Akış yükleri toplanıyor..."));
             var flowService = new FlowCalculationService(TopologyGraph);
             flowService.CalculateSystemFlow(mechanicalEntities);
-            
+
             // 2. Otomatik Çaplandırma (Sizing)
+            progress?.Report((35, "Boru çapları optimize ediliyor..."));
             flowService.AutoSizePipes(mechanicalEntities);
-            
+
             // 3. Basınç Kaybı ve Kritik Hat Hesabı
+            progress?.Report((60, "Basınç kaybı hesaplanıyor..."));
             var pressureService = new PressureDropService(TopologyGraph, ProjectSettings);
             pressureService.CalculatePressureDrops(mechanicalEntities);
 
             // 4. MÜHENDİSLİK VALIDASYONU: Çakışma Analizi
+            progress?.Report((80, "Çakışma analizi yapılıyor..."));
             var clashService = new ClashDetectionService(ArchitecturalObstacles);
             var clashes = clashService.DetectClashes(mechanicalEntities);
             if (clashes.Any())
             {
                 Serilog.Log.Warning(">>> ANALİZ UYARISI: {Count} adet mimari çakışma tespit edildi!", clashes.Count);
             }
-            
+
             // 5. ETİKET SENKRONİZASYONU + VALIDASYON ONAYI
+            progress?.Report((95, "Etiketler senkronize ediliyor..."));
             foreach (var entity in mechanicalEntities)
             {
                 if (entity is PipeEntity pipe)
                     SyncPipeLabels(pipe);
-                
+
                 entity.IsCalculationUpToDate = true;
             }
+            progress?.Report((100, "Tamamlandı."));
         }
         finally
         {

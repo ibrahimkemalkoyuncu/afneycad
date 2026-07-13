@@ -1412,20 +1412,8 @@ namespace Afney.Cad.Presentation.Views;
             }
             else if (e.Key == Key.Delete)
             {
-                if (_selectionManager != null && _database != null && _selectionManager.SelectedCount > 0)
-                {
-                    var toDelete = _selectionManager.GetSelectedEntities().ToList();
-                    _selectionManager.ClearSelection();
-
-                    var composite = new Afney.Cad.Database.Transactions.CompositeOperation($"{toDelete.Count} nesne silindi");
-                    foreach (var ent in toDelete)
-                        composite.Add(new Afney.Cad.Database.Transactions.Operations.RemoveEntityOperation(_database, ent));
-                    _database.TransactionManager.Submit(composite);
-
-                    SelectionChanged?.Invoke(System.Linq.Enumerable.Empty<CadEntity>());
-                    InvalidateViewport();
-                    OnFeedback?.Invoke($"{toDelete.Count} obje silindi. (Ctrl+Z ile geri alınabilir)");
-                }
+                if (_selectionManager != null && _selectionManager.SelectedCount > 0)
+                    DeleteEntities(_selectionManager.GetSelectedEntities().ToList());
             }
             else if (e.Key == Key.F8)
             {
@@ -1617,10 +1605,21 @@ namespace Afney.Cad.Presentation.Views;
     */
     private void OnContextMenu_Delete(object sender, RoutedEventArgs e)
     {
-        if (_selectionManager == null || _database == null || _selectionManager.SelectedCount == 0) return;
+        if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
+        DeleteEntities(_selectionManager.GetSelectedEntities().ToList());
+    }
 
-        var toDelete = _selectionManager.GetSelectedEntities().ToList();
-        _selectionManager.ClearSelection();
+    /*
+       NE: Merkezi, Undo Destekli Nesne Silme (DeleteEntities)
+       NEDEN: Delete tuşu, sağ-tık menüsü ve Ctrl+X (Kes) — üç ayrı silme yolu — aynı davranışı
+              (TransactionManager üzerinden undoable silme) garanti etsin diye tek noktadan yönetilir.
+              Önceden Ctrl+X bu yolu atlayıp doğrudan RemoveEntity çağırıyordu ve Ctrl+Z ile geri alınamıyordu.
+    */
+    public void DeleteEntities(IReadOnlyCollection<CadEntity> toDelete)
+    {
+        if (_database == null || toDelete == null || toDelete.Count == 0) return;
+
+        _selectionManager?.ClearSelection();
 
         var composite = new Afney.Cad.Database.Transactions.CompositeOperation($"{toDelete.Count} nesne silindi");
         foreach (var ent in toDelete)

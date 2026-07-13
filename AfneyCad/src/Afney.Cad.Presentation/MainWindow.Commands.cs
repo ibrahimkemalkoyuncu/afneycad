@@ -21,6 +21,7 @@ namespace Afney.Cad.Presentation
 
         private void OnLineCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnLineCommand(this, new RoutedEventArgs());
             var cmd = new LineCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
@@ -29,6 +30,7 @@ namespace Afney.Cad.Presentation
 
         private void OnCircleCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnCircleCommand(this, new RoutedEventArgs());
             var cmd = new CircleCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
@@ -37,6 +39,7 @@ namespace Afney.Cad.Presentation
 
         private void OnTrimCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnTrimCommand(this, new RoutedEventArgs());
             var cmd = new TrimCommand(_database, _history.TransactionManager, 1.0);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
@@ -46,6 +49,7 @@ namespace Afney.Cad.Presentation
 
         private void OnExtendCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnExtendCommand(this, new RoutedEventArgs());
             var cmd = new ExtendCommand(_database, _history.TransactionManager, 1.0);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
@@ -55,6 +59,7 @@ namespace Afney.Cad.Presentation
 
         private void OnMirrorCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnMirrorCommand(this, new RoutedEventArgs());
             var selectedEntities = _activeContext?.SelectionManager?.GetSelectedEntities() ?? new List<Afney.Cad.Domain.Abstractions.CadEntity>();
 
             var cmd = new MirrorCommand(_database, _history.TransactionManager, selectedEntities);
@@ -141,6 +146,7 @@ namespace Afney.Cad.Presentation
 
         private void OnPolylineCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnPolylineCommand(this, new RoutedEventArgs());
             var cmd = new PolylineCommand(_database, _history.TransactionManager);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
@@ -149,6 +155,7 @@ namespace Afney.Cad.Presentation
 
         private void OnRectangleCommand(object sender, RoutedEventArgs e)
         {
+            _lastRepeatableCommand = () => OnRectangleCommand(this, new RoutedEventArgs());
             var cmd = new RectangleCommand(_database, _history.TransactionManager);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
@@ -964,6 +971,7 @@ namespace Afney.Cad.Presentation
         private void OnOffsetCommand(object sender, RoutedEventArgs e)
         {
             if (ActiveContext?.Viewport == null) return;
+            _lastRepeatableCommand = () => OnOffsetCommand(this, new RoutedEventArgs());
             ExecuteCommand("OFFSET");
         }
 
@@ -1127,7 +1135,8 @@ namespace Afney.Cad.Presentation
                     case "archdetect": case "mimaritani": case "ad": OnArchDetectCommand(this, new RoutedEventArgs()); break;
                     case "autoroute": case "route": case "ar": OnAutoRouteCommand(this, new RoutedEventArgs()); break;
                     case "sartname": case "spec": case "techspec": OnTechnicalSpecCommand(this, new RoutedEventArgs()); break;
-                    default: StatusText.Text = $"Bilinmeyen komut: {cmdText}"; break;
+                    case "help": case "?": case "yardim": new CommandHelpDialog { Owner = this }.ShowDialog(); break;
+                    default: StatusText.Text = $"Bilinmeyen komut: {cmdText} (komut listesi için HELP veya ? yazın)"; break;
                 }
             }
         }

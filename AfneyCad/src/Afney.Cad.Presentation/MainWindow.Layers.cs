@@ -86,13 +86,27 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        /*
+           NE: Katman Değişikliklerini Undo Yığınına Ekle (SubmitLayerToggle)
+           NEDEN: Görünürlük/dondurma/kilit değişiklikleri önceden Ctrl+Z ile geri alınamıyordu —
+                  katman panelindeki her işlem sessizce ve kalıcı gibi davranıyordu. AutoCAD'de LAYER
+                  komutuyla yapılan değişiklikler de undo yığınına girer; burada aynı tutarlılık sağlanır.
+        */
+        private void SubmitLayerToggle(string opName, System.Action doAction, System.Action undoAction)
+        {
+            var op = new Afney.Cad.Database.Transactions.Operations.ModifyEntityPropertyOperation(opName, doAction, undoAction);
+            _activeContext?.Database.TransactionManager.Submit(op); // Submit, operation.Do()'yu kendi çağırır
+        }
+
         private void OnLayerVisibilityToggle_Click(object sender, RoutedEventArgs e)
         {
             if (_activeContext == null) return;
             if (sender is Button btn && btn.DataContext is LayerItemViewModel vm)
             {
-                vm.IsVisible = !vm.IsVisible;
-                OnLayerVisibilityChanged(vm.Name, vm.IsVisible);
+                bool newValue = !vm.IsVisible;
+                SubmitLayerToggle($"Katman görünürlüğü: {vm.Name}",
+                    () => { vm.IsVisible = newValue; OnLayerVisibilityChanged(vm.Name, newValue); },
+                    () => { vm.IsVisible = !newValue; OnLayerVisibilityChanged(vm.Name, !newValue); });
             }
         }
 
@@ -101,9 +115,11 @@ namespace Afney.Cad.Presentation
             if (_activeContext == null) return;
             if (sender is Button btn && btn.DataContext is LayerItemViewModel vm)
             {
-                vm.IsFrozen = !vm.IsFrozen;
-                OnLayerVisibilityChanged(vm.Name, !vm.IsFrozen);
-                Serilog.Log.Information("[Layer] Dondurma: {Layer} = {Frozen}", vm.Name, vm.IsFrozen);
+                bool newFrozen = !vm.IsFrozen;
+                var layer = _activeContext.Database.GetLayer(vm.Name);
+                SubmitLayerToggle($"Katman dondurma: {vm.Name}",
+                    () => { vm.IsFrozen = newFrozen; if (layer != null) layer.IsFrozen = newFrozen; OnLayerVisibilityChanged(vm.Name, !newFrozen); Serilog.Log.Information("[Layer] Dondurma: {Layer} = {Frozen}", vm.Name, newFrozen); },
+                    () => { vm.IsFrozen = !newFrozen; if (layer != null) layer.IsFrozen = !newFrozen; OnLayerVisibilityChanged(vm.Name, newFrozen); });
             }
         }
 
@@ -112,8 +128,11 @@ namespace Afney.Cad.Presentation
             if (_activeContext == null) return;
             if (sender is Button btn && btn.DataContext is LayerItemViewModel vm)
             {
-                vm.IsLocked = !vm.IsLocked;
-                Serilog.Log.Information("[Layer] Kilit: {Layer} = {Locked}", vm.Name, vm.IsLocked);
+                bool newLocked = !vm.IsLocked;
+                var layer = _activeContext.Database.GetLayer(vm.Name);
+                SubmitLayerToggle($"Katman kilidi: {vm.Name}",
+                    () => { vm.IsLocked = newLocked; if (layer != null) layer.IsLocked = newLocked; Serilog.Log.Information("[Layer] Kilit: {Layer} = {Locked}", vm.Name, newLocked); },
+                    () => { vm.IsLocked = !newLocked; if (layer != null) layer.IsLocked = !newLocked; });
             }
         }
 
