@@ -86,6 +86,7 @@ DİĞER
   Ctrl+L              Sol panel aç/kapat
   Ctrl+F              Seçime yakınlaştır
   F2                  Seçili nesnenin özelliklerini düzenle
+  Tab                 İmleç altında üst üste binen nesneler arasında geçiş
   F3                  OSNAP aç/kapat
   F8                  ORTHO aç/kapat
   F10                 Polar tracking aç/kapat

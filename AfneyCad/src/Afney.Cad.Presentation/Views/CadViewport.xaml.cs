@@ -39,6 +39,11 @@ namespace Afney.Cad.Presentation.Views;
         private Vector3D? _lastMouseWorldPos;
         public Vector3D? LastMouseWorldPos => _lastMouseWorldPos;
 
+        // Tab ile üst üste binen nesneler arası geçiş (bkz. CycleOverlappingEntity)
+        private List<CadEntity>? _tabCycleCandidates;
+        private int _tabCycleIndex = -1;
+        private Vector3D? _tabCycleOrigin;
+
         public void ZoomToSelection()
         {
             if (_selectionManager == null || _selectionManager.SelectedCount == 0) return;
@@ -1427,6 +1432,62 @@ namespace Afney.Cad.Presentation.Views;
                 ToggleOrtho();
                 e.Handled = true;
             }
+            else if (e.Key == Key.Tab && _activeCommand == null)
+            {
+                CycleOverlappingEntity();
+                e.Handled = true;
+            }
+        }
+
+        /*
+           NE: Üst Üste Binen Nesneler Arası Geçiş (CycleOverlappingEntity)
+           NEDEN: Yoğun çizimlerde birden fazla nesne aynı noktada üst üste durabilir (örn. duvar
+                  üzerindeki bir boru). AutoCAD'de imleç sabit tutulup Tab'a basılınca sırayla her
+                  biri seçilir. Önceden bu özellik hiç yoktu (hit-test altyapısı sadece "en yakın
+                  tek nesneyi" buluyordu) — artık imlecin etrafındaki TÜM adaylar toplanıp sırayla
+                  gezilebiliyor.
+        */
+        private void CycleOverlappingEntity()
+        {
+            if (_database == null || !_lastMouseWorldPos.HasValue) return;
+
+            var cursor = _lastMouseWorldPos.Value;
+            double hitTolerance = 10.0 / Math.Max(0.001, _zoom);
+
+            // İmleç önemli ölçüde hareket ettiyse (yeni bir nokta) aday listesini sıfırla.
+            bool sameSpot = _tabCycleOrigin.HasValue &&
+                Math.Abs(_tabCycleOrigin.Value.X - cursor.X) < hitTolerance &&
+                Math.Abs(_tabCycleOrigin.Value.Y - cursor.Y) < hitTolerance;
+
+            if (!sameSpot || _tabCycleCandidates == null)
+            {
+                var queryBox = new CadBoundingBox(
+                    new Vector3D(cursor.X - hitTolerance, cursor.Y - hitTolerance, -1e9),
+                    new Vector3D(cursor.X + hitTolerance, cursor.Y + hitTolerance, 1e9));
+
+                _tabCycleCandidates = _database.QueryEntities(queryBox)
+                    .Where(ent => !HiddenLayers.Contains(ent.Layer) && ent.DistanceTo(cursor) < hitTolerance)
+                    .OrderBy(ent => ent.DistanceTo(cursor))
+                    .ToList();
+                _tabCycleOrigin = cursor;
+                _tabCycleIndex = -1;
+            }
+
+            if (_tabCycleCandidates == null || _tabCycleCandidates.Count == 0)
+            {
+                OnFeedback?.Invoke("Bu noktada nesne bulunamadı.");
+                return;
+            }
+
+            _tabCycleIndex = (_tabCycleIndex + 1) % _tabCycleCandidates.Count;
+            var picked = _tabCycleCandidates[_tabCycleIndex];
+
+            _selectionManager?.ClearSelection();
+            _selectionManager?.AddToSelection(picked);
+            SelectionChanged?.Invoke(new[] { picked });
+
+            OnFeedback?.Invoke($"{_tabCycleIndex + 1}/{_tabCycleCandidates.Count} — {picked.GetType().Name} (Katman: {picked.Layer})");
+            InvalidateViewport();
         }
 
         public void ToggleOrtho()
