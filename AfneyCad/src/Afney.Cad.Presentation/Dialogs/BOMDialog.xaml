@@ -48,7 +48,7 @@
         <!-- Başlık -->
         <Border Grid.Row="0" Background="#0D47A1" Padding="16,10">
             <DockPanel>
-                <TextBlock Text="📦" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Path Data="{StaticResource Ico.Package}" Fill="White" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <StackPanel>
                     <TextBlock Text="MALZEME METRAJ ve MALİYET LİSTESİ (BOM)"
                                FontSize="14" FontWeight="Bold" Foreground="White"/>
@@ -86,7 +86,13 @@
             </TabControl.Resources>
 
             <!-- ── BORU METRAJ & MALİYET ── -->
-            <TabItem Header="🔵 Boru Metrajı &amp; Maliyeti">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Circle}" Fill="#5AC8FA" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Boru Metrajı &amp; Maliyeti" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DataGrid x:Name="PipeGrid" AutoGenerateColumns="False" Margin="0">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Çap (DN)"         Binding="{Binding DiameterDisplay}"    Width="70"/>
@@ -112,7 +118,13 @@
             </TabItem>
 
             <!-- ── VİTRİFİYE LİSTESİ ── -->
-            <TabItem Header="🚿 Vitrifiye &amp; Cihazlar">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ShowerHead}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Vitrifiye &amp; Cihazlar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DataGrid x:Name="FixtureGrid" AutoGenerateColumns="False" Margin="0">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Cihaz Tipi"   Binding="{Binding Type}"  Width="*"/>
@@ -124,7 +136,13 @@
             </TabItem>
 
             <!-- ── SİSTEM DAĞILIMI ── -->
-            <TabItem Header="📊 Sistem Bazlı Özet">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Sistem Bazlı Özet" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DataGrid x:Name="SystemGrid" AutoGenerateColumns="False" Margin="0">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Sistem"            Binding="{Binding System}"      Width="*"/>
@@ -189,8 +207,18 @@
         <!-- Butonlar -->
         <Border Grid.Row="4" Background="#1B1B2E" Padding="8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Margin="0,0,8,0"/>
-                <Button Content="📊 CSV Dışa Aktar" Click="ExportCsv_Click" Background="#2E7D32" Margin="0,0,8,0"/>
+                <Button Click="ExportHtml_Click" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="ExportCsv_Click" Background="#2E7D32" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="CSV Dışa Aktar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

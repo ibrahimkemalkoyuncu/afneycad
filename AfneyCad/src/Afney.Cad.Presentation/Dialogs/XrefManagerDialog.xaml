@@ -61,11 +61,26 @@
         <!-- Eylem Butonları -->
         <Border Grid.Row="2" Background="#252535" Padding="12,6">
             <StackPanel Orientation="Horizontal">
-                <Button x:Name="BtnAttach"   Content="🔗 Bağla (Referans Ekle)" Click="Attach_Click"
-                        Background="#2E7D32" IsEnabled="False"/>
-                <Button x:Name="BtnDetach"   Content="✂ Ayır"  Click="Detach_Click"
-                        Background="#B71C1C" IsEnabled="False"/>
-                <Button Content="🔄 Yenile" Click="Refresh_Click"/>
+                <Button x:Name="BtnAttach"   Click="Attach_Click"
+                        Background="#2E7D32" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Link}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Bağla (Referans Ekle)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnDetach"   Click="Detach_Click"
+                        Background="#B71C1C" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Scissors}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Ayır" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="Refresh_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yenile" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <TextBlock x:Name="TxtHint" VerticalAlignment="Center" Foreground="#90CAF9" FontSize="10"
                            Text="Bir blok seçin ve 'Bağla' ile çizime yerleştirin."/>
             </StackPanel>

@@ -47,8 +47,13 @@
             
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                <Button x:Name="ActivateButton" Content="✓ Aktive Et" Click="ActivateButton_Click" 
-                        Background="#007ACC" FontWeight="Bold" Width="120" Height="40"/>
+                <Button x:Name="ActivateButton" Click="ActivateButton_Click"
+                        Background="#007ACC" FontWeight="Bold" Width="120" Height="40">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Check}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Aktive Et" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 
                 <Button x:Name="TrialButton" Content="Deneme Modu" Click="TrialButton_Click" 
                         Background="#444" Width="120" Height="40"/>

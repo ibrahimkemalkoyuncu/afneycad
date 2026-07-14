@@ -96,7 +96,10 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#0A2040" CornerRadius="4" Padding="10,7" Margin="0,0,0,12">
             <StackPanel>
-                <TextBlock Text="📐 Axonometrik Boru Şeması" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Ruler}" Fill="#90CAF9" Width="14" Height="14" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="Axonometrik Boru Şeması" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                </StackPanel>
                 <TextBlock Text="Kabinetik axonometri projeksiyon · HTML/SVG çıktısı · Pan + Zoom"
                            FontSize="10" Foreground="#5577AA" Margin="0,2,0,0"/>
             </StackPanel>
@@ -110,7 +113,12 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AACC" VerticalAlignment="Center" TextWrapping="Wrap"/>
-            <Button Grid.Column="1" Content="📐 Oluştur ve Aç" Width="140" Margin="0,0,8,0" Click="Generate_Click" Background="#1B5E20"/>
+            <Button Grid.Column="1" Width="140" Margin="0,0,8,0" Click="Generate_Click" Background="#1B5E20">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Oluştur ve Aç" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
         </Grid>
 
@@ -160,7 +168,9 @@
                 <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,6">
                     <TextBox x:Name="TxtSavePath" Width="200" IsReadOnly="True"
                              Text="" Foreground="#888" Background="#1A1A2E" Margin="0,0,6,0"/>
-                    <Button Content="📂" Width="36" Click="BrowsePath_Click" Background="#333" Padding="4,2"/>
+                    <Button Width="36" Click="BrowsePath_Click" Background="#333" Padding="4,2">
+                        <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Stretch="Uniform"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

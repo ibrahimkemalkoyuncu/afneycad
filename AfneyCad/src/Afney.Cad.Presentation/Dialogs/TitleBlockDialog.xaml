@@ -228,8 +228,13 @@
         <!-- Butonlar -->
         <Border Grid.Row="2" Background="#1B1B2E" Padding="10,8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="🗒 Antet Ekle" Click="Insert_Click"
-                        Background="#2E7D32" Margin="0,0,8,0" Width="150"/>
+                <Button Click="Insert_Click"
+                        Background="#2E7D32" Margin="0,0,8,0" Width="150">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Antet Ekle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

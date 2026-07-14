@@ -97,10 +97,20 @@
                                FontSize="9" Foreground="#666" Margin="0,0,0,4"/>
 
                     <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,2,0,0">
-                        <Button x:Name="BtnInsert" Content="➕ Seçiliyi Ekle"
-                                Click="Insert_Click" Background="#2E7D32" IsEnabled="False" Margin="0,0,4,0"/>
-                        <Button Content="🏗 Tüm Katları Ekle"
-                                Click="CaptureAll_Click" Background="#1565C0" ToolTip="Tüm katları yakala ve paftaya ızgara düzende yerleştir"/>
+                        <Button x:Name="BtnInsert"
+                                Click="Insert_Click" Background="#2E7D32" IsEnabled="False" Margin="0,0,4,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Plus}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Seçiliyi Ekle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button
+                                Click="CaptureAll_Click" Background="#1565C0" ToolTip="Tüm katları yakala ve paftaya ızgara düzende yerleştir">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Tüm Katları Ekle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </GroupBox>
@@ -127,11 +137,26 @@
                     </DataGrid>
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0">
-                        <Button x:Name="BtnExplode" Content="💥 Patlat (Bir Kez!)"
-                                Click="Explode_Click" Background="#F57F17" IsEnabled="False"/>
-                        <Button x:Name="BtnRemoveRef" Content="🗑 Kaldır"
-                                Click="RemoveRef_Click" Background="#B71C1C" IsEnabled="False"/>
-                        <Button Content="🔄 Yenile" Click="Refresh_Click"/>
+                        <Button x:Name="BtnExplode"
+                                Click="Explode_Click" Background="#F57F17" IsEnabled="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Warning}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Patlat (Bir Kez!)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnRemoveRef"
+                                Click="RemoveRef_Click" Background="#B71C1C" IsEnabled="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Kaldır" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="Refresh_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Yenile" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </GroupBox>
@@ -145,15 +170,38 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="🗒 Antet Ekle"       Click="TitleBlock_Click"   Background="#5D4037" Margin="0,0,6,0"/>
-                    <Button Content="💾 DXF Çıktı"        Click="ExportDxf_Click"    Background="#1B5E20" Margin="0,0,6,0"/>
-                    <Button Content="📤 DXF Merge (Tümü)" Click="ExportMerged_Click" Background="#004D40" Margin="0,0,6,0"
-                            ToolTip="Tüm yerleştirilen blokları patlatıp tek DXF dosyasına aktar"/>
-                    <Button Content="💥 Tümünü Patlat"    Click="ExplodeAll_Click"   Background="#E65100" Margin="0,0,6,0"
-                            ToolTip="Paftadaki tüm blok referanslarını tek seferinde patlatır"/>
-                    <TextBlock x:Name="TxtStatus" VerticalAlignment="Center"
-                               Foreground="#90CAF9" FontSize="10" TextWrapping="Wrap"
-                               Text="⚠ Patlat işlemi yalnızca bir kez yapılmalıdır."/>
+                    <Button Click="TitleBlock_Click"   Background="#5D4037" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Antet Ekle" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ExportDxf_Click"    Background="#1B5E20" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="DXF Çıktı" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ExportMerged_Click" Background="#004D40" Margin="0,0,6,0"
+                            ToolTip="Tüm yerleştirilen blokları patlatıp tek DXF dosyasına aktar">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.TrayUpload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="DXF Merge (Tümü)" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ExplodeAll_Click"   Background="#E65100" Margin="0,0,6,0"
+                            ToolTip="Paftadaki tüm blok referanslarını tek seferinde patlatır">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Warning}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tümünü Patlat" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <StackPanel x:Name="TxtStatusPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource Ico.Warning}" Fill="#90CAF9" Width="11" Height="11" Margin="0,0,4,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtStatus" VerticalAlignment="Center"
+                                   Foreground="#90CAF9" FontSize="10" TextWrapping="Wrap"
+                                   Text="Patlat işlemi yalnızca bir kez yapılmalıdır."/>
+                    </StackPanel>
                 </StackPanel>
                 <Button Grid.Column="1" Content="Kapat" Click="Close_Click" Background="#444" Width="80" Margin="0"/>
             </Grid>

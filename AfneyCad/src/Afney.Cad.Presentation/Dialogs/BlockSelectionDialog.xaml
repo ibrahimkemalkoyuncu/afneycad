@@ -17,7 +17,7 @@
              <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="📁" Margin="0,0,5,0" Foreground="Orange"/>
+                        <Path Data="{StaticResource Ico.Folder}" Fill="Orange" Width="14" Height="14" Stretch="Uniform" Margin="0,0,5,0" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding Name}"/>
                     </StackPanel>
                 </DataTemplate>

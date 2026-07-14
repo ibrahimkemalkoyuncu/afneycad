@@ -131,7 +131,7 @@
         <!-- Başlık -->
         <Border Grid.Row="0" Background="#B71C1C" Padding="16,10">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🔥" FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Path Data="{StaticResource Ico.Fire}" Fill="White" Width="22" Height="22" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <StackPanel>
                     <TextBlock Text="YANGIN SÖNDÜRME SİSTEMİ TASARIMI"
                                FontSize="15" FontWeight="Bold" Foreground="White"/>
@@ -161,7 +161,13 @@
             </TabControl.Resources>
 
             <!-- ── TAB 1: SPRİNKLER ── -->
-            <TabItem Header="🔴 Sprinkler Sistemi">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Circle}" Fill="#FF6B60" Width="10" Height="10" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Sprinkler Sistemi" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -197,9 +203,14 @@
                         <CheckBox x:Name="WetSystemCheck" Content="Islak Sistem (Wet Pipe)" IsChecked="True" Margin="0,12,0,4"/>
                         <CheckBox x:Name="EsfrCheck" Content="ESFR Başlık (Tavan > 6m için)" IsChecked="False"/>
 
-                        <Button Content="⚙️  Hesapla" Click="SprinklerCalculate_Click"
+                        <Button Click="SprinklerCalculate_Click"
                                 Style="{StaticResource FfBtn}" Width="160" Height="34"
-                                HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,16,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <!-- Sonuç -->
@@ -216,7 +227,13 @@
             </TabItem>
 
             <!-- ── TAB 2: HİDRANT ── -->
-            <TabItem Header="🔵 Hidrant Sistemi">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Circle}" Fill="#5AC8FA" Width="10" Height="10" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hidrant Sistemi" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -258,10 +275,15 @@
                             <ComboBoxItem Content="Yüksek Tehlike"/>
                         </ComboBox>
 
-                        <Button Content="⚙️  Hesapla" Click="HydrantCalculate_Click"
+                        <Button Click="HydrantCalculate_Click"
                                 Style="{StaticResource FfBtn}" Width="160" Height="34"
                                 HorizontalAlignment="Left" Margin="0,16,0,0"
-                                Background="#1565C0"/>
+                                Background="#1565C0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
@@ -277,7 +299,13 @@
             </TabItem>
 
             <!-- ── TAB 3: HORTUM MAKARASI ── -->
-            <TabItem Header="🟠 Hortum Makarası">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Circle}" Fill="#FFC24B" Width="10" Height="10" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hortum Makarası" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -308,10 +336,15 @@
                             </StackPanel>
                         </Border>
 
-                        <Button Content="⚙️  Hesapla" Click="HoseReelCalculate_Click"
+                        <Button Click="HoseReelCalculate_Click"
                                 Style="{StaticResource FfBtn}" Width="160" Height="34"
                                 HorizontalAlignment="Left" Margin="0,16,0,0"
-                                Background="#E65100"/>
+                                Background="#E65100">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
@@ -327,7 +360,13 @@
             </TabItem>
 
             <!-- ── TAB 4: SU TEMİNİ ANALİZİ ── -->
-            <TabItem Header="💧 Su Talebi Analizi">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="#26C6DA" Width="11" Height="11" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Su Talebi Analizi" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -374,10 +413,15 @@
                             <TextBox x:Name="WsBoosterHead" Text="0" Style="{StaticResource Inp}"/>
                         </StackPanel>
 
-                        <Button Content="⚙️  Analiz Et" Click="WaterSupplyAnalyze_Click"
+                        <Button Click="WaterSupplyAnalyze_Click"
                                 Style="{StaticResource FfBtn}" Width="160" Height="34"
                                 HorizontalAlignment="Left" Margin="0,16,0,0"
-                                Background="#00695C"/>
+                                Background="#00695C">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Analiz Et" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <Border Grid.Column="1" Background="#1A1A2A" BorderBrush="#333" BorderThickness="1"
@@ -397,8 +441,13 @@
         <!-- Alt butonlar -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
                     Background="#252535" Margin="0">
-            <Button Content="📄 HTML Rapor" Click="ExportHtml_Click"
-                    Style="{StaticResource FfBtnGreen}" Width="120" Height="32" Margin="8"/>
+            <Button Click="ExportHtml_Click"
+                    Style="{StaticResource FfBtnGreen}" Width="120" Height="32" Margin="8">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat" Click="Close_Click"
                     Style="{StaticResource FfBtnGray}" Width="80" Height="32" Margin="0,8,12,8"/>
         </StackPanel>

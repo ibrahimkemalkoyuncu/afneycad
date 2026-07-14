@@ -17,7 +17,7 @@
         
         <!-- Header -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="🏢" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="#00AAFF" Width="22" Height="22" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <TextBlock Text="Proje Katları" FontSize="20" FontWeight="Bold" Foreground="#00AAFF" VerticalAlignment="Center"/>
             <TextBlock Text=" — Level Manager" FontSize="13" Foreground="#666" VerticalAlignment="Bottom" Margin="8,0,0,2"/>
         </StackPanel>
@@ -174,25 +174,50 @@
             </Grid.ColumnDefinitions>
 
             <!-- Sol: İsim Değiştir -->
-            <Button Grid.Column="0" Content="✏️ İsim Değiştir" Click="RenameButton_Click" Width="120"
+            <Button Grid.Column="0" Click="RenameButton_Click" Width="120"
                     Background="#4A3A6A" Foreground="White" Padding="8,6" FontWeight="SemiBold"
-                    BorderThickness="0" Cursor="Hand" ToolTip="Seçili katın ismini değiştir"/>
+                    BorderThickness="0" Cursor="Hand" ToolTip="Seçili katın ismini değiştir">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="İsim Değiştir" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
 
             <TextBlock Grid.Column="1" x:Name="StatusText" Foreground="#44DD88" FontSize="12"
                        VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
             <!-- Sağ: Ana butonlar -->
             <StackPanel Grid.Column="2" Orientation="Horizontal">
-                <Button Content="➕ Ekle" Click="AddButton_Click" Width="90" Margin="0,0,5,0" 
-                        Background="#2A7A2A" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
-                <Button Content="✏️ Güncelle" Click="UpdateButton_Click" Width="100" Margin="0,0,5,0" 
-                        Background="#2A5A7A" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
-                <Button Content="🗑️ Sil" Click="DeleteButton_Click" Width="80" Margin="0,0,5,0" 
-                        Background="#7A2A2A" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
+                <Button Click="AddButton_Click" Width="90" Margin="0,0,5,0"
+                        Background="#2A7A2A" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Plus}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Ekle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="UpdateButton_Click" Width="100" Margin="0,0,5,0"
+                        Background="#2A5A7A" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Güncelle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="DeleteButton_Click" Width="80" Margin="0,0,5,0"
+                        Background="#7A2A2A" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Sil" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Rectangle Width="8"/>
-                <Button Content="💾 Kaydet" Click="SaveButton_Click" Width="100" Margin="0,0,5,0" 
+                <Button Click="SaveButton_Click" Width="100" Margin="0,0,5,0"
                         Background="#1A6A1A" Foreground="#44FF88" Padding="8,6" FontWeight="Bold" BorderThickness="0" Cursor="Hand"
-                        ToolTip="Kat bilgilerini projeye kaydet"/>
+                        ToolTip="Kat bilgilerini projeye kaydet">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Kaydet" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="CloseButton_Click" Width="80" 
                         Background="#555" Foreground="White" Padding="8,6" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
             </StackPanel>

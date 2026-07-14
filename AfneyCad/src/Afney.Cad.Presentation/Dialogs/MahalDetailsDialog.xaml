@@ -148,9 +148,12 @@
         <Border Grid.Row="0" Background="#0D1117" Padding="20,14,20,14"
                 BorderBrush="#007ACC" BorderThickness="0,0,0,2">
             <StackPanel>
-                <TextBlock Text="🏠 MAHAL TANIMI"
-                           FontSize="17" FontWeight="Bold"
-                           Foreground="#00AAFF"/>
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Home}" Fill="#00AAFF" Width="17" Height="17" Margin="0,0,8,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="MAHAL TANIMI"
+                               FontSize="17" FontWeight="Bold"
+                               Foreground="#00AAFF"/>
+                </StackPanel>
                 <TextBlock x:Name="MahalSubHeaderText"
                            Text="Yeni Mahal"
                            FontSize="11" Foreground="#888"

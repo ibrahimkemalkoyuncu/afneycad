@@ -25,7 +25,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🏗️ Su Deposu / Hidrofor Seçimi" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="#90CAF9" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Su Deposu / Hidrofor Seçimi" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  TS 1258 / TS EN 806-3" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -39,8 +40,12 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="⚙️ Hesapla" Width="110" Margin="0,0,8,0"
-                        Click="Calculate_Click" Background="#1B5E20"/>
+                <Button Grid.Column="1" Click="Calculate_Click" Background="#1B5E20" Width="110" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -114,7 +119,10 @@
                 <!-- Uyarılar -->
                 <Border x:Name="WarningPanel" Visibility="Collapsed" Background="#332200" CornerRadius="4" Padding="8" Margin="0,0,0,6">
                     <StackPanel>
-                        <TextBlock Text="⚠ UYARILAR" Foreground="#FFA040" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Path Data="{StaticResource Ico.Warning}" Fill="#FFA040" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="UYARILAR" Foreground="#FFA040" FontWeight="Bold" FontSize="11"/>
+                        </StackPanel>
                         <TextBlock x:Name="WarningText" Foreground="#FFCC80" TextWrapping="Wrap" FontSize="10"/>
                     </StackPanel>
                 </Border>

@@ -106,7 +106,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="💨 Fan Seçimi" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <Path Data="{StaticResource Ico.Fan}" Fill="#FFD740" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Fan Seçimi" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
                 <TextBlock Text="  Systemair · Halton · Soler &amp; Palau · EBM-Papst — Q, ΔP, SFP, Ses Analizi"
                            FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -121,8 +122,12 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="✅ Seç ve Kapat" Width="130" Margin="0,0,8,0"
-                        Click="SelectAndClose_Click" Background="#1B5E20"/>
+                <Button Grid.Column="1" Click="SelectAndClose_Click" Background="#1B5E20" Width="130" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Seç ve Kapat" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -168,7 +173,12 @@
                         <ComboBoxItem Content="EBM-Papst"/>
                     </ComboBox>
 
-                    <Button Content="🔍 Ara" Width="80" Click="Search_Click" Background="#0D47A1"/>
+                    <Button Click="Search_Click" Background="#0D47A1" Width="80">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Ara" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Border>
 

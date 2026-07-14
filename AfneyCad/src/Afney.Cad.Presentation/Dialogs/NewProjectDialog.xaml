@@ -56,16 +56,46 @@
                 
                 <TextBlock Text="KONUMLAR" FontSize="11" FontWeight="Bold" Foreground="#666" Margin="10,0,0,10"/>
                 
-                <Button Style="{StaticResource SidebarBtn}" Content="📂 Projeler (CALC)"/>
-                <Button Style="{StaticResource SidebarBtn}" Content="🕒 Son Kullanılanlar"/>
-                <Button Style="{StaticResource SidebarBtn}" Content="⭐ Favoriler"/>
-                
+                <Button Style="{StaticResource SidebarBtn}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Projeler (CALC)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource SidebarBtn}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.History}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Son Kullanılanlar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource SidebarBtn}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Favoriler" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
                 <Separator Background="#333" Margin="0,15"/>
-                
+
                 <TextBlock Text="SİSTEM" FontSize="11" FontWeight="Bold" Foreground="#666" Margin="10,0,0,10"/>
-                <Button Style="{StaticResource SidebarBtn}" Content="📁 Belgelerim"/>
-                <Button Style="{StaticResource SidebarBtn}" Content="🖥 Masaüstü"/>
-                <Button Style="{StaticResource SidebarBtn}" Content="🌐 Ağ"/>
+                <Button Style="{StaticResource SidebarBtn}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Belgelerim" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource SidebarBtn}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Monitor}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Masaüstü" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource SidebarBtn}">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Globe}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Ağ" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Border>
 
@@ -82,7 +112,7 @@
                 <TextBlock Text="Proje Seçimi" FontSize="24" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
                 <Border Background="#2D2D2D" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left" MinWidth="300">
                     <DockPanel>
-                        <TextBlock Text="📁" Margin="0,0,8,0" Foreground="Orange"/>
+                        <Path Data="{StaticResource Ico.Folder}" Fill="Orange" Width="13" Height="13" Margin="0,0,8,0" Stretch="Uniform" VerticalAlignment="Center"/>
                         <TextBlock Text="C:\AFNEY_SANI\CALC" Foreground="#AAA" FontFamily="Consolas"/>
                     </DockPanel>
                 </Border>

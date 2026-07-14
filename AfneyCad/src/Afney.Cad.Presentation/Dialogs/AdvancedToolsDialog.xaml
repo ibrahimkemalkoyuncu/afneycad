@@ -107,7 +107,8 @@
     <DockPanel Margin="10">
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🔧 İleri Tesisat Araçları" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.Wrench}" Fill="#90CAF9" Width="15" Height="15" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="İleri Tesisat Araçları" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  Yağmur Oluğu · Genleşme Kompansatörü · Yaşlanma · Gürültü Analizi" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -117,7 +118,13 @@
         <TabControl Background="#252535" BorderThickness="0">
 
             <!-- ───── SEKME 1: YAĞMUR OLUĞU ───── -->
-            <TabItem Header="🌧️ Yağmur Oluğu">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Cloud}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yağmur Oluğu" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
                     <StackPanel>
                         <GroupBox Header="Tasarım Parametreleri">
@@ -134,7 +141,12 @@
                                 <ComboBox  Grid.Row="1" Grid.Column="4" x:Name="GtrSurface" Margin="0,4,0,2"/>
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Oluk Eğimi (%):" Margin="0,4,0,0"/>
                                 <TextBox   Grid.Row="2" Grid.Column="1" x:Name="GtrSlope" Text="0.5" Margin="0,4,0,2"/>
-                                <Button    Grid.Row="2" Grid.Column="3" Content="🌧️ Hesapla" Click="GtrCalc_Click" Background="#01579B" Margin="0,4,0,2"/>
+                                <Button    Grid.Row="2" Grid.Column="3" Click="GtrCalc_Click" Background="#01579B" Margin="0,4,0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource Ico.Cloud}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                         </GroupBox>
                         <GroupBox Header="Sonuçlar">
@@ -148,7 +160,13 @@
             </TabItem>
 
             <!-- ───── SEKME 2: GENLEŞME KOMPANSATÖRÜ ───── -->
-            <TabItem Header="🔀 Genleşme Kompansatörü">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Refresh}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Genleşme Kompansatörü" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
                     <StackPanel>
                         <GroupBox Header="Boru Parametreleri (TS EN 13480)">
@@ -165,7 +183,12 @@
                                 <TextBox   Grid.Row="1" Grid.Column="4" x:Name="ExpTInst" Text="20" Margin="0,4,0,2"/>
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Çalışma Sıcaklığı (°C):" Margin="0,4,0,0"/>
                                 <TextBox   Grid.Row="2" Grid.Column="1" x:Name="ExpTOper" Text="80" Margin="0,4,0,2"/>
-                                <Button    Grid.Row="2" Grid.Column="3" Content="🔀 Hesapla" Click="ExpCalc_Click" Background="#4A148C" Margin="0,4,0,2"/>
+                                <Button    Grid.Row="2" Grid.Column="3" Click="ExpCalc_Click" Background="#4A148C" Margin="0,4,0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                         </GroupBox>
                         <GroupBox Header="Genleşme ve Kompansatör Boyutları">
@@ -189,7 +212,13 @@
             </TabItem>
 
             <!-- ───── SEKME 3: BORU YAŞLANMASI ───── -->
-            <TabItem Header="⏳ Boru Yaşlanması">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.History}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Boru Yaşlanması" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
                     <StackPanel>
                         <GroupBox Header="Yaşlanma Modeli (Colebrook-White — AWWA M11)">
@@ -204,7 +233,12 @@
                                 <TextBox   Grid.Row="1" Grid.Column="1" x:Name="AgRough" Text="0.007" Margin="0,4,0,2"/>
                                 <TextBlock Grid.Row="1" Grid.Column="3" Text="Yaşlanma Hızı (mm/yıl):" Margin="0,4,0,0"/>
                                 <TextBox   Grid.Row="1" Grid.Column="4" x:Name="AgRate" Text="0.003" Margin="0,4,0,2"/>
-                                <Button    Grid.Row="2" Grid.Column="0" Content="⏳ Hesapla" Click="AgCalc_Click" Background="#37474F" Margin="0,4,0,2"/>
+                                <Button    Grid.Row="2" Grid.Column="0" Click="AgCalc_Click" Background="#37474F" Margin="0,4,0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource Ico.History}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                         </GroupBox>
                         <GroupBox Header="Pürüzlülük ve Basınç Kaybı Artışı">
@@ -226,11 +260,22 @@
             </TabItem>
 
             <!-- ───── SEKME 4: GÜRÜLTÜ ANALİZİ ───── -->
-            <TabItem Header="🔊 Gürültü Analizi">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.VolumeHigh}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Gürültü Analizi" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                         <ComboBox x:Name="NoiseMaterial" Width="200" Margin="0,0,8,0"/>
-                        <Button Content="🔊 DB Borularını Analiz Et" Width="180" Click="NoiseAnalyze_Click" Background="#311B92"/>
+                        <Button Width="180" Click="NoiseAnalyze_Click" Background="#311B92">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.VolumeHigh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="DB Borularını Analiz Et" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBlock x:Name="NoiseSummary" Foreground="#90CAF9" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
                     </StackPanel>
                     <DataGrid x:Name="NoiseGrid" AutoGenerateColumns="False">

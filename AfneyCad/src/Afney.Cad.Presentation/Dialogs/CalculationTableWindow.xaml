@@ -33,7 +33,13 @@
             </TabControl.Resources>
 
             <!-- ===== SEKME 1: TEMİZ SU (TS 1258 / DIN 1988) ===== -->
-            <TabItem Header="💧 Temiz Su (TS 1258)">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Temiz Su (TS 1258)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -66,7 +72,13 @@
             </TabItem>
 
             <!-- ===== SEKME 2: PİS SU (TS EN 12056-2) ===== -->
-            <TabItem Header="🔵 Pis Su (TS EN 12056-2)">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Circle}" Fill="#5AC8FA" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Pis Su (TS EN 12056-2)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -122,7 +134,13 @@
             </TabItem>
 
             <!-- ===== SEKME 3: DOĞALGAZ (TS EN 1775) ===== -->
-            <TabItem Header="⛽ Doğalgaz (TS EN 1775)">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.GasPump}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Doğalgaz (TS EN 1775)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -137,8 +155,18 @@
                         <TextBox x:Name="GasSupplyPressure" Text="21" Width="50" Background="#2D2D3F" Foreground="White" BorderBrush="#555" Height="26" VerticalContentAlignment="Center" Padding="4,0" Margin="0,0,12,0"/>
                         <TextBlock Text="Min. Cihaz Basıncı (mbar):" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox x:Name="GasMinPressure" Text="17" Width="50" Background="#2D2D3F" Foreground="White" BorderBrush="#555" Height="26" VerticalContentAlignment="Center" Padding="4,0" Margin="0,0,12,0"/>
-                        <Button Content="⛽ Hesapla" Click="GasCalc_Click" Width="90" Height="26" Background="#E65100" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
-                        <Button Content="📤 HTML" Click="GasExportHtml_Click" Width="80" Height="26" Background="#005A9C" Foreground="White" BorderThickness="0"/>
+                        <Button Click="GasCalc_Click" Width="90" Height="26" Background="#E65100" Foreground="White" BorderThickness="0" Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.GasPump}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="GasExportHtml_Click" Width="80" Height="26" Background="#005A9C" Foreground="White" BorderThickness="0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.TrayUpload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="HTML" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <!-- Özet -->
@@ -168,14 +196,30 @@
             </TabItem>
 
             <!-- ===== SEKME 4: EKİPMANLAR (Merkezi Spreadsheet) ===== -->
-            <TabItem Header="🛠️ Ekipmanlar">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Wrench}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Ekipmanlar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
-                        <Button Content="🔄 DB'den Yükle" Click="EquipLoad_Click" Width="120" Height="26"
+                        <Button Click="EquipLoad_Click" Width="120" Height="26"
                                 Background="#1565C0" Foreground="White" BorderThickness="0" Margin="0,0,6,0"
-                                ToolTip="Veritabanındaki ekipman hesaplarını buraya yükle"/>
-                        <Button Content="📊 Excel" Click="EquipExcel_Click" Width="80" Height="26"
-                                Background="#1B5E20" Foreground="White" BorderThickness="0" Margin="0,0,6,0"/>
+                                ToolTip="Veritabanındaki ekipman hesaplarını buraya yükle">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="DB'den Yükle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="EquipExcel_Click" Width="80" Height="26"
+                                Background="#1B5E20" Foreground="White" BorderThickness="0" Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBlock x:Name="EquipStatusText" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
                     <DataGrid x:Name="EquipGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
@@ -195,7 +239,13 @@
             </TabItem>
 
             <!-- ===== SEKME 5: MANUEL GİRİŞ (CAD gerektirmez) ===== -->
-            <TabItem Header="✏ Manuel Giriş">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Pencil}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Manuel Giriş" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -213,15 +263,30 @@
                         <Button Content="▶ Hesapla" Click="ManualCalc_Click" Width="80" Height="26"
                                 Background="#005A9C" Foreground="White" BorderThickness="0" Margin="0,0,8,0"/>
                         <Rectangle Width="1" Fill="#555" Margin="0,3,8,3"/>
-                        <Button Content="💾 JSON Kaydet" Click="ManualSaveJson_Click" Width="100" Height="26"
+                        <Button Click="ManualSaveJson_Click" Width="100" Height="26"
                                 Background="#455A64" Foreground="White" BorderThickness="0" Margin="0,0,4,0"
-                                ToolTip="Hesap tablosunu JSON dosyasına kaydet"/>
-                        <Button Content="📂 JSON Yükle" Click="ManualLoadJson_Click" Width="100" Height="26"
+                                ToolTip="Hesap tablosunu JSON dosyasına kaydet">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="JSON Kaydet" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ManualLoadJson_Click" Width="100" Height="26"
                                 Background="#455A64" Foreground="White" BorderThickness="0" Margin="0,0,4,0"
-                                ToolTip="Kaydedilmiş JSON hesap tablosunu yükle"/>
-                        <Button Content="📊 Excel" Click="ManualExportExcel_Click" Width="75" Height="26"
+                                ToolTip="Kaydedilmiş JSON hesap tablosunu yükle">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="JSON Yükle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ManualExportExcel_Click" Width="75" Height="26"
                                 Background="#1B5E20" Foreground="White" BorderThickness="0"
-                                ToolTip="Hesap tablosunu Excel (.xlsx) olarak dışa aktar"/>
+                                ToolTip="Hesap tablosunu Excel (.xlsx) olarak dışa aktar">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <DataGrid Grid.Row="1" x:Name="ManualGrid" AutoGenerateColumns="False" IsReadOnly="False"
@@ -256,8 +321,18 @@
 
         <!-- Butonlar -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6">
-            <Button Content="📄 HTML Raporu" Click="ExportHtml_Click"   Width="130" Height="32" Margin="5,0" Background="#005A9C" Foreground="White" BorderThickness="0"/>
-            <Button Content="📊 CSV Dışa Aktar" Click="ExportCsv_Click" Width="130" Height="32" Margin="5,0" Background="#2E8B57" Foreground="White" BorderThickness="0"/>
+            <Button Click="ExportHtml_Click"   Width="130" Height="32" Margin="5,0" Background="#005A9C" Foreground="White" BorderThickness="0">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="HTML Raporu" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="ExportCsv_Click" Width="130" Height="32" Margin="5,0" Background="#2E8B57" Foreground="White" BorderThickness="0">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="CSV Dışa Aktar" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat" Click="Close_Click"                  Width="80"  Height="32" Margin="5,0" Background="#555"    Foreground="White" BorderThickness="0"/>
         </StackPanel>
     </Grid>

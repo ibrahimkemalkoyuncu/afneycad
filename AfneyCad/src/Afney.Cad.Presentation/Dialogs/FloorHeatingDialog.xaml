@@ -95,7 +95,8 @@
     <DockPanel Margin="10">
         <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🌡️ Yerden Isıtma Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <Path Data="{StaticResource Ico.Thermometer}" Fill="#FFD740" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Yerden Isıtma Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
                 <TextBlock Text="  TS EN 1264 — Boru Aralığı · Devre Uzunluğu · Basınç Kaybı · Kolektör"
                            FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -105,8 +106,12 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="🖨 HTML Rapor" Width="110" Margin="0,0,8,0"
-                        Click="ExportHtml_Click" Background="#455A64"/>
+                <Button Grid.Column="1" Click="ExportHtml_Click" Background="#455A64" Width="110" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Printer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -173,10 +178,19 @@
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <Button Grid.Column="0" Content="+ Ekle" Margin="0,0,4,0" Click="AddZone_Click" Background="#1B5E20"/>
-                                <Button Grid.Column="1" Content="🗑 Sil" Margin="4,0,0,0" Click="RemoveZone_Click" Background="#6D0000"/>
+                                <Button Grid.Column="1" Click="RemoveZone_Click" Background="#6D0000" Margin="4,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Sil" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
-                            <Button Content="🔢 Hesapla" Margin="0,6,0,0" Height="34" FontSize="13"
-                                    Click="Calculate_Click" Background="#0D47A1"/>
+                            <Button Click="Calculate_Click" Background="#0D47A1" Margin="0,6,0,0" Height="34" FontSize="13">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Calculator}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
 
                         <DataGrid x:Name="ZoneGrid" AutoGenerateColumns="False"

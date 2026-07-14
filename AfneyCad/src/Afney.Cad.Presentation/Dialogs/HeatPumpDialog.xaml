@@ -95,7 +95,8 @@
     <DockPanel Margin="10">
         <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🌡️ Isı Pompası Seçimi" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <Path Data="{StaticResource Ico.Thermometer}" Fill="#FFD740" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Isı Pompası Seçimi" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
                 <TextBlock Text="  TS EN 14825 — SCOP / SEER Mevsimsel Performans · Yıllık Enerji · CO₂ Analizi"
                            FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -162,9 +163,13 @@
                                        Content="Dahil et"/>
                         </Grid>
 
-                        <Button Content="🔢 Hesapla" Width="200" HorizontalAlignment="Left"
-                                Margin="0,16,0,0" Height="34" FontSize="13"
-                                Click="Calculate_Click" Background="#0D47A1"/>
+                        <Button Click="Calculate_Click" Background="#0D47A1" Width="200" HorizontalAlignment="Left"
+                                Margin="0,16,0,0" Height="34" FontSize="13">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Calculator}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
                         <Separator Background="#333" Margin="0,12"/>
                         <TextBlock Text="KATALOG FİLTRESİ" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" Margin="0,0,0,6"/>
@@ -267,7 +272,10 @@
                         <!-- Uyarılar -->
                         <Border x:Name="WarnBorder" Background="#1A0D0D" CornerRadius="4" Padding="14" Margin="0,0,0,8" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="⚠ UYARILAR" FontSize="10" Foreground="#FFCC02" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <Path Data="{StaticResource Ico.Warning}" Fill="#FFCC02" Width="11" Height="11" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="UYARILAR" FontSize="10" Foreground="#FFCC02" FontWeight="Bold"/>
+                                </StackPanel>
                                 <TextBlock x:Name="ResWarnings" Text="" Foreground="#FF8A80" TextWrapping="Wrap" FontSize="11"/>
                             </StackPanel>
                         </Border>

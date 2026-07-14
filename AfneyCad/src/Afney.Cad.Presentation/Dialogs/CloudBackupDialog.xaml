@@ -31,7 +31,8 @@
     <DockPanel Margin="12">
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="☁️ Bulut Yedekleme" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.Cloud}" Fill="#90CAF9" Width="15" Height="15" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="Bulut Yedekleme" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  OneDrive · Google Drive · Dropbox ile entegre" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -46,7 +47,12 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
                     <TextBox x:Name="TxtBackupDir" Grid.Column="0" IsReadOnly="True"/>
-                    <Button Grid.Column="2" Content="📂 Gözat..." Click="BrowseDir_Click"/>
+                    <Button Grid.Column="2" Click="BrowseDir_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Gözat..." VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </GroupBox>
 
@@ -70,7 +76,12 @@
             <!-- Manuel Yedek -->
             <GroupBox Header="Manuel Yedek" Foreground="#90CAF9" BorderBrush="#444" Padding="8,6" Margin="0,0,0,8">
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="☁️ Şimdi Yedekle" Width="130" Click="BackupNow_Click" Background="#1B5E20" Margin="0,0,8,0"/>
+                    <Button Width="130" Click="BackupNow_Click" Background="#1B5E20" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Cloud}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Şimdi Yedekle" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock x:Name="TxtLastBackup" Text="Son yedek: —" Foreground="#A5D6A7" VerticalAlignment="Center"/>
                 </StackPanel>
             </GroupBox>
@@ -86,8 +97,18 @@
                         </DataGrid.Columns>
                     </DataGrid>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="🔄 Listeyi Yenile" Width="120" Click="RefreshList_Click" Background="#37474F"/>
-                        <Button Content="📂 Klasörü Aç" Width="110" Click="OpenFolder_Click" Background="#37474F" Margin="8,0,0,0"/>
+                        <Button Width="120" Click="RefreshList_Click" Background="#37474F">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Listeyi Yenile" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Width="110" Click="OpenFolder_Click" Background="#37474F" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Klasörü Aç" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>

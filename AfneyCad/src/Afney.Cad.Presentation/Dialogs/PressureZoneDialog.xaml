@@ -139,8 +139,18 @@
 
         <!-- Butonlar -->
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="⚙️ Hesapla" Click="Calculate_Click" Width="100" FontWeight="Bold" Height="32"/>
-            <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57"/>
+            <Button Click="Calculate_Click" Width="100" FontWeight="Bold" Height="32">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat" Click="Close_Click" Width="70" Margin="8,0,0,0" Height="32" Background="#444"/>
         </StackPanel>
     </Grid>

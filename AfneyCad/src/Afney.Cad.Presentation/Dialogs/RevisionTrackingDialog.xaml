@@ -106,7 +106,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#1A1A3A" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="📋 Proje Revizyon Yönetimi" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <Path Data="{StaticResource Ico.ClipboardList}" Fill="#FFD740" Width="15" Height="15" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Proje Revizyon Yönetimi" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
                 <TextBlock Text="  Rev.A / Rev.B / Rev.C — Değişiklik Takibi · Mühendis Onay Akışı · Pafta Revizyon Tablosu"
                            FontSize="10" Foreground="#998840" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -123,9 +124,24 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="📄 Revizyon Raporu" Width="130" Margin="0,0,8,0" Click="ExportReport_Click" Background="#455A64"/>
-                <Button Grid.Column="2" Content="💾 JSON Kaydet" Width="110" Margin="0,0,8,0" Click="SaveJson_Click" Background="#1B5E20"/>
-                <Button Grid.Column="3" Content="📂 JSON Yükle" Width="110" Margin="0,0,8,0" Click="LoadJson_Click" Background="#4A148C"/>
+                <Button Grid.Column="1" Width="130" Margin="0,0,8,0" Click="ExportReport_Click" Background="#455A64">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Revizyon Raporu" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Width="110" Margin="0,0,8,0" Click="SaveJson_Click" Background="#1B5E20">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="JSON Kaydet" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="3" Width="110" Margin="0,0,8,0" Click="LoadJson_Click" Background="#4A148C">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="JSON Yükle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="4" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -133,18 +149,49 @@
         <TabControl Background="#252535" BorderThickness="0">
 
             <!-- ───── SEKME 1: REVİZYON LİSTESİ ───── -->
-            <TabItem Header="📋 Revizyon Listesi">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ClipboardList}" Fill="{StaticResource IconFillAccent}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Revizyon Listesi" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <!-- Araçlar -->
                     <Border DockPanel.Dock="Top" Background="#1A1A3A" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="+ Yeni Revizyon" Width="120" Click="AddRevision_Click" Background="#1B5E20" Margin="0,0,6,0"/>
-                            <Button Content="✏️ Düzenle" Width="90" Click="EditRevision_Click" Background="#0D3060" Margin="0,0,6,0"/>
-                            <Button Content="🗑 Sil" Width="70" Click="DeleteRevision_Click" Background="#6D0000" Margin="0,0,16,0"/>
+                            <Button Width="90" Click="EditRevision_Click" Background="#0D3060" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Düzenle" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Width="70" Click="DeleteRevision_Click" Background="#6D0000" Margin="0,0,16,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Sil" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                             <TextBlock Text="Durum Değiştir:" Margin="0,0,6,0" Foreground="#AAA"/>
-                            <Button Content="✅ Onayla" Width="90" Click="Approve_Click" Background="#1B5E20" Margin="0,0,4,0"/>
-                            <Button Content="📤 Yayınla" Width="90" Click="Publish_Click" Background="#0D47A1" Margin="0,0,4,0"/>
-                            <Button Content="❌ İptal" Width="70" Click="Cancel_Click" Background="#6D0000" Margin="0,0,0,0"/>
+                            <Button Width="90" Click="Approve_Click" Background="#1B5E20" Margin="0,0,4,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Onayla" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Width="90" Click="Publish_Click" Background="#0D47A1" Margin="0,0,4,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.TrayUpload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Yayınla" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Width="70" Click="Cancel_Click" Background="#6D0000" Margin="0,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Close}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="İptal" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 
@@ -199,7 +246,13 @@
             </TabItem>
 
             <!-- ───── SEKME 2: YENİ REVİZYON GİRİŞİ ───── -->
-            <TabItem Header="➕ Yeni Revizyon">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Plus}" Fill="{StaticResource IconFillAccent}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yeni Revizyon" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="8" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <Border Background="#0D1117" CornerRadius="4" Padding="14" Margin="0,0,0,8">
@@ -243,22 +296,53 @@
 
                                 <TextBlock Grid.Row="7" Grid.Column="0" Text="Başlangıç Durumu:" Margin="0,6"/>
                                 <ComboBox  Grid.Row="7" Grid.Column="1" x:Name="CboInitStatus" Margin="0,6" SelectedIndex="0">
-                                    <ComboBoxItem Content="📝 Taslak"/>
-                                    <ComboBoxItem Content="🔍 Kontrol Bekliyor"/>
-                                    <ComboBoxItem Content="✅ Onaylandı"/>
-                                    <ComboBoxItem Content="📤 Yayınlandı"/>
+                                    <ComboBoxItem>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource Ico.FileDocument}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Taslak" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ComboBoxItem>
+                                    <ComboBoxItem>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource Ico.Search}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Kontrol Bekliyor" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ComboBoxItem>
+                                    <ComboBoxItem>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource Ico.CheckCircle}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Onaylandı" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ComboBoxItem>
+                                    <ComboBoxItem>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource Ico.TrayUpload}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Yayınlandı" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ComboBoxItem>
                                 </ComboBox>
                             </Grid>
                         </Border>
 
-                        <Button Content="✅ Revizyon Ekle" Width="200" HorizontalAlignment="Left"
-                                Click="AddRevision_Click" Background="#1B5E20" Height="34" FontSize="13"/>
+                        <Button Width="200" HorizontalAlignment="Left"
+                                Click="AddRevision_Click" Background="#1B5E20" Height="34" FontSize="13">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Revizyon Ekle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- ───── SEKME 3: PROJE BAŞLIK BİLGİSİ ───── -->
-            <TabItem Header="🏢 Proje Başlığı">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{StaticResource IconFillAccent}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Proje Başlığı" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="8" VerticalScrollBarVisibility="Auto">
                     <Border Background="#0D1117" CornerRadius="4" Padding="14">
                         <Grid>

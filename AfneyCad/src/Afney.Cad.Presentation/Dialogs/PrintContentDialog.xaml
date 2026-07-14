@@ -49,28 +49,78 @@
                 <!-- Proje Bilgileri -->
                 <GroupBox Header="Proje Bilgileri">
                     <StackPanel>
-                        <CheckBox x:Name="ChkProjectInfo"  Content="📋 Proje Adı ve Genel Bilgiler"  IsChecked="True"/>
-                        <CheckBox x:Name="ChkCalcDate"     Content="📅 Hesap Tarihi ve Versiyon"      IsChecked="True"/>
-                        <CheckBox x:Name="ChkEngineer"     Content="👷 Mühendis İmza Alanı"           IsChecked="True"/>
+                        <CheckBox x:Name="ChkProjectInfo" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ClipboardList}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Proje Adı ve Genel Bilgiler" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkCalcDate" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Calendar}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesap Tarihi ve Versiyon" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkEngineer" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Wrench}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Mühendis İmza Alanı" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- Hesap Föyü -->
                 <GroupBox Header="Hesap Föyü">
                     <StackPanel>
-                        <CheckBox x:Name="ChkCalcTable"    Content="📊 Segment Hesap Tablosu (tüm satırlar)" IsChecked="True"/>
-                        <CheckBox x:Name="ChkWarningsOnly" Content="⚠ Yalnızca Uyarılı Segmentler"         IsChecked="False"/>
-                        <CheckBox x:Name="ChkNormRef"      Content="📖 Norm Referans Tablosu (TS EN 12056-2)" IsChecked="True"/>
-                        <CheckBox x:Name="ChkSummaryBar"   Content="📈 Özet Satırı (toplam, uyarı sayısı)"  IsChecked="True"/>
+                        <CheckBox x:Name="ChkCalcTable" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ChartBar}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Segment Hesap Tablosu (tüm satırlar)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkWarningsOnly" IsChecked="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Warning}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Yalnızca Uyarılı Segmentler" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkNormRef" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.BookOpen}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Norm Referans Tablosu (TS EN 12056-2)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkSummaryBar" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ChartLineUp}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Özet Satırı (toplam, uyarı sayısı)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- Ek Hesaplar -->
                 <GroupBox Header="Ek Hesaplar">
                     <StackPanel>
-                        <CheckBox x:Name="ChkSeptic"       Content="🪣 Foseptik / Kapalı Çukur Hesabı"     IsChecked="False"/>
-                        <CheckBox x:Name="ChkPump"         Content="⚙ Pis Su Pompası Hesabı"               IsChecked="False"/>
-                        <CheckBox x:Name="ChkBom"          Content="📦 Keşif Listesi (Malzeme Metrajı)"     IsChecked="True"/>
+                        <CheckBox x:Name="ChkSeptic" IsChecked="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Package}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Foseptik / Kapalı Çukur Hesabı" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkPump" IsChecked="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Cog}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Pis Su Pompası Hesabı" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkBom" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Package}" Fill="White" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Keşif Listesi (Malzeme Metrajı)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </GroupBox>
 
@@ -118,8 +168,13 @@
         <!-- Butonlar -->
         <Border Grid.Row="2" Background="#1B1B2E" Padding="10,8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="🖨 Rapor Oluştur" Click="Print_Click"
-                        Background="#2E7D32" Margin="0,0,8,0" Width="150"/>
+                <Button Click="Print_Click"
+                        Background="#2E7D32" Margin="0,0,8,0" Width="150">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Printer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Rapor Oluştur" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

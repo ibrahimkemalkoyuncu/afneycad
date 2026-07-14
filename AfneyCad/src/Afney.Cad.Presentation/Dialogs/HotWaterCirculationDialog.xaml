@@ -53,9 +53,24 @@
                 <TextBox x:Name="TxtReturn" Text="55" Width="50"/>
                 <TextBlock Text="Ortam (°C):" Margin="16,0,6,0" VerticalAlignment="Center"/>
                 <TextBox x:Name="TxtAmbient" Text="20" Width="50"/>
-                <Button Content="📂 Projeden Yükle" Click="LoadFromDb_Click" Margin="20,0,0,0"/>
-                <Button Content="➕ Hat Ekle" Click="AddSegment_Click" Margin="8,0,0,0" Background="#2E8B57"/>
-                <Button Content="🗑️ Sil" Click="DeleteSegment_Click" Margin="4,0,0,0" Background="#6B2020"/>
+                <Button Click="LoadFromDb_Click" Margin="20,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Projeden Yükle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="AddSegment_Click" Margin="8,0,0,0" Background="#2E8B57">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Plus}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hat Ekle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="DeleteSegment_Click" Margin="4,0,0,0" Background="#6B2020">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Sil" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </GroupBox>
 
@@ -115,8 +130,18 @@
 
         <!-- Butonlar -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="⚙️ Hesapla" Click="Calculate_Click" Width="100" FontWeight="Bold" Height="32"/>
-            <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57"/>
+            <Button Click="Calculate_Click" Width="100" FontWeight="Bold" Height="32">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat" Click="Close_Click" Width="70" Margin="8,0,0,0" Height="32" Background="#444"/>
         </StackPanel>
     </Grid>

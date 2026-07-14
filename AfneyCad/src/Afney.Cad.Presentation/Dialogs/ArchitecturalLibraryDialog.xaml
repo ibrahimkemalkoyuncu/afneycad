@@ -98,7 +98,8 @@
     <DockPanel Margin="12">
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🏗️ Mimari Kütüphane" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="#90CAF9" Width="14" Height="14" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="Mimari Kütüphane" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  Kolon · Döşeme · Çatı · Mobilya · Ekipman" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>

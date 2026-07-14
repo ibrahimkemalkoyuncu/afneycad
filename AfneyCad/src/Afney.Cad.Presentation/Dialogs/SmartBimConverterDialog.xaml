@@ -97,7 +97,8 @@
     <DockPanel Margin="12">
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🧱 DWG → BIM Dönüştürücü" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.Brick}" Fill="#90CAF9" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="DWG → BIM Dönüştürücü" FontSize="14" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  Mimari çizimden otomatik BIM nesnesi" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -106,8 +107,18 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="🔍 Layer Tara" Width="110" Margin="0,0,8,0" Click="Scan_Click" Background="#4A148C"/>
-                <Button Grid.Column="2" Content="🧱 Dönüştür" Width="100" Margin="0,0,8,0" Click="Convert_Click" Background="#1B5E20"/>
+                <Button Grid.Column="1" Width="110" Margin="0,0,8,0" Click="Scan_Click" Background="#4A148C">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Layer Tara" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Width="100" Margin="0,0,8,0" Click="Convert_Click" Background="#1B5E20">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Brick}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Dönüştür" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="3" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>

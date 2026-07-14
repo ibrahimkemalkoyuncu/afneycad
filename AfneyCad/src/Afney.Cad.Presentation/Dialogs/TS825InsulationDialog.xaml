@@ -157,8 +157,18 @@
                     </DataGrid.Columns>
                 </DataGrid>
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
-                    <Button Content="➕ Örnek Katmanlar" Click="OnFillSampleLayers" Background="#455A64"/>
-                    <Button Content="🗑 Temizle" Click="OnClearLayers" Background="#5D4037"/>
+                    <Button Click="OnFillSampleLayers" Background="#455A64">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Plus}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Örnek Katmanlar" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="OnClearLayers" Background="#5D4037">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Temizle" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock Text="Not: Pencere/Kapı seçilirse U doğrudan sol panelden girilir." FontSize="11"
                                Foreground="#8FA3C0" VerticalAlignment="Center"/>
                 </StackPanel>
@@ -179,9 +189,24 @@
         <!-- Alt butonlar -->
         <Border Grid.Row="2" Background="#1B1B2E" Padding="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="🧮 Hesapla" Click="OnCalculate" Background="#2E7D32"/>
-                <Button Content="🌐 HTML Rapor" Click="OnHtmlReport"/>
-                <Button Content="📝 Çizime Metin Ekle" Click="OnAddToDrawing" Background="#455A64"/>
+                <Button Click="OnCalculate" Background="#2E7D32">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Calculator}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnHtmlReport">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Globe}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnAddToDrawing" Background="#455A64">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Çizime Metin Ekle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="OnClose" Background="#37474F"/>
             </StackPanel>
         </Border>

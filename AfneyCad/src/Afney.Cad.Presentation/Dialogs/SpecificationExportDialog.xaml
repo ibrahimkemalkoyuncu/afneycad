@@ -13,7 +13,12 @@
         <TextBlock Grid.Row="0" Text="TEKNİK ŞARTNAME OLUŞTURMA" FontSize="18" FontWeight="Bold" Foreground="#AADDFF" Margin="0,0,0,15"/>
         <StackPanel Grid.Row="1">
             <StackPanel Orientation="Horizontal" Margin="0,5"><TextBlock Text="Proje Adı:" Width="120"/><TextBox x:Name="ProjectNameInput" Width="300" Text="AfneyCAD Projesi" Background="#333" Foreground="White"/></StackPanel>
-            <Button Content="📋 HTML Şartname Oluştur ve Aç" Click="Generate_Click" Width="250" Height="35" Margin="0,15" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0" HorizontalAlignment="Left"/>
+            <Button Click="Generate_Click" Width="250" Height="35" Margin="0,15" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="HTML Şartname Oluştur ve Aç" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
         <TextBlock Grid.Row="2" x:Name="StatusText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,10"/>
         <Button Grid.Row="3" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>

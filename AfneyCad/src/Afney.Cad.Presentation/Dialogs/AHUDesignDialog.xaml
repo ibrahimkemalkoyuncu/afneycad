@@ -95,7 +95,8 @@
     <DockPanel Margin="10">
         <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="💨 AHU Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <Path Data="{StaticResource Ico.Fan}" Fill="#FFD740" Width="15" Height="15" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="AHU Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
                 <TextBlock Text="  Hava İşleme Birimi — Isıtma/Soğutma Bataryası · Nem · Fan · SFP · ISO 16890 Filtre"
                            FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -174,9 +175,14 @@
                             </ComboBox>
                         </Grid>
 
-                        <Button Content="🔢 Hesapla" Width="200" HorizontalAlignment="Left"
+                        <Button Width="200" HorizontalAlignment="Left"
                                 Margin="0,14,0,0" Height="34" FontSize="13"
-                                Click="Calculate_Click" Background="#0D47A1"/>
+                                Click="Calculate_Click" Background="#0D47A1">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Calculator}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

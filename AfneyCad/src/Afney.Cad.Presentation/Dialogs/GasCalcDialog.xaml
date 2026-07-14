@@ -111,7 +111,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="12,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🔥 Doğalgaz Tesisat Hesabı" FontSize="15" FontWeight="Bold" Foreground="#FFB74D"/>
+                <Path Data="{StaticResource Ico.Fire}" Fill="#FFB74D" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Doğalgaz Tesisat Hesabı" FontSize="15" FontWeight="Bold" Foreground="#FFB74D"/>
                 <TextBlock Text="  TS EN 1775 / TS 7363  —  Düşük Basınç Sistemi" FontSize="11" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="0,0,0,1"/>
             </StackPanel>
         </Border>

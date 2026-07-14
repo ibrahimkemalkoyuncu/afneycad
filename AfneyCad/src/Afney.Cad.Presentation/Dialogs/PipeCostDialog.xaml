@@ -120,9 +120,24 @@
 
         <!-- Araç Çubuğu -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button Content="📂 Projeden Yükle" Click="LoadFromDb_Click"/>
-            <Button Content="➕ Hat Ekle"        Click="AddRow_Click" Margin="8,0,0,0" Background="#2E8B57"/>
-            <Button Content="🗑️ Sil"             Click="DeleteRow_Click" Margin="4,0,0,0" Background="#6B2020"/>
+            <Button Click="LoadFromDb_Click">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Projeden Yükle" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="AddRow_Click" Margin="8,0,0,0" Background="#2E8B57">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Plus}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Hat Ekle" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="DeleteRow_Click" Margin="4,0,0,0" Background="#6B2020">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Trash}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Sil" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <TextBlock Text="Beklenmedik Gider (%):" VerticalAlignment="Center" Margin="20,0,8,0"/>
             <TextBox x:Name="TxtContingency" Text="10" Width="45"/>
         </StackPanel>
@@ -174,8 +189,18 @@
 
         <!-- Butonlar -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="⚙️ Hesapla"     Click="Calculate_Click"  Width="100" FontWeight="Bold" Height="32"/>
-            <Button Content="📄 HTML Rapor"  Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57"/>
+            <Button Click="Calculate_Click"  Width="100" FontWeight="Bold" Height="32">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="ExportHtml_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#2E8B57">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat"          Click="Close_Click"      Width="70"  Margin="8,0,0,0" Height="32" Background="#444"/>
         </StackPanel>
     </Grid>

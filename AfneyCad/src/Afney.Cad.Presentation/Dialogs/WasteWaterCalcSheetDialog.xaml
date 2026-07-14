@@ -138,19 +138,34 @@
         <!-- Başlık -->
         <Border Grid.Row="0" Background="#0D47A1" Padding="16,10">
             <DockPanel>
-                <TextBlock Text="🔵" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Path Data="{StaticResource Ico.Circle}" Fill="#5AC8FA" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <StackPanel>
                     <TextBlock Text="PİS SU TESİSAT HESAPLARI (HESAP FÖYİ)" FontSize="14" FontWeight="Bold"/>
                     <TextBlock Text="TS EN 12056-2 · Manning Formülü · DU Yöntemi / DIN Normu"
                                FontSize="10" Foreground="#90CAF9"/>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="📥 Çizimden Güncelle" Click="UpdateFromDrawing_Click"
-                            Background="#2E7D32" Margin="0,0,8,0"/>
-                    <Button Content="⚙ Hesapla" Click="Calculate_Click"
-                            Background="#1565C0" Margin="0,0,8,0"/>
-                    <Button Content="✅ Tesisatı Kabul Et" Click="AcceptSystem_Click"
-                            Background="#4A148C"/>
+                    <Button Click="UpdateFromDrawing_Click"
+                            Background="#2E7D32" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.TrayDownload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Çizimden Güncelle" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="Calculate_Click"
+                            Background="#1565C0" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="AcceptSystem_Click"
+                            Background="#4A148C">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tesisatı Kabul Et" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -174,7 +189,13 @@
             </TabControl.Resources>
 
             <!-- ── SEKME 1: HESAP FÖYİ ── -->
-            <TabItem Header="📋 Hesap Föyü">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesap Föyü" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -242,7 +263,13 @@
             </TabItem>
 
             <!-- ── SEKME 2: DEVRE SEÇENEKLERİ ── -->
-            <TabItem Header="⚙ Devre Seçenekleri">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Devre Seçenekleri" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="16">
 
@@ -326,7 +353,13 @@
             </TabItem>
 
             <!-- ── SEKME 3: KAPALICROIX / FOSEPTİK ── -->
-            <TabItem Header="🔵 Çukur / Foseptik / Pompa">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Circle}" Fill="#5AC8FA" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Çukur / Foseptik / Pompa" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="16">
 
@@ -467,7 +500,13 @@
             </TabItem>
 
             <!-- ── SEKME 4: KEŞİF LİSTESİ ── -->
-            <TabItem Header="📦 Keşif Listesi">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Package}" Fill="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Keşif Listesi" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -475,11 +514,26 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8,8,8,4">
-                        <Button Content="🔄 Listele" Click="RefreshBOM_Click" Margin="0,0,8,0"/>
-                        <Button Content="📊 CSV Dışa Aktar" Click="ExportBomCsv_Click"
-                                Background="#2E7D32" Margin="0,0,8,0"/>
-                        <Button Content="🌐 HTML Keşif" Click="ExportBomHtml_Click"
-                                Background="#005A9C"/>
+                        <Button Click="RefreshBOM_Click" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Listele" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ExportBomCsv_Click"
+                                Background="#2E7D32" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="CSV Dışa Aktar" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ExportBomHtml_Click"
+                                Background="#005A9C">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Globe}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="HTML Keşif" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBlock x:Name="TxtCatalogInfo" VerticalAlignment="Center"
                                    Margin="12,0,0,0" FontSize="11" Foreground="#8FA3C0"
                                    Text="Katalog: dahili 2024 listesi"/>
@@ -512,11 +566,26 @@
         <!-- Butonlar -->
         <Border Grid.Row="3" Background="#1B1B2E" Padding="8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="📄 HTML Rapor" Click="ExportHtml_Click" Margin="0,0,8,0"/>
-                <Button Content="🏛 Kolon Şeması" Click="RiserDiagram_Click"
-                        Background="#4A148C" Margin="0,0,8,0"/>
-                <Button Content="✏ Çizimi Güncelle" Click="UpdateDrawing_Click"
-                        Background="#2E7D32" Margin="0,0,8,0"/>
+                <Button Click="ExportHtml_Click" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="RiserDiagram_Click"
+                        Background="#4A148C" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Kolon Şeması" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="UpdateDrawing_Click"
+                        Background="#2E7D32" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Çizimi Güncelle" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

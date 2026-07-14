@@ -212,7 +212,7 @@
                 <GroupBox Grid.Row="2" Header="Tesisat Kopyalama — Kolon Borusu Kontrolü" Padding="8">
                     <StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#FFA726" FontSize="12" Margin="0,0,0,8">
-                            ⚠ OtoNET Kuralı: Tesisat kopyalanırken kolon boruları (dikey PipeEntity) seçime dahil edilmemelidir.
+                            OtoNET Kuralı: Tesisat kopyalanırken kolon boruları (dikey PipeEntity) seçime dahil edilmemelidir.
                             Aşağıdaki buton seçili nesnelerdeki kolon borularını tespit eder ve raporlar.
                         </TextBlock>
                         <StackPanel Orientation="Horizontal">
@@ -270,11 +270,11 @@
 Hazır. "Tesisatı Kabul Et" butonuna basarak pis su ve yağmur suyu tesisatını doğrulayın.
 
 Kontrol edilen koşullar:
-  ✓ Her WasteWater ağında en az 1 DrainageOutletEntity (rögar)
-  ✓ Her RainWater ağında en az 1 DrainageOutletEntity (yağmur boşaltma)
-  ✓ Açık uçlar (bağlantısız boru sonu)
-  ✓ Kolon boruları bağlantısı
-  ✓ Sistem topolojisi tutarlılığı
+  - Her WasteWater ağında en az 1 DrainageOutletEntity (rögar)
+  - Her RainWater ağında en az 1 DrainageOutletEntity (yağmur boşaltma)
+  - Açık uçlar (bağlantısız boru sonu)
+  - Kolon boruları bağlantısı
+  - Sistem topolojisi tutarlılığı
                         </TextBlock>
                     </ScrollViewer>
                 </Border>

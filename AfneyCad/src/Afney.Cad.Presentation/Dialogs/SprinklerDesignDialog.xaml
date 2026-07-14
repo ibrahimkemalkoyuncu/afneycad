@@ -95,7 +95,8 @@
     <DockPanel Margin="10">
         <Border DockPanel.Dock="Top" Background="#0D1117" CornerRadius="4" Padding="12,8" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🔥 Sprinkler Sistemi Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
+                <Path Data="{StaticResource Ico.Fire}" Fill="#FFD740" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Sprinkler Sistemi Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFD740"/>
                 <TextBlock Text="  NFPA 13 Yoğunluk/Alan Metodu — Tehlike Sınıfı · Debi · Boru Boyutu · Basınç"
                            FontSize="10" Foreground="#888" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -176,9 +177,14 @@
                                    Foreground="#90CAF9" FontSize="10" TextWrapping="Wrap" Margin="0,6"/>
                     </Grid>
 
-                    <Button Content="🔢 Hesapla" Width="200" HorizontalAlignment="Left"
+                    <Button Width="200" HorizontalAlignment="Left"
                             Margin="0,14,0,0" Height="34" FontSize="13"
-                            Click="Calculate_Click" Background="#B71C1C"/>
+                            Click="Calculate_Click" Background="#B71C1C">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource Ico.Calculator}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="14" Height="14" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                            <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Border>
 
@@ -224,14 +230,20 @@
 
                         <Border Background="#0D2A0D" CornerRadius="4" Padding="14" Margin="0,0,0,8">
                             <StackPanel>
-                                <TextBlock Text="✅ UYUMLULUK" FontSize="10" Foreground="#A5D6A7" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="#A5D6A7" Width="10" Height="10" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="UYUMLULUK" FontSize="10" Foreground="#A5D6A7" FontWeight="Bold"/>
+                                </StackPanel>
                                 <TextBlock x:Name="ResCompliance" Text="—" Foreground="#A5D6A7" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
 
                         <Border x:Name="WarnBorder" Background="#1A0D0D" CornerRadius="4" Padding="14" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="⚠ UYARILAR" FontSize="10" Foreground="#FFCC02" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <Path Data="{StaticResource Ico.Warning}" Fill="#FFCC02" Width="10" Height="10" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="UYARILAR" FontSize="10" Foreground="#FFCC02" FontWeight="Bold"/>
+                                </StackPanel>
                                 <TextBlock x:Name="ResWarnings" Text="" Foreground="#FF8A80" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>

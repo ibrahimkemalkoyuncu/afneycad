@@ -23,7 +23,12 @@
                 <ComboBox x:Name="TankTypeCombo" Width="200" Background="#333" Foreground="Black" SelectedIndex="1">
                     <ComboBoxItem Content="Tek Hazne"/><ComboBoxItem Content="Çift Hazne"/><ComboBoxItem Content="Üç Hazne"/>
                 </ComboBox>
-                <Button Content="🔄 Hesapla" Click="Calculate_Click" Width="150" Height="32" Margin="0,15" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                <Button Click="Calculate_Click" Width="150" Height="32" Margin="0,15" Background="#005A9C" Foreground="White" FontWeight="Bold" BorderThickness="0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Grid>
         <TextBlock Grid.Row="2" x:Name="ResultText" Foreground="#00FF88" FontSize="13" TextWrapping="Wrap" Margin="0,10"/>

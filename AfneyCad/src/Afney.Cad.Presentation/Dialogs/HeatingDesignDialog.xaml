@@ -104,7 +104,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#5D1A00" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🔥 Isıtma Tesisat Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFCC80"/>
+                <Path Data="{StaticResource Ico.Fire}" Fill="#FFCC80" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Isıtma Tesisat Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#FFCC80"/>
                 <TextBlock Text="  TS 825 Isı Kaybı · TS EN 12831 Radyatör · Kazan Seçimi" FontSize="10" Foreground="#FF9966" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -120,9 +121,24 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="🔥 Hesapla" Width="100" Margin="0,0,8,0" Click="Calculate_Click" Background="#BF360C"/>
-                <Button Grid.Column="2" Content="📄 PDF Rapor" Width="100" Margin="0,0,8,0" Click="ExportPdf_Click" Background="#1B5E20"/>
-                <Button Grid.Column="3" Content="📊 Excel" Width="80" Margin="0,0,8,0" Click="ExportExcel_Click" Background="#1B5E20"/>
+                <Button Grid.Column="1" Click="Calculate_Click" Background="#BF360C" Width="100" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Click="ExportPdf_Click" Background="#1B5E20" Width="100" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="PDF Rapor" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="3" Click="ExportExcel_Click" Background="#1B5E20" Width="80" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="4" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -130,7 +146,13 @@
         <TabControl Background="#252535" BorderThickness="0">
 
             <!-- ───── SEKME 1: SİSTEM PARAMETRELERİ ───── -->
-            <TabItem Header="⚙️ Sistem Parametreleri">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Cog}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Sistem Parametreleri" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
                     <StackPanel>
                         <Grid Margin="0,0,0,12">
@@ -187,12 +209,23 @@
             </TabItem>
 
             <!-- ───── SEKME 2: ODA TANIMLAMA ───── -->
-            <TabItem Header="🏠 Oda Tanımlama">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Home}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Oda Tanımlama" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
                         <Button Content="+ Oda Ekle" Width="90" Click="AddRoom_Click" Background="#BF360C" Margin="0,0,4,0"/>
                         <Button Content="Sil" Width="60" Click="DeleteRoom_Click" Background="#8B3A3A" Margin="0,0,4,0"/>
-                        <Button Content="📋 Şablon" Width="90" Click="AddTemplate_Click" Background="#455A64" Margin="0,0,4,0" ToolTip="Standart konut şablonu ekle"/>
+                        <Button Click="AddTemplate_Click" Background="#455A64" Width="90" Margin="0,0,4,0" ToolTip="Standart konut şablonu ekle">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Şablon" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <ComboBox x:Name="CboRoomType" Width="160" Margin="8,0,0,0"/>
                     </StackPanel>
 
@@ -214,7 +247,13 @@
             </TabItem>
 
             <!-- ───── SEKME 3: HESAP SONUÇLARI ───── -->
-            <TabItem Header="📊 Hesap Sonuçları">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{StaticResource IconFillAccent}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesap Sonuçları" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <!-- Özet -->
                     <Border DockPanel.Dock="Top" Background="#5D1A00" CornerRadius="4" Padding="10,6" Margin="0,0,0,8">

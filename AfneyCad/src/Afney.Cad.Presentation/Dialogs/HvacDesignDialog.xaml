@@ -103,7 +103,8 @@
     <DockPanel Margin="10">
         <Border DockPanel.Dock="Top" Background="#003A3A" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🌬️ Havalandırma Tesisat Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#80DEEA"/>
+                <Path Data="{StaticResource Ico.Fan}" Fill="#80DEEA" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Havalandırma Tesisat Tasarımı" FontSize="15" FontWeight="Bold" Foreground="#80DEEA"/>
                 <TextBlock Text="  Kanal Boyutlandırma · Fan Seçimi · Hava Kalitesi (TS EN 13779)" FontSize="10" Foreground="#4DB6AC" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -115,8 +116,18 @@
                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="🌬️ Hesapla" Width="100" Margin="0,0,8,0" Click="Calculate_Click" Background="#006064"/>
-                <Button Grid.Column="2" Content="📊 Excel" Width="80" Margin="0,0,8,0" Click="ExportExcel_Click" Background="#1B5E20"/>
+                <Button Grid.Column="1" Click="Calculate_Click" Background="#006064" Width="100" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Fan}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Click="ExportExcel_Click" Background="#1B5E20" Width="80" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="3" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -155,7 +166,12 @@
             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
                 <Button Content="+ Zon Ekle" Width="90" Click="AddZone_Click" Background="#006064" Margin="0,0,4,0"/>
                 <Button Content="Sil" Width="60" Click="DeleteZone_Click" Background="#8B3A3A" Margin="0,0,4,0"/>
-                <Button Content="📋 Şablon" Width="90" Click="AddTemplate_Click" Background="#455A64" Margin="0,0,8,0"/>
+                <Button Click="AddTemplate_Click" Background="#455A64" Width="90" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Şablon" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <ComboBox x:Name="CboZoneType" Width="160"/>
             </StackPanel>
 

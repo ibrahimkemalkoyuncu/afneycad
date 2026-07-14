@@ -44,8 +44,13 @@
             </Grid.ColumnDefinitions>
             <TextBox x:Name="TxtFilePath" IsReadOnly="True" Grid.Column="0"
                      Text="IFC dosyası seçilmedi..." Foreground="#888"/>
-            <Button Grid.Column="1" Content="📂 Dosya Seç" Click="BrowseFile_Click"
-                    Margin="8,0,0,0" Width="100"/>
+            <Button Grid.Column="1" Click="BrowseFile_Click"
+                    Margin="8,0,0,0" Width="100">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Dosya Seç" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
         </Grid>
 
         <!-- İçeri Aktarılacak Elemanlar -->
@@ -84,9 +89,19 @@
 
         <!-- Butonlar -->
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-            <Button Content="🔍 Önizle" Click="Preview_Click" Width="90" Margin="0,0,10,0"/>
-            <Button Content="✅ İçeri Aktar" Click="Import_Click" Width="110"
-                    Background="#2E8B57" x:Name="BtnImport" IsEnabled="False"/>
+            <Button Click="Preview_Click" Width="90" Margin="0,0,10,0">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Önizle" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Click="Import_Click" Width="110"
+                    Background="#2E8B57" x:Name="BtnImport" IsEnabled="False">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="İçeri Aktar" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="İptal" Click="Cancel_Click" Width="70" Margin="10,0,0,0" Background="#444"/>
         </StackPanel>
     </Grid>

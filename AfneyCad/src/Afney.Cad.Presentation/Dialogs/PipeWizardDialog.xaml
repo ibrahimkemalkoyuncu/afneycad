@@ -11,7 +11,10 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="🏗️ Tesisat Şablonu Seçin" FontSize="20" FontWeight="Bold" Foreground="#7CFC00" Margin="0,0,0,15"/>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+            <Path Data="{StaticResource Ico.OfficeBuilding}" Fill="#7CFC00" Width="20" Height="20" Stretch="Uniform" Margin="0,0,8,0"/>
+            <TextBlock Text="Tesisat Şablonu Seçin" FontSize="20" FontWeight="Bold" Foreground="#7CFC00"/>
+        </StackPanel>
         <ListBox Grid.Row="1" x:Name="TemplateList" Background="#252535" Foreground="White" BorderBrush="#555"
                  SelectionChanged="TemplateList_SelectionChanged" FontSize="14" Padding="5">
         </ListBox>
@@ -28,7 +31,12 @@
             </ComboBox>
         </StackPanel>
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button Content="✅ Yerleştir" Click="Place_Click" Width="120" Height="35" Background="#2E8B57" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="5,0"/>
+            <Button Click="Place_Click" Width="120" Height="35" Background="#2E8B57" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="5,0">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Yerleştir" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="İptal" Click="Cancel_Click" Width="80" Height="35" Background="#555" Foreground="White" BorderThickness="0"/>
         </StackPanel>
     </Grid>

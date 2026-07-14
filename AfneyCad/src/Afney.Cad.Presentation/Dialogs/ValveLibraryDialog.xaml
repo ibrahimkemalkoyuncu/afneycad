@@ -31,7 +31,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🔧 Vana Kütüphanesi" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.Wrench}" Fill="#90CAF9" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Vana Kütüphanesi" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  TS EN 1074 / TS EN 1776" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>

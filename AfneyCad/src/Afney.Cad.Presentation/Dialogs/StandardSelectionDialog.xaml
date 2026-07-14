@@ -19,7 +19,12 @@
         </StackPanel>
         <TextBlock Grid.Row="2" x:Name="InfoText" Foreground="#AAA" FontSize="12" TextWrapping="Wrap" Margin="0,10"/>
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="✅ Uygula" Click="Apply_Click" Width="100" Height="32" Background="#2E8B57" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="5,0"/>
+            <Button Click="Apply_Click" Width="100" Height="32" Background="#2E8B57" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="5,0">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Uygula" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat" Click="Close_Click" Width="80" Height="32" Background="#555" Foreground="White" BorderThickness="0"/>
         </StackPanel>
     </Grid>

@@ -31,7 +31,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="📚 Vitrifiye Kataloğu Yönetimi" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <Path Data="{StaticResource Ico.Package}" Fill="#90CAF9" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Vitrifiye Kataloğu Yönetimi" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
                 <TextBlock Text="  Ekle / Düzenle / Sil / JSON Import-Export" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
         </Border>
@@ -57,8 +58,18 @@
                 <Button Content="+ Yeni Cihaz" Width="110" Click="AddNew_Click" Background="#1B5E20" Margin="0,0,6,0"/>
                 <Button Content="Sil" Width="60" Click="Delete_Click" Background="#B71C1C" Margin="0,0,6,0"/>
                 <Button Content="Çoğalt" Width="80" Click="Duplicate_Click" Margin="0,0,16,0"/>
-                <Button Content="📥 JSON Aktar" Width="110" Click="ImportJson_Click" Background="#4A148C" Margin="0,0,6,0"/>
-                <Button Content="📤 JSON Ver" Width="100" Click="ExportJson_Click" Background="#1A237E" Margin="0,0,16,0"/>
+                <Button Width="110" Click="ImportJson_Click" Background="#4A148C" Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.TrayDownload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="JSON Aktar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Width="100" Click="ExportJson_Click" Background="#1A237E" Margin="0,0,16,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.TrayUpload}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="JSON Ver" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Fabrika Varsayılanları" Width="140" Click="ResetDefaults_Click" Background="#37474F"/>
                 <TextBlock x:Name="CountText" Margin="12,0,0,0" Foreground="#AAA" FontSize="11"/>
             </StackPanel>

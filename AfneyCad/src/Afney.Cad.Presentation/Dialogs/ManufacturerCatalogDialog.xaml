@@ -106,7 +106,8 @@
         <!-- Başlık -->
         <Border DockPanel.Dock="Top" Background="#1A2A1A" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="📦 Üretici Ekipman Kataloğu" FontSize="15" FontWeight="Bold" Foreground="#A5D6A7"/>
+                <Path Data="{StaticResource Ico.Package}" Fill="#A5D6A7" Width="15" Height="15" Margin="0,0,8,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                <TextBlock Text="Üretici Ekipman Kataloğu" FontSize="15" FontWeight="Bold" Foreground="#A5D6A7"/>
                 <TextBlock Text="  Grundfos · Wilo · Valsir · Wavin · Geberit · Honeywell · Danfoss"
                            FontSize="10" Foreground="#66AA66" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
             </StackPanel>
@@ -122,8 +123,18 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77CC77" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                <Button Grid.Column="1" Content="✅ Seç ve Kapat" Width="130" Margin="0,0,8,0" Click="SelectAndClose_Click" Background="#2E7D32"/>
-                <Button Grid.Column="2" Content="📄 Detay Rapor" Width="110" Margin="0,0,8,0" Click="ExportReport_Click" Background="#455A64"/>
+                <Button Grid.Column="1" Width="130" Margin="0,0,8,0" Click="SelectAndClose_Click" Background="#2E7D32">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Seç ve Kapat" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Width="110" Margin="0,0,8,0" Click="ExportReport_Click" Background="#455A64">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Detay Rapor" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Grid.Column="3" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
@@ -131,7 +142,13 @@
         <TabControl Background="#252535" BorderThickness="0">
 
             <!-- ───── SEKME 1: POMPALAR ───── -->
-            <TabItem Header="🔄 Pompalar">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Refresh}" Fill="{StaticResource IconFillAccent}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Pompalar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <!-- Filtre satırı -->
                     <Border DockPanel.Dock="Top" Background="#0A2040" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
@@ -146,7 +163,12 @@
                             <TextBox x:Name="TxtPumpFlow" Text="" Width="70" Margin="0,0,12,0"/>
                             <TextBlock Text="Basma Yük. (m):" Margin="0,0,6,0"/>
                             <TextBox x:Name="TxtPumpHead" Text="" Width="70" Margin="0,0,12,0"/>
-                            <Button Content="🔍 Filtrele" Width="90" Click="PumpFilter_Changed" Background="#0277BD"/>
+                            <Button Width="90" Click="PumpFilter_Changed" Background="#0277BD">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Filtrele" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 
@@ -207,7 +229,13 @@
             </TabItem>
 
             <!-- ───── SEKME 2: BORULAR ───── -->
-            <TabItem Header="🔧 Borular">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Wrench}" Fill="{StaticResource IconFillAccent}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Borular" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <Border DockPanel.Dock="Top" Background="#0A2040" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal">
@@ -227,7 +255,12 @@
                             </ComboBox>
                             <TextBlock Text="Min DN:" Margin="0,0,6,0"/>
                             <TextBox x:Name="TxtMinDN" Text="" Width="60" Margin="0,0,12,0"/>
-                            <Button Content="🔍 Filtrele" Width="90" Click="PipeFilter_Changed" Background="#0277BD"/>
+                            <Button Width="90" Click="PipeFilter_Changed" Background="#0277BD">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Filtrele" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 
@@ -251,7 +284,13 @@
             </TabItem>
 
             <!-- ───── SEKME 3: VANALAR ───── -->
-            <TabItem Header="🔩 Vanalar">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Ruler}" Fill="{StaticResource IconFillAccent}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Vanalar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel Margin="8">
                     <Border DockPanel.Dock="Top" Background="#0A2040" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal">
@@ -271,7 +310,12 @@
                             </ComboBox>
                             <TextBlock Text="Q (m³/h):" Margin="0,0,6,0"/>
                             <TextBox x:Name="TxtValveFlow" Text="" Width="60" Margin="0,0,12,0"/>
-                            <Button Content="🔍 ΔP Hesapla" Width="100" Click="ValveFilter_Changed" Background="#0277BD"/>
+                            <Button Width="100" Click="ValveFilter_Changed" Background="#0277BD">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text="ΔP Hesapla" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 

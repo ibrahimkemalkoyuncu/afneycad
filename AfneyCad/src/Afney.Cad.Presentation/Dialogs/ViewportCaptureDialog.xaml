@@ -161,8 +161,13 @@
         <!-- Butonlar -->
         <Border Grid.Row="2" Background="#1B1B2E" Padding="10,8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="💾 Kaydet (Blok Oluştur)" Click="Save_Click"
-                        Background="#2E7D32" Margin="0,0,8,0" Width="200"/>
+                <Button Click="Save_Click"
+                        Background="#2E7D32" Margin="0,0,8,0" Width="200">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Save}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Kaydet (Blok Oluştur)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

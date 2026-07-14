@@ -61,13 +61,48 @@
                 <!-- Çizime yazılacak özellikler -->
                 <GroupBox Header="Çizimde Görünmesi İstenen Özellikler">
                     <StackPanel>
-                        <CheckBox x:Name="ChkLength"    Content="📏 Uzunluk (m)"          IsChecked="True"/>
-                        <CheckBox x:Name="ChkDiameter"  Content="⭕ Boru Çapı (DN mm)"     IsChecked="True"/>
-                        <CheckBox x:Name="ChkSlope"     Content="📐 Eğim (%)"              IsChecked="True"/>
-                        <CheckBox x:Name="ChkFillRatio" Content="💧 Doluluk Derecesi (%)"  IsChecked="True"/>
-                        <CheckBox x:Name="ChkVelocity"  Content="💨 Akış Hızı (m/s)"      IsChecked="False"/>
-                        <CheckBox x:Name="ChkFlow"      Content="🌊 Debi (l/s)"            IsChecked="False"/>
-                        <CheckBox x:Name="ChkLoadUnits" Content="⚖ Yük Birimi (DU)"       IsChecked="False"/>
+                        <CheckBox x:Name="ChkLength" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Ruler}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Uzunluk (m)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkDiameter" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Circle}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Boru Çapı (DN mm)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkSlope" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Ruler}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Eğim (%)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkFillRatio" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.WaterDrop}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Doluluk Derecesi (%)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkVelocity" IsChecked="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Fan}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Akış Hızı (m/s)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkFlow" IsChecked="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.WaterDrop}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Debi (l/s)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="ChkLoadUnits" IsChecked="False">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource Ico.Ruler}" Fill="{StaticResource IconFillDefault}" Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <TextBlock Text="Yük Birimi (DU)" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </GroupBox>
 
@@ -120,8 +155,13 @@
         <!-- Butonlar -->
         <Border Grid.Row="2" Background="#1B1B2E" Padding="10,8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="🖊 Otomatik Yerleştirme" Click="AutoPlace_Click"
-                        Background="#2E7D32" Margin="0,0,8,0" Width="180"/>
+                <Button Click="AutoPlace_Click"
+                        Background="#2E7D32" Margin="0,0,8,0" Width="180">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Otomatik Yerleştirme" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

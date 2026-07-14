@@ -8,16 +8,41 @@
         <!-- Toolbar -->
         <Border DockPanel.Dock="Top" Background="#1E1E1E" Padding="8,6" BorderBrush="#444" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
-                <Button Content="🖨 Yazdır" Click="OnPrint_Click" Width="90" Height="30"
-                        Background="#0A84FF" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0"/>
-                <Button Content="📐 A4" x:Name="BtnA4" Click="OnA4_Click" Width="50" Height="30"
-                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
-                <Button Content="📐 A3" x:Name="BtnA3" Click="OnA3_Click" Width="50" Height="30"
-                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
-                <Button Content="📐 A2" x:Name="BtnA2" Click="OnA2_Click" Width="50" Height="30"
-                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
-                <Button Content="📐 A1" x:Name="BtnA1" Click="OnA1_Click" Width="50" Height="30"
-                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,16,0"/>
+                <Button Click="OnPrint_Click" Width="90" Height="30"
+                        Background="#0A84FF" Foreground="White" BorderThickness="0" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Printer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Yazdır" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnA4" Click="OnA4_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,4,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="A4" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnA3" Click="OnA3_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,4,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="A3" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnA2" Click="OnA2_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,4,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="A2" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnA1" Click="OnA1_Click" Width="50" Height="30"
+                        Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,16,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,4,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="A1" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <TextBlock x:Name="TxtPaperInfo" Text="A3 — 420 × 297 mm" Foreground="#858899"
                            VerticalAlignment="Center" FontFamily="Consolas" FontSize="12"/>
             </StackPanel>
