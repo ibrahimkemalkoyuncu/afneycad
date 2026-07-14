@@ -210,6 +210,23 @@ public class PozKatalogService
             new JsonSerializerOptions { WriteIndented = true }));
     }
 
+    /*
+       NE: Aktif Kataloğu CSV Olarak Dışa Aktar (SaveToCsv)
+       NEDEN: Kullanıcının mevcut poz/birim fiyat listesini Excel'de açıp güncelleyip
+              (örn. yıllık Bayındırlık fiyat revizyonu) LoadFromCsv ile geri yükleyebilmesi
+              için — önceden sadece içe aktarma vardı, dışa aktarma (round-trip) yoktu.
+              Başlık formatı LoadFromCsv ile birebir uyumludur (PozNo;Tanim;Birim;BirimFiyat;IsGrubu).
+    */
+    public void SaveToCsv(string csvPath)
+    {
+        var lines = new List<string> { "PozNo;Tanim;Birim;BirimFiyat;IsGrubu" };
+        lines.AddRange(_aktifKatalog
+            .OrderBy(k => k.PozNo)
+            .Select(k => $"{k.PozNo};{k.Tanim};{k.Birim};{k.BirimFiyat.ToString(System.Globalization.CultureInfo.InvariantCulture)};{k.IsGrubu}"));
+
+        File.WriteAllLines(csvPath, lines, System.Text.Encoding.UTF8);
+    }
+
     // ── Sorgulama ─────────────────────────────────────────────────────────────
 
     public IReadOnlyList<PozKalemi> GetAll() => _aktifKatalog;

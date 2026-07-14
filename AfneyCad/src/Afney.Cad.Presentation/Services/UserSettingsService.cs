@@ -21,6 +21,7 @@ public class UserSettings
     public bool WindowMaximized    { get; set; } = true;
     public string Theme            { get; set; } = "Dark";
     public string Language         { get; set; } = "tr-TR";
+    public string CompanyLogoPath  { get; set; } = "";
 }
 
 public class UserSettingsService

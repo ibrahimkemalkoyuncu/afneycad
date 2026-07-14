@@ -484,7 +484,7 @@ namespace Afney.Cad.Presentation
         {
             try
             {
-                var dialog = new PdfExportDialog(_database) { Owner = this };
+                var dialog = new PdfExportDialog(_database, _userSettings) { Owner = this };
                 dialog.ShowDialog();
             }
             catch (Exception ex)

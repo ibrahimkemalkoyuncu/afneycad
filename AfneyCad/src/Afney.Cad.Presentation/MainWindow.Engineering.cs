@@ -1746,6 +1746,49 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        /*
+           NE: Poz Katalogunu CSV Olarak Dışa Aktar (OnExportPozCsv)
+           NEDEN: Önceden sadece CSV İÇE aktarma vardı — kullanıcı mevcut poz/birim fiyat
+                  listesini görüp Excel'de güncelleyemiyordu (round-trip eksikti). Artık
+                  projenin geçerli kataloğu (varsa override dahil) CSV'ye yazılıyor;
+                  kullanıcı fiyatları güncelleyip aynı "Poz CSV İçe" ile geri yükleyebilir.
+        */
+        private void OnExportPozCsv(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new Afney.Cad.Mechanical.Services.PozKatalogService();
+
+                string projDir = System.IO.Path.GetDirectoryName(
+                    _activeContext?.FilePath ?? System.IO.Path.GetTempPath()) ?? System.IO.Path.GetTempPath();
+                string existingOverride = System.IO.Path.Combine(projDir, "poz_katalog_override.json");
+                if (System.IO.File.Exists(existingOverride))
+                    svc.LoadFromJson(existingOverride);
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title      = "Poz Kataloğunu CSV Olarak Kaydet",
+                    Filter     = "CSV Dosyası (*.csv)|*.csv",
+                    FileName   = $"PozKatalogu_{DateTime.Now:yyyyMMdd}",
+                    DefaultExt = ".csv"
+                };
+                if (dlg.ShowDialog(this) != true) return;
+
+                svc.SaveToCsv(dlg.FileName);
+                StatusText.Text = $"✅ Poz kataloğu CSV'ye aktarıldı: {System.IO.Path.GetFileName(dlg.FileName)} ({svc.GetAll().Count} kalem)";
+
+                var ans = MessageBox.Show(
+                    $"{svc.GetAll().Count} poz kalemi CSV'ye aktarıldı.\nDosyayı Excel'de açmak ister misiniz?",
+                    "Poz CSV Dışa Aktarma", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (ans == MessageBoxResult.Yes)
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Dışa aktarma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnWasteWaterDesign(object sender, RoutedEventArgs e)
         {
             try

@@ -37,6 +37,7 @@ public class PdfExportService
         public string Adres          { get; set; } = "";
         public string OnayCizdiren   { get; set; } = "";
         public string OnayKontrolEden { get; set; } = "";
+        public string? LogoPath      { get; set; }
     }
 
     // ── Public API ───────────────────────────────────────────────────────────────
@@ -232,6 +233,28 @@ public class PdfExportService
         c.DrawRect(bx, y, bw, bh, bg);
         c.DrawRect(bx, y, bw, bh, border);
 
+        // Şirket logosu (varsa) — sol kenarda, metnin önünde
+        float textStartX = bx + 6;
+        if (!string.IsNullOrEmpty(tb.LogoPath) && File.Exists(tb.LogoPath))
+        {
+            try
+            {
+                using var logoBitmap = SKBitmap.Decode(tb.LogoPath);
+                if (logoBitmap != null)
+                {
+                    float logoH = bh - 8;
+                    float logoW = logoH * logoBitmap.Width / (float)logoBitmap.Height;
+                    var destRect = new SKRect(bx + 4, y + 4, bx + 4 + logoW, y + 4 + logoH);
+                    c.DrawBitmap(logoBitmap, destRect);
+                    textStartX = bx + 8 + logoW;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning("[PDF] Antet logosu okunamadı: {Path} — {Error}", tb.LogoPath, ex.Message);
+            }
+        }
+
         // Sol sütun: Firma + Mühendis
         using var boldPaint = new SKPaint { Color = new SKColor(144, 202, 249), IsAntialias = true,
             Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
@@ -239,9 +262,9 @@ public class PdfExportService
         using var bf = new SKFont(boldPaint.Typeface, 9);
         using var nf = new SKFont(normPaint.Typeface, 8);
 
-        c.DrawText(tb.FirmaAdi,    bx + 6, y + 14, bf, boldPaint);
-        c.DrawText($"Müh: {tb.MuhendisAdi} ({tb.MuhendisUnvan})", bx + 6, y + 26, nf, normPaint);
-        c.DrawText($"Adres: {tb.Adres}",    bx + 6, y + 37, nf, normPaint);
+        c.DrawText(tb.FirmaAdi,    textStartX, y + 14, bf, boldPaint);
+        c.DrawText($"Müh: {tb.MuhendisAdi} ({tb.MuhendisUnvan})", textStartX, y + 26, nf, normPaint);
+        c.DrawText($"Adres: {tb.Adres}",    textStartX, y + 37, nf, normPaint);
 
         // Orta sütun: Proje
         float mx = bx + bw * 0.42f;

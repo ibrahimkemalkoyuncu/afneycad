@@ -75,6 +75,16 @@
                     </Grid>
                 </GroupBox>
 
+                <!-- Logo -->
+                <GroupBox Header="ŞİRKET LOGOSU">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBox   Grid.Column="0" x:Name="TxtLogoPath" IsReadOnly="True" Margin="0,0,6,0" ToolTip="PNG/JPG antet logosu"/>
+                        <Button    Grid.Column="1" Content="Seç..." Width="70" Click="SelectLogo_Click" Margin="0,0,6,0"/>
+                        <Button    Grid.Column="2" Content="Temizle" Width="70" Click="ClearLogo_Click"/>
+                    </Grid>
+                </GroupBox>
+
                 <!-- İçerik -->
                 <GroupBox Header="ÇIKTI İÇERİĞİ">
                     <StackPanel>
