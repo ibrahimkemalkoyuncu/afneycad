@@ -108,15 +108,21 @@ namespace Afney.Cad.Presentation
                 _database.Clear();
                 Log.Information("Veritabanı temizlendi (önceki çizim silindi).");
 
-                var distinctLayers = entities.Select(e => e.Layer).Distinct().ToList();
-                foreach (var layerName in distinctLayers)
+                // NEDEN: Entity'ler DWG import sırasında doğru renkle geliyor (ByLayer çözümlemesi
+                // DwgImportService içinde yapılıyor) ama katman NESNESİ sadece isimle oluşturuluyordu —
+                // CadLayer.Color varsayılan olarak beyaz kalıyordu ve katman panelindeki renk karesi
+                // gerçek katman rengini hiç yansıtmıyordu. Katmandaki en baskın entity rengini kullanıyoruz.
+                var layerGroups = entities.Where(e => !string.IsNullOrEmpty(e.Layer)).GroupBy(e => e.Layer);
+                int layerCount = 0;
+                foreach (var group in layerGroups)
                 {
-                    if (!string.IsNullOrEmpty(layerName))
-                    {
-                        _database.AddLayer(new Afney.Cad.Domain.Tables.CadLayer(layerName));
-                    }
+                    uint layerColor = group.GroupBy(e => e.Color)
+                        .OrderByDescending(g => g.Count())
+                        .First().Key;
+                    _database.AddLayer(new Afney.Cad.Domain.Tables.CadLayer(group.Key) { Color = layerColor });
+                    layerCount++;
                 }
-                Log.Information("{Count} adet layer çıkarıldı ve eklendi.", distinctLayers.Count);
+                Log.Information("{Count} adet layer çıkarıldı ve eklendi.", layerCount);
 
                 var activeEntities = entities;
 

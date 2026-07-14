@@ -516,11 +516,14 @@ namespace Afney.Cad.Presentation
                 foreach (var ent in dlg.ImportedEntities)
                     _database.AddEntity(ent);
 
-                var layers = dlg.ImportedEntities.Select(e2 => e2.Layer).Distinct().Where(l => l != null);
-                foreach (var layerName in layers)
+                var layerGroups = dlg.ImportedEntities.Where(e2 => e2.Layer != null).GroupBy(e2 => e2.Layer);
+                foreach (var group in layerGroups)
                 {
-                    if (_database.GetLayer(layerName!) == null)
-                        _database.AddLayer(new Afney.Cad.Domain.Tables.CadLayer(layerName!));
+                    if (_database.GetLayer(group.Key!) == null)
+                    {
+                        uint layerColor = group.GroupBy(e2 => e2.Color).OrderByDescending(g => g.Count()).First().Key;
+                        _database.AddLayer(new Afney.Cad.Domain.Tables.CadLayer(group.Key!) { Color = layerColor });
+                    }
                 }
 
                 Viewport.InvalidateViewport();
