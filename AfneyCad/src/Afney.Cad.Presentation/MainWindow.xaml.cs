@@ -48,6 +48,7 @@ namespace Afney.Cad.Presentation
             InitializeComponent();
 
             RightPanel.EntityModified += OnEntityModifiedFromRightPanel;
+            EntityPropertiesPanel.EntityModified += OnEntityModifiedFromRightPanel;
             ProjectNavigatorPanel.LayerVisibilityChanged += OnLayerVisibilityChanged;
 
             LayerPanel.LayerVisibilityChanged += (layerName, isVisible) =>

@@ -93,6 +93,16 @@ public abstract class CadEntity
     {
         _cachedBoundingBox = null;
     }
+
+    /*
+       NE: Geometri Değişikliğini Bildir (NotifyGeometryChanged)
+       NEDEN: InvalidateCache korumalıdır (yalnızca alt sınıflar çağırabilir). Ancak
+              PropertiesPanel gibi dış bileşenler artık Center/Radius/StartPoint gibi
+              alanları doğrudan set edebiliyor (nesne tipine özel düzenlenebilir alanlar) —
+              bu dış çağıranlar için önbelleği temizleyecek genel bir kapı gerekiyor,
+              aksi halde eski (bayat) sınır kutusu seçim/hit-testing'i bozar.
+    */
+    public void NotifyGeometryChanged() => InvalidateCache();
     // GÖRSEL ÖZELLİKLER (VISUAL PROPERTIES - ACAD STANDARDS)
     
     // Çizgi Tipi Adı (Örn: "Continuous", "Dashed", "Center")

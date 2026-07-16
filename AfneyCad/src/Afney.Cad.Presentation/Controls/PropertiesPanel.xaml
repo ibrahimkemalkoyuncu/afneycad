@@ -117,6 +117,12 @@
                 </StackPanel>
             </Expander>
 
+            <!-- ══ Geometri (nesne tipine özel, düzenlenebilir) ══════════════ -->
+            <Expander x:Name="GeometryExpander" Header="Geometri" IsExpanded="True" Foreground="#7AA0CC"
+                      FontSize="10" FontWeight="Bold" Margin="0,4,0,0" Visibility="Collapsed">
+                <StackPanel x:Name="GeometryFieldsPanel" Margin="4,4,0,0"/>
+            </Expander>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>
