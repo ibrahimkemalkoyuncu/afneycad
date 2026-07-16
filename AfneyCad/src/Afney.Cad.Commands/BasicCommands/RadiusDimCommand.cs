@@ -5,6 +5,7 @@ using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
@@ -12,7 +13,7 @@ public class RadiusDimCommand : ICadCommand
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
-    private readonly double             _textHeight;
+    private readonly DimensionStyle     _style;
 
     private Vector3D?        _center;
     private DimensionEntity? _ghost;
@@ -23,11 +24,11 @@ public class RadiusDimCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action?         OnCompleted;
 
-    public RadiusDimCommand(CadDatabase db, TransactionManager tm, double textHeight = 250.0)
+    public RadiusDimCommand(CadDatabase db, TransactionManager tm, DimensionStyle? style = null)
     {
-        _database   = db;
-        _tm         = tm;
-        _textHeight = textHeight;
+        _database = db;
+        _tm       = tm;
+        _style    = style ?? new DimensionStyle();
     }
 
     public void Start() => OnFeedback?.Invoke("DIMRADIUS: Merkez noktasını seçin.");
@@ -37,17 +38,17 @@ public class RadiusDimCommand : ICadCommand
         if (_center == null)
         {
             _center = point;
-            _ghost  = new DimensionEntity(point, point, point, DimensionType.Radius) { TextHeight = _textHeight };
+            _ghost  = new DimensionEntity(point, point, point, DimensionType.Radius);
+            DimensionStyleApplier.Apply(_ghost, _style);
             OnFeedback?.Invoke("DIMRADIUS: Çevre noktasını seçin (yarıçap ucu).");
         }
         else
         {
             var dim = new DimensionEntity(_center.Value, point, point, DimensionType.Radius)
             {
-                Layer      = _database.ActiveLayerName,
-                Color      = 0xFF00CCFF,
-                TextHeight = _textHeight
+                Layer = _database.ActiveLayerName
             };
+            DimensionStyleApplier.Apply(dim, _style);
             _tm.Submit(new AddEntityOperation(_database, dim));
             Cancel();
             OnCompleted?.Invoke();

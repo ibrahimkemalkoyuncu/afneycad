@@ -24,6 +24,7 @@ namespace Afney.Cad.Presentation
         private readonly Afney.Cad.Presentation.Services.RecentFilesService _recentFiles = new();
         private readonly Afney.Cad.Presentation.Services.ClipboardService _clipboard = new();
         private readonly Afney.Cad.Presentation.Services.UserSettingsService _userSettings = new();
+        private readonly Afney.Cad.Mechanical.Services.DimensionStyleService _dimStyleService = new();
         private double _dimTextHeight = 250.0;
 
         public CadDocumentContext ActiveContext
@@ -260,6 +261,9 @@ namespace Afney.Cad.Presentation
             if (s.WindowMaximized) WindowState = WindowState.Maximized;
             LeftPanelBorder.Visibility = s.LeftPanelVisible ? Visibility.Visible : Visibility.Collapsed;
             _dimTextHeight = s.DimTextHeight;
+            _dimStyleService.SetActiveStyle(
+                _dimTextHeight <= 125.0 ? "Compact" :
+                _dimTextHeight >= 500.0 ? "Large" : "Standard");
         }
 
         private void OnEntityModifiedFromRightPanel(object? sender, Afney.Cad.Domain.Abstractions.CadEntity e)

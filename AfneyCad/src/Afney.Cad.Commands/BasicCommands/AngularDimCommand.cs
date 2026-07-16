@@ -5,6 +5,7 @@ using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
@@ -12,7 +13,7 @@ public class AngularDimCommand : ICadCommand
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
-    private readonly double             _textHeight;
+    private readonly DimensionStyle     _style;
 
     private Vector3D?        _vertex;
     private Vector3D?        _p1;
@@ -24,11 +25,11 @@ public class AngularDimCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action?         OnCompleted;
 
-    public AngularDimCommand(CadDatabase db, TransactionManager tm, double textHeight = 250.0)
+    public AngularDimCommand(CadDatabase db, TransactionManager tm, DimensionStyle? style = null)
     {
-        _database   = db;
-        _tm         = tm;
-        _textHeight = textHeight;
+        _database = db;
+        _tm       = tm;
+        _style    = style ?? new DimensionStyle();
     }
 
     public void Start() => OnFeedback?.Invoke("DIMANGULAR: Köşe noktasını (vertex) seçin.");
@@ -38,11 +39,8 @@ public class AngularDimCommand : ICadCommand
         if (_vertex == null)
         {
             _vertex = point;
-            _ghost = new DimensionEntity(point, point, point, DimensionType.Angular)
-            {
-                TextHeight = _textHeight,
-                AngularVertex = point
-            };
+            _ghost = new DimensionEntity(point, point, point, DimensionType.Angular) { AngularVertex = point };
+            DimensionStyleApplier.Apply(_ghost, _style);
             OnFeedback?.Invoke("DIMANGULAR: Birinci kol noktasını seçin.");
         }
         else if (_p1 == null)
@@ -56,10 +54,9 @@ public class AngularDimCommand : ICadCommand
             var dim = new DimensionEntity(_p1.Value, point, point, DimensionType.Angular)
             {
                 Layer         = _database.ActiveLayerName,
-                Color         = 0xFF00CCFF,
-                TextHeight    = _textHeight,
                 AngularVertex = _vertex.Value
             };
+            DimensionStyleApplier.Apply(dim, _style);
             _tm.Submit(new AddEntityOperation(_database, dim));
             Cancel();
             OnCompleted?.Invoke();

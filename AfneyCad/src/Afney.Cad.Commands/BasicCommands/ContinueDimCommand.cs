@@ -5,6 +5,7 @@ using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
@@ -12,7 +13,7 @@ public class ContinueDimCommand : ICadCommand
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
-    private readonly double             _textHeight;
+    private readonly DimensionStyle     _style;
     private readonly double             _dimLineY;
 
     private Vector3D?        _lastPoint;
@@ -25,13 +26,13 @@ public class ContinueDimCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action?         OnCompleted;
 
-    public ContinueDimCommand(CadDatabase db, TransactionManager tm, Vector3D startPoint, double dimLineY, double textHeight = 250.0)
+    public ContinueDimCommand(CadDatabase db, TransactionManager tm, Vector3D startPoint, double dimLineY, DimensionStyle? style = null)
     {
-        _database   = db;
-        _tm         = tm;
-        _lastPoint  = startPoint;
-        _dimLineY   = dimLineY;
-        _textHeight = textHeight;
+        _database  = db;
+        _tm        = tm;
+        _lastPoint = startPoint;
+        _dimLineY  = dimLineY;
+        _style     = style ?? new DimensionStyle();
     }
 
     public void Start() => OnFeedback?.Invoke("DIMCONTINUE: Sonraki noktayı seçin (ESC ile bitirin).");
@@ -43,16 +44,15 @@ public class ContinueDimCommand : ICadCommand
         var dimLinePoint = new Vector3D(point.X, _dimLineY, 0);
         var dim = new DimensionEntity(_lastPoint.Value, point, dimLinePoint, DimensionType.Linear)
         {
-            Layer      = _database.ActiveLayerName,
-            Color      = 0xFF00CCFF,
-            TextHeight = _textHeight
+            Layer = _database.ActiveLayerName
         };
+        DimensionStyleApplier.Apply(dim, _style);
         _tm.Submit(new AddEntityOperation(_database, dim));
         _count++;
 
         _lastPoint = point;
-        _ghost = new DimensionEntity(point, point, new Vector3D(point.X, _dimLineY, 0), DimensionType.Linear)
-            { TextHeight = _textHeight };
+        _ghost = new DimensionEntity(point, point, new Vector3D(point.X, _dimLineY, 0), DimensionType.Linear);
+        DimensionStyleApplier.Apply(_ghost, _style);
         OnFeedback?.Invoke($"DIMCONTINUE: {_count} ölçü eklendi. Sonraki noktayı seçin (ESC ile bitirin).");
     }
 

@@ -96,7 +96,7 @@ namespace Afney.Cad.Presentation
 
         private void OnLinearDimCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new LinearDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            var cmd = new LinearDimCommand(_database, _history.TransactionManager, _dimStyleService.ActiveStyle);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -105,7 +105,7 @@ namespace Afney.Cad.Presentation
 
         private void OnAlignedDimCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new AlignedDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            var cmd = new AlignedDimCommand(_database, _history.TransactionManager, _dimStyleService.ActiveStyle);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -114,7 +114,7 @@ namespace Afney.Cad.Presentation
 
         private void OnRadiusDimCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new RadiusDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            var cmd = new RadiusDimCommand(_database, _history.TransactionManager, _dimStyleService.ActiveStyle);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -123,7 +123,7 @@ namespace Afney.Cad.Presentation
 
         private void OnAngularDimCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new AngularDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            var cmd = new AngularDimCommand(_database, _history.TransactionManager, _dimStyleService.ActiveStyle);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -575,7 +575,7 @@ namespace Afney.Cad.Presentation
         private void OnContinueDimCommand(object sender, RoutedEventArgs e)
         {
             StatusText.Text = "DIMCONTINUE: Başlangıç noktasını tıklayın, ardından zincir ölçüler ekleyin.";
-            var cmd = new LinearDimCommand(_database, _history.TransactionManager, _dimTextHeight);
+            var cmd = new LinearDimCommand(_database, _history.TransactionManager, _dimStyleService.ActiveStyle);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () =>
             {
@@ -585,7 +585,7 @@ namespace Afney.Cad.Presentation
                 if (lastDims != null)
                 {
                     var cont = new ContinueDimCommand(
-                        _database, _history.TransactionManager, lastDims.SecondPoint, lastDims.DimLinePoint.Y, _dimTextHeight);
+                        _database, _history.TransactionManager, lastDims.SecondPoint, lastDims.DimLinePoint.Y, _dimStyleService.ActiveStyle);
                     cont.OnFeedback  += msg2 => StatusText.Text = msg2;
                     cont.OnCompleted += () => Viewport.SetActiveCommand(null);
                     Viewport.SetActiveCommand(cont);
@@ -611,20 +611,23 @@ namespace Afney.Cad.Presentation
 
         private void OnDimTextHeightSmall(object sender, RoutedEventArgs e)
         {
-            _dimTextHeight = 125.0;
-            StatusText.Text = "Ölçü metin boyutu: Küçük (125 mm)";
+            _dimStyleService.SetActiveStyle("Compact");
+            _dimTextHeight = _dimStyleService.ActiveStyle.TextHeight;
+            StatusText.Text = "Ölçü metin boyutu: Küçük (Compact stili)";
         }
 
         private void OnDimTextHeightMedium(object sender, RoutedEventArgs e)
         {
-            _dimTextHeight = 250.0;
-            StatusText.Text = "Ölçü metin boyutu: Normal (250 mm)";
+            _dimStyleService.SetActiveStyle("Standard");
+            _dimTextHeight = _dimStyleService.ActiveStyle.TextHeight;
+            StatusText.Text = "Ölçü metin boyutu: Normal (Standard stili)";
         }
 
         private void OnDimTextHeightLarge(object sender, RoutedEventArgs e)
         {
-            _dimTextHeight = 500.0;
-            StatusText.Text = "Ölçü metin boyutu: Büyük (500 mm)";
+            _dimStyleService.SetActiveStyle("Large");
+            _dimTextHeight = _dimStyleService.ActiveStyle.TextHeight;
+            StatusText.Text = "Ölçü metin boyutu: Büyük (Large stili)";
         }
 
         private void OnDrawPipeCommand(object sender, RoutedEventArgs e)

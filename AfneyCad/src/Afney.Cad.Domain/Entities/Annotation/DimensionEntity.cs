@@ -13,6 +13,16 @@ public class DimensionEntity : CadEntity
     public DimensionType DimType { get; set; } = DimensionType.Linear;
     public double TextHeight     { get; set; } = 250.0;
 
+    // NE: Ölçü stili parametreleri (DimensionStyleService ile eşleşir)
+    // NEDEN: Önceden ok boyu/uzatma boşluğu/aşımı hep TextHeight'ın sabit oranıydı (0.8/0.2/0.3),
+    //        stil tanımlarından bağımsız çalışıyorlardı. Artık her biri ayrı ayarlanabilir.
+    public double ArrowSize   { get; set; } = 200.0;
+    public double ExtLineGap  { get; set; } = 50.0;
+    public double ExtLineOver { get; set; } = 75.0;
+    public int    Precision   { get; set; } = 0;
+    public bool   ShowUnits   { get; set; } = true;
+    public string UnitFormat  { get; set; } = "mm";
+
     public DimensionEntity(Vector3D p1, Vector3D p2, Vector3D dimLinePoint, DimensionType type)
     {
         FirstPoint   = p1;
@@ -52,11 +62,22 @@ public class DimensionEntity : CadEntity
 
     private string GetText()
     {
+        double m = GetMeasurement();
         if (DimType == DimensionType.Angular)
-            return $"{GetMeasurement():F1}°";
-        double m      = GetMeasurement();
+            return $"{m.ToString("F" + Precision)}°";
+
         string prefix = DimType == DimensionType.Radius ? "R " : "";
-        return m >= 1000 ? $"{prefix}{m / 1000.0:F2} m" : $"{prefix}{m:F0} mm";
+        if (!ShowUnits)
+            return $"{prefix}{m.ToString("F" + Precision)}";
+
+        return UnitFormat switch
+        {
+            "m"  => $"{prefix}{(m / 1000.0).ToString("F" + Precision)} m",
+            "cm" => $"{prefix}{(m / 10.0).ToString("F" + Precision)} cm",
+            _    => m >= 1000
+                        ? $"{prefix}{(m / 1000.0).ToString("F" + Math.Max(Precision, 2))} m"
+                        : $"{prefix}{m.ToString("F" + Precision)} mm"
+        };
     }
 
     public override void Draw(IRenderContext ctx)
@@ -72,9 +93,9 @@ public class DimensionEntity : CadEntity
 
     private void DrawLinear(IRenderContext ctx)
     {
-        double arrow = TextHeight * 0.8;
-        double gap   = TextHeight * 0.2;
-        double over  = TextHeight * 0.3;
+        double arrow = ArrowSize;
+        double gap   = ExtLineGap;
+        double over  = ExtLineOver;
 
         if (IsHorizontal)
         {
@@ -116,9 +137,9 @@ public class DimensionEntity : CadEntity
 
     private void DrawAligned(IRenderContext ctx)
     {
-        double arrow = TextHeight * 0.8;
-        double gap   = TextHeight * 0.2;
-        double over  = TextHeight * 0.3;
+        double arrow = ArrowSize;
+        double gap   = ExtLineGap;
+        double over  = ExtLineOver;
 
         var seg = SecondPoint - FirstPoint;
         double len = seg.Length();
@@ -154,7 +175,7 @@ public class DimensionEntity : CadEntity
 
     private void DrawRadius(IRenderContext ctx)
     {
-        double arrow = TextHeight * 0.8;
+        double arrow = ArrowSize;
 
         var dir = SecondPoint - FirstPoint;
         double len = dir.Length();
@@ -232,7 +253,17 @@ public class DimensionEntity : CadEntity
 
     public override CadEntity Clone()
     {
-        var c = new DimensionEntity(FirstPoint, SecondPoint, DimLinePoint, DimType) { TextHeight = TextHeight };
+        var c = new DimensionEntity(FirstPoint, SecondPoint, DimLinePoint, DimType)
+        {
+            TextHeight    = TextHeight,
+            ArrowSize     = ArrowSize,
+            ExtLineGap    = ExtLineGap,
+            ExtLineOver   = ExtLineOver,
+            Precision     = Precision,
+            ShowUnits     = ShowUnits,
+            UnitFormat    = UnitFormat,
+            AngularVertex = AngularVertex
+        };
         CopyBaseProperties(c);
         return c;
     }
