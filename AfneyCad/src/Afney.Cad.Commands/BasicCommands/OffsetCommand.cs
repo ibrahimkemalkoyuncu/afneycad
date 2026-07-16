@@ -36,9 +36,9 @@ public class OffsetCommand : ICadCommand
         _database = database;
         _transactionManager = transactionManager;
         var enumerable = selection as CadEntity[] ?? selection.ToArray();
-        // Sadece desteklenen objeleri (Line ve Pipe) al
-        _entitiesToOffset = enumerable.Where(e => e is LineEntity || e is PipeEntity).ToList();
-        
+        // Desteklenen objeler: Line, Pipe, Circle, Arc (Polyline henüz desteklenmiyor)
+        _entitiesToOffset = enumerable.Where(e => e is LineEntity || e is PipeEntity || e is CircleEntity || e is ArcEntity).ToList();
+
         if (_entitiesToOffset.Count != enumerable.Length)
         {
              Serilog.Log.Warning("OFFSET: Bazı nesneler offset işlemini desteklemiyor ve listeden çıkarıldı.");
@@ -108,11 +108,23 @@ public class OffsetCommand : ICadCommand
                  var v = CalculateOffsetVector(pipe.StartPoint, pipe.EndPoint, targetPoint);
                  clone.Move(v);
              }
+             else if (ent is CircleEntity circle)
+             {
+                 // Çember offset: yeni yarıçap = merkezden hedef noktaya olan mesafe.
+                 // Dışarı tıklarsa büyür, içeri tıklarsa küçülür — Line offset'teki "hedefe doğru ötele" mantığıyla tutarlı.
+                 _ghostEntities.Add(new CircleEntity(circle.Center, targetPoint.DistanceTo(circle.Center)) { Color = 0xFFAAAAAA, Layer = circle.Layer });
+                 continue;
+             }
+             else if (ent is ArcEntity arc)
+             {
+                 _ghostEntities.Add(new ArcEntity(arc.Center, targetPoint.DistanceTo(arc.Center), arc.StartAngle, arc.EndAngle) { Color = 0xFFAAAAAA, Layer = arc.Layer });
+                 continue;
+             }
              else
              {
                  continue; // Şimdilik desteklemeyenleri silme ama offsetlemesin de
              }
-             
+
              _ghostEntities.Add(clone);
          }
     }

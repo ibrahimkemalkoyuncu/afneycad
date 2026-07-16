@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\Afney.Cad.Geometry\Afney.Cad.Geometry.csproj" />
     <ProjectReference Include="..\..\src\Afney.Cad.Application\Afney.Cad.Application.csproj" />
     <ProjectReference Include="..\..\src\Afney.Cad.Database\Afney.Cad.Database.csproj" />
+    <ProjectReference Include="..\..\src\Afney.Cad.Commands\Afney.Cad.Commands.csproj" />
   </ItemGroup>
 
 </Project>

@@ -185,6 +185,120 @@ public static class GeomUtils
     }
 
     /*
+       NE: Çizgi-Çember Kesişimi (GetIntersectionsLineCircle)
+       NEDEN: TRIM/EXTEND komutlarının Circle/Arc entity'leriyle de çalışabilmesi için — önceden bu
+              geometri hiç yoktu, Trim/Extend/Offset sadece Line/Pipe'ta çalışıyordu.
+       NASIL: Çizgiyi çember merkezine göre parametrize edip ikinci dereceden denklemi (At²+Bt+C=0) çözer.
+    */
+    public static List<Vector3D> GetIntersectionsLineCircle(Vector3D a, Vector3D b, Vector3D center, double radius)
+    {
+        var result = new List<Vector3D>();
+        double dx = b.X - a.X, dy = b.Y - a.Y;
+        double fx = a.X - center.X, fy = a.Y - center.Y;
+
+        double A = dx * dx + dy * dy;
+        if (A < 1e-12) return result; // Dejenere çizgi
+
+        double B = 2 * (fx * dx + fy * dy);
+        double C = fx * fx + fy * fy - radius * radius;
+
+        double disc = B * B - 4 * A * C;
+        if (disc < 0) return result; // Kesişim yok
+
+        double sqrtDisc = Math.Sqrt(disc);
+        double t1 = (-B - sqrtDisc) / (2 * A);
+        double t2 = (-B + sqrtDisc) / (2 * A);
+
+        foreach (var t in disc < 1e-9 ? new[] { t1 } : new[] { t1, t2 })
+        {
+            if (t >= -1e-6 && t <= 1 + 1e-6)
+                result.Add(new Vector3D(a.X + t * dx, a.Y + t * dy, 0));
+        }
+        return result;
+    }
+
+    /*
+       NE: Işın-Çember Kesişimi (GetIntersectionsRayCircle)
+       NEDEN: EXTEND komutunun Circle/Arc'ı sınır olarak kullanabilmesi için — Line-Circle'ın aksine
+              üst sınırı (t≤1) yoktur, sadece ışının pozitif yönü (t≥0) aranır.
+    */
+    public static List<(double T, Vector3D Point)> GetIntersectionsRayCircle(Vector3D origin, Vector3D dir, Vector3D center, double radius)
+    {
+        var result = new List<(double, Vector3D)>();
+        double fx = origin.X - center.X, fy = origin.Y - center.Y;
+
+        double a = dir.X * dir.X + dir.Y * dir.Y;
+        if (a < 1e-12) return result;
+
+        double b = 2 * (fx * dir.X + fy * dir.Y);
+        double c = fx * fx + fy * fy - radius * radius;
+
+        double disc = b * b - 4 * a * c;
+        if (disc < 0) return result;
+
+        double sqrtDisc = Math.Sqrt(disc);
+        double t1 = (-b - sqrtDisc) / (2 * a);
+        double t2 = (-b + sqrtDisc) / (2 * a);
+
+        foreach (var t in disc < 1e-9 ? new[] { t1 } : new[] { t1, t2 })
+        {
+            if (t > 1e-6)
+                result.Add((t, new Vector3D(origin.X + t * dir.X, origin.Y + t * dir.Y, 0)));
+        }
+        return result;
+    }
+
+    /*
+       NE: Çember-Çember Kesişimi (GetIntersectionsCircleCircle)
+       NEDEN: Bir çemberin/yayın başka bir çember veya yayla kesişim noktalarını bulmak için (TRIM/EXTEND).
+    */
+    public static List<Vector3D> GetIntersectionsCircleCircle(Vector3D c1, double r1, Vector3D c2, double r2)
+    {
+        var result = new List<Vector3D>();
+        double dx = c2.X - c1.X, dy = c2.Y - c1.Y;
+        double d = Math.Sqrt(dx * dx + dy * dy);
+
+        if (d < 1e-9 || d > r1 + r2 + 1e-6 || d < Math.Abs(r1 - r2) - 1e-6)
+            return result; // İçi içe, ayrık veya merkezleri çakışık — kesişim yok
+
+        double a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
+        double hSq = r1 * r1 - a * a;
+        double h = hSq > 0 ? Math.Sqrt(hSq) : 0;
+
+        double xm = c1.X + a * dx / d;
+        double ym = c1.Y + a * dy / d;
+
+        if (hSq < 1e-9)
+        {
+            result.Add(new Vector3D(xm, ym, 0)); // Teğet — tek kesişim
+        }
+        else
+        {
+            result.Add(new Vector3D(xm + h * dy / d, ym - h * dx / d, 0));
+            result.Add(new Vector3D(xm - h * dy / d, ym + h * dx / d, 0));
+        }
+        return result;
+    }
+
+    /*
+       NE: Merkeze Göre Açı (AngleOf) — [0, 2π) aralığına normalize edilmiş
+       NEDEN: Circle/Arc trim/extend işlemlerinde kesişim noktalarını açısal olarak sıralamak için.
+    */
+    public static double AngleOf(Vector3D center, Vector3D point)
+    {
+        double a = Math.Atan2(point.Y - center.Y, point.X - center.X);
+        return NormalizeAngle(a);
+    }
+
+    public static double NormalizeAngle(double angle)
+    {
+        double twoPi = 2 * Math.PI;
+        angle %= twoPi;
+        if (angle < 0) angle += twoPi;
+        return angle;
+    }
+
+    /*
        NE: Nokta Çokgenin İçinde mi? (IsPointInPolygon)
        NEDEN: Bulunan mahal sınırları içindeki tefrişleri (blokları) tespit etmek için.
     */

@@ -60,6 +60,34 @@ public class ArcEntity : CadEntity
     }
 
     /*
+       NE: Noktaya Olan Mesafe (DistanceTo)
+       NEDEN: Hit-testing yayın ÇEVRESİNE (sweep sınırları içindeyse) veya en yakın UCUNA
+              (sweep dışındaysa) olan mesafeyi kullanmalı. Önceden override yoktu; taban sınıfın
+              varsayılanı (BoundingBox merkezine mesafe) kullanılıyordu — yayın tam üzerine
+              tıklansa bile hit-testi başarısız oluyordu.
+    */
+    public override double DistanceTo(Vector3D point)
+    {
+        double sweep = EndAngle > StartAngle ? EndAngle - StartAngle : (2 * Math.PI - StartAngle) + EndAngle;
+
+        double pointAngle = Math.Atan2(point.Y - Center.Y, point.X - Center.X);
+        double unwrapped = pointAngle;
+        while (unwrapped < StartAngle - 1e-9) unwrapped += 2 * Math.PI;
+
+        bool withinSweep = unwrapped >= StartAngle - 1e-6 && unwrapped <= StartAngle + sweep + 1e-6;
+        if (withinSweep)
+        {
+            double distToCenter = Math.Sqrt(Math.Pow(point.X - Center.X, 2) + Math.Pow(point.Y - Center.Y, 2));
+            return Math.Abs(distToCenter - Radius);
+        }
+
+        // Sweep dışında: en yakın uç noktaya olan Öklid mesafesi.
+        var startPt = new Vector3D(Center.X + Math.Cos(StartAngle) * Radius, Center.Y + Math.Sin(StartAngle) * Radius, Center.Z);
+        var endPt = new Vector3D(Center.X + Math.Cos(EndAngle) * Radius, Center.Y + Math.Sin(EndAngle) * Radius, Center.Z);
+        return Math.Min(point.DistanceTo(startPt), point.DistanceTo(endPt));
+    }
+
+    /*
        NE: SÄ±nÄ±rlayÄ±cÄ± Kutu Hesapla (CalculateBoundingBox)
        NEDEN: Yay parÃ§asÄ±nÄ±n kapladÄ±ÄŸÄ± en kÃ¼Ã§Ã¼k dikdÃ¶rtgen alanÄ± (AABB) mekansal sorgular iÃ§in hesaplamak iÃ§in.
     */

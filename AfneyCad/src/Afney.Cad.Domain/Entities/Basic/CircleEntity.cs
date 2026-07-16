@@ -29,6 +29,18 @@ public class CircleEntity : CadEntity
     }
 
     /*
+       NE: Noktaya Olan Mesafe (DistanceTo)
+       NEDEN: Hit-testing (fare hover/tıklama/seçim) çemberin ÇEVRESİNE olan mesafeyi kullanmalı.
+              Önceden bu override yoktu; taban sınıfın varsayılanı (BoundingBox merkezine mesafe)
+              kullanılıyordu — bu, çemberin tam üzerine tıklansa bile mesafeyi yanlış (genellikle
+              yarıçap kadar büyük) hesaplayıp hit-testi başarısız kılıyordu.
+    */
+    public override double DistanceTo(Vector3D point)
+    {
+        return Math.Abs(point.DistanceTo(Center) - Radius);
+    }
+
+    /*
        NE: Sınır Kutusu Hesapla (CalculateBoundingBox)
        NEDEN: Çemberin kapladığı alanı (Merkez +/- Yarıçap) belirlemek için.
     */

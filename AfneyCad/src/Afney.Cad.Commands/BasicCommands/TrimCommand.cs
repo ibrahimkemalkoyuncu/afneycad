@@ -15,7 +15,11 @@ namespace Afney.Cad.Commands.BasicCommands;
 
 /*
    NE: Hızlı Buda (Quick Trim) Komutu
-   NEDEN: Kullanıcının çizgilerin veya boruların kesişim noktaları arasında kalan kısmına tıklayarak o kısmı silebilmesi için.
+   NEDEN: Kullanıcının çizgilerin, boruların, çemberlerin ve yayların kesişim noktaları
+          arasında kalan kısmına tıklayarak o kısmı silebilmesi için.
+   NOT: Önceden sadece Line/Pipe destekleniyordu — Circle/Arc desteği eklendi
+        (bkz. GeomUtils.GetIntersectionsLineCircle / GetIntersectionsCircleCircle).
+        LwPolyline hâlâ desteklenmiyor (ayrı bir segment-bazlı algoritma gerektirir).
 */
 public class TrimCommand : ICadCommand
 {
@@ -43,20 +47,37 @@ public class TrimCommand : ICadCommand
 
     public void OnPointerPressed(Vector3D point)
     {
-        // 1. Tıklanan noktaya en yakın nesneyi bul
+        var targetEntity = FindNearestSupportedEntity(point);
+        if (targetEntity == null) return;
+
+        switch (targetEntity)
+        {
+            case LineEntity or PipeEntity:
+                TrimLinear(targetEntity, point);
+                break;
+            case CircleEntity circle:
+                TrimCircle(circle, point);
+                break;
+            case ArcEntity arc:
+                TrimArc(arc, point);
+                break;
+        }
+    }
+
+    private CadEntity? FindNearestSupportedEntity(Vector3D point)
+    {
         CadEntity? targetEntity = null;
         double minDst = _hitTolerance;
 
         var allEntities = _database.GetAllEntities().ToList();
-        
+
         // Tersten tarama (üsttekini önce bulmak için)
         for (int i = allEntities.Count - 1; i >= 0; i--)
         {
             var ent = allEntities[i];
-            
-            // Sadece Line ve Pipe destekleniyor şimdilik
-            if (ent is not LineEntity && ent is not PipeEntity) continue;
-            
+
+            if (ent is not LineEntity && ent is not PipeEntity && ent is not CircleEntity && ent is not ArcEntity) continue;
+
             double d = ent.DistanceTo(point);
             if (d < minDst)
             {
@@ -65,42 +86,60 @@ public class TrimCommand : ICadCommand
             }
         }
 
-        if (targetEntity == null) return; // Boşa tıklandı
+        return targetEntity;
+    }
 
+    // ── LINE / PIPE (Doğrusal — t ∈ [0,1] parametrizasyonu) ─────────────────
+
+    private void TrimLinear(CadEntity targetEntity, Vector3D point)
+    {
         Vector3D tA, tB;
         if (targetEntity is LineEntity tl) { tA = tl.StartPoint; tB = tl.EndPoint; }
         else if (targetEntity is PipeEntity tp) { tA = tp.StartPoint; tB = tp.EndPoint; }
         else return;
 
-        // Tıklanan noktanın target üzerindeki izdüşümü (t parametresi 0 ile 1 arası)
         double clickT = GetTParameter(tA, tB, point);
 
-        // 2. Kesişimleri bul
-        List<double> intersections = new List<double> { 0.0, 1.0 }; // Start ve End noktaları T=0, T=1
+        List<double> intersections = new List<double> { 0.0, 1.0 };
 
-        foreach (var ent in allEntities)
+        foreach (var ent in _database.GetAllEntities())
         {
             if (ent == targetEntity) continue;
 
             Vector3D oA, oB;
             if (ent is LineEntity l) { oA = l.StartPoint; oB = l.EndPoint; }
             else if (ent is PipeEntity p) { oA = p.StartPoint; oB = p.EndPoint; }
+            else if (ent is CircleEntity c)
+            {
+                foreach (var ip in GeomUtils.GetIntersectionsLineCircle(tA, tB, c.Center, c.Radius))
+                {
+                    double t = GetTParameter(tA, tB, ip);
+                    if (t > 0.0001 && t < 0.9999) intersections.Add(t);
+                }
+                continue;
+            }
+            else if (ent is ArcEntity a)
+            {
+                foreach (var ip in GeomUtils.GetIntersectionsLineCircle(tA, tB, a.Center, a.Radius))
+                {
+                    if (!IsAngleWithinArc(GeomUtils.AngleOf(a.Center, ip), a.StartAngle, a.EndAngle)) continue;
+                    double t = GetTParameter(tA, tB, ip);
+                    if (t > 0.0001 && t < 0.9999) intersections.Add(t);
+                }
+                continue;
+            }
             else continue;
 
-            if (GeomUtils.DoSegmentsIntersect(tA, tB, oA, oB, out Vector3D ip))
+            if (GeomUtils.DoSegmentsIntersect(tA, tB, oA, oB, out Vector3D lineIp))
             {
-                double t = GetTParameter(tA, tB, ip);
-                if (t > 0.0001 && t < 0.9999) // Tam uçlarda kesişenleri parçalamaya gerek yok
-                    intersections.Add(t);
+                double t = GetTParameter(tA, tB, lineIp);
+                if (t > 0.0001 && t < 0.9999) intersections.Add(t);
             }
         }
 
         intersections.Sort();
 
-        // 3. Tıklanan noktanın düştüğü aralığı bul
-        double tStart = 0.0;
-        double tEnd = 1.0;
-
+        double tStart = 0.0, tEnd = 1.0;
         for (int i = 0; i < intersections.Count - 1; i++)
         {
             if (clickT >= intersections[i] && clickT <= intersections[i + 1])
@@ -116,24 +155,158 @@ public class TrimCommand : ICadCommand
 
         if (tStart > 0.0001)
         {
-            // Create first part
             Vector3D p1 = tA;
             Vector3D p2 = new Vector3D(tA.X + tStart * (tB.X - tA.X), tA.Y + tStart * (tB.Y - tA.Y), 0);
-            CadEntity part1 = CloneWithNewPoints(targetEntity, p1, p2);
-            composite.Add(new AddEntityOperation(_database, part1));
+            composite.Add(new AddEntityOperation(_database, CloneWithNewPoints(targetEntity, p1, p2)));
         }
 
         if (tEnd < 0.9999)
         {
-            // Create second part
             Vector3D p1 = new Vector3D(tA.X + tEnd * (tB.X - tA.X), tA.Y + tEnd * (tB.Y - tA.Y), 0);
             Vector3D p2 = tB;
-            CadEntity part2 = CloneWithNewPoints(targetEntity, p1, p2);
-            composite.Add(new AddEntityOperation(_database, part2));
+            composite.Add(new AddEntityOperation(_database, CloneWithNewPoints(targetEntity, p1, p2)));
         }
 
         _transactionManager.Submit(composite);
         OnFeedback?.Invoke("TRIM: Obje budandı. Devam edebilirsiniz.");
+    }
+
+    // ── CIRCLE (Kapalı döngü — açısal, 0..2π sarmalı) ───────────────────────
+
+    private void TrimCircle(CircleEntity circle, Vector3D point)
+    {
+        double clickAngle = GeomUtils.AngleOf(circle.Center, point);
+        var angles = new List<double>();
+
+        foreach (var ent in _database.GetAllEntities())
+        {
+            if (ent == circle) continue;
+
+            IEnumerable<Vector3D> pts = ent switch
+            {
+                LineEntity l => GeomUtils.GetIntersectionsLineCircle(l.StartPoint, l.EndPoint, circle.Center, circle.Radius),
+                PipeEntity p => GeomUtils.GetIntersectionsLineCircle(p.StartPoint, p.EndPoint, circle.Center, circle.Radius),
+                CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(circle.Center, circle.Radius, c2.Center, c2.Radius),
+                ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(circle.Center, circle.Radius, a2.Center, a2.Radius)
+                    .Where(ip => IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
+                _ => Enumerable.Empty<Vector3D>()
+            };
+
+            foreach (var p in pts) angles.Add(GeomUtils.AngleOf(circle.Center, p));
+        }
+
+        if (angles.Count < 2)
+        {
+            OnFeedback?.Invoke("TRIM: Bu çemberi budamak için en az 2 kesişim noktası gerekli.");
+            return;
+        }
+
+        angles = angles.Select(GeomUtils.NormalizeAngle).Distinct().OrderBy(a => a).ToList();
+
+        // Tıklanan açıyı içeren komşu kesişim çiftini (segStart, segEnd) bul (dairesel sarmalı).
+        double segStart = angles[^1], segEnd = angles[0] + 2 * Math.PI;
+        for (int i = 0; i < angles.Count; i++)
+        {
+            double a1 = angles[i];
+            double a2 = i + 1 < angles.Count ? angles[i + 1] : angles[0] + 2 * Math.PI;
+            double ca = clickAngle < a1 ? clickAngle + 2 * Math.PI : clickAngle;
+            if (ca >= a1 && ca <= a2)
+            {
+                segStart = a1;
+                segEnd = a2;
+                break;
+            }
+        }
+
+        // Kalan yay: tıklanan segmentin DIŞINDA kalan (uzun) taraf — segEnd'den segStart'a kadar.
+        var newArc = new ArcEntity(circle.Center, circle.Radius, GeomUtils.NormalizeAngle(segEnd), GeomUtils.NormalizeAngle(segStart))
+            { Color = circle.Color, Layer = circle.Layer };
+
+        var composite = new CompositeOperation("Trim Circle");
+        composite.Add(new RemoveEntityOperation(_database, circle));
+        composite.Add(new AddEntityOperation(_database, newArc));
+        _transactionManager.Submit(composite);
+        OnFeedback?.Invoke("TRIM: Çember budanarak yaya dönüştürüldü.");
+    }
+
+    // ── ARC (Sınırlı yay — StartAngle..EndAngle sarmalını "unwrap" ederek Line ile aynı mantık) ──
+
+    private void TrimArc(ArcEntity arc, Vector3D point)
+    {
+        double sweep = ArcSweep(arc.StartAngle, arc.EndAngle);
+        double arcEndUnwrapped = arc.StartAngle + sweep;
+
+        double clickAngle = GeomUtils.AngleOf(arc.Center, point);
+        double clickU = UnwrapToArc(clickAngle, arc.StartAngle);
+        if (clickU > arcEndUnwrapped + 1e-6) return; // Tıklama bu yayın üzerinde değil
+
+        var cuts = new List<double> { arc.StartAngle, arcEndUnwrapped };
+
+        foreach (var ent in _database.GetAllEntities())
+        {
+            if (ent == arc) continue;
+
+            IEnumerable<Vector3D> pts = ent switch
+            {
+                LineEntity l => GeomUtils.GetIntersectionsLineCircle(l.StartPoint, l.EndPoint, arc.Center, arc.Radius),
+                PipeEntity p => GeomUtils.GetIntersectionsLineCircle(p.StartPoint, p.EndPoint, arc.Center, arc.Radius),
+                CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, c2.Center, c2.Radius),
+                ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, a2.Center, a2.Radius)
+                    .Where(ip => IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
+                _ => Enumerable.Empty<Vector3D>()
+            };
+
+            foreach (var p in pts)
+            {
+                double u = UnwrapToArc(GeomUtils.AngleOf(arc.Center, p), arc.StartAngle);
+                if (u > 0.0001 && u < arcEndUnwrapped - 0.0001) cuts.Add(u);
+            }
+        }
+
+        cuts = cuts.Distinct().OrderBy(x => x).ToList();
+
+        double segStart = arc.StartAngle, segEnd = arcEndUnwrapped;
+        for (int i = 0; i < cuts.Count - 1; i++)
+        {
+            if (clickU >= cuts[i] && clickU <= cuts[i + 1])
+            {
+                segStart = cuts[i];
+                segEnd = cuts[i + 1];
+                break;
+            }
+        }
+
+        var composite = new CompositeOperation("Trim Arc");
+        composite.Add(new RemoveEntityOperation(_database, arc));
+
+        if (segStart - arc.StartAngle > 0.0001)
+            composite.Add(new AddEntityOperation(_database, new ArcEntity(arc.Center, arc.Radius, GeomUtils.NormalizeAngle(arc.StartAngle), GeomUtils.NormalizeAngle(segStart)) { Color = arc.Color, Layer = arc.Layer }));
+
+        if (arcEndUnwrapped - segEnd > 0.0001)
+            composite.Add(new AddEntityOperation(_database, new ArcEntity(arc.Center, arc.Radius, GeomUtils.NormalizeAngle(segEnd), GeomUtils.NormalizeAngle(arcEndUnwrapped)) { Color = arc.Color, Layer = arc.Layer }));
+
+        _transactionManager.Submit(composite);
+        OnFeedback?.Invoke("TRIM: Yay budandı.");
+    }
+
+    // ── Ortak yardımcılar ────────────────────────────────────────────────────
+
+    internal static double ArcSweep(double startAngle, double endAngle)
+        => endAngle > startAngle ? endAngle - startAngle : (2 * Math.PI - startAngle) + endAngle;
+
+    /// <summary>Bir açıyı, verilen yayın başlangıcından itibaren "sarmalı çözülmüş" (unwrapped) hale getirir.</summary>
+    internal static double UnwrapToArc(double angle, double arcStartAngle)
+    {
+        double a = angle;
+        while (a < arcStartAngle - 1e-9) a += 2 * Math.PI;
+        return a;
+    }
+
+    internal static bool IsAngleWithinArc(double angle, double startAngle, double endAngle)
+    {
+        double sweep = ArcSweep(startAngle, endAngle);
+        double u = UnwrapToArc(angle, startAngle);
+        return u >= startAngle - 1e-6 && u <= startAngle + sweep + 1e-6;
     }
 
     private double GetTParameter(Vector3D A, Vector3D B, Vector3D P)
