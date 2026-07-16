@@ -248,41 +248,49 @@ public class WasteWaterCalcSheetService
 
     // ── Foseptik / Kapalı Çukur ───────────────────────────────────────────────
 
+    /*
+       NE: Fosseptik/Kapalı Çukur Hesabı (Delegasyon)
+       NEDEN: Bu metod önceden SepticTankService'ten TAMAMEN BAĞIMSIZ, kendi TS 8358 tabanlı
+              formülüyle çalışıyordu (1:2 en/boy oranı, 0.5m modül yuvarlama) — aynı girdilerle
+              iki farklı dialog (SepticTankDialog ve bu hesap föyü) FARKLI sonuçlar üretiyordu.
+              Artık tek gerçek hesap motoru SepticTankService'tir (TS 2873, 3:1 oranı, hazne
+              sayısı); bu metod sadece kendi DTO'larını o motora çevirip sonucu geri eşliyor,
+              böylece iki UI de tutarlı sonuç veriyor. SludgeFactor/RetentionDays gibi bu
+              dialog'a özgü ayarlanabilir alanlar SepticTankService'e parametrik olarak taşındı.
+    */
     public SepticTankResult CalculateSepticTank(SepticTankInput input)
     {
-        double dailyFlowM3 = input.PersonCount * input.DailyWaterLiters / 1000.0;
+        var engine = new SepticTankService();
+        var engineInput = new SepticTankService.SepticTankInput
+        {
+            PersonCount          = input.PersonCount,
+            UnitWaterConsumption = input.DailyWaterLiters,
+            RetentionTime        = input.RetentionDays,
+            SludgeMarginRatio    = Math.Max(0, input.SludgeFactor - 1.0),
+            Type                 = input.TankType == "Kapalı Çukur"
+                                        ? SepticTankService.TankType.SingleChamber
+                                        : SepticTankService.TankType.DoubleChamber
+        };
 
-        // TS 8358: V_bek = Q_günlük × T_bekleme × çamur faktörü
-        double retentionVol = dailyFlowM3 * input.RetentionDays;
-        double sludgeVol    = retentionVol * (input.SludgeFactor - 1.0);
-        double totalVol     = retentionVol * input.SludgeFactor;
-
-        // Boyutlandırma: Derinlik 2 m (standart), genişlik : uzunluk = 1:2
-        double depth  = 2.0;
-        double area   = totalVol / depth;
-        double width  = Math.Sqrt(area / 2.0);
-        double length = 2.0 * width;
-
-        // Standart modül: 1.5 m genişlik, 3.0 m uzunluk
-        width  = Math.Ceiling(width  / 0.5) * 0.5;
-        length = Math.Ceiling(length / 0.5) * 0.5;
+        var engineResult = engine.CalculateSepticTank(engineInput);
 
         var result = new SepticTankResult
         {
-            DailyFlowM3       = Math.Round(dailyFlowM3, 2),
-            RetentionVolumeM3 = Math.Round(retentionVol, 2),
-            SludgeVolumeM3    = Math.Round(sludgeVol, 2),
-            TotalVolumeM3     = Math.Round(totalVol, 2),
-            RecommendedDepthM = depth,
-            RecommendedAreaM2 = Math.Round(width * length, 1),
-            RecommendedWidthM = width,
-            RecommendedLengthM= length,
-            Standard          = input.TankType == "Foseptik" ? "TS 8358" : "TS EN 12566-1",
+            DailyFlowM3        = Math.Round(engineInput.PersonCount * engineInput.UnitWaterConsumption / 1000.0, 2),
+            RetentionVolumeM3  = Math.Round(engineResult.RequiredVolume, 2),
+            SludgeVolumeM3     = Math.Round(engineResult.SludgeVolume, 2),
+            TotalVolumeM3      = Math.Round(engineResult.TotalVolume, 2),
+            RecommendedDepthM  = Math.Round(engineResult.Depth, 2),
+            RecommendedWidthM  = Math.Round(engineResult.Width, 2),
+            RecommendedLengthM = Math.Round(engineResult.Length, 2),
+            RecommendedAreaM2  = Math.Round(engineResult.Width * engineResult.Length, 1),
+            Standard           = input.TankType == "Kapalı Çukur" ? "TS EN 12566-1" : engineResult.Standard,
         };
 
         result.Notes.Add($"Günlük debi: {result.DailyFlowM3:F2} m³/gün ({input.PersonCount} kişi × {input.DailyWaterLiters} lt/kişi)");
-        result.Notes.Add($"Bekleme süresi: {input.RetentionDays} gün | Çamur faktörü: {input.SludgeFactor}");
+        result.Notes.Add($"Bekleme süresi: {input.RetentionDays} gün | Çamur payı: %{engineInput.SludgeMarginRatio * 100:F0}");
         result.Notes.Add($"Önerilen boyut: {result.RecommendedWidthM:F1} m × {result.RecommendedLengthM:F1} m × {result.RecommendedDepthM:F1} m = {result.TotalVolumeM3:F1} m³");
+        result.Notes.AddRange(engineResult.Notes.Where(n => !n.StartsWith("Günlük atık su debisi") && !n.StartsWith("Bekletme süresi")));
 
         return result;
     }

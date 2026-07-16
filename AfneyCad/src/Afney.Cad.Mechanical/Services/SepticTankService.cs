@@ -35,6 +35,13 @@ public class SepticTankService
         public double UnitWaterConsumption { get; set; } = 150.0;  // lt/kişi/gün
         public double RetentionTime { get; set; } = 2.0;           // gün
         public TankType Type { get; set; } = TankType.DoubleChamber;
+
+        // NE: Çamur payı oranı (SludgeMarginRatio)
+        // NEDEN: Önceden %30 sabitti. WasteWaterCalcSheetService'in ayrı bir fosseptik
+        //        hesabı vardı ve kullanıcı bu payı değiştirebiliyordu (SludgeFactor). İki servis
+        //        tek motora (bu sınıfa) birleştirilirken kullanıcı ayarlanabilirliği kaybolmasın
+        //        diye bu oran parametrik hale getirildi.
+        public double SludgeMarginRatio { get; set; } = 0.30;
     }
 
     public class SepticTankResult
@@ -66,8 +73,8 @@ public class SepticTankService
         double dailyFlow = input.PersonCount * input.UnitWaterConsumption / 1000.0; // m³/gün
         result.RequiredVolume = dailyFlow * input.RetentionTime;
 
-        // Çamur hacmi: %30 ek kapasite
-        result.SludgeVolume = result.RequiredVolume * 0.30;
+        // Çamur hacmi: parametrik ek kapasite (varsayılan %30)
+        result.SludgeVolume = result.RequiredVolume * input.SludgeMarginRatio;
         result.TotalVolume = result.RequiredVolume + result.SludgeVolume;
 
         // Minimum hacim kontrolü
