@@ -110,6 +110,21 @@ tr:hover { background:#eef5ff; }
             AppendGenericTable(sb, otherPipes);
         }
 
+        // ── Basınç Kaybı Grafiği ────────────────────────────────────────────
+        // NE/NEDEN: SvgChartService önceden yalnızca kullanılmayan (hiç çağrılmayan) bir
+        // "tam rapor" servisinden (PdfReportService) referans alınıyordu; o servis silindi,
+        // grafik burada — canlı, gerçekten açılan hidrolik rapora — taşındı.
+        var chartPipes = pipeList.Where(p => p.PressureDrop > 0).OrderByDescending(p => p.PressureDrop).Take(15).ToList();
+        if (chartPipes.Count > 0)
+        {
+            var chartData = chartPipes
+                .Select((p, i) => ($"DN{p.InnerDiameter:F0}-{i + 1}", p.PressureDrop))
+                .ToList();
+            sb.AppendLine("<div class='summary'>");
+            sb.AppendLine(SvgChartService.BarChart("Boru Basınç Kaybı Dağılımı (en yüksek 15)", chartData, " mSS", "#FF6600"));
+            sb.AppendLine("</div>");
+        }
+
         // ── Özet ────────────────────────────────────────────────────────────
         int violationCount = pipeList.Count(p => p.HasHydraulicViolation);
         double totalLength = pipeList.Sum(p => p.GetLength()) / 1000.0;
