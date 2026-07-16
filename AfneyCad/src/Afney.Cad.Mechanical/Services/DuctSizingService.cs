@@ -68,6 +68,18 @@ public class DuctSizingService
     public double MaxVelocityBranchMs { get; set; } = 4.0;   // Branş kanal maks. hız
     public double TargetFrictionPaPer1m { get; set; } = 1.0; // Hedef sürtünme
 
+    /*
+       NE: Eşit Sürtünme Yöntemi Anahtarı (UseEqualFrictionMethod)
+       NEDEN: Sınıfın üstündeki NEDEN yorumu "Eşit Sürtünme Yöntemi: Tüm hatlarda aynı Pa/m
+              sürtünme basıncı" diyordu ama Calculate() her zonu YALNIZCA kendi hız sınırına
+              göre boyutlandırıyordu — hiçbir kanal gerçekten aynı Pa/m'ye iteratif olarak
+              getirilmiyordu (sadece adı geçen, hiç uygulanmayan bir tasarım hedefiydi).
+              Artık true iken: ana hat hız yöntemiyle boyutlandırılıp o hattın sürtünmesi
+              "hedef" alınıyor, tüm branşlar bisection ile o hedefe iteratif olarak
+              getiriliyor (SMACNA Equal Friction Method).
+    */
+    public bool UseEqualFrictionMethod { get; set; } = true;
+
     // ── Hava Değişim Sayıları (TS EN 13779 Tablo B.1) ─────────────────────────────
 
     public static readonly Dictionary<string, double> DefaultAirChanges = new()
@@ -86,6 +98,18 @@ public class DuctSizingService
     {
         var result = new HvacResult();
 
+        // Eşit sürtünme yöntemi: ana hat hız yöntemiyle boyutlandırılıp o hattın
+        // sürtünme oranı (Pa/m) branşlar için hedef olarak kullanılıyor.
+        double targetFriction = TargetFrictionPaPer1m;
+        if (UseEqualFrictionMethod && zones.Count > 0)
+        {
+            double qMainM3s = zones[0].AirFlowM3s;
+            double mainPa = rectangularDuct
+                ? SizeRectangular(qMainM3s, MaxVelocityMainMs).pa
+                : SizeCircular(qMainM3s, MaxVelocityMainMs).pa;
+            if (mainPa > 0) targetFriction = mainPa;
+        }
+
         foreach (var zone in zones)
         {
             double qM3s = zone.AirFlowM3s;
@@ -94,13 +118,23 @@ public class DuctSizingService
 
             // Kanal boyutu
             double d, w, h, v, pa;
-            if (rectangularDuct)
+            if (isMain || !UseEqualFrictionMethod)
             {
-                (d, w, h, v, pa) = SizeRectangular(qM3s, maxV);
+                if (rectangularDuct)
+                    (d, w, h, v, pa) = SizeRectangular(qM3s, maxV);
+                else
+                {
+                    (d, v, pa) = SizeCircular(qM3s, maxV);
+                    w = d; h = d;
+                }
+            }
+            else if (rectangularDuct)
+            {
+                (d, w, h, v, pa) = SizeRectangularByFriction(qM3s, targetFriction);
             }
             else
             {
-                (d, v, pa) = SizeCircular(qM3s, maxV);
+                (d, v, pa) = SizeCircularByFriction(qM3s, targetFriction);
                 w = d; h = d;
             }
 
@@ -161,6 +195,81 @@ public class DuctSizingService
         double dEq = 1.3 * Math.Pow(w * h, 0.625) / Math.Pow(w + h, 0.25) / 1000 * 1000;
         double pa = 0.025 * Math.Pow(v, 1.9) / (dEq / 1000);
         return (dEq, w, h, v, pa);
+    }
+
+    /*
+       NE: Sürtünmeye Göre Dairesel Kanal Boyutlandırma (Bisection İterasyonu)
+       NEDEN: SMACNA Eşit Sürtünme Yöntemi — her branşın çapı, hedef Pa/m değerine
+              iteratif olarak yakınsayana kadar aranır (pa(q,d) monoton azalan
+              olduğundan bisection güvenle yakınsar).
+    */
+    private static (double d, double v, double pa) SizeCircularByFriction(double qM3s, double targetPa)
+    {
+        const int maxIter = 60;
+        const double tol = 1e-6;
+        double dLo = 25, dHi = 3000; // mm
+
+        // pa(d), d arttıkça monoton azalır — dLo/dHi arasında hedefi ara.
+        for (int i = 0; i < maxIter; i++)
+        {
+            double dMid = (dLo + dHi) / 2.0;
+            double paMid = CircularFriction(qM3s, dMid);
+
+            if (Math.Abs(paMid - targetPa) < tol) break;
+
+            // paMid > target ise kanal dar demektir → büyüt (dLo'yu yukarı çek)
+            if (paMid > targetPa) dLo = dMid; else dHi = dMid;
+        }
+
+        double dRaw = (dLo + dHi) / 2.0;
+        double d = RoundUp(dRaw, dRaw < 300 ? 10 : 25); // küçük (esnek) kanal: 10mm, büyük: 25mm
+        double area = Math.PI * (d / 1000) * (d / 1000) / 4;
+        double v = qM3s / area;
+        double pa = CircularFriction(qM3s, d);
+        return (d, v, pa);
+    }
+
+    private static (double d, double w, double h, double v, double pa) SizeRectangularByFriction(double qM3s, double targetPa)
+    {
+        const int maxIter = 60;
+        const double tol = 1e-6;
+        double wLo = 50, wHi = 3000; // mm, 2:1 en/boy oranı sabit tutuluyor
+
+        for (int i = 0; i < maxIter; i++)
+        {
+            double wMid = (wLo + wHi) / 2.0;
+            double paMid = RectangularFriction(qM3s, wMid);
+
+            if (Math.Abs(paMid - targetPa) < tol) break;
+
+            if (paMid > targetPa) wLo = wMid; else wHi = wMid;
+        }
+
+        double wRaw = (wLo + wHi) / 2.0;
+        double step = wRaw < 300 ? 25 : 50;
+        double w = RoundUp(wRaw, step);
+        double h = RoundUp(w / 2.0, step);
+        double area = (w / 1000) * (h / 1000);
+        double v = qM3s / area;
+        double dEq = 1.3 * Math.Pow(w * h, 0.625) / Math.Pow(w + h, 0.25);
+        double pa = 0.025 * Math.Pow(v, 1.9) / (dEq / 1000);
+        return (dEq, w, h, v, pa);
+    }
+
+    private static double CircularFriction(double qM3s, double dMm)
+    {
+        double area = Math.PI * (dMm / 1000) * (dMm / 1000) / 4;
+        double v = qM3s / area;
+        return 0.025 * Math.Pow(v, 1.9) / (dMm / 1000);
+    }
+
+    private static double RectangularFriction(double qM3s, double wMm)
+    {
+        double hMm = wMm / 2.0; // 2:1 oranı
+        double area = (wMm / 1000) * (hMm / 1000);
+        double v = qM3s / area;
+        double dEq = 1.3 * Math.Pow(wMm * hMm, 0.625) / Math.Pow(wMm + hMm, 0.25);
+        return 0.025 * Math.Pow(v, 1.9) / (dEq / 1000);
     }
 
     private static double RoundUp(double value, double step) => Math.Ceiling(value / step) * step;
