@@ -1119,6 +1119,7 @@ namespace Afney.Cad.Presentation
                     case "dimangular": case "dimang": OnAngularDimCommand(this, new RoutedEventArgs()); break;
                     case "dist": case "mesafe": case "uzaklik": OnDistCommand(this, new RoutedEventArgs()); break;
                     case "dimcontinue": case "dimcont": case "dco": OnContinueDimCommand(this, new RoutedEventArgs()); break;
+                    case "hardycross": case "halka": case "ringanaliz": OnHardyCrossAnalysis(this, new RoutedEventArgs()); break;
                     case "tr": case "trim": OnTrimCommand(this, new RoutedEventArgs()); break;
                     case "ex": case "extend": OnExtendCommand(this, new RoutedEventArgs()); break;
                     case "mi": case "mirror": OnMirrorCommand(this, new RoutedEventArgs()); break;

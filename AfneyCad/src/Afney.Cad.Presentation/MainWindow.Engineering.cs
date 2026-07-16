@@ -2399,6 +2399,117 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"Antet hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        /*
+           NE: Halkalı Şebeke Analizi (OnHardyCrossAnalysis)
+           NEDEN: HardyCrossSolver/HydraulicNetwork yazılmıştı ama hiçbir komut onları
+                  çizimdeki gerçek borulardan bir ağ kurup çağırmıyordu — kapalı halka
+                  (ring main) tespiti hiç tetiklenmiyordu (yangın söndürme ring hattı, halkalı
+                  doğalgaz şebekesi gibi durumlarda debi dağılımı hep basit ağaç varsayımıyla
+                  hesaplanıyordu, yanlış sonuç veriyordu). Artık her sistem tipi (Soğuk Su,
+                  Sıcak Su, Yangın, Gaz...) için ayrı bir HydraulicNetwork kurulup
+                  HardyCrossSolver.Solve çağrılıyor; sonuçlar (FlowRate, PressureDrop) ilgili
+                  borulara geri yazılıyor.
+        */
+        private void OnHardyCrossAnalysis(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var allPipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
+                if (allPipes.Count == 0)
+                {
+                    MessageBox.Show("Analiz edilecek boru bulunamadı.", "Halkalı Şebeke Analizi", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var solver = new Afney.Cad.Mechanical.Engine.Hydraulics.HardyCrossSolver();
+                int totalLoops = 0;
+                int systemsWithLoops = 0;
+                var sb = new System.Text.StringBuilder();
+
+                foreach (var group in allPipes.GroupBy(p => p.SystemType))
+                {
+                    var buildResult = Afney.Cad.Mechanical.Engine.Hydraulics.HydraulicNetworkBuilder.Build(group.ToList());
+                    int pipeCountBefore = buildResult.Network.Pipes.Count;
+                    int nodeCount = buildResult.Network.Nodes.Count;
+                    int loopCount = pipeCountBefore - nodeCount + CountConnectedComponents(buildResult.Network);
+
+                    if (loopCount <= 0) continue;
+
+                    solver.Solve(buildResult.Network);
+
+                    foreach (var (pipe, netPipe) in buildResult.PipeMap)
+                    {
+                        pipe.FlowRate = System.Math.Abs(netPipe.FlowRate);
+                        pipe.PressureDrop = netPipe.HeadLoss;
+                    }
+
+                    totalLoops += loopCount;
+                    systemsWithLoops++;
+                    sb.AppendLine($"• {group.Key}: {loopCount} bağımsız halka, {group.Count()} boru — debi dağılımı Hardy-Cross ile düzeltildi.");
+                }
+
+                Viewport.InvalidateVisual();
+
+                if (systemsWithLoops == 0)
+                {
+                    MessageBox.Show(
+                        "Çizimde kapalı halka (ring) oluşturan bir boru şebekesi bulunamadı.\nTüm sistemler ağaç (dallanan) topolojisinde — Hardy-Cross düzeltmesine gerek yok.",
+                        "Halkalı Şebeke Analizi", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"Hardy-Cross analizi tamamlandı.\n\nToplam {totalLoops} bağımsız halka bulundu ve düzeltildi:\n\n{sb}",
+                        "Halkalı Şebeke Analizi", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Hardy-Cross analizi hatası");
+                MessageBox.Show($"Halkalı şebeke analizi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /*
+           NE: Bağlantılı Bileşen Sayısı (CountConnectedComponents)
+           NEDEN: Bağımsız halka sayısı = Kenar - Düğüm + Bileşen (graf teorisi). Şebeke birden
+                  fazla ayrık parçadan oluşabileceği için (örn. iki farklı bina hattı) bileşen
+                  sayısı doğru halka sayısını bulmak için gereklidir.
+        */
+        private static int CountConnectedComponents(Afney.Cad.Mechanical.Engine.Hydraulics.HydraulicNetwork network)
+        {
+            var adjacency = network.Nodes.ToDictionary(
+                n => n,
+                _ => new List<Afney.Cad.Mechanical.Engine.Hydraulics.NetworkNode>());
+            foreach (var pipe in network.Pipes)
+            {
+                adjacency[pipe.StartNode].Add(pipe.EndNode);
+                adjacency[pipe.EndNode].Add(pipe.StartNode);
+            }
+
+            var visited = new HashSet<Afney.Cad.Mechanical.Engine.Hydraulics.NetworkNode>();
+            int components = 0;
+            foreach (var node in network.Nodes)
+            {
+                if (visited.Contains(node)) continue;
+                components++;
+                var queue = new Queue<Afney.Cad.Mechanical.Engine.Hydraulics.NetworkNode>();
+                queue.Enqueue(node);
+                visited.Add(node);
+                while (queue.Count > 0)
+                {
+                    var cur = queue.Dequeue();
+                    foreach (var next in adjacency[cur])
+                    {
+                        if (visited.Contains(next)) continue;
+                        visited.Add(next);
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+            return components;
+        }
+
         private void OnAuditSystem(object sender, RoutedEventArgs e)
         {
             try
