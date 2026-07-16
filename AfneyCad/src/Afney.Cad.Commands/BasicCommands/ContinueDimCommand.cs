@@ -9,12 +9,23 @@ using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
+/*
+   NE: Zincir Ölçü Komutu (ContinueDimCommand)
+   NEDEN: AutoCAD'in DIMCONTINUE komutu gibi, önceki ölçünün bitiş noktasından başlayarak
+          aynı ölçü çizgisi hizasında ardışık ölçüler eklemek için.
+
+   ÖNCEDEN: Yalnızca yatay (Y sabit) zincirleme destekleniyordu — ilk ölçü dikey
+   (IsHorizontal=false) olduğunda zincir yanlış hizada (Y yerine X kullanılması gereken
+   yerde Y kullanarak) çiziliyordu. Artık başlangıç ölçüsünün yönü (_isHorizontal) alınıp
+   zincir gerçekten o yönde (yatay → Y sabit, dikey → X sabit) devam ediyor.
+*/
 public class ContinueDimCommand : ICadCommand
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
     private readonly DimensionStyle     _style;
-    private readonly double             _dimLineY;
+    private readonly double             _dimLineCoord;
+    private readonly bool               _isHorizontal;
 
     private Vector3D?        _lastPoint;
     private DimensionEntity? _ghost;
@@ -26,23 +37,28 @@ public class ContinueDimCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action?         OnCompleted;
 
-    public ContinueDimCommand(CadDatabase db, TransactionManager tm, Vector3D startPoint, double dimLineY, DimensionStyle? style = null)
+    public ContinueDimCommand(CadDatabase db, TransactionManager tm, Vector3D startPoint, double dimLineCoord,
+        DimensionStyle? style = null, bool isHorizontal = true)
     {
-        _database  = db;
-        _tm        = tm;
-        _lastPoint = startPoint;
-        _dimLineY  = dimLineY;
-        _style     = style ?? new DimensionStyle();
+        _database     = db;
+        _tm           = tm;
+        _lastPoint    = startPoint;
+        _dimLineCoord = dimLineCoord;
+        _isHorizontal = isHorizontal;
+        _style        = style ?? new DimensionStyle();
     }
 
     public void Start() => OnFeedback?.Invoke("DIMCONTINUE: Sonraki noktayı seçin (ESC ile bitirin).");
+
+    private Vector3D BuildDimLinePoint(Vector3D point) => _isHorizontal
+        ? new Vector3D(point.X, _dimLineCoord, 0)
+        : new Vector3D(_dimLineCoord, point.Y, 0);
 
     public void OnPointerPressed(Vector3D point)
     {
         if (_lastPoint == null) return;
 
-        var dimLinePoint = new Vector3D(point.X, _dimLineY, 0);
-        var dim = new DimensionEntity(_lastPoint.Value, point, dimLinePoint, DimensionType.Linear)
+        var dim = new DimensionEntity(_lastPoint.Value, point, BuildDimLinePoint(point), DimensionType.Linear)
         {
             Layer = _database.ActiveLayerName
         };
@@ -51,7 +67,7 @@ public class ContinueDimCommand : ICadCommand
         _count++;
 
         _lastPoint = point;
-        _ghost = new DimensionEntity(point, point, new Vector3D(point.X, _dimLineY, 0), DimensionType.Linear);
+        _ghost = new DimensionEntity(point, point, BuildDimLinePoint(point), DimensionType.Linear);
         DimensionStyleApplier.Apply(_ghost, _style);
         OnFeedback?.Invoke($"DIMCONTINUE: {_count} ölçü eklendi. Sonraki noktayı seçin (ESC ile bitirin).");
     }
@@ -60,7 +76,7 @@ public class ContinueDimCommand : ICadCommand
     {
         if (_ghost == null || _lastPoint == null) return;
         _ghost.SecondPoint  = point;
-        _ghost.DimLinePoint = new Vector3D(point.X, _dimLineY, 0);
+        _ghost.DimLinePoint = BuildDimLinePoint(point);
     }
 
     public void OnKeyDown(InputKey key)

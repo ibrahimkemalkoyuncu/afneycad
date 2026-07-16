@@ -584,8 +584,11 @@ namespace Afney.Cad.Presentation
                     .LastOrDefault();
                 if (lastDims != null)
                 {
+                    // Zincir, başlangıç ölçüsünün yönünde (yatay → Y sabit, dikey → X sabit) devam etmeli.
+                    double dimLineCoord = lastDims.IsHorizontal ? lastDims.DimLinePoint.Y : lastDims.DimLinePoint.X;
                     var cont = new ContinueDimCommand(
-                        _database, _history.TransactionManager, lastDims.SecondPoint, lastDims.DimLinePoint.Y, _dimStyleService.ActiveStyle);
+                        _database, _history.TransactionManager, lastDims.SecondPoint, dimLineCoord,
+                        _dimStyleService.ActiveStyle, lastDims.IsHorizontal);
                     cont.OnFeedback  += msg2 => StatusText.Text = msg2;
                     cont.OnCompleted += () => Viewport.SetActiveCommand(null);
                     Viewport.SetActiveCommand(cont);

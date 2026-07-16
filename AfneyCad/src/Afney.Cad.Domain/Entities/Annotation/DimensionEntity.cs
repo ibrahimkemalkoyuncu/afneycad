@@ -32,7 +32,12 @@ public class DimensionEntity : CadEntity
         Color        = 0xFF00CCFF;
     }
 
-    private bool IsHorizontal =>
+    /*
+       NE: Yatay mı? (IsHorizontal)
+       NEDEN: DIMCONTINUE zincirinin doğru yönde (Y-tabanlı vs X-tabanlı) devam edebilmesi
+              için dışarıdan da okunabilmesi gerekiyordu — önceden private idi.
+    */
+    public bool IsHorizontal =>
         Math.Abs(SecondPoint.X - FirstPoint.X) >= Math.Abs(SecondPoint.Y - FirstPoint.Y);
 
     public Vector3D AngularVertex { get; set; }
