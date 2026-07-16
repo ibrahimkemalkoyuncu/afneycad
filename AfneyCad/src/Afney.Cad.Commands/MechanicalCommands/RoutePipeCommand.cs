@@ -23,11 +23,13 @@ public class RoutePipeCommand : ICadCommand
     private readonly CadDatabase _database;
     private readonly MechanicalKernel _kernel;
     private readonly PipeRoutingEngine _routingEngine;
+    private readonly AutoRouteService _autoRoute;
     private readonly List<CadEntity> _ghostEntities = new();
-    
+
     private string _currentMaterial = "PVC";
     private MechanicalSystemType _currentSystem = MechanicalSystemType.DomesticColdWater;
     private double _currentDiameter = 100.0;
+    private bool _avoidObstacles = true;
 
     public string CommandName => "ROUTEPIPE";
     public Vector3D? ActivePoint => _routingEngine.LastPoint;
@@ -42,10 +44,18 @@ public class RoutePipeCommand : ICadCommand
         _database = database;
         _kernel = kernel;
         _routingEngine = new PipeRoutingEngine();
-        
+        _autoRoute = new AutoRouteService(_database);
+
         // Kernel üzerindeki akıllı parça seçiciyi motora bağla (Entegrasyon)
         _routingEngine.SetFittingSelector(_kernel.FittingSelector);
     }
+
+    /*
+       NE: Engel Kaçınmayı Aç/Kapat (SetAvoidObstacles)
+       NEDEN: Kullanıcı manuel rotalama sırasında düz çizgi çekmek isterse (ör. duvar arkası boru)
+              otomatik kaçınmayı devre dışı bırakabilmesi için.
+    */
+    public void SetAvoidObstacles(bool enabled) => _avoidObstacles = enabled;
 
     /*
        NE: Rota Ayarlarını Yap (SetSettings)
@@ -108,16 +118,50 @@ public class RoutePipeCommand : ICadCommand
             return;
         }
 
-        // 2. SONRAKİ TIKLAR: Manuel Rota (Kullanıcı Kontrollü)
-        // Pathfinding şimdilik devre dışı (Manuel çizim öncelikli)
-        
-        var newEntities = _routingEngine.AddPoint(point);
-        foreach (var entity in newEntities)
+        // 2. SONRAKİ TIKLAR: Manuel Rota (Kullanıcı Kontrollü), ama tıklanan segment bir mimari
+        // engelle (duvar/kolon) kesişiyorsa AutoRouteService'in A* motoruyla otomatik kaçınma yapılır.
+        var lastPoint = _routingEngine.LastPoint!.Value;
+        var waypoints = new List<Vector3D> { lastPoint, point };
+
+        if (_avoidObstacles)
         {
-            RegisterNewEntity(entity);
+            var options = BuildRouteOptions();
+            if (_autoRoute.IsSegmentBlocked(lastPoint, point, options))
+            {
+                var routeResult = _autoRoute.FindRoute(lastPoint, point, options);
+                if (routeResult.Success && routeResult.Waypoints.Count > 2)
+                {
+                    waypoints = routeResult.Waypoints;
+                    OnFeedback?.Invoke($"Engel algılandı — otomatik rota ile geçiliyor ({routeResult.BendCount} dirsek).");
+                }
+            }
         }
-        
+
+        for (int i = 1; i < waypoints.Count; i++)
+        {
+            var newEntities = _routingEngine.AddPoint(waypoints[i]);
+            foreach (var entity in newEntities)
+            {
+                RegisterNewEntity(entity);
+            }
+        }
+
         OnFeedback?.Invoke($"Boru eklendi. Devam edin veya ESC ile bitirin. (Son: {point})");
+    }
+
+    /*
+       NE: Rota Seçeneklerini Oluştur (BuildRouteOptions)
+       NEDEN: AutoRouteService çağrılarında güncel çap/sistem tipini kullanmak için.
+    */
+    private RouteOptions BuildRouteOptions()
+    {
+        return new RouteOptions
+        {
+            Diameter = _currentDiameter,
+            SystemType = _currentSystem,
+            AvoidObstacles = true,
+            PreferOrthogonal = true
+        };
     }
 
     /*

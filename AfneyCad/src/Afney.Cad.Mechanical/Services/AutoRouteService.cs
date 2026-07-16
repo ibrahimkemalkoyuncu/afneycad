@@ -184,6 +184,61 @@ public class AutoRouteService
         return new List<Vector3D> { start, mid, end };
     }
 
+    /*
+       NE: Segment Engelli Mi? (IsSegmentBlocked)
+       NEDEN: RoutePipeCommand'ın manuel (tık-tık) rotalamasında her segmentte pahalı A* aramasına
+              gerek olmadan, sadece gerçekten bir engelle kesişen segmentlerde otomatik rotaya
+              düşmek için hızlı bir ön kontrol sağlamak.
+    */
+    public bool IsSegmentBlocked(Vector3D a, Vector3D b, RouteOptions options)
+    {
+        var obstacles = CollectObstacles(options);
+        foreach (var box in obstacles)
+            if (SegmentIntersectsAABB(a, b, box)) return true;
+        return false;
+    }
+
+    /*
+       NE: Segment-AABB Çarpışma Testi (Liang-Barsky Parametrik Kırpma)
+       NEDEN: Orta-nokta kontrolü yerine çizginin kutu ile gerçek kesişimini test etmek için.
+    */
+    private bool SegmentIntersectsAABB(Vector3D p1, Vector3D p2, CadBoundingBox box)
+    {
+        double dx = p2.X - p1.X;
+        double dy = p2.Y - p1.Y;
+        double tMin = 0.0, tMax = 1.0;
+
+        if (Math.Abs(dx) < 1e-9)
+        {
+            if (p1.X < box.Min.X || p1.X > box.Max.X) return false;
+        }
+        else
+        {
+            double t1 = (box.Min.X - p1.X) / dx;
+            double t2 = (box.Max.X - p1.X) / dx;
+            if (t1 > t2) (t1, t2) = (t2, t1);
+            tMin = Math.Max(tMin, t1);
+            tMax = Math.Min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        if (Math.Abs(dy) < 1e-9)
+        {
+            if (p1.Y < box.Min.Y || p1.Y > box.Max.Y) return false;
+        }
+        else
+        {
+            double t1 = (box.Min.Y - p1.Y) / dy;
+            double t2 = (box.Max.Y - p1.Y) / dy;
+            if (t1 > t2) (t1, t2) = (t2, t1);
+            tMin = Math.Max(tMin, t1);
+            tMax = Math.Min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        return true;
+    }
+
     private List<CadBoundingBox> CollectObstacles(RouteOptions options)
     {
         var obstacles = new List<CadBoundingBox>();
