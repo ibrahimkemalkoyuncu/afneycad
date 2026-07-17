@@ -949,6 +949,20 @@ namespace Afney.Cad.Presentation.Views;
             var worldPos = ScreenToWorld(currentPos);
             _lastMouseWorldPos = worldPos;
 
+            /*
+               MÜHENDİSLİK: OSNAP hesaplaması ARTIK grip sürükleme (Stretch) bloğundan ÖNCE yapılıyor.
+               NEDEN: Önceden bu hesap fonksiyonun sonunda yapılıyordu — grip her zaman ham (snapsiz)
+                      fare konumuyla taşınıyordu, çünkü _lastMouseWorldPos bir sonraki çağrıda hemen
+                      worldPos ile eziliyordu (satır 950). Yani hesaplanan snap noktası hiçbir zaman
+                      grip'e uygulanmıyordu. Artık snap önce hesaplanıp _lastMouseWorldPos'a yazılıyor,
+                      grip sürükleme onu doğrudan kullanıyor.
+            */
+            if (_snapEngine != null)
+                _activeSnap = _snapEngine.FindSnapPoint(worldPos, _zoom, _activeCommand?.ActivePoint);
+
+            if (_activeSnap.HasValue)
+                _lastMouseWorldPos = _activeSnap.Value.Position;
+
             if (_isPanning)
             {
                 var delta = currentPos - _lastMousePosition;
@@ -1040,14 +1054,7 @@ namespace Afney.Cad.Presentation.Views;
                 }
             }
 
-            if (_snapEngine != null)
-                _activeSnap = _snapEngine.FindSnapPoint(worldPos, _zoom, _activeCommand?.ActivePoint);
-
-            if (_activeSnap.HasValue)
-            {
-                _lastMouseWorldPos = _activeSnap.Value.Position;
-            }
-            else if (IsOrthoEnabled && _activeCommand != null && _activeCommand.ActivePoint.HasValue)
+            if (!_activeSnap.HasValue && IsOrthoEnabled && _activeCommand != null && _activeCommand.ActivePoint.HasValue)
             {
                 // MÜHENDİSLİK: AutoCAD standartlarına göre OSNAP yoksa ve ORTHO açıksa, koordinatları kısıtla
                 var basePoint = _activeCommand.ActivePoint.Value;

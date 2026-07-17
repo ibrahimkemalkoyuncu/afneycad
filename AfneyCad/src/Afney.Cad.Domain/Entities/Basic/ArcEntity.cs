@@ -138,4 +138,51 @@ public class ArcEntity : CadEntity
         yield return new SnapPoint(new Vector3D(Center.X + Math.Cos(StartAngle) * Radius, Center.Y + Math.Sin(StartAngle) * Radius, Center.Z), SnapPointType.Endpoint);
         yield return new SnapPoint(new Vector3D(Center.X + Math.Cos(EndAngle) * Radius, Center.Y + Math.Sin(EndAngle) * Radius, Center.Z), SnapPointType.Endpoint);
     }
+
+    private double SweepRadians => EndAngle > StartAngle ? EndAngle - StartAngle : (2 * Math.PI - StartAngle) + EndAngle;
+
+    /*
+       NE: Grip Noktaları (GetGripPoints)
+       NEDEN: Önceden hiç override yoktu — yay hiçbir grip göstermiyordu (taşınamıyor,
+              açıları değiştirilemiyordu). Merkez + iki uç + orta nokta (LineEntity'deki
+              orta-nokta grip deseniyle tutarlı) sağlanıyor.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return Center;
+        yield return new Vector3D(Center.X + Math.Cos(StartAngle) * Radius, Center.Y + Math.Sin(StartAngle) * Radius, Center.Z);
+        yield return new Vector3D(Center.X + Math.Cos(EndAngle) * Radius, Center.Y + Math.Sin(EndAngle) * Radius, Center.Z);
+
+        double midAngle = StartAngle + SweepRadians / 2;
+        yield return new Vector3D(Center.X + Math.Cos(midAngle) * Radius, Center.Y + Math.Sin(midAngle) * Radius, Center.Z);
+    }
+
+    /*
+       NE: Grip Noktasını Taşı (MoveGripPointAt)
+       NEDEN: index 0 = merkez (tüm yayı taşır), 1/2 = başlangıç/bitiş açısı (yarıçap ve
+              merkez sabit kalır — basitleştirilmiş açı düzenleme; tam 3-nokta yeniden
+              hesaplama bu kapsamda değil), 3 = orta nokta (LineEntity ile tutarlı, tüm
+              yayı taşır).
+    */
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        switch (index)
+        {
+            case 0:
+                Center = newPosition;
+                break;
+            case 1:
+                StartAngle = Math.Atan2(newPosition.Y - Center.Y, newPosition.X - Center.X);
+                break;
+            case 2:
+                EndAngle = Math.Atan2(newPosition.Y - Center.Y, newPosition.X - Center.X);
+                break;
+            case 3:
+                double midAngle = StartAngle + SweepRadians / 2;
+                var oldMid = new Vector3D(Center.X + Math.Cos(midAngle) * Radius, Center.Y + Math.Sin(midAngle) * Radius, Center.Z);
+                Move(newPosition - oldMid);
+                break;
+        }
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

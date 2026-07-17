@@ -110,4 +110,31 @@ public class TextEntity : CadEntity
         // Insertion point yerine Endpoint kullanıyoruz şimdilik
         yield return new SnapPoint(Position, SnapPointType.Endpoint);
     }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints)
+       NEDEN: Önceden hiç override yoktu — metin nesnesi grip ile taşınamıyor veya
+              yüksekliği sürükleyerek değiştirilemiyordu (sadece Move komutuyla taşınabiliyordu).
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return Position;
+        // Yükseklik tutamacı: yerleşim noktasının üstünde, sürükleyince Height güncellenir.
+        yield return new Vector3D(Position.X, Position.Y + Height, Position.Z);
+    }
+
+    /*
+       NE: Grip Noktasını Taşı (MoveGripPointAt)
+       NEDEN: index 0 = yerleşim noktası (metni taşır), index 1 = yükseklik tutamacı
+              (yerleşim noktasına olan mesafeye göre Height günceller).
+    */
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0)
+            Position = newPosition;
+        else if (index == 1)
+            Height = Math.Max(1.0, Position.DistanceTo(newPosition));
+
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

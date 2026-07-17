@@ -108,4 +108,21 @@ public class CircleEntity : CadEntity
         yield return new Vector3D(Center.X, Center.Y + Radius, Center.Z);
         yield return new Vector3D(Center.X, Center.Y - Radius, Center.Z);
     }
+
+    /*
+       NE: Grip Noktasını Taşı (MoveGripPointAt)
+       NEDEN: Önceden bu override hiç yoktu — GetGripPoints 4 kuadrant + merkez gösteriyordu
+              ama sürüklendiğinde taban sınıfın boş varsayılanı (sadece InvalidateCache)
+              çalışıyordu, yani grip'ler görünüyor ama HİÇBİR ŞEY YAPMIYORDU. index 0 = merkez
+              (taşı), 1-4 = kuadrant (yeni mesafeye göre yarıçapı güncelle).
+    */
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0)
+            Center = newPosition;
+        else
+            Radius = Center.DistanceTo(newPosition);
+
+        base.MoveGripPointAt(index, newPosition);
+    }
 }
