@@ -5,6 +5,13 @@ namespace Afney.Cad.Domain.Entities.Annotation;
 
 public enum DimensionType { Linear, Aligned, Radius, Angular }
 
+/*
+   NE: Ok Başı Stili (DimensionArrowStyle)
+   NEDEN: Önceden DrawArrow tek bir sabit dolu üçgen çiziyordu — AutoCAD'deki
+          Open/Dot/Architectural tick gibi seçenekler hiç yoktu.
+*/
+public enum DimensionArrowStyle { Filled, Open, Dot, Architectural }
+
 public class DimensionEntity : CadEntity
 {
     public Vector3D FirstPoint   { get; set; }
@@ -22,6 +29,15 @@ public class DimensionEntity : CadEntity
     public int    Precision   { get; set; } = 0;
     public bool   ShowUnits   { get; set; } = true;
     public string UnitFormat  { get; set; } = "mm";
+    public DimensionArrowStyle ArrowStyle { get; set; } = DimensionArrowStyle.Filled;
+
+    /*
+       NE: Dinamik Girdi Geçersiz Kılma (OverrideText)
+       NEDEN: Kullanıcı ölçü değerini elle (klavyeden) girebilsin diye — null/boş ise
+              GetText() otomatik hesaplanan ölçüyü kullanır, doluysa onun yerine geçer
+              (AutoCAD'in "Dinamik Girdi" ile ölçü metnini override etmesi gibi).
+    */
+    public string? OverrideText { get; set; }
 
     public DimensionEntity(Vector3D p1, Vector3D p2, Vector3D dimLinePoint, DimensionType type)
     {
@@ -67,6 +83,8 @@ public class DimensionEntity : CadEntity
 
     private string GetText()
     {
+        if (!string.IsNullOrEmpty(OverrideText)) return OverrideText;
+
         double m = GetMeasurement();
         if (DimType == DimensionType.Angular)
             return $"{m.ToString("F" + Precision)}°";
@@ -233,11 +251,67 @@ public class DimensionEntity : CadEntity
         var dir  = new Vector3D(seg.X / len, seg.Y / len, 0);
         var perp = new Vector3D(-dir.Y, dir.X, 0);
 
-        var b1 = new Vector3D(tip.X + dir.X * size + perp.X * size * 0.3,
-                               tip.Y + dir.Y * size + perp.Y * size * 0.3, 0);
-        var b2 = new Vector3D(tip.X + dir.X * size - perp.X * size * 0.3,
-                               tip.Y + dir.Y * size - perp.Y * size * 0.3, 0);
+        switch (ArrowStyle)
+        {
+            case DimensionArrowStyle.Open:
+                DrawOpenArrow(ctx, tip, dir, perp, size);
+                break;
+            case DimensionArrowStyle.Dot:
+                DrawDotMarker(ctx, tip, size);
+                break;
+            case DimensionArrowStyle.Architectural:
+                DrawArchitecturalTick(ctx, tip, dir, perp, size);
+                break;
+            default:
+                DrawFilledArrow(ctx, tip, dir, perp, size);
+                break;
+        }
+    }
+
+    private void DrawFilledArrow(IRenderContext ctx, Vector3D tip, Vector3D dir, Vector3D perp, double size)
+    {
+        var b1 = tip + dir * size + perp * (size * 0.3);
+        var b2 = tip + dir * size - perp * (size * 0.3);
         ctx.DrawFilledPolygon(new[] { tip, b1, b2 }, Color);
+    }
+
+    private void DrawOpenArrow(IRenderContext ctx, Vector3D tip, Vector3D dir, Vector3D perp, double size)
+    {
+        var b1 = tip + dir * size + perp * (size * 0.3);
+        var b2 = tip + dir * size - perp * (size * 0.3);
+        ctx.DrawLine(tip, b1, Color, 0);
+        ctx.DrawLine(tip, b2, Color, 0);
+    }
+
+    private void DrawDotMarker(IRenderContext ctx, Vector3D center, double size)
+    {
+        const int sides = 10;
+        double radius = size * 0.35;
+        var pts = new Vector3D[sides];
+        for (int i = 0; i < sides; i++)
+        {
+            double a = 2 * Math.PI * i / sides;
+            pts[i] = new Vector3D(center.X + Math.Cos(a) * radius, center.Y + Math.Sin(a) * radius, 0);
+        }
+        ctx.DrawFilledPolygon(pts, Color, alpha: 255);
+    }
+
+    /*
+       NE: Mimari Tik İşareti (DrawArchitecturalTick)
+       NEDEN: AutoCAD'in "Architectural tick" ok stili — ölçü çizgisini 45° açıyla kesen kısa
+              bir eğik çizgi (mimari çizimlerde ok yerine tercih edilir).
+    */
+    private void DrawArchitecturalTick(IRenderContext ctx, Vector3D tip, Vector3D dir, Vector3D perp, double size)
+    {
+        var oblique = dir + perp;
+        double len = oblique.Length();
+        if (len < 1e-9) return;
+        oblique = oblique / len;
+
+        double half = size * 0.5;
+        var p1 = tip - oblique * half;
+        var p2 = tip + oblique * half;
+        ctx.DrawLine(p1, p2, Color, 0);
     }
 
     public override void Move(Vector3D delta)
@@ -267,7 +341,9 @@ public class DimensionEntity : CadEntity
             Precision     = Precision,
             ShowUnits     = ShowUnits,
             UnitFormat    = UnitFormat,
-            AngularVertex = AngularVertex
+            AngularVertex = AngularVertex,
+            ArrowStyle    = ArrowStyle,
+            OverrideText  = OverrideText
         };
         CopyBaseProperties(c);
         return c;

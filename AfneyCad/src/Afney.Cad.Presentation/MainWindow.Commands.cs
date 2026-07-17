@@ -1086,6 +1086,17 @@ namespace Afney.Cad.Presentation
                         return;
                     }
 
+                    // Dinamik girdi: "=1200" → aktif ölçü komutunun otomatik hesaplanan
+                    // metnini "1200" ile geçersiz kılar. "=" tek başına (boş değer) override'ı temizler.
+                    if (rawText.StartsWith("=") &&
+                        Viewport.GetActiveCommand() is Afney.Cad.Commands.Abstractions.IDimensionOverridable overridable)
+                    {
+                        string overrideValue = rawText.Substring(1).Trim();
+                        overridable.SetTextOverride(string.IsNullOrEmpty(overrideValue) ? null : overrideValue);
+                        e.Handled = true;
+                        return;
+                    }
+
                     if (Viewport.AcceptCoordinateInput(rawText))
                     {
                         StatusText.Text = $"→ {rawText}";

@@ -14,6 +14,12 @@ public class DimensionStyle
     public bool   ShowUnits    { get; set; } = true;
     public int    Precision    { get; set; } = 0;
     public string UnitFormat   { get; set; } = "mm";
+
+    // NE: Ok Başı Stili (ArrowStyle)
+    // NEDEN: DimensionEntity.DimensionArrowStyle enum'ına string olarak eşlenir — Domain
+    //        katmanına bağımlılık eklememek için burada string tutulur ("Filled"/"Open"/
+    //        "Dot"/"Architectural"), DimensionStyleApplier bu string'i enum'a çevirir.
+    public string ArrowStyle   { get; set; } = "Filled";
 }
 
 public class DimensionStyleService

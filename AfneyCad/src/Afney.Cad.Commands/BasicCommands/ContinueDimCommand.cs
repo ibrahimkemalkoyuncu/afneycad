@@ -19,7 +19,7 @@ namespace Afney.Cad.Commands.BasicCommands;
    yerde Y kullanarak) çiziliyordu. Artık başlangıç ölçüsünün yönü (_isHorizontal) alınıp
    zincir gerçekten o yönde (yatay → Y sabit, dikey → X sabit) devam ediyor.
 */
-public class ContinueDimCommand : ICadCommand
+public class ContinueDimCommand : ICadCommand, IDimensionOverridable
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
@@ -30,6 +30,7 @@ public class ContinueDimCommand : ICadCommand
     private Vector3D?        _lastPoint;
     private DimensionEntity? _ghost;
     private int              _count;
+    private string?          _overrideText;
 
     public string    CommandName => "DIMCONTINUE";
     public Vector3D? ActivePoint => _lastPoint;
@@ -54,6 +55,20 @@ public class ContinueDimCommand : ICadCommand
         ? new Vector3D(point.X, _dimLineCoord, 0)
         : new Vector3D(_dimLineCoord, point.Y, 0);
 
+    /*
+       NE: Ölçü Değerini Geçersiz Kıl (SetTextOverride)
+       NEDEN: Zincirdeki her segment ayrı bir ölçü olduğu için override sadece SIRADAKI
+              segmente uygulanır ve o segment yerleştirildikten sonra otomatik temizlenir.
+    */
+    public void SetTextOverride(string? text)
+    {
+        _overrideText = text;
+        if (_ghost != null) _ghost.OverrideText = text;
+        OnFeedback?.Invoke(string.IsNullOrEmpty(text)
+            ? "DIMCONTINUE: Ölçü geçersiz kılma temizlendi."
+            : $"DIMCONTINUE: Sıradaki segment '{text}' olarak sabitlenecek.");
+    }
+
     public void OnPointerPressed(Vector3D point)
     {
         if (_lastPoint == null) return;
@@ -63,8 +78,10 @@ public class ContinueDimCommand : ICadCommand
             Layer = _database.ActiveLayerName
         };
         DimensionStyleApplier.Apply(dim, _style);
+        dim.OverrideText = _overrideText;
         _tm.Submit(new AddEntityOperation(_database, dim));
         _count++;
+        _overrideText = null; // her segment kendi override'ını tüketir
 
         _lastPoint = point;
         _ghost = new DimensionEntity(point, point, BuildDimLinePoint(point), DimensionType.Linear);
@@ -92,7 +109,8 @@ public class ContinueDimCommand : ICadCommand
 
     public void Cancel()
     {
-        _ghost     = null;
-        _lastPoint = null;
+        _ghost        = null;
+        _lastPoint    = null;
+        _overrideText = null;
     }
 }

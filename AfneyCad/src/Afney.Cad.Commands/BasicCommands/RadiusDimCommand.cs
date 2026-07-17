@@ -9,7 +9,7 @@ using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
-public class RadiusDimCommand : ICadCommand
+public class RadiusDimCommand : ICadCommand, IDimensionOverridable
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
@@ -17,6 +17,7 @@ public class RadiusDimCommand : ICadCommand
 
     private Vector3D?        _center;
     private DimensionEntity? _ghost;
+    private string?          _overrideText;
 
     public string    CommandName => "DIMRADIUS";
     public Vector3D? ActivePoint => _center;
@@ -33,6 +34,15 @@ public class RadiusDimCommand : ICadCommand
 
     public void Start() => OnFeedback?.Invoke("DIMRADIUS: Merkez noktasını seçin.");
 
+    public void SetTextOverride(string? text)
+    {
+        _overrideText = text;
+        if (_ghost != null) _ghost.OverrideText = text;
+        OnFeedback?.Invoke(string.IsNullOrEmpty(text)
+            ? "DIMRADIUS: Ölçü geçersiz kılma temizlendi."
+            : $"DIMRADIUS: Ölçü metni '{text}' olarak sabitlendi.");
+    }
+
     public void OnPointerPressed(Vector3D point)
     {
         if (_center == null)
@@ -40,6 +50,7 @@ public class RadiusDimCommand : ICadCommand
             _center = point;
             _ghost  = new DimensionEntity(point, point, point, DimensionType.Radius);
             DimensionStyleApplier.Apply(_ghost, _style);
+            _ghost.OverrideText = _overrideText;
             OnFeedback?.Invoke("DIMRADIUS: Çevre noktasını seçin (yarıçap ucu).");
         }
         else
@@ -49,6 +60,7 @@ public class RadiusDimCommand : ICadCommand
                 Layer = _database.ActiveLayerName
             };
             DimensionStyleApplier.Apply(dim, _style);
+            dim.OverrideText = _overrideText;
             _tm.Submit(new AddEntityOperation(_database, dim));
             Cancel();
             OnCompleted?.Invoke();
@@ -68,7 +80,8 @@ public class RadiusDimCommand : ICadCommand
 
     public void Cancel()
     {
-        _ghost  = null;
-        _center = null;
+        _ghost        = null;
+        _center       = null;
+        _overrideText = null;
     }
 }

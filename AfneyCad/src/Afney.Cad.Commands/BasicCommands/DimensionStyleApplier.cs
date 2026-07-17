@@ -22,5 +22,8 @@ public static class DimensionStyleApplier
         entity.Precision   = style.Precision;
         entity.ShowUnits   = style.ShowUnits;
         entity.UnitFormat  = style.UnitFormat;
+        entity.ArrowStyle  = System.Enum.TryParse<DimensionArrowStyle>(style.ArrowStyle, out var parsed)
+            ? parsed
+            : DimensionArrowStyle.Filled;
     }
 }

@@ -9,7 +9,7 @@ using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
-public class LinearDimCommand : ICadCommand
+public class LinearDimCommand : ICadCommand, IDimensionOverridable
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
@@ -18,6 +18,7 @@ public class LinearDimCommand : ICadCommand
     private Vector3D?        _p1;
     private Vector3D?        _p2;
     private DimensionEntity? _ghost;
+    private string?          _overrideText;
 
     public string    CommandName => "DIMLINEAR";
     public Vector3D? ActivePoint => _p1;
@@ -34,6 +35,20 @@ public class LinearDimCommand : ICadCommand
 
     public void Start() => OnFeedback?.Invoke("DIMLINEAR: İlk ölçü noktasını seçin.");
 
+    /*
+       NE: Ölçü Değerini Geçersiz Kıl (SetTextOverride)
+       NEDEN: Komut satırına "=1200" yazıldığında bu değer, otomatik hesaplanan ölçü
+              metninin yerine geçer (dinamik girdi — AutoCAD davranışı).
+    */
+    public void SetTextOverride(string? text)
+    {
+        _overrideText = text;
+        if (_ghost != null) _ghost.OverrideText = text;
+        OnFeedback?.Invoke(string.IsNullOrEmpty(text)
+            ? "DIMLINEAR: Ölçü geçersiz kılma temizlendi."
+            : $"DIMLINEAR: Ölçü metni '{text}' olarak sabitlendi.");
+    }
+
     public void OnPointerPressed(Vector3D point)
     {
         if (_p1 == null)
@@ -41,6 +56,7 @@ public class LinearDimCommand : ICadCommand
             _p1    = point;
             _ghost = new DimensionEntity(point, point, point, DimensionType.Linear);
             DimensionStyleApplier.Apply(_ghost, _style);
+            _ghost.OverrideText = _overrideText;
             OnFeedback?.Invoke("DIMLINEAR: İkinci ölçü noktasını seçin.");
         }
         else if (_p2 == null)
@@ -48,6 +64,7 @@ public class LinearDimCommand : ICadCommand
             _p2    = point;
             _ghost = new DimensionEntity(_p1.Value, point, point, DimensionType.Linear);
             DimensionStyleApplier.Apply(_ghost, _style);
+            _ghost.OverrideText = _overrideText;
             OnFeedback?.Invoke("DIMLINEAR: Ölçü çizgisi konumunu belirtin.");
         }
         else
@@ -57,6 +74,7 @@ public class LinearDimCommand : ICadCommand
                 Layer = _database.ActiveLayerName
             };
             DimensionStyleApplier.Apply(dim, _style);
+            dim.OverrideText = _overrideText;
             _tm.Submit(new AddEntityOperation(_database, dim));
             Cancel();
             OnCompleted?.Invoke();
@@ -78,8 +96,9 @@ public class LinearDimCommand : ICadCommand
 
     public void Cancel()
     {
-        _ghost = null;
-        _p1    = null;
-        _p2    = null;
+        _ghost        = null;
+        _p1           = null;
+        _p2           = null;
+        _overrideText = null;
     }
 }

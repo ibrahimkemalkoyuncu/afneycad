@@ -9,7 +9,7 @@ using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Commands.BasicCommands;
 
-public class AngularDimCommand : ICadCommand
+public class AngularDimCommand : ICadCommand, IDimensionOverridable
 {
     private readonly CadDatabase        _database;
     private readonly TransactionManager _tm;
@@ -18,6 +18,7 @@ public class AngularDimCommand : ICadCommand
     private Vector3D?        _vertex;
     private Vector3D?        _p1;
     private DimensionEntity? _ghost;
+    private string?          _overrideText;
 
     public string    CommandName => "DIMANGULAR";
     public Vector3D? ActivePoint => _vertex;
@@ -34,6 +35,15 @@ public class AngularDimCommand : ICadCommand
 
     public void Start() => OnFeedback?.Invoke("DIMANGULAR: Köşe noktasını (vertex) seçin.");
 
+    public void SetTextOverride(string? text)
+    {
+        _overrideText = text;
+        if (_ghost != null) _ghost.OverrideText = text;
+        OnFeedback?.Invoke(string.IsNullOrEmpty(text)
+            ? "DIMANGULAR: Ölçü geçersiz kılma temizlendi."
+            : $"DIMANGULAR: Ölçü metni '{text}' olarak sabitlendi.");
+    }
+
     public void OnPointerPressed(Vector3D point)
     {
         if (_vertex == null)
@@ -41,6 +51,7 @@ public class AngularDimCommand : ICadCommand
             _vertex = point;
             _ghost = new DimensionEntity(point, point, point, DimensionType.Angular) { AngularVertex = point };
             DimensionStyleApplier.Apply(_ghost, _style);
+            _ghost.OverrideText = _overrideText;
             OnFeedback?.Invoke("DIMANGULAR: Birinci kol noktasını seçin.");
         }
         else if (_p1 == null)
@@ -57,6 +68,7 @@ public class AngularDimCommand : ICadCommand
                 AngularVertex = _vertex.Value
             };
             DimensionStyleApplier.Apply(dim, _style);
+            dim.OverrideText = _overrideText;
             _tm.Submit(new AddEntityOperation(_database, dim));
             Cancel();
             OnCompleted?.Invoke();
@@ -77,8 +89,9 @@ public class AngularDimCommand : ICadCommand
 
     public void Cancel()
     {
-        _ghost  = null;
-        _vertex = null;
-        _p1     = null;
+        _ghost        = null;
+        _vertex       = null;
+        _p1           = null;
+        _overrideText = null;
     }
 }
