@@ -85,6 +85,40 @@ public class LwPolylineEntity : CadEntity
     }
 
     /*
+       NE: Noktaya Olan Mesafe (DistanceTo)
+       NEDEN: Önceden override yoktu; taban sınıfın varsayılanı (BoundingBox merkezine mesafe)
+              kullanılıyordu — polyline'ın tam üzerine tıklansa bile hit-testi (TRIM/EXTEND/
+              seçim/hover) yanlış çalışıyordu. Artık her segmente olan minimum mesafe hesaplanıyor.
+    */
+    public override double DistanceTo(Vector3D point)
+    {
+        if (Vertices.Count == 0) return double.MaxValue;
+        if (Vertices.Count == 1) return point.DistanceTo(Vertices[0]);
+
+        double minDist = double.MaxValue;
+        int segCount = IsClosed ? Vertices.Count : Vertices.Count - 1;
+        for (int i = 0; i < segCount; i++)
+        {
+            var a = Vertices[i];
+            var b = Vertices[(i + 1) % Vertices.Count];
+            double dx = b.X - a.X, dy = b.Y - a.Y;
+            double len2 = dx * dx + dy * dy;
+            double dist;
+            if (len2 < 1e-9)
+            {
+                dist = point.DistanceTo(a);
+            }
+            else
+            {
+                double t = Math.Max(0, Math.Min(1, ((point.X - a.X) * dx + (point.Y - a.Y) * dy) / len2));
+                dist = point.DistanceTo(new Vector3D(a.X + t * dx, a.Y + t * dy, 0));
+            }
+            if (dist < minDist) minDist = dist;
+        }
+        return minDist;
+    }
+
+    /*
        NE: Kenetlenme NoktalarÄ± (GetSnapPoints)
        NEDEN: Ã‡okluÃ§izginin her bir kÃ¶ÅŸesini (Vertex) yakalanabilir birer uÃ§ nokta (Endpoint) olarak dÃ¶ndÃ¼rmek iÃ§in.
     */

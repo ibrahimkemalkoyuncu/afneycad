@@ -55,7 +55,7 @@ public class ExtendCommand : ICadCommand
         for (int i = allEntities.Count - 1; i >= 0; i--)
         {
             var ent = allEntities[i];
-            if (ent is not LineEntity && ent is not PipeEntity && ent is not ArcEntity) continue;
+            if (ent is not LineEntity && ent is not PipeEntity && ent is not DuctEntity && ent is not ArcEntity && ent is not LwPolylineEntity) continue;
 
             double d = ent.DistanceTo(point);
             if (d < minDst)
@@ -73,29 +73,71 @@ public class ExtendCommand : ICadCommand
             return;
         }
 
+        if (targetEntity is LwPolylineEntity poly)
+        {
+            ExtendPolyline(poly, point, allEntities);
+            return;
+        }
+
         ExtendLinear(targetEntity, point, allEntities);
     }
 
-    private void ExtendLinear(CadEntity targetEntity, Vector3D point, List<CadEntity> allEntities)
+    /*
+       NE: Polyline Uzat (ExtendPolyline)
+       NEDEN: Önceden LwPolyline hiç desteklenmiyordu. Tıklanan uca en yakın UÇ segment
+              (ilk veya son) kendi doğrultusunda ilk kesişime kadar uzatılır — ortadaki
+              segmentler değişmez. Kapalı polyline'ın açık ucu olmadığı için uzatılamaz.
+    */
+    private void ExtendPolyline(LwPolylineEntity poly, Vector3D point, List<CadEntity> allEntities)
     {
-        Vector3D tA, tB;
-        if (targetEntity is LineEntity tl) { tA = tl.StartPoint; tB = tl.EndPoint; }
-        else if (targetEntity is PipeEntity tp) { tA = tp.StartPoint; tB = tp.EndPoint; }
-        else return;
+        if (poly.IsClosed)
+        {
+            OnFeedback?.Invoke("EXTEND: Kapalı polyline uzatılamaz.");
+            return;
+        }
 
-        double distToStart = point.DistanceTo(tA);
-        double distToEnd = point.DistanceTo(tB);
-        bool extendStart = distToStart < distToEnd;
+        var verts = poly.Vertices;
+        int n = verts.Count;
+        if (n < 2) return;
 
-        Vector3D rayDir = extendStart ? new Vector3D(tA.X - tB.X, tA.Y - tB.Y, 0) : new Vector3D(tB.X - tA.X, tB.Y - tA.Y, 0);
-        Vector3D rayOrigin = extendStart ? tA : tB;
+        bool extendStart = point.DistanceTo(verts[0]) < point.DistanceTo(verts[n - 1]);
 
+        Vector3D rayOrigin = extendStart ? verts[0] : verts[n - 1];
+        Vector3D neighbor = extendStart ? verts[1] : verts[n - 2];
+        Vector3D rayDir = new Vector3D(rayOrigin.X - neighbor.X, rayOrigin.Y - neighbor.Y, 0);
+
+        var bestIntersection = FindNearestBoundaryAlongRay(rayOrigin, rayDir, poly, allEntities);
+        if (!bestIntersection.HasValue)
+        {
+            OnFeedback?.Invoke("EXTEND: Uzatma doğrultusunda bir kesişim bulunamadı.");
+            return;
+        }
+
+        var newVerts = new List<Vector3D>(verts);
+        if (extendStart) newVerts[0] = bestIntersection.Value;
+        else newVerts[n - 1] = bestIntersection.Value;
+
+        var composite = new CompositeOperation("Extend Polyline");
+        composite.Add(new RemoveEntityOperation(_database, poly));
+        composite.Add(new AddEntityOperation(_database, new LwPolylineEntity(newVerts, poly.IsClosed) { Color = poly.Color, Layer = poly.Layer }));
+        _transactionManager.Submit(composite);
+        OnFeedback?.Invoke("EXTEND: Polyline uzatıldı.");
+    }
+
+    /*
+       NE: Işın Boyunca En Yakın Sınırı Bul (FindNearestBoundaryAlongRay)
+       NEDEN: ExtendLinear ve ExtendPolyline aynı sınır-arama algoritmasını (Line/Pipe/Duct/
+              Circle/Arc sınırlarıyla ışın kesişimi) kullanıyor — tekrar yazmak yerine ortak
+              yardımcı metoda çıkarıldı.
+    */
+    private Vector3D? FindNearestBoundaryAlongRay(Vector3D rayOrigin, Vector3D rayDir, CadEntity excludeEntity, List<CadEntity> allEntities)
+    {
         double minT = double.MaxValue;
         Vector3D? bestIntersection = null;
 
         foreach (var ent in allEntities)
         {
-            if (ent == targetEntity) continue;
+            if (ent == excludeEntity) continue;
 
             if (ent is CircleEntity c)
             {
@@ -113,6 +155,7 @@ public class ExtendCommand : ICadCommand
             Vector3D oA, oB;
             if (ent is LineEntity l) { oA = l.StartPoint; oB = l.EndPoint; }
             else if (ent is PipeEntity p2) { oA = p2.StartPoint; oB = p2.EndPoint; }
+            else if (ent is DuctEntity d2) { oA = d2.StartPoint; oB = d2.EndPoint; }
             else continue;
 
             double dx1 = rayDir.X, dy1 = rayDir.Y;
@@ -133,6 +176,26 @@ public class ExtendCommand : ICadCommand
             }
         }
 
+        return bestIntersection;
+    }
+
+    private void ExtendLinear(CadEntity targetEntity, Vector3D point, List<CadEntity> allEntities)
+    {
+        Vector3D tA, tB;
+        if (targetEntity is LineEntity tl) { tA = tl.StartPoint; tB = tl.EndPoint; }
+        else if (targetEntity is PipeEntity tp) { tA = tp.StartPoint; tB = tp.EndPoint; }
+        else if (targetEntity is DuctEntity td) { tA = td.StartPoint; tB = td.EndPoint; }
+        else return;
+
+        double distToStart = point.DistanceTo(tA);
+        double distToEnd = point.DistanceTo(tB);
+        bool extendStart = distToStart < distToEnd;
+
+        Vector3D rayDir = extendStart ? new Vector3D(tA.X - tB.X, tA.Y - tB.Y, 0) : new Vector3D(tB.X - tA.X, tB.Y - tA.Y, 0);
+        Vector3D rayOrigin = extendStart ? tA : tB;
+
+        var bestIntersection = FindNearestBoundaryAlongRay(rayOrigin, rayDir, targetEntity, allEntities);
+
         if (bestIntersection.HasValue)
         {
             var composite = new CompositeOperation("Extend Entity");
@@ -148,6 +211,11 @@ public class ExtendCommand : ICadCommand
             {
                 if (extendStart) pcl.StartPoint = bestIntersection.Value;
                 else pcl.EndPoint = bestIntersection.Value;
+            }
+            else if (clone is DuctEntity dcl)
+            {
+                if (extendStart) dcl.StartPoint = bestIntersection.Value;
+                else dcl.EndPoint = bestIntersection.Value;
             }
 
             composite.Add(new AddEntityOperation(_database, clone));
@@ -185,6 +253,7 @@ public class ExtendCommand : ICadCommand
             {
                 LineEntity l => GeomUtils.GetIntersectionsLineCircle(l.StartPoint, l.EndPoint, arc.Center, arc.Radius),
                 PipeEntity p => GeomUtils.GetIntersectionsLineCircle(p.StartPoint, p.EndPoint, arc.Center, arc.Radius),
+                DuctEntity d => GeomUtils.GetIntersectionsLineCircle(d.StartPoint, d.EndPoint, arc.Center, arc.Radius),
                 CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, c2.Center, c2.Radius),
                 ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, a2.Center, a2.Radius)
                     .Where(ip => TrimCommand.IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),

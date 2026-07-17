@@ -17,9 +17,8 @@ namespace Afney.Cad.Commands.BasicCommands;
    NE: Hızlı Buda (Quick Trim) Komutu
    NEDEN: Kullanıcının çizgilerin, boruların, çemberlerin ve yayların kesişim noktaları
           arasında kalan kısmına tıklayarak o kısmı silebilmesi için.
-   NOT: Önceden sadece Line/Pipe destekleniyordu — Circle/Arc desteği eklendi
-        (bkz. GeomUtils.GetIntersectionsLineCircle / GetIntersectionsCircleCircle).
-        LwPolyline hâlâ desteklenmiyor (ayrı bir segment-bazlı algoritma gerektirir).
+   NOT: Line/Pipe/Duct/Circle/Arc/LwPolyline destekleniyor. Polyline'da sadece tıklanan segment
+        kendi kesişimlerine göre budanır (kendi kendini kesme kapsam dışı).
 */
 public class TrimCommand : ICadCommand
 {
@@ -52,7 +51,7 @@ public class TrimCommand : ICadCommand
 
         switch (targetEntity)
         {
-            case LineEntity or PipeEntity:
+            case LineEntity or PipeEntity or DuctEntity:
                 TrimLinear(targetEntity, point);
                 break;
             case CircleEntity circle:
@@ -60,6 +59,9 @@ public class TrimCommand : ICadCommand
                 break;
             case ArcEntity arc:
                 TrimArc(arc, point);
+                break;
+            case LwPolylineEntity poly:
+                TrimPolyline(poly, point);
                 break;
         }
     }
@@ -76,7 +78,7 @@ public class TrimCommand : ICadCommand
         {
             var ent = allEntities[i];
 
-            if (ent is not LineEntity && ent is not PipeEntity && ent is not CircleEntity && ent is not ArcEntity) continue;
+            if (ent is not LineEntity && ent is not PipeEntity && ent is not DuctEntity && ent is not CircleEntity && ent is not ArcEntity && ent is not LwPolylineEntity) continue;
 
             double d = ent.DistanceTo(point);
             if (d < minDst)
@@ -96,6 +98,7 @@ public class TrimCommand : ICadCommand
         Vector3D tA, tB;
         if (targetEntity is LineEntity tl) { tA = tl.StartPoint; tB = tl.EndPoint; }
         else if (targetEntity is PipeEntity tp) { tA = tp.StartPoint; tB = tp.EndPoint; }
+        else if (targetEntity is DuctEntity td) { tA = td.StartPoint; tB = td.EndPoint; }
         else return;
 
         double clickT = GetTParameter(tA, tB, point);
@@ -109,6 +112,7 @@ public class TrimCommand : ICadCommand
             Vector3D oA, oB;
             if (ent is LineEntity l) { oA = l.StartPoint; oB = l.EndPoint; }
             else if (ent is PipeEntity p) { oA = p.StartPoint; oB = p.EndPoint; }
+            else if (ent is DuctEntity d) { oA = d.StartPoint; oB = d.EndPoint; }
             else if (ent is CircleEntity c)
             {
                 foreach (var ip in GeomUtils.GetIntersectionsLineCircle(tA, tB, c.Center, c.Radius))
@@ -186,6 +190,7 @@ public class TrimCommand : ICadCommand
             {
                 LineEntity l => GeomUtils.GetIntersectionsLineCircle(l.StartPoint, l.EndPoint, circle.Center, circle.Radius),
                 PipeEntity p => GeomUtils.GetIntersectionsLineCircle(p.StartPoint, p.EndPoint, circle.Center, circle.Radius),
+                DuctEntity d => GeomUtils.GetIntersectionsLineCircle(d.StartPoint, d.EndPoint, circle.Center, circle.Radius),
                 CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(circle.Center, circle.Radius, c2.Center, c2.Radius),
                 ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(circle.Center, circle.Radius, a2.Center, a2.Radius)
                     .Where(ip => IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
@@ -250,6 +255,7 @@ public class TrimCommand : ICadCommand
             {
                 LineEntity l => GeomUtils.GetIntersectionsLineCircle(l.StartPoint, l.EndPoint, arc.Center, arc.Radius),
                 PipeEntity p => GeomUtils.GetIntersectionsLineCircle(p.StartPoint, p.EndPoint, arc.Center, arc.Radius),
+                DuctEntity d => GeomUtils.GetIntersectionsLineCircle(d.StartPoint, d.EndPoint, arc.Center, arc.Radius),
                 CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, c2.Center, c2.Radius),
                 ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, a2.Center, a2.Radius)
                     .Where(ip => IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
@@ -287,6 +293,136 @@ public class TrimCommand : ICadCommand
 
         _transactionManager.Submit(composite);
         OnFeedback?.Invoke("TRIM: Yay budandı.");
+    }
+
+    // ── LWPOLYLINE (Tıklanan segment, Line ile aynı t∈[0,1] mantığıyla budanır) ──
+
+    /*
+       NE: Polyline Buda (TrimPolyline)
+       NEDEN: Önceden LwPolyline hiç desteklenmiyordu. Tıklanan TEK segment, o segmentin
+              kendi doğrusu üzerindeki kesişimlere göre budanır (diğer segmentlere göre değil —
+              kendi kendini kesme kapsam dışı, gerçek CAD yazılımlarında da nadiren aranan bir
+              senaryo). Sonuç: açık polyline'da segment ORTADAYSA çizgi İKİYE bölünür (iki ayrı
+              LwPolyline); UÇTAYSA tek parça kısalır. Kapalı polyline'da tek segment budandığında
+              halka açılır ve TEK bir açık polyline'a dönüşür.
+    */
+    private void TrimPolyline(LwPolylineEntity poly, Vector3D point)
+    {
+        var verts = poly.Vertices;
+        int n = verts.Count;
+        int segCount = poly.IsClosed ? n : n - 1;
+        if (segCount < 1) return;
+
+        // 1. En yakın segmenti bul.
+        int segIdx = 0;
+        double minDst = double.MaxValue;
+        for (int i = 0; i < segCount; i++)
+        {
+            double d = PointToSegmentDistance(point, verts[i], verts[(i + 1) % n]);
+            if (d < minDst) { minDst = d; segIdx = i; }
+        }
+
+        Vector3D sA = verts[segIdx], sB = verts[(segIdx + 1) % n];
+        double clickT = GetTParameter(sA, sB, point);
+
+        // 2. Bu segmentin diğer TÜM nesnelerle (kendi polyline'ı hariç) kesişimlerini topla.
+        var intersections = new List<double> { 0.0, 1.0 };
+        foreach (var ent in _database.GetAllEntities())
+        {
+            if (ent == poly) continue;
+
+            Vector3D oA, oB;
+            if (ent is LineEntity l) { oA = l.StartPoint; oB = l.EndPoint; }
+            else if (ent is PipeEntity p) { oA = p.StartPoint; oB = p.EndPoint; }
+            else if (ent is DuctEntity d) { oA = d.StartPoint; oB = d.EndPoint; }
+            else if (ent is CircleEntity c)
+            {
+                foreach (var ip in GeomUtils.GetIntersectionsLineCircle(sA, sB, c.Center, c.Radius))
+                {
+                    double t = GetTParameter(sA, sB, ip);
+                    if (t > 0.0001 && t < 0.9999) intersections.Add(t);
+                }
+                continue;
+            }
+            else if (ent is ArcEntity a)
+            {
+                foreach (var ip in GeomUtils.GetIntersectionsLineCircle(sA, sB, a.Center, a.Radius))
+                {
+                    if (!IsAngleWithinArc(GeomUtils.AngleOf(a.Center, ip), a.StartAngle, a.EndAngle)) continue;
+                    double t = GetTParameter(sA, sB, ip);
+                    if (t > 0.0001 && t < 0.9999) intersections.Add(t);
+                }
+                continue;
+            }
+            else continue;
+
+            if (GeomUtils.DoSegmentsIntersect(sA, sB, oA, oB, out Vector3D lineIp))
+            {
+                double t = GetTParameter(sA, sB, lineIp);
+                if (t > 0.0001 && t < 0.9999) intersections.Add(t);
+            }
+        }
+
+        intersections.Sort();
+
+        double tStart = 0.0, tEnd = 1.0;
+        for (int i = 0; i < intersections.Count - 1; i++)
+        {
+            if (clickT >= intersections[i] && clickT <= intersections[i + 1])
+            {
+                tStart = intersections[i];
+                tEnd = intersections[i + 1];
+                break;
+            }
+        }
+
+        Vector3D? cutStart = tStart > 0.0001 ? sA + (sB - sA) * tStart : null;
+        Vector3D? cutEnd = tEnd < 0.9999 ? sA + (sB - sA) * tEnd : null;
+
+        var composite = new CompositeOperation("Trim Polyline");
+        composite.Add(new RemoveEntityOperation(_database, poly));
+
+        if (poly.IsClosed)
+        {
+            // Halka tek noktadan açılır: (segIdx+1)'den başlayarak n adım ilerleyip segIdx'e ulaş.
+            var chain = new List<Vector3D>();
+            if (cutEnd.HasValue) chain.Add(cutEnd.Value);
+            for (int step = 0; step < n; step++)
+            {
+                int idx = (segIdx + 1 + step) % n;
+                chain.Add(verts[idx]);
+                if (idx == segIdx) break;
+            }
+            if (cutStart.HasValue) chain.Add(cutStart.Value);
+
+            if (chain.Count >= 2)
+                composite.Add(new AddEntityOperation(_database, new LwPolylineEntity(chain, isClosed: false) { Color = poly.Color, Layer = poly.Layer }));
+        }
+        else
+        {
+            var prefix = new List<Vector3D>(verts.Take(segIdx + 1));
+            if (cutStart.HasValue) prefix.Add(cutStart.Value);
+            if (prefix.Count >= 2)
+                composite.Add(new AddEntityOperation(_database, new LwPolylineEntity(prefix, isClosed: false) { Color = poly.Color, Layer = poly.Layer }));
+
+            var suffix = new List<Vector3D>();
+            if (cutEnd.HasValue) suffix.Add(cutEnd.Value);
+            suffix.AddRange(verts.Skip(segIdx + 1));
+            if (suffix.Count >= 2)
+                composite.Add(new AddEntityOperation(_database, new LwPolylineEntity(suffix, isClosed: false) { Color = poly.Color, Layer = poly.Layer }));
+        }
+
+        _transactionManager.Submit(composite);
+        OnFeedback?.Invoke("TRIM: Polyline budandı.");
+    }
+
+    private static double PointToSegmentDistance(Vector3D p, Vector3D a, Vector3D b)
+    {
+        double dx = b.X - a.X, dy = b.Y - a.Y;
+        double len2 = dx * dx + dy * dy;
+        if (len2 < 1e-9) return p.DistanceTo(a);
+        double t = Math.Max(0, Math.Min(1, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / len2));
+        return p.DistanceTo(new Vector3D(a.X + t * dx, a.Y + t * dy, 0));
     }
 
     // ── Ortak yardımcılar ────────────────────────────────────────────────────
@@ -329,6 +465,11 @@ public class TrimCommand : ICadCommand
         {
             p.StartPoint = p1;
             p.EndPoint = p2;
+        }
+        else if (clone is DuctEntity d)
+        {
+            d.StartPoint = p1;
+            d.EndPoint = p2;
         }
         return clone;
     }
