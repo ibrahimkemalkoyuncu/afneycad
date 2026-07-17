@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Afney.Cad.Domain.Abstractions;
+using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 
 namespace Afney.Cad.Domain.Entities.Annotation;
@@ -241,6 +243,81 @@ public class DimensionEntity : CadEntity
             AngularVertex.X + Math.Cos(midAngleRad) * arcRadius * 1.3,
             AngularVertex.Y + Math.Sin(midAngleRad) * arcRadius * 1.3, 0);
         ctx.DrawText(GetText(), textPos, 0, TextHeight, Color);
+    }
+
+    /*
+       NE: Temel Bileşenlere Ayır (ExplodeToBasicEntities)
+       NEDEN: EXPLODE komutu önceden DimensionEntity'yi hiç desteklemiyordu. Ölçüyü, çizim
+              mantığıyla (DrawLinear/DrawAligned/DrawRadius/DrawAngular) aynı geometriyi
+              kullanarak uzatma çizgileri + ölçü çizgisi + metin parçalarına ayırır.
+              KAPSAM DIŞI: Ok başları ayrı entity olarak üretilmez (kozmetik, patlatma
+              sonrası genelde önemsenmez — AutoCAD da bazı ok stillerinde blok/nokta üretir,
+              bu basitleştirme kabul edilebilir).
+    */
+    public List<CadEntity> ExplodeToBasicEntities()
+    {
+        var result = new List<CadEntity>();
+
+        LineEntity NewLine(Vector3D a, Vector3D b) => new(a, b) { Color = Color, Layer = Layer };
+        TextEntity NewText(Vector3D pos, double angle) => new(GetText(), pos, TextHeight, angle) { Color = Color, Layer = Layer };
+
+        switch (DimType)
+        {
+            case DimensionType.Linear:
+                if (IsHorizontal)
+                {
+                    double dimY = DimLinePoint.Y;
+                    result.Add(NewLine(new Vector3D(FirstPoint.X, dimY, 0), new Vector3D(SecondPoint.X, dimY, 0)));
+                    result.Add(NewLine(FirstPoint, new Vector3D(FirstPoint.X, dimY, 0)));
+                    result.Add(NewLine(SecondPoint, new Vector3D(SecondPoint.X, dimY, 0)));
+                    result.Add(NewText(new Vector3D((FirstPoint.X + SecondPoint.X) / 2, dimY + TextHeight * 0.6, 0), 0));
+                }
+                else
+                {
+                    double dimX = DimLinePoint.X;
+                    result.Add(NewLine(new Vector3D(dimX, FirstPoint.Y, 0), new Vector3D(dimX, SecondPoint.Y, 0)));
+                    result.Add(NewLine(FirstPoint, new Vector3D(dimX, FirstPoint.Y, 0)));
+                    result.Add(NewLine(SecondPoint, new Vector3D(dimX, SecondPoint.Y, 0)));
+                    result.Add(NewText(new Vector3D(dimX + TextHeight * 0.6, (FirstPoint.Y + SecondPoint.Y) / 2, 0), 90));
+                }
+                break;
+
+            case DimensionType.Aligned:
+            {
+                var seg = SecondPoint - FirstPoint;
+                double len = seg.Length();
+                if (len < 1e-9) break;
+                var dir = new Vector3D(seg.X / len, seg.Y / len, 0);
+                var perp = new Vector3D(-dir.Y, dir.X, 0);
+                var dp = DimLinePoint - FirstPoint;
+                double off = dp.X * perp.X + dp.Y * perp.Y;
+
+                var dimP1 = new Vector3D(FirstPoint.X + perp.X * off, FirstPoint.Y + perp.Y * off, 0);
+                var dimP2 = new Vector3D(SecondPoint.X + perp.X * off, SecondPoint.Y + perp.Y * off, 0);
+
+                result.Add(NewLine(dimP1, dimP2));
+                result.Add(NewLine(FirstPoint, dimP1));
+                result.Add(NewLine(SecondPoint, dimP2));
+
+                double angle = System.Math.Atan2(dir.Y, dir.X) * 180.0 / System.Math.PI;
+                var mid = new Vector3D((dimP1.X + dimP2.X) / 2, (dimP1.Y + dimP2.Y) / 2, 0);
+                result.Add(NewText(new Vector3D(mid.X + perp.X * TextHeight * 0.6, mid.Y + perp.Y * TextHeight * 0.6, 0), angle));
+                break;
+            }
+
+            case DimensionType.Radius:
+                result.Add(NewLine(FirstPoint, SecondPoint));
+                result.Add(NewText(new Vector3D(SecondPoint.X + TextHeight * 1.5, SecondPoint.Y + TextHeight * 1.5, 0), 0));
+                break;
+
+            case DimensionType.Angular:
+                result.Add(NewLine(AngularVertex, FirstPoint));
+                result.Add(NewLine(AngularVertex, SecondPoint));
+                result.Add(NewText(new Vector3D((FirstPoint.X + SecondPoint.X) / 2, (FirstPoint.Y + SecondPoint.Y) / 2, 0), 0));
+                break;
+        }
+
+        return result;
     }
 
     private void DrawArrow(IRenderContext ctx, Vector3D tip, Vector3D from, double size)

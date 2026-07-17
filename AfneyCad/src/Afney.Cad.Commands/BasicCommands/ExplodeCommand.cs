@@ -6,6 +6,7 @@ using Afney.Cad.Database.Core;
 using Afney.Cad.Database.Transactions;
 using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
+using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 
@@ -13,7 +14,9 @@ namespace Afney.Cad.Commands.BasicCommands;
 
 /*
    NE: Patlat (Explode) Komutu
-   NEDEN: Blokları (BlockReferenceEntity) veya birleşik çizgileri (LwPolylineEntity) temel bileşenlerine (Line vb.) ayırmak için.
+   NEDEN: Birleşik nesneleri (BlockReference, LwPolyline, Hatch, Dimension, Spline) temel
+          bileşenlerine (Line/Text/Polyline) ayırmak için.
+   NOT: Önceden sadece BlockReference ve LwPolyline destekleniyordu.
 */
 public class ExplodeCommand : ICadCommand
 {
@@ -98,6 +101,45 @@ public class ExplodeCommand : ICadCommand
                         composite.Add(new AddEntityOperation(_database, line));
                     }
                     composite.Add(new RemoveEntityOperation(_database, polyline));
+                    explodedCount++;
+                }
+            }
+            else if (entity is HatchEntity hatch)
+            {
+                var verts = hatch.BoundaryVertices;
+                if (verts.Count > 1)
+                {
+                    // Sınır her zaman kapalı bir poligon (3+ köşe) — son köşeden ilkine dönen
+                    // kenar dahil. 2 köşeli dejenere durumda tek çizgi (döngü olmadan) yeterli.
+                    int segCount = verts.Count >= 3 ? verts.Count : 1;
+                    for (int i = 0; i < segCount; i++)
+                    {
+                        var a = verts[i];
+                        var b = verts[(i + 1) % verts.Count];
+                        composite.Add(new AddEntityOperation(_database, new LineEntity(a, b) { Color = hatch.Color, Layer = hatch.Layer }));
+                    }
+                    composite.Add(new RemoveEntityOperation(_database, hatch));
+                    explodedCount++;
+                }
+            }
+            else if (entity is DimensionEntity dim)
+            {
+                var pieces = dim.ExplodeToBasicEntities();
+                if (pieces.Count > 0)
+                {
+                    foreach (var piece in pieces)
+                        composite.Add(new AddEntityOperation(_database, piece));
+                    composite.Add(new RemoveEntityOperation(_database, dim));
+                    explodedCount++;
+                }
+            }
+            else if (entity is SplineEntity spline)
+            {
+                var points = spline.Tessellate();
+                if (points.Count > 1)
+                {
+                    composite.Add(new AddEntityOperation(_database, new LwPolylineEntity(points, isClosed: false) { Color = spline.Color, Layer = spline.Layer }));
+                    composite.Add(new RemoveEntityOperation(_database, spline));
                     explodedCount++;
                 }
             }

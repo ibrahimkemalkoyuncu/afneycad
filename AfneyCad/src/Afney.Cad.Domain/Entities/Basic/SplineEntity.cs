@@ -86,15 +86,30 @@ public class SplineEntity : CadEntity
     */
     public override void Draw(IRenderContext context)
     {
-        if (ControlPoints.Count <= Degree) return;
+        var points = Tessellate();
+        if (points.Count == 0) return;
+
+        context.DrawSpline(points, Color, LineWeight / 100.0, Linetype);
+
+        // Geliştirme Notu: Edit modunda kontrol noktaları ve poligonu (Hull) çizilebilir.
+    }
+
+    /*
+       NE: Eğriyi Doğru Parçalarına Böl (Tessellate)
+       NEDEN: Draw() ve ExplodeCommand (Spline'ı LwPolyline'a çevirme) aynı tessellation
+              mantığına ihtiyaç duyuyor — tekrar yazmak yerine tek yerden paylaşılıyor.
+    */
+    public List<Vector3D> Tessellate()
+    {
+        if (ControlPoints.Count <= Degree) return new List<Vector3D>();
 
         var curve = GetCurve();
         double startKnot = Knots[Degree];
         double endKnot = Knots[ControlPoints.Count];
-        
+
         // Tessellation: Zoom seviyesine göre hassas bölüntü
         // pixelSize arttıkça (zoom out) bölüntü azalır.
-        int segments = System.Math.Max(20, (int)(ControlPoints.Count * 20)); 
+        int segments = System.Math.Max(20, (int)(ControlPoints.Count * 20));
         double step = (endKnot - startKnot) / segments;
 
         var points = new List<Vector3D>();
@@ -103,10 +118,7 @@ public class SplineEntity : CadEntity
             double u = startKnot + i * step;
             points.Add(curve.Evaluate(u));
         }
-
-        context.DrawSpline(points, Color, LineWeight / 100.0, Linetype);
-
-        // Geliştirme Notu: Edit modunda kontrol noktaları ve poligonu (Hull) çizilebilir.
+        return points;
     }
 
     /*
