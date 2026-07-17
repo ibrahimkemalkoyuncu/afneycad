@@ -177,6 +177,7 @@ namespace Afney.Cad.Presentation
             _userSettings.Settings.WindowMaximized = WindowState == WindowState.Maximized;
             _userSettings.Settings.LeftPanelVisible = LeftPanelBorder.Visibility == Visibility.Visible;
             _userSettings.Settings.DimTextHeight = _dimTextHeight;
+            _userSettings.Settings.ActiveDimStyle = _dimStyleService.ActiveStyleName;
             _userSettings.Save();
             ClearSessionActive();
         }
@@ -262,9 +263,15 @@ namespace Afney.Cad.Presentation
             if (s.WindowMaximized) WindowState = WindowState.Maximized;
             LeftPanelBorder.Visibility = s.LeftPanelVisible ? Visibility.Visible : Visibility.Collapsed;
             _dimTextHeight = s.DimTextHeight;
-            _dimStyleService.SetActiveStyle(
-                _dimTextHeight <= 125.0 ? "Compact" :
-                _dimTextHeight >= 500.0 ? "Large" : "Standard");
+
+            // NE: ActiveDimStyle alanı önceden hiç okunmuyordu (dead field) — Stil Yöneticisi
+            // dialogunda oluşturulan özel stiller de dahil, gerçek stil adı artık burada geri yükleniyor.
+            if (_dimStyleService.StyleNames.Contains(s.ActiveDimStyle))
+                _dimStyleService.SetActiveStyle(s.ActiveDimStyle);
+            else
+                _dimStyleService.SetActiveStyle(
+                    _dimTextHeight <= 125.0 ? "Compact" :
+                    _dimTextHeight >= 500.0 ? "Large" : "Standard");
         }
 
         private void OnEntityModifiedFromRightPanel(object? sender, Afney.Cad.Domain.Abstractions.CadEntity e)

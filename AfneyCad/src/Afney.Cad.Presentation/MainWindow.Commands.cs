@@ -633,6 +633,20 @@ namespace Afney.Cad.Presentation
             StatusText.Text = "Ölçü metin boyutu: Büyük (Large stili)";
         }
 
+        /*
+           NE: Ölçü Stili Yöneticisini Aç (OnDimensionStyleManager)
+           NEDEN: DimensionStyleService'in stil oluşturma/düzenleme/kaydetme için hiçbir UI'ı
+                  yoktu (sadece 3 hazır stil arası Small/Medium/Large geçişi vardı). Bu dialog
+                  kullanıcının kendi stillerini tanımlamasını sağlıyor.
+        */
+        private void OnDimensionStyleManager(object sender, RoutedEventArgs e)
+        {
+            var dialog = new DimensionStyleManagerDialog(_dimStyleService) { Owner = this };
+            dialog.ShowDialog();
+            _dimTextHeight = _dimStyleService.ActiveStyle.TextHeight;
+            StatusText.Text = $"Ölçü stili: {_dimStyleService.ActiveStyleName}";
+        }
+
         private void OnDrawPipeCommand(object sender, RoutedEventArgs e)
         {
             var cmd = new RoutePipeCommand(_database, _mechanicalKernel);
@@ -1130,6 +1144,7 @@ namespace Afney.Cad.Presentation
                     case "dimangular": case "dimang": OnAngularDimCommand(this, new RoutedEventArgs()); break;
                     case "dist": case "mesafe": case "uzaklik": OnDistCommand(this, new RoutedEventArgs()); break;
                     case "dimcontinue": case "dimcont": case "dco": OnContinueDimCommand(this, new RoutedEventArgs()); break;
+                    case "dimstyle": case "ddim": case "olcustili": OnDimensionStyleManager(this, new RoutedEventArgs()); break;
                     case "hardycross": case "halka": case "ringanaliz": OnHardyCrossAnalysis(this, new RoutedEventArgs()); break;
                     case "tr": case "trim": OnTrimCommand(this, new RoutedEventArgs()); break;
                     case "ex": case "extend": OnExtendCommand(this, new RoutedEventArgs()); break;
