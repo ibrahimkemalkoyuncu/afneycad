@@ -238,6 +238,31 @@ public class NetworkTopologyAnalysisService
 
     // ── Kritik Yol (BFS en uzun yol) ─────────────────────────────────────────────
 
+    /*
+       NE: Kritik Yol Bulma (FindCriticalPath) — Çift Süpürme (Double-Sweep) Algoritması
+       NEDEN: Önceden sadece ilk 4 yaprak (derece=1) düğümden BFS/Dijkstra yapılıp en uzunu
+              seçiliyordu ("Performans için max 4 kaynak") — 4'ten fazla dallı büyük
+              ağlarda gerçek kritik yolu (ağacın çapı) KAÇIRABİLİYORDU, çünkü doğru cevabı
+              veren uç noktalar ilk 4 arasında olmayabilirdi.
+
+              Ağaç yapıları (döngüsüz) için matematiksel olarak KESİN sonuç veren çift-süpürme
+              algoritmasına geçildi: 1) herhangi bir düğümden en uzağı bul (A), 2) A'dan en
+              uzağı bul (B) — A-B yolu ağacın gerçek çapıdır (kanıtlanmış graf teorisi sonucu).
+              Bu hem daha DOĞRU (kaç yaprak olursa olsun kesin sonuç) hem daha HIZLI (O(2V)
+              vs eski O(4V)). Şebeke birden fazla bağlantısız bileşenden oluşabileceği için
+              (örn. iki ayrı bina hattı) her bileşen için ayrı ayrı çift-süpürme yapılıp en
+              iyisi seçiliyor. Döngü içeren (halkalı) ağlarda double-sweep artık kesin değil
+              ama yine de rastgele 4 yaprak seçmekten çok daha güvenilir bir sezgiseldir.
+
+       AYRICA GERÇEK BİR HATA DÜZELTİLDİ: RunLongestPath önceden PriorityQueue tabanlı bir
+       "gevşetme" (relaxation) döngüsü kullanıyordu ve HİÇBİR "ziyaret edildi" işareti
+       yoktu — yönsüz (undirected) grafta bir düğüm, komşusuna gidip oradan GERİ kendisine
+       dönerek (ebeveyn↔çocuk pinpon) her turda mesafesini artırabiliyordu. 3+ düğümlü HER
+       bağlı grafta bu sonsuz döngüye giriyordu (kuyruk sınırsız büyüyor, mesafe sonsuza
+       gidiyordu) — bu metod muhtemelen daha önce hiç gerçek bir ağ üzerinde test edilmemişti.
+       Artık her düğüm sadece BİR KEZ ziyaret ediliyor (klasik BFS) — ağaçlarda bu zaten
+       doğru ve kesin sonucu verir (iki düğüm arası tek yol vardır).
+    */
     private (double lenMM, List<Guid> pipes) FindCriticalPath(
         List<PipeEntity> pipes,
         Dictionary<Guid, (int n1, int n2)> pipeToNodes,
@@ -246,49 +271,64 @@ public class NetworkTopologyAnalysisService
     {
         if (nodeCount == 0) return (0, []);
 
-        // En uzun yolu BFS: kaynak (derece=1) → hedef (derece=1)
         var pipeLengths = pipes.ToDictionary(p => p.Id, p => (p.EndPoint - p.StartPoint).Length());
+
+        (double[] dist, int[] prev, Guid[] prevPipe) RunLongestPath(int start)
+        {
+            var dist = new double[nodeCount];
+            var prev = new int[nodeCount];
+            var prevPipe = new Guid[nodeCount];
+            var visited = new bool[nodeCount];
+            Array.Fill(dist, -1); Array.Fill(prev, -1);
+            dist[start] = 0;
+            visited[start] = true;
+
+            var queue = new Queue<int>();
+            queue.Enqueue(start);
+
+            while (queue.Count > 0)
+            {
+                int cur = queue.Dequeue();
+                foreach (var (nb, pid) in adj[cur])
+                {
+                    if (visited[nb]) continue; // KRİTİK: geri-sekmeyi (parent↔child) engeller, sonsuz döngüyü önler
+                    visited[nb] = true;
+                    dist[nb] = dist[cur] + (pipeLengths.TryGetValue(pid, out double pl) ? pl : 0);
+                    prev[nb] = cur;
+                    prevPipe[nb] = pid;
+                    queue.Enqueue(nb);
+                }
+            }
+            return (dist, prev, prevPipe);
+        }
 
         double maxLen = 0;
         List<Guid> bestPath = [];
+        var globallyVisited = new bool[nodeCount];
 
-        // Tüm yaprak düğümlerden BFS yap
-        var leaves = Enumerable.Range(0, nodeCount).Where(i => adj[i].Count == 1).ToList();
-        if (leaves.Count == 0) leaves = [0]; // Döngü varsa herhangi bir düğümden başla
-
-        foreach (int src in leaves.Take(4)) // Performans için max 4 kaynak
+        for (int compStart = 0; compStart < nodeCount; compStart++)
         {
-            var dist     = new double[nodeCount];
-            var prev     = new int[nodeCount];
-            var prevPipe = new Guid[nodeCount];
-            Array.Fill(dist, -1); Array.Fill(prev, -1);
-            dist[src] = 0;
-            var pq = new PriorityQueue<int, double>(Comparer<double>.Create((a, b) => b.CompareTo(a)));
-            pq.Enqueue(src, 0);
+            if (globallyVisited[compStart]) continue;
 
-            while (pq.Count > 0)
-            {
-                int cur = pq.Dequeue();
-                foreach (var (nb, pid) in adj[cur])
-                {
-                    double nd = dist[cur] + (pipeLengths.TryGetValue(pid, out double pl) ? pl : 0);
-                    if (nd > dist[nb])
-                    {
-                        dist[nb] = nd;
-                        prev[nb]  = cur;
-                        prevPipe[nb] = pid;
-                        pq.Enqueue(nb, nd);
-                    }
-                }
-            }
+            var comp = new HashSet<int>();
+            BFS(compStart, adj, globallyVisited, comp);
+            if (comp.Count < 2) continue; // Tek düğümlük bileşende yol yok
 
-            int farthest = Array.IndexOf(dist, dist.Max());
-            if (dist[farthest] > maxLen)
+            // 1. Süpürme: bileşendeki herhangi bir düğümden en uzağı bul.
+            var (dist1, _, _) = RunLongestPath(compStart);
+            int farthestFromStart = comp.OrderByDescending(n => dist1[n]).First();
+
+            // 2. Süpürme: bulunan uçtan en uzağı bul — bileşenin gerçek çapı budur.
+            var (dist2, prev2, prevPipe2) = RunLongestPath(farthestFromStart);
+            int endNode = comp.OrderByDescending(n => dist2[n]).First();
+
+            if (dist2[endNode] > maxLen)
             {
-                maxLen = dist[farthest];
-                bestPath = [];
-                int cur = farthest;
-                while (prev[cur] != -1) { bestPath.Add(prevPipe[cur]); cur = prev[cur]; }
+                maxLen = dist2[endNode];
+                var path = new List<Guid>();
+                int cur = endNode;
+                while (prev2[cur] != -1) { path.Add(prevPipe2[cur]); cur = prev2[cur]; }
+                bestPath = path;
             }
         }
 

@@ -80,15 +80,65 @@ namespace Afney.Cad.Mechanical.Services
         /*
            NE: Kaynak Bağlantısını Kontrol Et (CheckSourceConnectivity)
            NEDEN: Tesisatın bir ana su girişine veya kolon başlangıcına bağlı olması gerekir.
+
+           ÖNCEDEN: "Basitleştirilmiş" olarak yalnızca şebekede EN AZ BİR MechanicalLoadNode
+           VAR MI diye bakılıyordu — çizimde tamamen izole (hiçbir boruya bağlı olmayan,
+           yanlışlıkla boşluğa bırakılmış) bir giriş noktası bile bu kontrolü geçiyordu.
+
+           ARTIK: En az bir giriş noktasının GERÇEKTEN boru şebekesine bağlı olduğu (portu
+           IsConnected) VE o şebeke üzerinden BFS ile en az bir gerçek armatüre (SanitaryFixtureEntity)
+           ulaşılabildiği doğrulanıyor — yani kaynak sadece var olmakla kalmıyor, tesisatı
+           gerçekten besliyor.
+
+           KAPSAM DIŞI: Kaynağın "doğru yönde" (örn. ters bağlanmış bir vana) olup olmadığının
+           tam akış-yönü analizi ayrı bir mimari konu (FlowCalculationService'in kök tespiti) —
+           bu metod sadece bağlantı/ulaşılabilirlik doğruluyor, akış yönü doğruluğu doğrulamıyor.
         */
         private void CheckSourceConnectivity(ValidationResult result)
         {
             if (_database == null) return;
-            // Basitleştirilmiş: Şebekede en az bir "LoadNode" (Giriş/Çıkış noktası) olmalı
+
             var loadNodes = _database.GetAllEntities().OfType<MechanicalLoadNode>().ToList();
             if (!loadNodes.Any())
             {
                 result.Errors.Add("Hata (V-000): Şebekede su giriş noktası (Valve/Meter) veya ana kolon tespiti yapılamadı.");
+                return;
+            }
+
+            bool anyConnectedSourceReachesFixture = false;
+            foreach (var loadNode in loadNodes)
+            {
+                var startGraphNode = _topology.GetNode(loadNode.Id);
+                if (startGraphNode == null) continue;
+                if (!startGraphNode.Ports.Any(p => p.IsConnected)) continue; // izole giriş noktası
+
+                var visited = new HashSet<Guid> { loadNode.Id };
+                var queue = new Queue<Guid>();
+                queue.Enqueue(loadNode.Id);
+
+                while (queue.Count > 0 && !anyConnectedSourceReachesFixture)
+                {
+                    var current = queue.Dequeue();
+                    foreach (var neighbor in _topology.GetNeighbors(current))
+                    {
+                        if (visited.Contains(neighbor.EntityId)) continue;
+                        visited.Add(neighbor.EntityId);
+
+                        if (neighbor.Entity is SanitaryFixtureEntity)
+                        {
+                            anyConnectedSourceReachesFixture = true;
+                            break;
+                        }
+                        queue.Enqueue(neighbor.EntityId);
+                    }
+                }
+
+                if (anyConnectedSourceReachesFixture) break;
+            }
+
+            if (!anyConnectedSourceReachesFixture)
+            {
+                result.Errors.Add("Hata (V-000): Giriş noktası (Valve/Meter) mevcut ama boru şebekesi üzerinden hiçbir armatüre bağlı değil — izole veya kopuk olabilir.");
             }
         }
 
