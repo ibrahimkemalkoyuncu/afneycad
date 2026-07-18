@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -34,11 +35,26 @@ namespace Afney.Cad.Infrastructure.Import;
      desteklemiyor) — ama artık koordinatlar gerçek 3D uzayda, 3D görünümde (Toggle3DView)
      ve kesit/izometrik çıktılarda doğru yükseklikte görünüyorlar.
 
-   SINIRLAMALAR (kalan):
-   - Koordinat dönüşümü: IFCLOCALPLACEMENT yalnızca X/Y öteleme desteklenir.
+   ROTASYON + KARMAŞIK PROFİLLER (bu oturumda eklendi):
+   - IFCAXIS2PLACEMENT3D'nin RefDirection'ı (arg[2]) artık okunuyor — önceden sadece
+     Location (arg[0]) okunuyor, rotasyon TAMAMEN YOK SAYILIYORDU. Yani IFC dosyasında
+     45° döndürülmüş bir duvar, AfneyCAD'e 0° (eksene paralel) olarak giriyordu. Artık
+     her ürünün RotationRad'ı hesaplanıp tüm köşe noktalarına uygulanıyor ("eğik duvarlar").
+   - IFCARBITRARYCLOSEDPROFILEDEF (keyfi çokgen kesit, IfcPolyline üzerinden) ve
+     IFCCIRCLEPROFILEDEF (dairesel kesit — kolon/boru gibi) artık destekleniyor.
+     Önceden SADECE IFCRECTANGLEPROFILEDEF (dikdörtgen kesit) destekleniyordu; L-şekilli,
+     çokgen veya dairesel kesitli duvarlar/kolonlar hep varsayılan dikdörtgene düşüyordu.
+
+   SINIRLAMALAR (kalan, kasıtlı kapsam dışı):
+   - Koordinat dönüşümü: IFCLOCALPLACEMENT yalnızca X/Y öteleme + Z-ekseni rotasyonu
+     destekler (3D eğik/devrik yerleşim değil — MEP altlığı için yeterli).
    - Birim: mm varsayılır (IfcSIUnit METRE ise 1000 ile çarpılır).
-   - Eğik/kavisli duvarlar veya karmaşık IfcProfileDef tipleri (sadece dikdörtgen kesit
-     destekleniyor) desteklenmiyor.
+   - GERÇEK KAVİSLİ (arc/spline) duvar EKSENLERİ (IfcTrimmedCurve/IfcCompositeCurve
+     üzerinden çok-segmentli veya yay yollu duvarlar) hâlâ desteklenmiyor — bu, regex/
+     sözlük tabanlı bir STEP ayrıştırıcısı için gerçek eğri tessellation matematiği
+     gerektirir ve MEP altlığı amacı için yatırım/getiri oranı düşük görüldü (Revit/
+     ArchiCAD IFC 2x3 dışa aktarımlarında çoğu "kavisli" duvar zaten kısa düz segmentlere
+     ayrıştırılmış olarak gelir). Bilinçli olarak kapsam dışı bırakıldı.
 */
 public class IfcImportService
 {
@@ -240,9 +256,20 @@ public class IfcImportService
         return 1.0; // Varsayılan: mm
     }
 
-    private static Dictionary<int, Vector3D> ParsePlacements(Dictionary<int, IfcRawEntity> entities)
+    /*
+       NE: Yerleşim Bilgisi (IfcPlacementInfo)
+       NEDEN: Önceden sadece konum (Vector3D) tutuluyordu — rotasyon bilgisi hiç
+              hesaplanmıyordu, bu yüzden döndürülmüş elemanlar hep 0° içeri aktarılıyordu.
+    */
+    private readonly struct IfcPlacementInfo
     {
-        var result = new Dictionary<int, Vector3D>();
+        public Vector3D Position { get; init; }
+        public double RotationRad { get; init; }
+    }
+
+    private static Dictionary<int, IfcPlacementInfo> ParsePlacements(Dictionary<int, IfcRawEntity> entities)
+    {
+        var result = new Dictionary<int, IfcPlacementInfo>();
 
         foreach (var e in entities.Values)
         {
@@ -253,29 +280,52 @@ public class IfcImportService
                 entities.TryGetValue(axisId, out var axis) &&
                 (axis.Type == "IFCAXIS2PLACEMENT3D" || axis.Type == "IFCAXIS2PLACEMENT2D"))
             {
-                // IFCAXIS2PLACEMENT3D(#locationId, ...)
+                Vector3D position = default;
+
+                // IFCAXIS2PLACEMENT3D(Location, Axis, RefDirection)
                 if (axis.Args.Count >= 1 && TryParseRef(axis.Args[0], out int locId) &&
                     entities.TryGetValue(locId, out var loc) &&
                     loc.Type == "IFCCARTESIANPOINT")
                 {
-                    double x = 0, y = 0, z = 0;
-                    var coords = loc.Args;
-                    if (coords.Count >= 1) double.TryParse(coords[0], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out x);
-                    if (coords.Count >= 2) double.TryParse(coords[1], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out y);
-                    if (coords.Count >= 3) double.TryParse(coords[2], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out z);
-                    result[e.Id] = new Vector3D(x, y, z);
+                    position = ParseCartesianPoint(loc);
                 }
+
+                // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN HATA: RefDirection (arg[2]) hiç
+                // okunmuyordu. IFC'de yerel X ekseninin dünya koordinatındaki yönünü
+                // RefDirection verir; Z etrafındaki rotasyon açısı atan2(RefDir.Y, RefDir.X)'tir.
+                double rotation = 0;
+                if (axis.Type == "IFCAXIS2PLACEMENT3D" && axis.Args.Count >= 3 &&
+                    TryParseRef(axis.Args[2], out int refDirId) &&
+                    entities.TryGetValue(refDirId, out var refDir) &&
+                    refDir.Type == "IFCDIRECTION" && refDir.Args.Count >= 2)
+                {
+                    if (double.TryParse(refDir.Args[0], NumberStyles.Any, CultureInfo.InvariantCulture, out double dx) &&
+                        double.TryParse(refDir.Args[1], NumberStyles.Any, CultureInfo.InvariantCulture, out double dy) &&
+                        (Math.Abs(dx) > 1e-9 || Math.Abs(dy) > 1e-9))
+                    {
+                        rotation = Math.Atan2(dy, dx);
+                    }
+                }
+
+                result[e.Id] = new IfcPlacementInfo { Position = position, RotationRad = rotation };
             }
         }
         return result;
     }
 
+    private static Vector3D ParseCartesianPoint(IfcRawEntity pointEntity)
+    {
+        double x = 0, y = 0, z = 0;
+        var coords = pointEntity.Args;
+        if (coords.Count >= 1) double.TryParse(coords[0], NumberStyles.Any, CultureInfo.InvariantCulture, out x);
+        if (coords.Count >= 2) double.TryParse(coords[1], NumberStyles.Any, CultureInfo.InvariantCulture, out y);
+        if (coords.Count >= 3) double.TryParse(coords[2], NumberStyles.Any, CultureInfo.InvariantCulture, out z);
+        return new Vector3D(x, y, z);
+    }
+
     private static List<IfcProduct> ParseProducts(
         Dictionary<int, IfcRawEntity> entities,
-        Dictionary<int, Vector3D> placements,
+        Dictionary<int, IfcPlacementInfo> placements,
         double scale)
     {
         var result = new List<IfcProduct>();
@@ -295,11 +345,13 @@ public class IfcImportService
             if (e.Args.Count >= 3)
                 product.Name = e.Args[2].Trim('\'');
 
-            // ObjectPlacement → konum
+            // ObjectPlacement → konum + rotasyon
             if (e.Args.Count >= 6 && TryParseRef(e.Args[5], out int placId) &&
-                placements.TryGetValue(placId, out var pos))
+                placements.TryGetValue(placId, out var placementInfo))
             {
+                var pos = placementInfo.Position;
                 product.Origin = new Vector3D(pos.X * scale, pos.Y * scale, pos.Z * scale);
+                product.RotationRad = placementInfo.RotationRad;
             }
 
             // Representation → boyut (BoundingBox fallback)
@@ -343,28 +395,55 @@ public class IfcImportService
                 if (item.Type != "IFCEXTRUDEDAREASOLID" || item.Args.Count < 4) continue;
 
                 // IFCEXTRUDEDAREASOLID(SweptArea, Position, ExtrudedDirection, Depth)
-                if (double.TryParse(item.Args[3], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out double height))
+                if (double.TryParse(item.Args[3], NumberStyles.Any, CultureInfo.InvariantCulture, out double height))
                 {
                     product.Height = height * scale;
                 }
 
-                if (TryParseRef(item.Args[0], out int profileId) &&
-                    entities.TryGetValue(profileId, out var profile) &&
-                    profile.Type == "IFCRECTANGLEPROFILEDEF" && profile.Args.Count >= 5)
+                if (!TryParseRef(item.Args[0], out int profileId) || !entities.TryGetValue(profileId, out var profile))
+                    continue;
+
+                if (profile.Type == "IFCRECTANGLEPROFILEDEF" && profile.Args.Count >= 5)
                 {
-                    // NE/NEDEN — İKİNCİ GERÇEK HATA: IFCRECTANGLEPROFILEDEF(ProfileType,
+                    // NE/NEDEN — GERÇEK HATA: IFCRECTANGLEPROFILEDEF(ProfileType,
                     // ProfileName, Position, XDim, YDim) şemasında XDim index 3, YDim index 4'tedir.
                     // Önceki kod index 2 (Position — bir referans, sayı DEĞİL) ve index 3'ü
                     // okuyordu; yani XDim aslında hiç okunmuyordu, Position bir sayı gibi
                     // parse edilmeye ÇALIŞILIYORDU (başarısız oluyordu, sessizce 0 kalıyordu).
-                    if (double.TryParse(profile.Args[3], System.Globalization.NumberStyles.Any,
-                            System.Globalization.CultureInfo.InvariantCulture, out double xDim) &&
-                        double.TryParse(profile.Args[4], System.Globalization.NumberStyles.Any,
-                            System.Globalization.CultureInfo.InvariantCulture, out double yDim))
+                    if (double.TryParse(profile.Args[3], NumberStyles.Any, CultureInfo.InvariantCulture, out double xDim) &&
+                        double.TryParse(profile.Args[4], NumberStyles.Any, CultureInfo.InvariantCulture, out double yDim))
                     {
                         product.Width = xDim * scale;
                         product.Depth = yDim * scale;
+                    }
+                }
+                else if (profile.Type == "IFCARBITRARYCLOSEDPROFILEDEF" && profile.Args.Count >= 3)
+                {
+                    // NE/NEDEN: Önceden desteklenmiyordu — L-şekilli, çokgen veya düzensiz
+                    // kesitli duvarlar/kolonlar hep varsayılan dikdörtgene düşüyordu.
+                    // IfcArbitraryClosedProfileDef(ProfileType, ProfileName, OuterCurve)
+                    if (TryParseRef(profile.Args[2], out int curveId) &&
+                        entities.TryGetValue(curveId, out var curve) &&
+                        curve.Type == "IFCPOLYLINE" && curve.Args.Count >= 1)
+                    {
+                        var outline = new List<Vector3D>();
+                        foreach (int ptId in ParseRefList(curve.Args[0]))
+                        {
+                            if (entities.TryGetValue(ptId, out var ptEntity) && ptEntity.Type == "IFCCARTESIANPOINT")
+                                outline.Add(ParseCartesianPoint(ptEntity) * scale);
+                        }
+                        if (outline.Count >= 3) product.OutlinePoints = outline;
+                    }
+                }
+                else if (profile.Type == "IFCCIRCLEPROFILEDEF" && profile.Args.Count >= 4)
+                {
+                    // NE/NEDEN: Önceden desteklenmiyordu — dairesel kesitli kolonlar/borular
+                    // varsayılan dikdörtgene düşüyordu. IfcCircleProfileDef(ProfileType,
+                    // ProfileName, Position, Radius). 16 kenarlı poligon yaklaşımı yeterli
+                    // hassasiyette (tel-kafes render zaten segment tabanlı).
+                    if (double.TryParse(profile.Args[3], NumberStyles.Any, CultureInfo.InvariantCulture, out double radius))
+                    {
+                        product.OutlinePoints = BuildCirclePolygon(radius * scale, 16);
                     }
                 }
             }
@@ -399,35 +478,53 @@ public class IfcImportService
         double w = p.Width  > 0 ? p.Width  : 200;  // Varsayılan duvar kalınlığı 200mm
         double d = p.Depth  > 0 ? p.Depth  : 3000; // Varsayılan uzunluk 3m
         var origin = p.Origin;
+        double rot = p.RotationRad;
 
         switch (p.IfcType)
         {
             case "IFCWALL":
             case "IFCWALLSTANDARDCASE":
             {
-                // NE/NEDEN: Önceden sadece plan görünümü (4 düz çizgi, Z=0) çiziliyordu.
-                // IfcExtrudedAreaSolid'in Depth'i (Height alanı) artık gerçekten kullanılıyor —
-                // duvar, IFC'deki kat yüksekliği kadar (yoksa 3m varsayım) tam bir 3D kutu
-                // tel-kafesi olarak ekstrüde ediliyor.
+                // NE/NEDEN: Önceden sadece plan görünümü (4 düz çizgi, Z=0, rotasyonsuz)
+                // çiziliyordu. Artık: (a) IfcExtrudedAreaSolid'in Depth'i (Height) gerçekten
+                // kullanılıyor — tam bir 3D kutu tel-kafesi; (b) RotationRad uygulanıyor —
+                // döndürülmüş duvarlar artık doğru açıda; (c) OutlinePoints varsa (keyfi/
+                // dairesel kesit) dikdörtgen yerine gerçek poligon ekstrüde ediliyor.
                 double height = p.Height > 0 ? p.Height : 3000;
-                var b1 = new Vector3D(origin.X,     origin.Y,     0);
-                var b2 = new Vector3D(origin.X + d, origin.Y,     0);
-                var b3 = new Vector3D(origin.X + d, origin.Y + w, 0);
-                var b4 = new Vector3D(origin.X,     origin.Y + w, 0);
-                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, height, LayerWall, ColorWall))
-                    yield return line;
+                if (p.OutlinePoints is { Count: >= 3 } outline)
+                {
+                    foreach (var line in MakeExtrudedPolygonWireframe(outline, origin, rot, height, LayerWall, ColorWall))
+                        yield return line;
+                }
+                else
+                {
+                    var b1 = RotateAndTranslate(origin, 0, 0, rot);
+                    var b2 = RotateAndTranslate(origin, d, 0, rot);
+                    var b3 = RotateAndTranslate(origin, d, w, rot);
+                    var b4 = RotateAndTranslate(origin, 0, w, rot);
+                    foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, height, LayerWall, ColorWall))
+                        yield return line;
+                }
                 break;
             }
             case "IFCSLAB":
             {
                 // Döşeme kalınlığı = IFC extrusion Depth (yoksa 200mm standart döşeme kalınlığı).
                 double thickness = p.Height > 0 ? p.Height : 200;
-                var b1 = new Vector3D(origin.X,     origin.Y,     0);
-                var b2 = new Vector3D(origin.X + w, origin.Y,     0);
-                var b3 = new Vector3D(origin.X + w, origin.Y + d, 0);
-                var b4 = new Vector3D(origin.X,     origin.Y + d, 0);
-                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, thickness, LayerSlab, ColorSlab))
-                    yield return line;
+                if (p.OutlinePoints is { Count: >= 3 } outline)
+                {
+                    foreach (var line in MakeExtrudedPolygonWireframe(outline, origin, rot, thickness, LayerSlab, ColorSlab))
+                        yield return line;
+                }
+                else
+                {
+                    var b1 = RotateAndTranslate(origin, 0, 0, rot);
+                    var b2 = RotateAndTranslate(origin, w, 0, rot);
+                    var b3 = RotateAndTranslate(origin, w, d, rot);
+                    var b4 = RotateAndTranslate(origin, 0, d, rot);
+                    foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, thickness, LayerSlab, ColorSlab))
+                        yield return line;
+                }
                 break;
             }
             case "IFCWINDOW":
@@ -437,10 +534,10 @@ public class IfcImportService
                 double ww = p.Width > 0 ? p.Width : 900;
                 double winHeight = p.Height > 0 ? p.Height : 1200;
                 const double sillHeight = 900;
-                var b1 = new Vector3D(origin.X,      origin.Y - 25, sillHeight);
-                var b2 = new Vector3D(origin.X + ww, origin.Y - 25, sillHeight);
-                var b3 = new Vector3D(origin.X + ww, origin.Y + 25, sillHeight);
-                var b4 = new Vector3D(origin.X,      origin.Y + 25, sillHeight);
+                var b1 = RotateAndTranslate(origin, 0,  -25, rot, sillHeight);
+                var b2 = RotateAndTranslate(origin, ww, -25, rot, sillHeight);
+                var b3 = RotateAndTranslate(origin, ww,  25, rot, sillHeight);
+                var b4 = RotateAndTranslate(origin, 0,   25, rot, sillHeight);
                 foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, winHeight, LayerWindow, ColorWindow))
                     yield return line;
                 break;
@@ -450,16 +547,17 @@ public class IfcImportService
                 // Kapı: zeminden (Z=0) gerçek kapı yüksekliğine (IFC Height, yoksa 2100mm) kadar ekstrüde edilir.
                 double dw = p.Width > 0 ? p.Width : 900;
                 double doorHeight = p.Height > 0 ? p.Height : 2100;
-                var b1 = new Vector3D(origin.X,      origin.Y - 25, 0);
-                var b2 = new Vector3D(origin.X + dw, origin.Y - 25, 0);
-                var b3 = new Vector3D(origin.X + dw, origin.Y + 25, 0);
-                var b4 = new Vector3D(origin.X,      origin.Y + 25, 0);
+                var b1 = RotateAndTranslate(origin, 0,  -25, rot);
+                var b2 = RotateAndTranslate(origin, dw, -25, rot);
+                var b3 = RotateAndTranslate(origin, dw,  25, rot);
+                var b4 = RotateAndTranslate(origin, 0,   25, rot);
                 foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, doorHeight, LayerDoor, ColorDoor))
                     yield return line;
 
                 // Açılış yönünü gösteren kapı yayı (plan görünümünde, zeminde)
-                var arc = new Vector3D(origin.X, origin.Y - dw, 0);
-                yield return MakeLine(new Vector3D(origin.X + dw, origin.Y, 0), arc, LayerDoor, ColorDoor);
+                var swingStart = RotateAndTranslate(origin, dw, 0, rot);
+                var swingEnd   = RotateAndTranslate(origin, 0, -dw, rot);
+                yield return MakeLine(swingStart, swingEnd, LayerDoor, ColorDoor);
                 break;
             }
             case "IFCSPACE":
@@ -474,6 +572,55 @@ public class IfcImportService
                 break;
             }
         }
+    }
+
+    /*
+       NE: Yerel Koordinatı Döndür ve Öteleme (RotateAndTranslate)
+       NEDEN: Bir ürünün yerel (profil) koordinat sistemindeki (localX, localY, localZ)
+              noktasını, ürünün RotationRad'ı kadar Z ekseni etrafında döndürüp origin'e
+              ötelenmiş dünya koordinatına çevirir. Önceden rotasyon hiç uygulanmıyordu.
+    */
+    private static Vector3D RotateAndTranslate(Vector3D origin, double localX, double localY, double rotationRad, double localZ = 0)
+    {
+        double cos = Math.Cos(rotationRad), sin = Math.Sin(rotationRad);
+        double rx = localX * cos - localY * sin;
+        double ry = localX * sin + localY * cos;
+        return new Vector3D(origin.X + rx, origin.Y + ry, origin.Z + localZ);
+    }
+
+    /*
+       NE: Keyfi Poligon Ekstrüzyonu (MakeExtrudedPolygonWireframe)
+       NEDEN: MakeExtrudedBoxWireframe sadece 4 köşeli dikdörtgenler içindi.
+              IFCARBITRARYCLOSEDPROFILEDEF/IFCCIRCLEPROFILEDEF'ten gelen N köşeli
+              (keyfi çokgen veya daire yaklaşımı) kesitleri de aynı mantıkla (alt döngü +
+              üst döngü + dikey kenarlar) ekstrüde etmek için genelleştirilmiş hali.
+    */
+    private static IEnumerable<LineEntity> MakeExtrudedPolygonWireframe(
+        List<Vector3D> localOutline, Vector3D origin, double rotationRad, double height, string layer, uint color)
+    {
+        var bottom = localOutline.Select(pt => RotateAndTranslate(origin, pt.X, pt.Y, rotationRad)).ToList();
+        var top = bottom.Select(b => new Vector3D(b.X, b.Y, b.Z + height)).ToList();
+
+        int n = bottom.Count;
+        for (int i = 0; i < n; i++)
+        {
+            int j = (i + 1) % n;
+            yield return MakeLine(bottom[i], bottom[j], layer, color); // alt döngü
+            yield return MakeLine(top[i], top[j], layer, color);       // üst döngü
+            yield return MakeLine(bottom[i], top[i], layer, color);    // dikey kenar
+        }
+    }
+
+    /// <summary>Dairesel kesiti (IfcCircleProfileDef) N kenarlı poligon olarak yaklaşıklar (yerel koordinatlarda, merkez=orijin).</summary>
+    private static List<Vector3D> BuildCirclePolygon(double radius, int segments)
+    {
+        var pts = new List<Vector3D>();
+        for (int i = 0; i < segments; i++)
+        {
+            double a = 2 * Math.PI * i / segments;
+            pts.Add(new Vector3D(Math.Cos(a) * radius, Math.Sin(a) * radius, 0));
+        }
+        return pts;
     }
 
     /*
@@ -556,6 +703,14 @@ public class IfcImportService
         public double Width { get; set; }
         public double Depth { get; set; }
         public double Height { get; set; }
+
+        // NE: Z-ekseni rotasyonu (radyan) — IFCAXIS2PLACEMENT3D'nin RefDirection'ından.
+        public double RotationRad { get; set; }
+
+        // NE: Keyfi (dikdörtgen olmayan) profil kesitinin yerel köşe noktaları (varsa).
+        // NEDEN: IFCARBITRARYCLOSEDPROFILEDEF / IFCCIRCLEPROFILEDEF'ten doldurulur; doluysa
+        //        Width/Depth'e dayalı dikdörtgen kutu yerine bu poligon ekstrüde edilir.
+        public List<Vector3D>? OutlinePoints { get; set; }
     }
 }
 
