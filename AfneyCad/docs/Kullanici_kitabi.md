@@ -2479,4 +2479,70 @@ Canlı test için UI Automation (PowerShell + System.Windows.Automation) kullan�
 
 ---
 
-*Son guncelleme: 2026-07-12 | AfneyCAD v4.0.0 — Session #49*
+## Session #51 — Mühendislik Doğrulama Sertleştirme · Grip Sistemi Tamamlama · IFC Rotasyon/Profil · Word Export · HVAC Ekipman Kütüphanesi (2026-07-19)
+
+> Not: Bu, kitaptaki Session #49'un devamıdır. Memory kayıtlarında "Session #50" olarak anılan 2026-07-13 tarihli ikon kütüphanesi/rakip-kıyaslama turu bu kitaba henüz işlenmemişti — numaralandırma çakışmasını önlemek için bu oturum #51 olarak kaydedildi.
+
+Bu oturumun teması: kullanıcının "4M FineSANI ile karşılaştır, eksikleri kapat, hiçbir şey silmeden 10/10'a doğru geliştir" standart direktifi kapsamında, **BIM/IFC ve HVAC** kategorilerindeki somut eksiklerin kapatılması.
+
+### 1. DomainGuard / Sistem Doğrulama Sertleştirme
+
+| # | Değişiklik | Kök Sorun | Çözüm | Ana Dosya |
+|---|---|---|---|---|
+| 1 | Kaynak Bağlantı Kontrolü | `CheckSourceConnectivity` sadece "herhangi bir `MechanicalLoadNode` var mı" diye bakıyordu — gerçek bağlantıyı doğrulamıyordu | Her yük düğümünden gerçek BFS ile porta bağlılık VE bir `SanitaryFixtureEntity`'ye erişilebilirlik kontrolü | `DomainGuardService.cs` |
+| 2 | Kritik Yol Hesabı | `FindCriticalPath`, `leaves.Take(4)` sezgiseliyle sadece ilk 4 yaprağı deniyordu — büyük dallanmalı ağlarda gerçek en uzun yolu kaçırabiliyordu | Ağaç-çap çift-taraflı-tarama (double-sweep) algoritması: 2 BFS geçişi (rastgele başlangıç → en uzak A → A'dan en uzak = gerçek çap) | `NetworkTopologyAnalysisService.cs` |
+| 3 | **Canlı bulunan kritik hata:** `RunLongestPath` içindeki eski `PriorityQueue` tabanlı gevşetme (relaxation) döngüsünde ziyaret takibi yoktu — 3+ düğümlü herhangi bir bağlı grafta parent/child arasında sınırsız gevşeme (gerçek sonsuz döngü) oluşuyordu. Test 180+ saniye asılı kaldı, canlı yakalandı. | — | Basit, tek-geçişli BFS (visited[] dizisi) ile yeniden yazıldı | `NetworkTopologyAnalysisService.cs` |
+| 4 | Fiziksel Çakışma Kontrolü | DomainGuard'da hiç çakışma (clash) kontrolü yoktu — Hesapla öncesi kapı boru-mimari elemanla fiziksel çakışmayı yakalamıyordu | `CheckPhysicalClashes` yeni metot — `ClashDetectionService` sonuçlarını Critical→Hata, Warning→Uyarı olarak `ValidateSystem()` adım 7'ye ekliyor | `DomainGuardService.cs`, `ValidationGateService.cs`, `MechanicalKernel.cs` |
+
+**9 yeni test** (`DomainGuardSourceConnectivityTests`, `CriticalPathDoubleSweepTests`, `DomainGuardClashDetectionTests`).
+
+### 2. Grip Sistemi — Tam Kapsama
+
+Önceden AfneyCAD'de sadece ~6 entity tipinde grip (tutamaç) desteği vardı, birkaçında da "sürükle ama hiçbir şey olmuyor" hatası mevcuttu (`MoveGripPointAt` override edilmemiş, base class'ın boş varsayılanına düşüyordu).
+
+**Kritik hata (2. kez, aynı sınıf hata):** `LwPolylineEntity`'de `GetGripPoints()` vardı ama `MoveGripPointAt()` YOKTU — Mahal/Room sınırları, OFFSET/TRIM sonuçları, mimari algılama gibi en yaygın kullanılan taban sınıfını etkiliyordu. Eklendi.
+
+Grip desteği eklenen/tamamlanan 11 entity: `BlockReferenceEntity` (pozisyon + rotasyon tutamacı), `SplineEntity` (kontrol noktası başına), `TableEntity` (üst-sol + alt-sağ resize), `ValveEntity`, `SanitaryFixtureEntity`, `ReducerEntity`, `DrainageOutletEntity`, `PipeLabelEntity`, `MahalEntity`, `RainfallCatchmentEntity`, `RoomEntity`, `LwPolylineEntity` (kritik hata düzeltmesi).
+
+**14 yeni test** (`GripSystemFullCoverageTests`, `LwPolylineGripFixTests`).
+
+### 3. IFC Import — Rotasyon ve Karmaşık Profil Kesitleri
+
+| Eksik | Öncesi | Sonrası |
+|---|---|---|
+| Rotasyon | `IFCAXIS2PLACEMENT3D`'nin RefDirection'ı hiç okunmuyordu — döndürülmüş her duvar/kapı/pencere her zaman 0° (eksene paralel) içeri aktarılıyordu | `IfcPlacementInfo` struct + `RotateAndTranslate` helper — RefDirection'dan `Atan2` ile gerçek açı hesaplanıyor, duvar/kapı/pencere köşeleri ve kapı kanat yayı doğru döndürülüyor |
+| Profil Kesiti | Sadece `IFCRECTANGLEPROFILEDEF` (dikdörtgen) destekleniyordu | `IFCARBITRARYCLOSEDPROFILEDEF` (keyfi çokgen, ör. üçgen/L-kolon) ve `IFCCIRCLEPROFILEDEF` (dairesel, 16 kenarlı yaklaşım) artık gerçek dış hatlarıyla ekstrude ediliyor |
+
+Kapsam dışı bırakılan (araştırma ajanının önerisiyle, düşük ROI): eğri/çoklu-segment duvar EKSENLERİ (`IfcTrimmedCurve`/`IfcCompositeCurve`) — Revit/ArchiCAD IFC 2x3 dışa aktarımlarında çoğu "kavisli" duvar zaten kısa düz segmentlere ayrıştırılmış geliyor.
+
+**3 yeni test** (`IfcRotationAndProfileTests`) — `Afney.Cad.Infrastructure/Import/IfcImportService.cs`.
+
+### 4. Raporlama — Word (.docx) Çıktısı
+
+4M FineSANI'nin Word/Excel/PDF üçlü çıktı setinden Word eksikti. `DocumentFormat.OpenXml` SDK (3.1.1, Office/Word kurulumu gerektirmez) ile `WordExportService` eklendi — `ExcelExportService` ile aynı 4 bölüm (Özet/Metraj-BOQ/Pis Su/Yağmur Suyu). Ribbon'da Excel butonunun yanına Word butonu eklendi.
+
+**3 yeni test** (`WordExportServiceTests`) — `Afney.Cad.Infrastructure/Export/WordExportService.cs`.
+
+### 5. HVAC Kanal Ekipman Kütüphanesi
+
+Önceden AfneyCAD'de menfez/difüzör, damper veya susturucu seçim kataloğu hiç yoktu — sadece düz kanal (`DuctEntity`) mevcuttu.
+
+| Yeni Parça | Açıklama | Ana Dosya |
+|---|---|---|
+| `AirTerminalEntity` | Difüzör/menfez/panjur/lineer yarık/jet nozul/zemin difüzörü — tek portlu (Neck), `NeckVelocityMs` doğrudan `AcousticAnalysisService.TerminalDeviceLoss`'u besliyor, `NCRating`/`ThrowM` katalog alanları | `Entities/AirTerminalEntity.cs` |
+| `DamperEntity` | Volume/Fire/Smoke/FireSmoke/BackDraft — `ValveEntity` ile birebir aynı port deseni (2 port, kanala seri). Fire/Smoke tipleri EN 1366-2 uyumlu varsayılan 90dk yangın direnci | `Entities/DamperEntity.cs` |
+| `SilencerSelectionService` | `FanSelectionService` ile aynı desen — Systemair/Halton/Trox/Lindab, 8 oktav bantta (63–8000 Hz) Insertion Loss matrisi. `ApplyToNoiseBudget` seçilen susturucunun IL'ini doğrudan `AcousticAnalysisService.AnalyzeSystem`'in girdisine bağlıyor — fan→kanal→dallanma→dirsek→susturucu→terminal→oda gürültü bütçesi zinciri artık uçtan uca kapanıyor | `Services/SilencerSelectionService.cs` |
+
+VAV/CAV kutuları, bobin/filtre, esnek bağlantı bu oturumda bilerek atlandı (genel sıhhi/HVAC/gaz aracı için düşük ROI).
+
+**13 yeni test** (`HvacEquipmentLibraryTests`).
+
+### Test Durumu
+Tam suite: 164/166 geçti (2 hata önceden var olan, alakasız `PortEngineeringTests` — bu oturumda dokunulmadı).
+
+### Notion Senkronizasyonu
+Bu oturum boyunca Notion MCP bağlantısı kopuktu; puanlama/haritalama sohbette sunuldu, bağlantı sağlandığında (yeni Claude Code oturumu) `Aktif Session` ve ana proje sayfasına aktarılacak.
+
+---
+
+*Son guncelleme: 2026-07-19 | AfneyCAD v4.0.0 — Session #51*
