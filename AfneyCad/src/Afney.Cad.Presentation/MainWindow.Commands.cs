@@ -209,7 +209,7 @@ namespace Afney.Cad.Presentation
         {
             try
             {
-                var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
+                var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph, _mechanicalKernel.ArchitecturalObstacles);
                 var result = guard.ValidateSystem();
                 if (result.IsValid)
                 {

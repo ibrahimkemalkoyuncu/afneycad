@@ -2,6 +2,7 @@ using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Engine;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Models;
 
 namespace Afney.Cad.Mechanical.Services
 {
@@ -22,11 +23,22 @@ namespace Afney.Cad.Mechanical.Services
     {
         private readonly CadDatabase _database;
         private readonly MechanicalTopologyGraph _topology;
+        private readonly List<ArchitecturalObstacle> _obstacles;
 
-        public DomainGuardService(CadDatabase? database, MechanicalTopologyGraph topology)
+        /*
+           NE: Mimari Engel Listesi (obstacles)
+           NEDEN: Önceden DomainGuardService'in kural seti sadece topolojik/akış kurallarıydı —
+                  ClashDetectionService (boru↔duvar/kolon, boru↔boru geometrik çakışma) tamamen
+                  AYRI bir sistemdi ve "Hesapla" öncesi kapıdan (ValidationGateService) hiç
+                  geçmiyordu. Yani ciddi bir fiziksel çakışma (ör. boru bir kolonun içinden
+                  geçiyor) olsa bile hesaplama engellenmezdi. Artık obstacles verilirse
+                  ValidateSystem() Kritik çakışmaları da HATA olarak raporluyor.
+        */
+        public DomainGuardService(CadDatabase? database, MechanicalTopologyGraph topology, List<ArchitecturalObstacle>? obstacles = null)
         {
             _database = database!; // Can be null initially
             _topology = topology ?? throw new ArgumentNullException(nameof(topology));
+            _obstacles = obstacles ?? new List<ArchitecturalObstacle>();
         }
 
         /*
@@ -54,6 +66,9 @@ namespace Afney.Cad.Mechanical.Services
 
             // 6. Pis Su / Yağmur Suyu Boru Eğim Kontrolü (TS EN 12056-2, min %2)
             CheckWastePipeSlopes(result);
+
+            // 7. MÜHENDİSLİK GUARD: Fiziksel Çakışma Kontrolü (Boru↔Duvar/Kolon, Boru↔Boru)
+            CheckPhysicalClashes(result);
 
             if (result.Errors.Any())
             {
@@ -302,6 +317,44 @@ namespace Afney.Cad.Mechanical.Services
                         $"Eğim Yetersiz ({sys}): Boru DN{pipe.InnerDiameter:F0} — " +
                         $"mevcut eğim %{slope * 100:F1}, minimum %{MinSlope * 100:F0} olmalı (TS EN 12056-2).");
                     result.ProblematicEntityIds.Add(pipe.Id);
+                }
+            }
+        }
+
+        /*
+           NE: Fiziksel Çakışma Kontrolü (CheckPhysicalClashes)
+           NEDEN: ClashDetectionService (boru↔duvar/kolon, boru↔boru, vana↔boru geometrik
+                  çakışma) yazılmıştı ve tamamen ÇALIŞIYORDU, ama "Hesapla" öncesi kapıdan
+                  (DomainGuardService.ValidateSystem → ValidationGateService) hiç geçmiyordu —
+                  sadece elle tetiklenen ayrı bir "Çakışma Analizi" komutu (OnClashDetectionClick)
+                  vardı. Yani bir boru bir kolonun tam içinden geçse bile hesaplama gerçekten
+                  engellenmiyordu; kullanıcı ayrıca çakışma analizini çalıştırmayı unutabilirdi.
+                  Artık Kritik (Critical) şiddetteki çakışmalar HATA (hesaplamayı engeller),
+                  Uyarı (Warning) şiddetindekiler ise UYARI olarak bu kapıya dahil ediliyor.
+        */
+        private void CheckPhysicalClashes(ValidationResult result)
+        {
+            if (_database == null) return;
+
+            var entities = _database.GetAllEntities().OfType<MechanicalEntity>().ToList();
+            if (entities.Count == 0) return;
+
+            var clashService = new ClashDetectionService(_obstacles);
+            var clashes = clashService.DetectClashes(entities);
+
+            foreach (var clash in clashes)
+            {
+                if (clash.IsApproved) continue; // Kullanıcı bu çakışmayı bilerek onayladı
+
+                if (clash.Severity == ClashSeverity.Critical)
+                {
+                    result.Errors.Add($"Hata (V-CLASH): {clash.Message}");
+                    result.ProblematicEntityIds.Add(clash.EntityA_Id);
+                    if (clash.EntityB_Id.HasValue) result.ProblematicEntityIds.Add(clash.EntityB_Id.Value);
+                }
+                else
+                {
+                    result.Warnings.Add($"Çakışma Uyarısı: {clash.Message}");
                 }
             }
         }

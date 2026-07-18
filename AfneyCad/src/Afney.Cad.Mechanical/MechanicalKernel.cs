@@ -41,7 +41,7 @@ public class MechanicalKernel
         IsoSync = new IsoSyncService(this, _database);
         
         // ValidationGate'i yeni veritabanı ile tazele
-        ValidationGate = new ValidationGateService(_database, TopologyGraph);
+        ValidationGate = new ValidationGateService(_database, TopologyGraph, ArchitecturalObstacles);
     }
     
     // NE: Proje Bilgileri (Step 1)
@@ -84,7 +84,7 @@ public class MechanicalKernel
         TopologyGraph = new MechanicalTopologyGraph();
         ConnectionEngine = new PipeConnectionEngine();
         PipeStandards = new StandardsLibrary();
-        ValidationGate = new ValidationGateService(null!, TopologyGraph);
+        ValidationGate = new ValidationGateService(null!, TopologyGraph, ArchitecturalObstacles);
         
         // Varsayılan Sistemleri Kur (Step 3)
         SystemConfigs[MechanicalSystemType.DomesticColdWater] = new MechanicalSystemConfig(MechanicalSystemType.DomesticColdWater);

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Engine;
+using Afney.Cad.Mechanical.Models;
 
 namespace Afney.Cad.Mechanical.Services
 {
@@ -13,10 +15,10 @@ namespace Afney.Cad.Mechanical.Services
     public class ValidationGateService
     {
         private readonly DomainGuardService _guard;
-        
-        public ValidationGateService(CadDatabase database, MechanicalTopologyGraph topology)
+
+        public ValidationGateService(CadDatabase database, MechanicalTopologyGraph topology, List<ArchitecturalObstacle>? obstacles = null)
         {
-            _guard = new DomainGuardService(database, topology);
+            _guard = new DomainGuardService(database, topology, obstacles);
         }
 
         /*

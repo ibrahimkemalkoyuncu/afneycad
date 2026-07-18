@@ -1899,7 +1899,7 @@ namespace Afney.Cad.Presentation
                 // Tesisatı Kabul Et — DomainGuardService ile tam validasyon (hata + uyarı)
                 dlg.AcceptSystemRequested += () =>
                 {
-                    var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
+                    var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph, _mechanicalKernel.ArchitecturalObstacles);
                     var vr = guard.ValidateSystem();
 
                     // Hataları yaz
@@ -2514,7 +2514,7 @@ namespace Afney.Cad.Presentation
         {
             try
             {
-                var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph);
+                var guard = new DomainGuardService(_database, _mechanicalKernel.TopologyGraph, _mechanicalKernel.ArchitecturalObstacles);
                 var result = guard.ValidateSystem();
 
                 // Tüm borularda önceki violation işaretini temizle
