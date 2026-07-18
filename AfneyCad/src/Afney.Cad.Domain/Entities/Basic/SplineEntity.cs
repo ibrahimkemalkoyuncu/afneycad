@@ -195,4 +195,22 @@ public class SplineEntity : CadEntity
         yield return new SnapPoint(curve.Evaluate(Knots[Degree]), SnapPointType.Endpoint);
         yield return new SnapPoint(curve.Evaluate(Knots[ControlPoints.Count]), SnapPointType.Endpoint);
     }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — spline hiç grip ile düzenlenemiyordu. Her kontrol
+              noktası (control point) artık ayrı bir grip; sürüklemek eğrinin o bölgesindeki
+              formunu NURBS matematiğine göre gerçek şekilde değiştirir.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() => ControlPoints;
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index >= 0 && index < ControlPoints.Count)
+        {
+            ControlPoints[index] = newPosition;
+            _cachedCurve = null;
+        }
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

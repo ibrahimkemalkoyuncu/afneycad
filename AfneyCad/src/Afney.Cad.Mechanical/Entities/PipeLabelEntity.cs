@@ -106,4 +106,18 @@ public class PipeLabelEntity : CadEntity
     {
         yield return new SnapPoint(Position, SnapPointType.Endpoint);
     }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — etiket boru ortasına otomatik yerleşiyordu ama
+              kullanıcı okunabilirlik için manuel kaydıramıyordu (AutoCAD'de metin/etiket
+              grip ile serbestçe kaydırılabilir).
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() { yield return Position; }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        Position = newPosition;
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

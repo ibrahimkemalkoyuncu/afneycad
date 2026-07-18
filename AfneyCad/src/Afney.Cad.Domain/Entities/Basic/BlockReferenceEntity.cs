@@ -111,8 +111,41 @@ public class BlockReferenceEntity : CadEntity
         return new CadBoundingBox(min, max);
     }
     
-    public override IEnumerable<SnapPoint> GetSnapPoints() 
+    public override IEnumerable<SnapPoint> GetSnapPoints()
     {
         yield return new SnapPoint(Position, SnapPointType.Insertion);
+    }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — bloklar (en sık kullanılan nesne tiplerinden biri)
+              grip ile taşınamıyor veya döndürülemiyordu. İki grip: yerleşim noktası (taşıma)
+              ve mevcut rotasyon yönünde bir "döndürme tutamacı" (sürükleyince Rotation güncellenir).
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return Position;
+
+        var box = GetBoundingBox();
+        double halfExtent = System.Math.Max(box.Max.X - box.Min.X, box.Max.Y - box.Min.Y) / 2.0;
+        if (halfExtent < 1e-6) halfExtent = 100;
+        double rad = Rotation * System.Math.PI / 180.0;
+        yield return new Vector3D(Position.X + System.Math.Cos(rad) * halfExtent, Position.Y + System.Math.Sin(rad) * halfExtent, Position.Z);
+    }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0)
+        {
+            Position = newPosition;
+        }
+        else if (index == 1)
+        {
+            double dx = newPosition.X - Position.X;
+            double dy = newPosition.Y - Position.Y;
+            if (dx * dx + dy * dy > 1e-9)
+                Rotation = System.Math.Atan2(dy, dx) * 180.0 / System.Math.PI;
+        }
+        base.MoveGripPointAt(index, newPosition);
     }
 }

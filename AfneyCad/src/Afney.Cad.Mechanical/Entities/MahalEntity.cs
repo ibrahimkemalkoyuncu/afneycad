@@ -147,4 +147,21 @@ public class MahalEntity : MechanicalEntity
         foreach (var p in BoundaryPoints) yield return new SnapPoint(p, SnapPointType.Endpoint);
         yield return new SnapPoint(GetBoundingBox().Center, SnapPointType.Center);
     }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — mahal sınırı köşe köşe düzenlenemiyordu, sadece
+              Move komutuyla bütün olarak taşınabiliyordu. Her köşe artık ayrı bir grip.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() => BoundaryPoints;
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index >= 0 && index < BoundaryPoints.Count)
+        {
+            BoundaryPoints[index] = newPosition;
+            CalculateGeometry();
+        }
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

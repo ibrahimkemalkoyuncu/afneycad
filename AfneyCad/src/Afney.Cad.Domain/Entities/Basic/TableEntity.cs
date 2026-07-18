@@ -116,4 +116,32 @@ public class TableEntity : CadEntity
                 clone.SetCell(i, j, _data[i, j]);
         return clone;
     }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — tablo grip ile taşınamıyor veya yeniden
+              boyutlandırılamıyordu. index 0 = sol-üst yerleşim noktası (taşır),
+              index 1 = sağ-alt köşe (hücre boyutlarını orantılı olarak yeniden ölçekler).
+    */
+    public override IEnumerable<Vector3D> GetGripPoints()
+    {
+        yield return Position;
+        yield return Position + new Vector3D(Columns * ColumnWidth, -Rows * RowHeight, 0);
+    }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index == 0)
+        {
+            Position = newPosition;
+        }
+        else if (index == 1 && Columns > 0 && Rows > 0)
+        {
+            double newWidth = (newPosition - Position).X;
+            double newHeight = -(newPosition - Position).Y;
+            if (newWidth > 0) ColumnWidth = newWidth / Columns;
+            if (newHeight > 0) RowHeight = newHeight / Rows;
+        }
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

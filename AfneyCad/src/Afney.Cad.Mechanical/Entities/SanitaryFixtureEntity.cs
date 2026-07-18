@@ -413,10 +413,22 @@ public class SanitaryFixtureEntity : MechanicalEntity
 
     public override void Move(Vector3D delta) => Position += delta;
 
-    public override void Transform(Matrix4x4 matrix) 
+    public override void Transform(Matrix4x4 matrix)
     {
         Position = matrix.Transform(Position);
         // Rotasyon matristen çıkarılmalı ama şimdilik sadece pozisyon.
+    }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — vitrifiyeler (WC/Lavabo/vb.) grip ile taşınamıyordu.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() { yield return Position; }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        Position = newPosition;
+        base.MoveGripPointAt(index, newPosition);
     }
 
     // Port-only sembolü: her bağlantı noktasına artı (+) çizer, tipe ait kısa etiket ekler

@@ -138,6 +138,20 @@ public class RoomEntity : CadEntity
         return Boundary.GetSnapPoints();
     }
 
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — mahal sınırı köşe köşe düzenlenemiyordu. İç
+              Boundary (LwPolylineEntity) zaten grip destekliyor, ona devrediyoruz.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() => Boundary.GetGripPoints();
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        Boundary.MoveGripPointAt(index, newPosition);
+        CalculateArea();
+        base.MoveGripPointAt(index, newPosition);
+    }
+
     public override CadEntity Clone()
     {
         return new RoomEntity((LwPolylineEntity)Boundary.Clone())

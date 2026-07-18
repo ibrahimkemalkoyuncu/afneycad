@@ -164,4 +164,16 @@ public class ValveEntity : MechanicalEntity
         foreach (var port in GetPorts())
             yield return new SnapPoint(port.Position, SnapPointType.Connection);
     }
+
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — vana grip ile taşınamıyordu (sadece Move komutuyla).
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() { yield return Position; }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        Position = newPosition;
+        base.MoveGripPointAt(index, newPosition);
+    }
 }

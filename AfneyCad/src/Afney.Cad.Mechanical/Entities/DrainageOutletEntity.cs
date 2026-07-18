@@ -108,6 +108,20 @@ public class DrainageOutletEntity : MechanicalEntity
         yield return new SnapPoint(Position, SnapPointType.Center);
     }
 
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — boşaltma noktası (rögar/tahliye) grip ile
+              taşınamıyordu.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() { yield return Position; }
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        Position = newPosition;
+        InvalidateCache();
+        base.MoveGripPointAt(index, newPosition);
+    }
+
     public override CadEntity Clone() =>
         new DrainageOutletEntity(Position, _outletType)
         {

@@ -154,6 +154,23 @@ public class RainfallCatchmentEntity : MechanicalEntity
             yield return new SnapPoint(Centroid, SnapPointType.Center);
     }
 
+    /*
+       NE: Grip Noktaları (GetGripPoints / MoveGripPointAt)
+       NEDEN: Önceden hiç override yoktu — yağmur düşme alanı poligonu köşe köşe
+              düzenlenemiyordu.
+    */
+    public override IEnumerable<Vector3D> GetGripPoints() => _vertices;
+
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (index >= 0 && index < _vertices.Count)
+        {
+            _vertices[index] = newPosition;
+            InvalidateCache();
+        }
+        base.MoveGripPointAt(index, newPosition);
+    }
+
     public override CadEntity Clone()
     {
         var clone = new RainfallCatchmentEntity

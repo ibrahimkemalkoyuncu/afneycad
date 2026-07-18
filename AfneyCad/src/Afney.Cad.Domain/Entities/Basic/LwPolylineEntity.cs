@@ -169,4 +169,22 @@ public class LwPolylineEntity : CadEntity
             yield return v;
         }
     }
+
+    /*
+       NE: Grip Noktasını Taşı (MoveGripPointAt)
+       NEDEN: GERÇEK, ÖNCEDEN VAR OLAN BİR HATA: GetGripPoints köşeleri gösteriyordu ama
+              bu override HİÇ YOKTU — grip sürüklendiğinde taban sınıfın boş varsayılanı
+              (sadece InvalidateCache) çalışıyordu, yani polyline grip'leri görünüyor ama
+              sürüklemek HİÇBİR ŞEY YAPMIYORDU. LwPolyline; Mahal/Room sınırları, OFFSET/TRIM
+              sonuçları ve mimari algılama gibi birçok yerde temel yapı taşı olduğu için bu
+              CircleEntity'de bulunanla aynı sınıf hatanın çok daha geniş etkili bir versiyonuydu.
+    */
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (Vertices != null && index >= 0 && index < Vertices.Count)
+        {
+            Vertices[index] = newPosition;
+        }
+        base.MoveGripPointAt(index, newPosition);
+    }
 }
