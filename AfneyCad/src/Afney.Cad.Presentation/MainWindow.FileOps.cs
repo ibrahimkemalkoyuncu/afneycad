@@ -486,6 +486,41 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        /*
+           NE: Word (.docx) Dışa Aktarma (OnExportWord)
+           NEDEN: 4M FineSANI'nin Word/Excel/PDF üçlü çıktı setinden Word eksikti (Raporlama
+                  kategorisinin somut eksiği). ExcelExportService ile aynı desen: SaveFileDialog
+                  → servis çağrısı → durum mesajı → isteğe bağlı dosyayı aç.
+        */
+        private void OnExportWord(object sender, RoutedEventArgs e)
+        {
+            if (_database == null) return;
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title      = "Word Çıktısı",
+                    Filter     = "Word Belgesi (*.docx)|*.docx",
+                    FileName   = $"AfneyCAD_{DateTime.Now:yyyyMMdd_HHmm}",
+                    DefaultExt = ".docx"
+                };
+                if (dlg.ShowDialog() != true) return;
+
+                var svc = new WordExportService(_database);
+                svc.WriteToFile(dlg.FileName, projectName: "AfneyCAD Projesi");
+
+                StatusText.Text = $"Word kaydedildi: {Path.GetFileName(dlg.FileName)}";
+                var ans = MessageBox.Show("Word dosyası başarıyla kaydedildi.\nDosyayı açmak ister misiniz?",
+                    "Word Çıktısı", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (ans == MessageBoxResult.Yes)
+                    Process.Start(new ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Word export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnPdfExport(object sender, RoutedEventArgs e)
         {
             try

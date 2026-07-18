@@ -1217,6 +1217,12 @@
                                                         <TextBlock Text="Excel" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
+                                                <Button Click="OnExportWord"        Style="{StaticResource RbnBtn}"  Margin="2,0,0,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Word" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                 <Button Click="OnExportPng"         Style="{StaticResource RbnBtn}">
