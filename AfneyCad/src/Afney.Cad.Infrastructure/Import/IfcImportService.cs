@@ -22,10 +22,23 @@ namespace Afney.Cad.Infrastructure.Import;
    - IfcWindow / IfcDoor            → LineEntity + açıklık sembolü
    - IfcSpace                       → Layer "ARCH-SPACE" metin etiketi
 
-   SINIRLAMALAR:
-   - 3D geometri (IfcExtrudedAreaSolid) parse edilmez; yerine BoundingBox kullanılır.
+   3D EXTRUSION (bu oturumda eklendi):
+   - IFCEXTRUDEDAREASOLID'in Depth (yükseklik) argümanı ARTIK gerçekten kullanılıyor.
+     Önceden parse ediliyordu (product.Height) ama BuildCadEntities hiç okumuyordu —
+     tüm duvarlar/döşemeler/kapılar/pencereler Z=0'da DÜZ (tamamen 2D) çiziliyordu,
+     3D görünüme geçilince mimari model yassı bir "krep" gibi görünüyordu.
+   - Artık her eleman gerçek IFC yüksekliğiyle (yoksa mühendislik varsayılanıyla) tam
+     bir 3D tel-kafes (wireframe) kutu olarak ekstrüde ediliyor (alt döngü + üst döngü +
+     4 dikey kenar — 12 çizgi). Bu, gerçek bir solid-mesh/B-Rep motoru DEĞİL (AfneyCAD'in
+     render motoru SkiaSharp tabanlı 2D/izometrik bir çizim motoru, tam 3D mesh render
+     desteklemiyor) — ama artık koordinatlar gerçek 3D uzayda, 3D görünümde (Toggle3DView)
+     ve kesit/izometrik çıktılarda doğru yükseklikte görünüyorlar.
+
+   SINIRLAMALAR (kalan):
    - Koordinat dönüşümü: IFCLOCALPLACEMENT yalnızca X/Y öteleme desteklenir.
    - Birim: mm varsayılır (IfcSIUnit METRE ise 1000 ile çarpılır).
+   - Eğik/kavisli duvarlar veya karmaşık IfcProfileDef tipleri (sadece dikdörtgen kesit
+     destekleniyor) desteklenmiyor.
 */
 public class IfcImportService
 {
@@ -301,33 +314,73 @@ public class IfcImportService
         return result;
     }
 
+    /*
+       NE: Boyutları Çıkar (ExtractDimensions)
+       NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR HATA: Bu metod önceden `rep` parametresini HİÇ
+       KULLANMIYORDU — tüm entity sözlüğünü global olarak tarayıp bulduğu İLK/SON
+       IFCRECTANGLEPROFILEDEF/IFCEXTRUDEDAREASOLID'i kullanıyordu. Yani birden fazla farklı
+       boyutta duvar/döşeme içeren gerçek bir IFC dosyasında, TÜM elemanlar rastgele AYNI
+       (yanlış) boyutları alıyordu. Artık `rep` (IFCPRODUCTDEFINITIONSHAPE) üzerinden gerçek
+       STEP referans grafiği izleniyor: Representations → IFCSHAPEREPRESENTATION → Items →
+       IFCEXTRUDEDAREASOLID → (SweptArea → IFCRECTANGLEPROFILEDEF, Depth) — yani her ürün
+       SADECE KENDİ geometrisini alıyor.
+    */
     private static void ExtractDimensions(IfcRawEntity rep,
         Dictionary<int, IfcRawEntity> entities, double scale, IfcProduct product)
     {
-        // IFCPRODUCTDEFINITIONSHAPE → IFCSHAPEREPRESENTATION → geometri arama
-        // Basit yaklaşım: IFCRECTANGLEPROFILEDEF veya IFCEXTRUDEDAREASOLID bul
-        foreach (var e in entities.Values)
+        // IFCPRODUCTDEFINITIONSHAPE(Name, Description, Representations)
+        if (rep.Type != "IFCPRODUCTDEFINITIONSHAPE" || rep.Args.Count < 3) return;
+
+        foreach (int shapeRepId in ParseRefList(rep.Args[2]))
         {
-            if (e.Type == "IFCRECTANGLEPROFILEDEF" && e.Args.Count >= 4)
+            if (!entities.TryGetValue(shapeRepId, out var shapeRep)) continue;
+            if (shapeRep.Type != "IFCSHAPEREPRESENTATION" || shapeRep.Args.Count < 4) continue;
+
+            // IFCSHAPEREPRESENTATION(ContextOfItems, RepresentationIdentifier, RepresentationType, Items)
+            foreach (int itemId in ParseRefList(shapeRep.Args[3]))
             {
-                if (double.TryParse(e.Args[2], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out double xDim) &&
-                    double.TryParse(e.Args[3], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out double yDim))
-                {
-                    product.Width  = xDim * scale;
-                    product.Depth  = yDim * scale;
-                }
-            }
-            if (e.Type == "IFCEXTRUDEDAREASOLID" && e.Args.Count >= 4)
-            {
-                if (double.TryParse(e.Args[3], System.Globalization.NumberStyles.Any,
+                if (!entities.TryGetValue(itemId, out var item)) continue;
+                if (item.Type != "IFCEXTRUDEDAREASOLID" || item.Args.Count < 4) continue;
+
+                // IFCEXTRUDEDAREASOLID(SweptArea, Position, ExtrudedDirection, Depth)
+                if (double.TryParse(item.Args[3], System.Globalization.NumberStyles.Any,
                         System.Globalization.CultureInfo.InvariantCulture, out double height))
                 {
                     product.Height = height * scale;
                 }
+
+                if (TryParseRef(item.Args[0], out int profileId) &&
+                    entities.TryGetValue(profileId, out var profile) &&
+                    profile.Type == "IFCRECTANGLEPROFILEDEF" && profile.Args.Count >= 5)
+                {
+                    // NE/NEDEN — İKİNCİ GERÇEK HATA: IFCRECTANGLEPROFILEDEF(ProfileType,
+                    // ProfileName, Position, XDim, YDim) şemasında XDim index 3, YDim index 4'tedir.
+                    // Önceki kod index 2 (Position — bir referans, sayı DEĞİL) ve index 3'ü
+                    // okuyordu; yani XDim aslında hiç okunmuyordu, Position bir sayı gibi
+                    // parse edilmeye ÇALIŞILIYORDU (başarısız oluyordu, sessizce 0 kalıyordu).
+                    if (double.TryParse(profile.Args[3], System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out double xDim) &&
+                        double.TryParse(profile.Args[4], System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out double yDim))
+                    {
+                        product.Width = xDim * scale;
+                        product.Depth = yDim * scale;
+                    }
+                }
             }
         }
+    }
+
+    /// <summary>IFC LIST argümanını ("(#12,#34)") ayrıştırıp içindeki entity ID'lerini döner.</summary>
+    private static IEnumerable<int> ParseRefList(string arg)
+    {
+        arg = arg.Trim();
+        if (arg.StartsWith('(') && arg.EndsWith(')'))
+            arg = arg[1..^1];
+
+        foreach (var part in SplitArgs(arg))
+            if (TryParseRef(part, out int id))
+                yield return id;
     }
 
     private static bool TryParseRef(string arg, out int id)
@@ -352,48 +405,61 @@ public class IfcImportService
             case "IFCWALL":
             case "IFCWALLSTANDARDCASE":
             {
-                // Plan görünümü: iki paralel çizgi (duvar kalınlığı)
-                var p1 = new Vector3D(origin.X,       origin.Y,       0);
-                var p2 = new Vector3D(origin.X + d,   origin.Y,       0);
-                var p3 = new Vector3D(origin.X,       origin.Y + w,   0);
-                var p4 = new Vector3D(origin.X + d,   origin.Y + w,   0);
-                yield return MakeLine(p1, p2, LayerWall, ColorWall);
-                yield return MakeLine(p3, p4, LayerWall, ColorWall);
-                yield return MakeLine(p1, p3, LayerWall, ColorWall);
-                yield return MakeLine(p2, p4, LayerWall, ColorWall);
+                // NE/NEDEN: Önceden sadece plan görünümü (4 düz çizgi, Z=0) çiziliyordu.
+                // IfcExtrudedAreaSolid'in Depth'i (Height alanı) artık gerçekten kullanılıyor —
+                // duvar, IFC'deki kat yüksekliği kadar (yoksa 3m varsayım) tam bir 3D kutu
+                // tel-kafesi olarak ekstrüde ediliyor.
+                double height = p.Height > 0 ? p.Height : 3000;
+                var b1 = new Vector3D(origin.X,     origin.Y,     0);
+                var b2 = new Vector3D(origin.X + d, origin.Y,     0);
+                var b3 = new Vector3D(origin.X + d, origin.Y + w, 0);
+                var b4 = new Vector3D(origin.X,     origin.Y + w, 0);
+                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, height, LayerWall, ColorWall))
+                    yield return line;
                 break;
             }
             case "IFCSLAB":
             {
-                var p1 = new Vector3D(origin.X,     origin.Y,     0);
-                var p2 = new Vector3D(origin.X + w, origin.Y,     0);
-                var p3 = new Vector3D(origin.X + w, origin.Y + d, 0);
-                var p4 = new Vector3D(origin.X,     origin.Y + d, 0);
-                yield return MakeLine(p1, p2, LayerSlab, ColorSlab);
-                yield return MakeLine(p2, p3, LayerSlab, ColorSlab);
-                yield return MakeLine(p3, p4, LayerSlab, ColorSlab);
-                yield return MakeLine(p4, p1, LayerSlab, ColorSlab);
+                // Döşeme kalınlığı = IFC extrusion Depth (yoksa 200mm standart döşeme kalınlığı).
+                double thickness = p.Height > 0 ? p.Height : 200;
+                var b1 = new Vector3D(origin.X,     origin.Y,     0);
+                var b2 = new Vector3D(origin.X + w, origin.Y,     0);
+                var b3 = new Vector3D(origin.X + w, origin.Y + d, 0);
+                var b4 = new Vector3D(origin.X,     origin.Y + d, 0);
+                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, thickness, LayerSlab, ColorSlab))
+                    yield return line;
                 break;
             }
             case "IFCWINDOW":
             {
+                // Pencere: eşik yüksekliğinden (varsayılan 900mm) başlayıp gerçek pencere
+                // yüksekliği (IFC Height, yoksa 1200mm) kadar Z ekseninde ekstrüde edilir.
                 double ww = p.Width > 0 ? p.Width : 900;
-                var p1 = new Vector3D(origin.X,       origin.Y - 50, 0);
-                var p2 = new Vector3D(origin.X + ww,  origin.Y - 50, 0);
-                var mid = new Vector3D(origin.X + ww / 2, origin.Y, 0);
-                yield return MakeLine(p1, p2, LayerWindow, ColorWindow);
-                yield return MakeLine(new Vector3D(origin.X, origin.Y - 100, 0), mid, LayerWindow, ColorWindow);
-                yield return MakeLine(new Vector3D(origin.X + ww, origin.Y - 100, 0), mid, LayerWindow, ColorWindow);
+                double winHeight = p.Height > 0 ? p.Height : 1200;
+                const double sillHeight = 900;
+                var b1 = new Vector3D(origin.X,      origin.Y - 25, sillHeight);
+                var b2 = new Vector3D(origin.X + ww, origin.Y - 25, sillHeight);
+                var b3 = new Vector3D(origin.X + ww, origin.Y + 25, sillHeight);
+                var b4 = new Vector3D(origin.X,      origin.Y + 25, sillHeight);
+                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, winHeight, LayerWindow, ColorWindow))
+                    yield return line;
                 break;
             }
             case "IFCDOOR":
             {
+                // Kapı: zeminden (Z=0) gerçek kapı yüksekliğine (IFC Height, yoksa 2100mm) kadar ekstrüde edilir.
                 double dw = p.Width > 0 ? p.Width : 900;
-                var p1 = new Vector3D(origin.X,       origin.Y, 0);
-                var p2 = new Vector3D(origin.X + dw,  origin.Y, 0);
-                var arc = new Vector3D(origin.X,       origin.Y - dw, 0); // Kapı yay başlangıç
-                yield return MakeLine(p1, p2, LayerDoor, ColorDoor);
-                yield return MakeLine(p2, arc, LayerDoor, ColorDoor);
+                double doorHeight = p.Height > 0 ? p.Height : 2100;
+                var b1 = new Vector3D(origin.X,      origin.Y - 25, 0);
+                var b2 = new Vector3D(origin.X + dw, origin.Y - 25, 0);
+                var b3 = new Vector3D(origin.X + dw, origin.Y + 25, 0);
+                var b4 = new Vector3D(origin.X,      origin.Y + 25, 0);
+                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, doorHeight, LayerDoor, ColorDoor))
+                    yield return line;
+
+                // Açılış yönünü gösteren kapı yayı (plan görünümünde, zeminde)
+                var arc = new Vector3D(origin.X, origin.Y - dw, 0);
+                yield return MakeLine(new Vector3D(origin.X + dw, origin.Y, 0), arc, LayerDoor, ColorDoor);
                 break;
             }
             case "IFCSPACE":
@@ -408,6 +474,42 @@ public class IfcImportService
                 break;
             }
         }
+    }
+
+    /*
+       NE: 3D Kutu Tel-Kafesi Ekstrüzyonu (MakeExtrudedBoxWireframe)
+       NEDEN: b1..b4 (Z=taban) tabanlı bir dikdörtgeni, verilen yükseklik kadar +Z yönünde
+              ekstrüde ederek gerçek bir 3D kutu tel-kafesi (12 kenar: alt döngü + üst döngü +
+              4 dikey kenar) üretir. AfneyCAD'in render motoru tam bir B-Rep/solid-mesh motoru
+              olmadığı için (SkiaSharp tabanlı 2D/izometrik çizim), "gerçek 3D geometri" burada
+              doğru Z koordinatlarına sahip bir tel-kafes anlamına gelir — 3D görünümde ve
+              izometrik/kesit çıktılarında elemanın gerçek yüksekliğini doğru gösterir.
+    */
+    private static IEnumerable<LineEntity> MakeExtrudedBoxWireframe(
+        Vector3D b1, Vector3D b2, Vector3D b3, Vector3D b4, double height, string layer, uint color)
+    {
+        var t1 = new Vector3D(b1.X, b1.Y, b1.Z + height);
+        var t2 = new Vector3D(b2.X, b2.Y, b2.Z + height);
+        var t3 = new Vector3D(b3.X, b3.Y, b3.Z + height);
+        var t4 = new Vector3D(b4.X, b4.Y, b4.Z + height);
+
+        // Alt döngü
+        yield return MakeLine(b1, b2, layer, color);
+        yield return MakeLine(b2, b3, layer, color);
+        yield return MakeLine(b3, b4, layer, color);
+        yield return MakeLine(b4, b1, layer, color);
+
+        // Üst döngü
+        yield return MakeLine(t1, t2, layer, color);
+        yield return MakeLine(t2, t3, layer, color);
+        yield return MakeLine(t3, t4, layer, color);
+        yield return MakeLine(t4, t1, layer, color);
+
+        // Dikey kenarlar
+        yield return MakeLine(b1, t1, layer, color);
+        yield return MakeLine(b2, t2, layer, color);
+        yield return MakeLine(b3, t3, layer, color);
+        yield return MakeLine(b4, t4, layer, color);
     }
 
     private static LineEntity MakeLine(Vector3D start, Vector3D end, string layer, uint color) =>
