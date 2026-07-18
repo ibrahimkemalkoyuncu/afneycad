@@ -14,5 +14,7 @@ public enum MechanicalEntityType
     MechanicalEquipment = 5,
     Duct = 6,
     Accessory = 7,
-    Room = 8
+    Room = 8,
+    AirTerminal = 9,
+    Damper = 10
 }
