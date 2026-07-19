@@ -62,6 +62,7 @@
                 <CheckBox x:Name="ChkWindows" Content="Pencereler (IfcWindow)" IsChecked="True"/>
                 <CheckBox x:Name="ChkDoors"   Content="Kapılar (IfcDoor)" IsChecked="True"/>
                 <CheckBox x:Name="ChkSpaces"  Content="Mekanlar (IfcSpace — etiket olarak)" IsChecked="True"/>
+                <CheckBox x:Name="ChkMep"     Content="MEP (IfcPipeSegment, IfcDuctSegment, IfcFlowSegment)" IsChecked="True"/>
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <TextBlock Text="Ölçek faktörü:" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <ComboBox x:Name="ScaleCombo" Width="120" SelectedIndex="0">

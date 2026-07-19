@@ -92,6 +92,11 @@ public class IfcExportService
                 int teeId = ExportTee(tee);
                 if (teeId > 0) productIds.Add(teeId);
             }
+            else if (entity is DuctEntity duct)
+            {
+                int ductId = ExportDuct(duct);
+                if (ductId > 0) productIds.Add(ductId);
+            }
         }
 
         // 6. Ürünleri Kata Bağla (RelContainedInSpatialStructure)
@@ -143,6 +148,47 @@ public class IfcExportService
         _sb.AppendLine($"#{pipeId}= IFCPIPESEGMENT('{ToIfcGuid(pipe.Id)}',#{_ownerHistoryId},'DN{pipe.InnerDiameter}',$,$,#{placementId},#{productDefShapeId},$,$);");
 
         return pipeId;
+    }
+
+    /*
+        NE: Kanal Dışa Aktarımı (ExportDuct)
+        NEDEN: DuctEntity (HVAC kanalları) önceden IFC dışa aktarımında hiç ele alınmıyordu
+               — export type-switch'inde yoktu, sessizce atlanıyordu. ExportPipe ile aynı
+               ExtrudedAreaSolid yaklaşımını izler; tek fark kesit profili: dairesel kanal
+               için IFCCIRCLEPROFILEDEF, dikdörtgen kanal için IFCRECTANGLEPROFILEDEF.
+    */
+    private int ExportDuct(DuctEntity duct)
+    {
+        int profileId = NextId();
+        if (duct.Shape == DuctShape.Circular)
+        {
+            double radius = duct.DiameterMm / 2.0;
+            _sb.AppendLine($"#{profileId}= IFCCIRCLEPROFILEDEF(.AREA.,$,#{_axis2Placement3DId_Default},{radius.ToString("F4", CultureInfo.InvariantCulture)});");
+        }
+        else
+        {
+            _sb.AppendLine($"#{profileId}= IFCRECTANGLEPROFILEDEF(.AREA.,$,#{_axis2Placement3DId_Default},{duct.WidthMm.ToString("F4", CultureInfo.InvariantCulture)},{duct.HeightMm.ToString("F4", CultureInfo.InvariantCulture)});");
+        }
+
+        Vector3D dir = (duct.EndPoint - duct.StartPoint).Normalize();
+        double length = (duct.EndPoint - duct.StartPoint).Length();
+
+        int placementId = CreateAxis2Placement3D(duct.StartPoint, dir, new Vector3D(0, 0, 1));
+
+        int solidId = NextId();
+        _sb.AppendLine($"#{solidId}= IFCEXTRUDEDAREASOLID(#{profileId},#{placementId},#{_directionId_001},{length.ToString("F4", CultureInfo.InvariantCulture)});");
+
+        int shapeRepId = NextId();
+        _sb.AppendLine($"#{shapeRepId}= IFCSHAPEREPRESENTATION(#{GetServiceId("IfcGeometricRepresentationContext")},'Body','SweptSolid',(#{solidId}));");
+
+        int productDefShapeId = NextId();
+        _sb.AppendLine($"#{productDefShapeId}= IFCPRODUCTDEFINITIONSHAPE($,$,(#{shapeRepId}));");
+
+        string sizeName = duct.Shape == DuctShape.Circular ? $"D{duct.DiameterMm:F0}" : $"{duct.WidthMm:F0}x{duct.HeightMm:F0}";
+        int ductId = NextId();
+        _sb.AppendLine($"#{ductId}= IFCDUCTSEGMENT('{ToIfcGuid(duct.Id)}',#{_ownerHistoryId},'{sizeName}',$,$,#{placementId},#{productDefShapeId},$,$);");
+
+        return ductId;
     }
 
     private int ExportSpace(RoomEntity room)
@@ -199,8 +245,15 @@ public class IfcExportService
         int productDefShapeId = NextId();
         _sb.AppendLine($"#{productDefShapeId}= IFCPRODUCTDEFINITIONSHAPE($,$,(#{shapeRepId}));");
 
-        // Placement (Center)
-        int placementId = CreateAxis2Placement3D(elbow.Center, new Vector3D(0, 0, 1), new Vector3D(1, 0, 0));
+        // NE/NEDEN: ÖNCEDEN her zaman world-aligned (0,0,1)/(1,0,0) placement kullanılıyordu
+        // — dirsek IFC dosyasında gerçekte hangi yöne döndüğünden bağımsız olarak hep 0°
+        // görünüyordu. ElbowEntity gerçek Incoming/Outgoing akış vektörlerini taşıyor;
+        // Axis = cross(Incoming,Outgoing) (dönüş düzleminin normali — Incoming'e dik olduğu
+        // matematiksel olarak garanti, geçerli bir Axis2Placement3D için gerekli), RefDirection
+        // = Incoming (borunun dirseğe giriş yönü). Bu, en azından dirseğin akış düzlemini ve
+        // giriş yönünü IFC dosyasında gerçek veriyle temsil eder.
+        var (elbowAxis, elbowRefDir) = ComputeFittingOrientation(elbow.IncomingVector, elbow.OutgoingVector);
+        int placementId = CreateAxis2Placement3D(elbow.Center, elbowAxis, elbowRefDir);
 
         // IfcFlowFitting (ELBOW)
         int id = NextId();
@@ -222,14 +275,33 @@ public class IfcExportService
         int productDefShapeId = NextId();
         _sb.AppendLine($"#{productDefShapeId}= IFCPRODUCTDEFINITIONSHAPE($,$,(#{shapeRepId}));");
 
-        // Placement
-        int placementId = CreateAxis2Placement3D(tee.Center, new Vector3D(0, 0, 1), new Vector3D(1, 0, 0));
+        // NE/NEDEN: ExportElbow'daki gibi — TeeEntity gerçek Main/Branch yön vektörlerini
+        // taşıyor. Axis = cross(MainDirection,BranchDirection), RefDirection = MainDirection.
+        var (teeAxis, teeRefDir) = ComputeFittingOrientation(tee.MainDirection, tee.BranchDirection);
+        int placementId = CreateAxis2Placement3D(tee.Center, teeAxis, teeRefDir);
 
         // IfcFlowFitting (TEE)
         int id = NextId();
         _sb.AppendLine($"#{id}= IFCFLOWFITTING('{ToIfcGuid(tee.Id)}',#{_ownerHistoryId},'Tee DN{tee.MainDiameter}',$,'T-Parcasi',#{placementId},#{productDefShapeId},$,.TEE.);");
         
         return id;
+    }
+
+    /*
+        NE: Bağlantı Elemanı Yönelimi (ComputeFittingOrientation)
+        NEDEN: Elbow/Tee'nin Axis2Placement3D'si için gerçek bir (Axis, RefDirection) çifti
+               üretir. Axis = cross(dirA,dirB) — dirA'ya matematiksel olarak dik olduğu
+               garantidir, bu yüzden RefDirection=dirA ile birlikte her zaman geçerli
+               (dik) bir IFCAXIS2PLACEMENT3D oluşturur. dirA/dirB paralel/sıfır ise (dejenere
+               durum) dünya eksenlerine düşer — bu, gerçek yön verisi olmadığında icat
+               edilmiş hassasiyet vermemek için bilinçli bir fallback.
+    */
+    private static (Vector3D axis, Vector3D refDir) ComputeFittingOrientation(Vector3D dirA, Vector3D dirB)
+    {
+        Vector3D a = dirA.Length() > 1e-6 ? dirA.Normalize() : new Vector3D(1, 0, 0);
+        Vector3D cross = a.Cross(dirB);
+        Vector3D axis = cross.Length() > 1e-6 ? cross.Normalize() : new Vector3D(0, 0, 1);
+        return (axis, a);
     }
 
     private int CreateBoxGeometry(double x, double y, double z)
