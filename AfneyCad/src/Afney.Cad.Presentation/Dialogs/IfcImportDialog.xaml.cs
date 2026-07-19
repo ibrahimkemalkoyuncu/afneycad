@@ -63,6 +63,7 @@ namespace Afney.Cad.Presentation.Dialogs
                 sb.AppendLine($"  Pencere         : {result.WindowCount,5} adet");
                 sb.AppendLine($"  Kapı            : {result.DoorCount,5} adet");
                 sb.AppendLine($"  Mekan           : {result.SpaceCount,5} adet");
+                sb.AppendLine($"  MEP (Boru/Kanal): {result.MepCount,5} adet");
                 sb.AppendLine($"  ─────────────────────");
                 sb.AppendLine($"  Toplam Entity   : {result.TotalCount,5} adet");
                 sb.AppendLine();
@@ -162,6 +163,7 @@ namespace Afney.Cad.Presentation.Dialogs
                 ImportWindows = ChkWindows.IsChecked == true,
                 ImportDoors   = ChkDoors.IsChecked   == true,
                 ImportSpaces  = ChkSpaces.IsChecked  == true,
+                ImportMep     = ChkMep.IsChecked     == true,
                 ScaleFactor   = scale,
                 PreviewOnly   = previewOnly
             };
