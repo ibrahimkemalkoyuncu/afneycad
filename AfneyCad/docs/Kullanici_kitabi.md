@@ -2585,12 +2585,14 @@ Kullanıcı kararı: mesh-seviyesi kısayol değil, **tam topolojik winged-edge 
 ### 5. CSG Boolean Faz 4 — Düzlemle Kesme (yarı-uzay SUBTRACT)
 Roadmap'in önerdiği slab-cut senaryosu (A=[0,2000]³ eksi B=[1000,3000]×[0,2000]×[0,2000]) analiz edilince, B'nin A ile gerçekten (coplanar olmayan) kesişen TEK yüzünün B'nin X=1000 yüzü olduğu, diğer yüzlerin ise A'nın karşılık gelen yüzleriyle TAM ÇAKIŞIK (coplanar — Faz 1-3'ün kendi "dejenere" kapsamı) olduğu görüldü. Bu yüzden Faz 4, genel iki-katı SUBTRACT yerine daha temel bir birim olarak teslim edildi: `PlaneCutter.CutWithPlane(Solid, planePoint, planeNormal)` — bir Solid'i tek bir düzlemle keser, kesim yerine yeni bir "kapak" Face ekler. Roadmap'in senaryosu TAM OLARAK buna indirgeniyor, bu yüzden `PlaneCutterTests.cs` (4/4) roadmap'in kendi test senaryosunu `BRepBuilder.ExtrudeBox`'ın bağımsız çıktısıyla çapraz doğruluyor. İlk yazımda 2 gerçek hata bulunup düzeltildi: kenar bölme sırasında canlı listeden index okuma (mutasyon sırasında kayıyordu) ve yeni kapak Face'in `solid.Faces`'e hiç eklenmemesi. Genel iki-katı SUBTRACT (coplanar yüz birleştirme + vertex kaynaşması gerektiriyor) sonraki bir faza bırakıldı — detay `docs/Roadmap_CSG_Boolean.md`.
 
-**Tam suite: 290/290.**
+### 6. Manuel Mahal — Kapı/Pencere Pervaz-Snap
+`ManualMahalCommand.OnPointerPressed`, bir duvara denk gelmeyen tıklamaları önceden HAM imleç koordinatı olarak ekliyordu — kılavuz çizgisi ve dolayısıyla mahal alanı, kullanıcının ne kadar hassas tıkladığına bağlıydı. Artık yakında (500mm tolerans) bir `DoorEntity`/`WindowEntity` varsa, tıklama analitik pervaz (jamb) noktasına SESSİZCE snap ediliyor (`Position ± WidthMm/2` yönünde, `Rotation` = duvar ekseni yönü) — onay diyaloğu yok, StatusText'te hangi açıklığa (tip + genişlik) snap edildiği gösteriliyor. `ManualMahalOpeningSnapTests.cs` (3/3): düz ve döndürülmüş açıklıklarda tam analitik nokta doğrulaması + tolerans-dışı durumda ham tıklamanın korunması.
+
+**Tam suite: 293/293.**
 
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü (kullanıcının `d3dtest` görsel onayından sonra).
 2. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
-3. **Manuel Mahal — kapı/pencere pervaz-snap** (`ManualMahalCommand.cs`): açıklık tıklamaları şu an ham imleç koordinatına gidiyor, gerçek `DoorEntity`/`WindowEntity` genişliğine snap etmiyor — kullanıcıdan pervaz noktası referansı (duvar ekseni mi iç yüz mü) ve snap davranışı (sessiz mi onaylı mı) netleşmeyi bekliyor.
 
 ---
 

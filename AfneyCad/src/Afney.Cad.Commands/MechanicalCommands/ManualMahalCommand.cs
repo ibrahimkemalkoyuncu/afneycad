@@ -115,12 +115,75 @@ public class ManualMahalCommand : ICadCommand
         }
         else
         {
-            // ── Boşluk: serbest nokta ekle (kapı/pencere gap köprüleme) ──────
-            _freePoints.Add(new Vector3D(position.X, position.Y, 0));
-            Serilog.Log.Information("[ManualMahal] Serbest gap noktası eklendi: ({X:F0},{Y:F0})", position.X, position.Y);
+            // ── Boşluk: kapı/pencere pervazına snap dene, yoksa serbest nokta ────
+            var (snapped, openingLabel) = TrySnapToOpeningJamb(position);
+            _freePoints.Add(snapped);
+            Serilog.Log.Information("[ManualMahal] Boşluk noktası eklendi: ({X:F0},{Y:F0}){Label}",
+                snapped.X, snapped.Y, openingLabel != null ? $" [{openingLabel}]" : "");
             int total = _selectedWalls.Count + _freePoints.Count;
-            OnFeedback?.Invoke($"{_selectedWalls.Count} duvar + {_freePoints.Count} boşluk noktası. [Enter] ile bitirin.");
+            string suffix = openingLabel != null ? $" ({openingLabel} pervazına snap edildi)" : "";
+            OnFeedback?.Invoke($"{_selectedWalls.Count} duvar + {_freePoints.Count} boşluk noktası{suffix}. [Enter] ile bitirin.");
         }
+    }
+
+    /*
+       NE: Kapı/Pencere Pervaz-Snap (TrySnapToOpeningJamb)
+       NEDEN: Önceden bu komut, kapı/pencere boşluğuna tıklanınca HAM imleç koordinatını
+              serbest nokta olarak ekliyordu — kılavuz çizgisi ve dolayısıyla mahal alanı,
+              kullanıcının elle ne kadar hassas tıkladığına bağlıydı. `DoorEntity`/
+              `WindowEntity` zaten kesin geometri taşıyor (Position = duvar EKSENİ üzerindeki
+              açıklık orta noktası — bkz. ArchEntityConverterService'in `bb.Center` ataması;
+              WidthMm, Rotation = duvar yönü). Bu yüzden pervaz (jamb) noktaları analitik
+              olarak hesaplanıp EN YAKIN olana SESSİZCE snap edilir (onay diyaloğu YOK —
+              duvar seçimindeki gibi anlık, akıcı bir akış; StatusText'te hangi açıklığa
+              snap edildiği bilgisi verilir, bu yeterli geri bildirim).
+       KAPSAM: Tolerans içinde (PickTolerance ile aynı, 500mm) en yakın DoorEntity/WindowEntity
+               aranır; iki pervaz noktasından (Position ± WidthMm/2 * duvar yönü) tıklamaya
+               en yakın olan seçilir. Bulunamazsa ham tıklama noktası aynen kullanılır.
+    */
+    private (Vector3D Point, string? Label) TrySnapToOpeningJamb(Vector3D position)
+    {
+        const double SnapTolerance = 500.0;
+
+        var openings = _database.GetAllEntities()
+            .Where(e => e is DoorEntity || e is WindowEntity)
+            .ToList();
+
+        Vector3D? bestJamb = null;
+        double bestDist = SnapTolerance;
+        string? bestLabel = null;
+
+        foreach (var ent in openings)
+        {
+            Vector3D center; double widthMm; double rotation; string typeLabel;
+            if (ent is DoorEntity door)
+            {
+                center = door.Position; widthMm = door.WidthMm; rotation = door.Rotation; typeLabel = "Kapı";
+            }
+            else
+            {
+                var win = (WindowEntity)ent;
+                center = win.Position; widthMm = win.WidthMm; rotation = win.Rotation; typeLabel = "Pencere";
+            }
+
+            double hw = widthMm / 2.0;
+            var dir = new Vector3D(Math.Cos(rotation), Math.Sin(rotation), 0);
+            var jambA = center + dir * hw;
+            var jambB = center - dir * hw;
+
+            foreach (var jamb in new[] { jambA, jambB })
+            {
+                double d = position.DistanceTo(jamb);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    bestJamb = jamb;
+                    bestLabel = $"{typeLabel} {widthMm:F0}mm";
+                }
+            }
+        }
+
+        return bestJamb.HasValue ? (bestJamb.Value, bestLabel) : (new Vector3D(position.X, position.Y, 0), null);
     }
 
     /*
