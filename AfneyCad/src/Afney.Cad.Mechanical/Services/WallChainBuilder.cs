@@ -69,6 +69,30 @@ public class WallChainBuilder
             // Bu "açıklık çizgisi" zaten doğru alan hesabını sağlar (FINE MEP standardı).
             chain[chain.Count - 1] = chain[0];
             chain.RemoveAt(chain.Count - 1);
+
+            /*
+               GERÇEK HATA (kullanıcı bir Manuel Mahal testinde yakaladı — gerçek bir çatı katı
+               planında, görsel olarak büyük bir alan seçilmiş gibi görünüyordu ama sonuç
+               5,55 m² gibi çok küçük bir değer verdi, ekran görüntüsünde sınırı çaprazlayan
+               bir çizgi vardı): GreedyChain, en yakın endpoint'i AĞIRLIKSIZ (mesafe sınırı
+               olmadan) seçiyor — eğer kullanıcı karmaşık/girintili (L-şekli, teras kat gibi)
+               bir odanın TÜM duvarlarını seçmezse, zincir eksik duvarın yerine ULAŞABİLDİĞİ
+               en yakın (ama YANLIŞ, odayı çaprazlayan) bir noktaya atlar — bu, KENDİ KENDİNİ
+               KESEN (bowtie) bir poligon üretir. Shoelace alan formülü basit (self-intersecting
+               olmayan) poligon varsayar; çapraz kesişen bir poligonda loop'un bir kulağı
+               diğerini net alandan İPTAL EDER — görsel olarak büyük bir sınır, sayısal olarak
+               çok küçük/yanlış bir alana dönüşür. Sessizce yanlış sonuç kaydetmek yerine,
+               kapanış sonrası poligon kendi kendini kesiyor mu diye AÇIKÇA kontrol ediliyor.
+            */
+            if (HasSelfIntersection(chain))
+            {
+                statusMessage = "HATA: Seçilen duvarlar kendini kesen (çapraz) bir sınır oluşturuyor — " +
+                                 "muhtemelen bir duvar eksik seçildi. Alan hesabı güvenilir olmaz, " +
+                                 "lütfen odanın TÜM duvarlarını seçtiğinizden emin olun.";
+                Serilog.Log.Warning("[WallChain] Kendi kendini kesen poligon tespit edildi — mahal reddedildi.");
+                return null;
+            }
+
             string openingNote = closureGap > 10.0
                 ? $" (açıklık: {closureGap:F0}mm otomatik köprülendi)"
                 : string.Empty;
@@ -190,4 +214,50 @@ public class WallChainBuilder
         }
         return result;
     }
+
+    /*
+       NE: Kendi Kendini Kesme Testi (HasSelfIntersection)
+       NEDEN: Greedy zincirleme, eksik/yanlış duvar seçiminde odayı çaprazlayan bir kenar
+              üretebilir (bkz. Build() içindeki NEDEN notu) — bu, poligonu "bowtie" yapar ve
+              Shoelace alan formülünü yanlış (genelde çok küçük) bir sonuca götürür. Bu metod,
+              KOMŞU OLMAYAN her kenar çiftini 2D (X,Y) kesişim testiyle tarar.
+    */
+    private static bool HasSelfIntersection(List<Vector3D> polygon)
+    {
+        int n = polygon.Count;
+        if (n < 4) return false; // üçgen kendi kendini kesemez
+
+        for (int i = 0; i < n; i++)
+        {
+            var a1 = polygon[i];
+            var a2 = polygon[(i + 1) % n];
+
+            for (int j = i + 1; j < n; j++)
+            {
+                // Komşu kenarları (ortak köşeyi paylaşanları) atla — bunlar "kesişim" değil.
+                if (j == i || (j + 1) % n == i || (i + 1) % n == j) continue;
+
+                var b1 = polygon[j];
+                var b2 = polygon[(j + 1) % n];
+
+                if (SegmentsIntersect(a1, a2, b1, b2))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool SegmentsIntersect(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4)
+    {
+        double d1 = CrossSign(p3, p4, p1);
+        double d2 = CrossSign(p3, p4, p2);
+        double d3 = CrossSign(p1, p2, p3);
+        double d4 = CrossSign(p1, p2, p4);
+
+        return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+               ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    }
+
+    private static double CrossSign(Vector3D a, Vector3D b, Vector3D p)
+        => (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
 }

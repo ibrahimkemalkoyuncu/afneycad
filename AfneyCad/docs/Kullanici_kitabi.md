@@ -2615,10 +2615,16 @@ Kullanıcı gerçek bir 6-katlı projede ("Otonom" butonu, `AutoDetectSpacesComm
 
 **Tam suite: 294/294.**
 
+### 12. Manuel Mahal — Kendi Kendini Kesen Sınır Koruması
+Kullanıcı gerçek bir çatı katı testinde yakaladı: karmaşık/girintili bir odada eksik duvar seçimi, `WallChainBuilder`'ın greedy zincirlemesinin odayı ÇAPRAZLAYAN bir kenar üretmesine yol açtı ("bowtie" poligon — görsel olarak büyük bir sınır, ekranda 5,55 m² gibi çok küçük/yanlış bir alana dönüştü, çünkü Shoelace formülü çapraz poligonlarda loop'un bir kulağını diğerinden İPTAL EDER). Artık kapanış sonrası poligon kendi kendini kesiyor mu diye açıkça kontrol ediliyor — kesişme varsa sessizce yanlış alan kaydetmek yerine açık hata veriliyor ("muhtemelen bir duvar eksik seçildi"). **3 yeni test** (`WallChainBuilderTests`), ilk denemede geçti.
+
+**Tam suite: 298/298.**
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü. Faz 1 artık kod+piksel seviyesinde doğrulandı (siyah ekran + framing hataları çözüldü); kullanıcının `d3dtest` ile son görsel onayı bekleniyor.
 2. **Otonom mahal tespiti — kullanıcı onayı bekleniyor:** düzeltmeler sonrası gerçek 6-katlı projede tekrar test edilip 1202 yerine gerçekçi bir oda sayısı çıktığı doğrulanmalı.
-2. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
+3. **Manuel Mahal — uç-yakala ölçüm modu:** kullanıcı isteği: "duvarın bir ucunu yakalayıp fareyi diğer ucuna götürüp yakalayınca o kenarı hesaba alacak şekilde ölçmeli" — mevcut model tüm duvar varlığını tek tıkla seçiyor (greedy yeniden sıralama gerektiriyor, hataya açık); istenen model köşe-köşe sırayla tıklayarak sınırı DOĞRU SIRADA inşa etmek (yeniden sıralama gerektirmez). Kapsamlı bir etkileşim modeli değişikliği — ayrı bir oturumda ele alınmalı.
+4. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
 
 ---
 
