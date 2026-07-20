@@ -35,17 +35,45 @@ karşılaştırması):
 - ✅ `SolidClassifier.cs` — Möller–Trumbore ışın-üçgen kesişimiyle nokta-içi-katı testi,
   iç-içe geçmiş iki kutu senaryosuyla doğrulandı (`SolidClassifierTests.cs`, 4/4).
 
-**Faz 4 (SUBTRACT montajı) BAŞLANMADI — bilinçli durak noktası:** Genel durumda TEK bir Face,
-diğer Solid'in BİRDEN FAZLA Face'iyle kesişip birden fazla segment alabilir (ör. bir kutunun
-köşesini kesen başka bir kutu — 3 yüz her biri İKİ segmentle kesilir, L-şekilli bir sınır
-oluşur). Mevcut `FaceSplitter.SplitAtChord` sadece TEK bir kiriş (2 sınır noktası → 2 alt-yüz)
-destekliyor — çoklu-segment (N sınır noktası → N alt-yüz, bazıları delik/hole içerebilir) genel
-bir yüz-yeniden-üçgenleme algoritması gerektiriyor. Bu, Faz 1-3'ten daha büyük bir ek yatırım.
-**Önerilen ilk hedef senaryo (basit ama gerçek):** İki eksene tam hizalı, kesişim düzlemi
-solid'lerin y/z kesitini TAM kapsayan kutular (ör. A=[0,2000]³, B=[1000,3000]×[0,2000]×[0,2000])
-— bu durumda her etkilenen yüz sadece TEK bir kirişle kesiliyor (mevcut primitiflerle
-çözülebilir), sonuç basit bir kutu olduğu için (BRepBuilder.ExtrudeBox'ın kendi çıktısıyla
-çapraz doğrulanabilir) test etmek kolay.
+**Faz 4 TAMAMLANDI (2026-07-20, Session #52) — ama planlanandan FARKLI, daha dar/daha sağlam
+bir kapsamla:** Roadmap'in önerdiği ilk test senaryosu (A=[0,2000]³, B=[1000,3000]×[0,2000]×
+[0,2000] — B'nin Y/Z aralığı A'nınkiyle BİREBİR aynı) implementasyon sırasında analiz edilince
+şu ortaya çıktı: bu senaryoda B'nin A ile GERÇEKTEN (coplanar olmayan şekilde) kesişen TEK yüzü
+B'nin X=1000 yüzüdür — B'nin diğer 5 yüzü ya A'nın tamamen dışında (X=3000) ya da A'nın karşılık
+gelen yüzleriyle TAM ÇAKIŞIK (coplanar: alt/üst/Y=0/Y=2000). Coplanar yüz çiftleri, Faz 1-3'ün
+KENDİ dokümante ettiği "dejenere, kapsam dışı" durumdur (`FaceIntersection` paralel düzlemler
+için boş liste döner) — genel iki-katı SUBTRACT'i bu senaryoda dahi doğru yapmak, iki BAĞIMSIZ
+Solid'in aynı konumdaki ama FARKLI Vertex nesnelerini birleştiren bir "vertex kaynaşması"
+(vertex welding) mekanizması gerektiriyordu — bu, Faz 1-3'ün primitiflerinin ötesinde, kendi
+başına ayrı bir mühendislik çabası (gerçek CSG kernel'lerinin kod hacminin büyük kısmı buradan
+gelir).
+
+**Bunun yerine teslim edilen, daha temel ve daha genel kullanışlı bir birim:**
+- ✅ `PlaneCutter.cs` — `CutWithPlane(Solid, planePoint, planeNormal)`: bir Solid'i TEK bir
+  düzlemle keser (yarı-uzay SUBTRACT), pozitif tarafı tutar, negatif tarafı atar, kesim yerine
+  yeni bir "kapak" Face ekler. Roadmap'in önerdiği senaryo TAM OLARAK buna indirgeniyor (B, A'nın
+  X eksenindeki her noktasını X=1000'in ötesinde kapsıyor → A∖B = A'yı X=1000 düzlemiyle kesip
+  X<1000 tarafını tutmakla BİREBİR AYNI sonucu veriyor) — bu yüzden roadmap'in kendi test
+  senaryosu, genel iki-katı SUBTRACT olmadan da TAM OLARAK doğrulanabildi.
+  `PlaneCutterTests.cs`, 4/4: hem genelleştirilmiş bir "kutuyu ortadan kes" senaryosu, hem
+  roadmap'in TAM önerdiği slab-cut senaryosu, ikisi de `BRepBuilder.ExtrudeBox`'ın bağımsız
+  ürettiği beklenen sonuçla (hacim + Euler formülü + kapak alanı + kapak normal yönü) çapraz
+  doğrulandı; artı iki dejenere-durum testi (düzlem katıyı hiç kesmiyor → açık hata).
+- **Bulunan ve düzeltilen 2 gerçek implementasyon hatası** (ilk yazımda, testlerle yakalandı):
+  (1) kesişim noktaları hesaplanırken `loop.Edges[i]`'e MUTASYON SIRASINDA (canlı listeden)
+  erişiliyordu — bir kenarı bölmek listedeki SONRAKİ index'leri kaydırıyor, bu da ikinci kesişim
+  için YANLIŞ kenar nesnesi seçilmesine yol açıyordu (kenar referansları artık splitlerden ÖNCE
+  anlık görüntü/snapshot olarak alınıyor); (2) yeni oluşturulan kapak Face'i `solid.Faces`
+  listesine hiç EKLENMİYORDU (Euler sayısı V-E+F=1 çıkıyordu, 2 olması gerekirken) — basit ama
+  gerçek bir unutma hatasıydı.
+
+**Genel iki-katı SUBTRACT (coplanar yüz birleştirme + vertex kaynaşması dahil) SONRAKİ bir
+faza bırakıldı** — artık NET olarak anlaşılmış, dokümante edilmiş bir kapsamla: coplanar bir
+A/B yüz çifti tespit edilince (aynı düzlem, aynı yönelim) B'nin kopyası tamamen elenmeli (A'nın
+yüzü kazanır), ve A'nın kesim kirişleriyle B'nin ilgili yüzünün köşeleri AYNI Vertex nesnesine
+indirgenmeli (konum bazlı eşleştirme + tolerans) — `PlaneCutter.CutWithPlane` bu ileride bu iş
+için bir alt-adım (building block) olarak yeniden kullanılabilir (B'nin her yüzü için A'yı o
+yüzün düzlemiyle art arda kesmek).
 
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 

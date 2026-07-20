@@ -2580,11 +2580,16 @@ Kullanıcı kararı: WPF `Viewport3D` KULLANILMADAN, gerçek GPU hızlandırmal�
 Detay: `docs/Roadmap_3D_Render_Motoru.md`. Faz 1 kod seviyesinde tamamlandı, kullanıcının `d3dtest` ile görsel doğrulaması gerekiyor.
 
 ### 4. Tam Topolojik B-Rep Boolean (Faz 1-3) — `Afney.Cad.Geometry/Topology/Boolean`
-Kullanıcı kararı: mesh-seviyesi kısayol değil, **tam topolojik winged-edge boolean**. `PlaneIntersection`, `FaceIntersection`, `EdgeSplitter` (winged-edge cerrahi), `FaceSplitter` (kiriş bölme), `SolidClassifier` (Möller-Trumbore nokta-içi testi) — hepsi ilk denemede test geçti. Faz 4 (tam SUBTRACT orkestrasyonu, eksene-hizalı "dilim kesme" senaryosuyla) henüz başlanmadı — detay `docs/Roadmap_CSG_Boolean.md`.
+Kullanıcı kararı: mesh-seviyesi kısayol değil, **tam topolojik winged-edge boolean**. `PlaneIntersection`, `FaceIntersection`, `EdgeSplitter` (winged-edge cerrahi), `FaceSplitter` (kiriş bölme), `SolidClassifier` (Möller-Trumbore nokta-içi testi) — hepsi ilk denemede test geçti.
+
+### 5. CSG Boolean Faz 4 — Düzlemle Kesme (yarı-uzay SUBTRACT)
+Roadmap'in önerdiği slab-cut senaryosu (A=[0,2000]³ eksi B=[1000,3000]×[0,2000]×[0,2000]) analiz edilince, B'nin A ile gerçekten (coplanar olmayan) kesişen TEK yüzünün B'nin X=1000 yüzü olduğu, diğer yüzlerin ise A'nın karşılık gelen yüzleriyle TAM ÇAKIŞIK (coplanar — Faz 1-3'ün kendi "dejenere" kapsamı) olduğu görüldü. Bu yüzden Faz 4, genel iki-katı SUBTRACT yerine daha temel bir birim olarak teslim edildi: `PlaneCutter.CutWithPlane(Solid, planePoint, planeNormal)` — bir Solid'i tek bir düzlemle keser, kesim yerine yeni bir "kapak" Face ekler. Roadmap'in senaryosu TAM OLARAK buna indirgeniyor, bu yüzden `PlaneCutterTests.cs` (4/4) roadmap'in kendi test senaryosunu `BRepBuilder.ExtrudeBox`'ın bağımsız çıktısıyla çapraz doğruluyor. İlk yazımda 2 gerçek hata bulunup düzeltildi: kenar bölme sırasında canlı listeden index okuma (mutasyon sırasında kayıyordu) ve yeni kapak Face'in `solid.Faces`'e hiç eklenmemesi. Genel iki-katı SUBTRACT (coplanar yüz birleştirme + vertex kaynaşması gerektiriyor) sonraki bir faza bırakıldı — detay `docs/Roadmap_CSG_Boolean.md`.
+
+**Tam suite: 290/290.**
 
 ### Sonraki Oturum Öncelikleri (sırayla)
-1. **CSG Boolean Faz 4** — eksene-hizalı slab-cut SUBTRACT senaryosu (`docs/Roadmap_CSG_Boolean.md`'deki önerilen test).
-2. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü (kullanıcının `d3dtest` görsel onayından sonra).
+1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü (kullanıcının `d3dtest` görsel onayından sonra).
+2. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
 3. **Manuel Mahal — kapı/pencere pervaz-snap** (`ManualMahalCommand.cs`): açıklık tıklamaları şu an ham imleç koordinatına gidiyor, gerçek `DoorEntity`/`WindowEntity` genişliğine snap etmiyor — kullanıcıdan pervaz noktası referansı (duvar ekseni mi iç yüz mü) ve snap davranışı (sessiz mi onaylı mı) netleşmeyi bekliyor.
 
 ---
