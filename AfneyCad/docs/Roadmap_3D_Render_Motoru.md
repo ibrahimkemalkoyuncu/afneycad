@@ -133,9 +133,30 @@ siyah çiziliyordu. **Çözüm:** `Renderer.cs`'e eksik `context.PSSetConstantBu
 _constantBuffer);` satırı eklendi. Yerel harness'ta doğrulandı: küp artık doğru mavi tonlarında
 (gamma-doğru aydınlatmayla) render ediliyor.
 
+**GÜNCELLEME — Küp artık SİYAH DEĞİL ama TÜM EKRANI KAPLIYOR (2. kök neden bulundu, yerel GPU
+repro + ASCII silueti ile doğrulandı):** Kullanıcı bir önceki düzeltmeden sonra tekrar denedi —
+küp artık doğru mavi tonlarında ve ışıklandırılmış görünüyordu (siyah ekran sorunu kalıcı olarak
+çözüldü), AMA kamera framing'i tamamen bozuktu: küp viewport'un TAMAMINI kaplıyor, arkaplan hiç
+görünmüyordu — sanki kamera küpün içindeymiş/aşırı yakınmış gibi. Aynı yerel GPU harness'ı bu
+kez `Renderer.RenderFrame`'in çıktısını 60×30'luk bir ASCII ızgarasına örnekleyip konsola
+basacak şekilde genişletildi — sonuç, kullanıcının ekran görüntüsüyle BİREBİR eşleşti (tüm
+ızgara `#` — hiç arkaplan pikseli yok). Kök neden: **HLSL constant buffer'daki `float4x4`
+alanları, `row_major` belirtilmedikçe VARSAYILAN olarak `column_major` paketlenir** — ama
+`Renderer.cs`, matrisleri `System.Numerics.Matrix4x4` (ROW-major bellek düzeni, row-vector
+konvansiyonu: `v'=v*M`) ile dolduruyordu. Bu uyuşmazlık, GPU'nun WorldViewProjection/World
+matrislerini TERS (transpoze) okumasına yol açıyordu — `mul(vector, matrix)` ile birleşince
+tamamen farklı (ama hâlâ "geçerli görünen", tesadüfen aydınlatma/gölgelendirmeyi bozmayan) bir
+dönüşüm üretiyordu, bu da tam olarak gözlemlenen belirtiyle uyuşuyor: yerel şekillendirme
+mantıklı görünüyordu ama genel projeksiyon/kamera çerçevelemesi tamamen yanlıştı. **Çözüm:**
+`Shaders/Basic.hlsl`'deki cbuffer alanlarına `row_major` niteleyicisi eklendi (`row_major
+float4x4 WorldViewProjection`, `row_major float4x4 World`) — C#'in yazdığı bayt düzeniyle
+birebir eşleşiyor. Yerel harness'ta ASCII silueti ile doğrulandı: düzeltme sonrası küp doğru
+boyut/konumda, arkaplan net görünür şekilde render ediliyor.
+
 **Sıradaki adım tamamen sizde:** Uygulamayı çalıştırıp komut satırına `d3dtest` yazarak Faz 1'in
-gerçekten çalışıp çalışmadığını (küp görünüyor mu, kenarları MSAA ile pürüzsüz mü, sağ fare ile
-döndürülebiliyor mu) doğrulamanız gerekiyor — bu ortamda GPU'lu görsel test yapılamıyor.
+gerçekten çalışıp çalışmadığını (küp doğru boyutta/merkezde mi, arkaplan görünüyor mu, kenarları
+MSAA ile pürüzsüz mü, sağ fare ile döndürülebiliyor mu) doğrulamanız gerekiyor — bu ortamda
+GPU'lu görsel test yapılamıyor (yalnızca off-screen piksel okuma ile doğrulama yapılabildi).
 
 ### Faz 1 — Pipeline doğrulama (tek üçgen/küp)
 - Vortice paketleri eklenir, `Afney.Cad.Render3D` projesi oluşturulur.

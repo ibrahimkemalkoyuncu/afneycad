@@ -2598,8 +2598,13 @@ Kullanıcı `d3dtest`'i denedi, çökme yoktu ama viewport tamamen siyah kaldı.
 
 **Tam suite: 293/293.**
 
+### 9. 3D Motoru — Kamera Framing Hatası (küp tüm ekranı kaplıyordu)
+Siyah ekran düzeltmesinden sonra küp artık görünüyordu ama viewport'un TAMAMINI kaplıyor, arkaplan hiç görünmüyordu. Aynı yerel GPU harness'ı ASCII silueti basacak şekilde genişletildi, kullanıcının ekran görüntüsüyle birebir eşleşen sonuç doğrulandı. Kök neden: HLSL constant buffer'daki `float4x4` alanları `row_major` belirtilmedikçe varsayılan `column_major` paketlenir — ama `Renderer.cs` matrisleri `System.Numerics.Matrix4x4` (row-major düzen) ile dolduruyordu, GPU bu yüzden matrisleri TERS okuyordu. `Shaders/Basic.hlsl`'e `row_major` niteleyicisi eklendi, yerel harness'ta küpün doğru boyut/konumda, arkaplan görünür şekilde render edildiği doğrulandı.
+
+**Tam suite: 293/293.**
+
 ### Sonraki Oturum Öncelikleri (sırayla)
-1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü. Faz 1 artık kod+piksel seviyesinde doğrulandı; kullanıcının `d3dtest` ile son görsel onayı bekleniyor.
+1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü. Faz 1 artık kod+piksel seviyesinde doğrulandı (siyah ekran + framing hataları çözüldü); kullanıcının `d3dtest` ile son görsel onayı bekleniyor.
 2. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
 
 ---
