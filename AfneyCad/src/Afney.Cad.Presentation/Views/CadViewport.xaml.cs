@@ -917,24 +917,18 @@ namespace Afney.Cad.Presentation.Views;
             }
             else if (e.ChangedButton == MouseButton.Right)
             {
-                if (_activeCommand != null)
-                {
-                    /*
-                       MÜHENDİSLİK: Komut aktifken sağ tık = "Enter gibi onayla"
-                       NEDEN: Manuel Mahal gibi komutlarda sağ tık ile seçimi bitirmek
-                              AutoCAD standardıdır. Cancel() çağırmak seçimi silerdi.
-                       SONUÇ: Komut kendi OnKeyDown(Enter) mantığıyla bitirir;
-                              OnCompleted event'i tetiklendiğinde viewport komutu temizler.
-                    */
-                    Serilog.Log.Information("[Viewport] Sağ tık → aktif komuta OnKeyDown(Enter) gönderiliyor.");
-                    _activeCommand.OnKeyDown(InputKey.Enter);
-                    _rightClickCanceledCommand = false;
-                    InvalidateViewport();
-                }
-                else
-                {
-                    _rightClickCanceledCommand = false;
-                }
+                /*
+                   MÜHENDİSLİK: Komut aktifken sağ tık artık OTOMATİK onaylamıyor.
+                   NEDEN (kullanıcı isteği): Sağ tık işlemi sessizce bitirmek yerine, bir
+                   context menü açılmalı ve en üstte "Tamam" seçeneği olmalı — kullanıcı
+                   bunu tıklayarak işlemi bilinçli şekilde tamamlar (AutoCAD'in sağ-tık
+                   menüsündeki "Enter" davranışıyla tutarlı). Menü içeriği
+                   `CadCanvas_ContextMenuOpening`'de `_activeCommand != null` durumuna göre
+                   dinamik olarak "Tamam"/"İptal" içerecek şekilde kuruluyor — burada hiçbir
+                   şey yapmadan MouseUp+ContextMenuOpening akışının doğal şekilde çalışmasına
+                   izin veriliyor.
+                */
+                _rightClickCanceledCommand = false;
             }
             InvalidateViewport();
         }
@@ -1763,6 +1757,44 @@ namespace Afney.Cad.Presentation.Views;
                 }
             }
             foreach (var item in toRemove) ctx.Items.Remove(item);
+
+            // 3b. Aktif bir komut varsa (ör. Manuel Mahal) — kullanıcı isteği: sağ tık
+            // menüsünün EN ÜSTÜNDE "Tamam" (komutu bitir) ve hemen altında "İptal" olmalı,
+            // sessizce otomatik onaylamak yerine kullanıcı bilinçli şekilde tıklamalı.
+            if (_activeCommand != null)
+            {
+                var cmdRef = _activeCommand;
+                var confirmItem = new MenuItem
+                {
+                    Header = "Tamam",
+                    FontWeight = FontWeights.Bold,
+                    Tag = "Dynamic",
+                    InputGestureText = "Enter",
+                };
+                confirmItem.Click += (_, __) =>
+                {
+                    Serilog.Log.Information("[Viewport] Context menü 'Tamam' → aktif komuta OnKeyDown(Enter) gönderiliyor.");
+                    cmdRef.OnKeyDown(InputKey.Enter);
+                    InvalidateViewport();
+                };
+
+                var cancelItem = new MenuItem
+                {
+                    Header = "İptal",
+                    Tag = "Dynamic",
+                    InputGestureText = "Esc",
+                };
+                cancelItem.Click += (_, __) =>
+                {
+                    Serilog.Log.Information("[Viewport] Context menü 'İptal' → aktif komut iptal ediliyor.");
+                    cmdRef.Cancel();
+                    InvalidateViewport();
+                };
+
+                ctx.Items.Insert(0, new Separator { Tag = "Dynamic" });
+                ctx.Items.Insert(0, cancelItem);
+                ctx.Items.Insert(0, confirmItem);
+            }
 
             // 4. Sadece tek bir boru seçiliyse debi/çap bilgisini direkt menüye ekle (Bonus Bilgi)
             if (hasSelection && _selectionManager != null && _selectionManager.SelectedCount == 1)
