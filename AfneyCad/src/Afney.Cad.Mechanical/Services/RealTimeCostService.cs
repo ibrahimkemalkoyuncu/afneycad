@@ -5,6 +5,26 @@ using Afney.Cad.Mechanical.Enums;
 
 namespace Afney.Cad.Mechanical.Services;
 
+/*
+   NE: Statik Malzeme Fiyat Kataloğu (RealTimeCostService — isim yanıltıcı, aşağıya bak)
+   NEDEN: "RealTimeCostService" adı gerçek zamanlı bir piyasa/API entegrasyonu çağrıştırıyor
+          ama böyle bir entegrasyon YOK — bu sınıf sabit (`LoadDefaultPrices`), elle
+          girilmiş bir birim fiyat tablosu + parametrik hesap motoru (`SetUnitPrice` ile
+          manuel güncellenebilir, JSON import/export edilebilir). Sınıf adı geniş çapta
+          kullanıldığı için (CostDashboardPanel vb.) bu oturumda YENİDEN ADLANDIRILMADI —
+          bunun yerine GERÇEK BİR HATA düzeltildi (aşağıdaki not).
+
+   DÜZELTİLEN GERÇEK HATA (sadece isimlendirme değil):
+   `CalculateProjectCost` önceden `pipe.SystemType` (DomesticColdWater/WasteWater/... —
+   BORU MALZEMESİ DEĞİL, akışkan sistemi) ile `_priceTable`'da (PPRC_PN20/PVC_SN4/... —
+   gerçek malzeme adları) arama yapıyordu. Bu iki değer kümesi HİÇ KESİŞMİYOR — yani
+   TryGetValue neredeyse her zaman başarısız oluyor ve HER BORU sessizce varsayılan
+   50.0 TRY/m fiyata düşüyordu, gerçek malzemesi ne olursa olsun. Artık doğru alan
+   `pipe.PipeMaterialType` (Enums.PipeMaterial: PPRC_PN20/PPRC_PN25/PVC_SN4/PEX_b/
+   Steel_Galvanized/Silent_PP) kullanılıyor ve fiyat tablosu bu enum'un GERÇEK üye
+   adlarıyla eşleşecek şekilde güncellendi.
+*/
+
 public class UnitPrice
 {
     public string Material   { get; set; } = "";
@@ -42,14 +62,16 @@ public class RealTimeCostService
 
     private void LoadDefaultPrices()
     {
-        AddPrice("PPRC_PN20", "Boru", 45.0, 12.0);
-        AddPrice("PPRC_PN25", "Boru", 55.0, 15.0);
-        AddPrice("PVC_SN4",   "Boru", 35.0, 8.0);
-        AddPrice("PVC_SN8",   "Boru", 42.0, 10.0);
-        AddPrice("Bakir",     "Boru", 180.0, 45.0);
-        AddPrice("Galvaniz",  "Boru", 95.0, 25.0);
-        AddPrice("PE100",     "Boru", 38.0, 9.0);
-        AddPrice("Celik",     "Boru", 220.0, 55.0);
+        // NEDEN Enums.PipeMaterial ile BİREBİR AYNI üye adları: GetPipePrice artık
+        // pipe.PipeMaterialType.ToString() ile arama yapıyor — anahtar eşleşmezse
+        // (aşağıdaki try/catch yorumuna bak) fiyat sessizce varsayılana düşerdi.
+        AddPrice(nameof(PipeMaterial.Generic),          "Boru", 40.0, 10.0);
+        AddPrice(nameof(PipeMaterial.PPRC_PN20),        "Boru", 45.0, 12.0);
+        AddPrice(nameof(PipeMaterial.PPRC_PN25),        "Boru", 55.0, 15.0);
+        AddPrice(nameof(PipeMaterial.PVC_SN4),          "Boru", 35.0, 8.0);
+        AddPrice(nameof(PipeMaterial.PEX_b),            "Boru", 65.0, 14.0);
+        AddPrice(nameof(PipeMaterial.Steel_Galvanized),  "Boru", 95.0, 25.0);
+        AddPrice(nameof(PipeMaterial.Silent_PP),        "Boru", 120.0, 20.0);
 
         AddPrice("Lavabo",        "Cihaz", 850.0, 0);
         AddPrice("Klozet",        "Cihaz", 1200.0, 0);
@@ -102,7 +124,7 @@ public class RealTimeCostService
             if (entity is PipeEntity pipe)
             {
                 double length = pipe.GetLength() / 1000.0;
-                string matKey = pipe.SystemType.ToString();
+                string matKey = pipe.PipeMaterialType.ToString();
                 double unitPrice = GetPipePrice(matKey, pipe.InnerDiameter);
 
                 breakdown.PipeCost += length * unitPrice;

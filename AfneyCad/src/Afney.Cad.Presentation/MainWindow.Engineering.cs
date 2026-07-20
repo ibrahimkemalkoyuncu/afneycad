@@ -2007,6 +2007,18 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"3D görünüm hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        /*
+           NE: D3D11 Motor Test Penceresi (OnD3D11EngineTest)
+           NEDEN: docs/Roadmap_3D_Render_Motoru.md Faz 1 — sıfırdan yazılan Direct3D11 render
+                  motorunun (WPF Viewport3D KULLANILMIYOR) gerçekten çalıştığını görsel olarak
+                  doğrulamak için. Komut satırından "d3dtest" ile açılır.
+        */
+        public void OnD3D11EngineTest(object? sender, RoutedEventArgs? e)
+        {
+            try { new Dialogs.Direct3DTestWindow { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show($"D3D11 motor testi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnMultiStoryManager(object sender, RoutedEventArgs e)
         {
             try { new MultiStoryManagerDialog(_database) { Owner = this }.ShowDialog(); }

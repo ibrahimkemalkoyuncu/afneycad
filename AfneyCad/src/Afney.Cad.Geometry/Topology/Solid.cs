@@ -134,34 +134,46 @@ public class Solid
     Katı cismin hacmini hesaplamak.
 
     ALGORİTMA:
-    Divergence theorem (Gauss):
-    V = (1/6) * Σ (p · n) * A
-    
-    p = face center
-    n = face normal
-    A = face area
+    Divergence theorem (Gauss), düzlemsel face'ler için:
+    V = (1/3) * Σ (p · n̂) * A
+
+    p = face üzerindeki HERHANGİ bir nokta (düzlemsel bir face'de p·n̂ tüm noktalar için
+        sabittir — bu yüzden ilk vertex yeterli, gerçek centroid gerekmez)
+    n̂ = BİRİM face normali
+    A = face alanı
+
+    NEDEN 1/3 (ESKİ KOD 1/6 KULLANIYORDU — HATALIYDI):
+    Her face, orijinden face düzlemine kurulan bir piramidin tabanıdır; bu piramidin hacmi
+    (1/3)*taban_alanı*yükseklik'tir (yükseklik = orijinin düzleme birim-normal boyunca
+    izdüşümü = p·n̂). 1/6 çarpanı, üçgen mesh'lerde orijin+üçgenin 3 köşesinden oluşan
+    tetrahedron hacmi formülünden (V=(1/6)|v1·(v2×v3)|) miras kalmış görünüyor; ama burada
+    Normal ayrı bir alan (GetArea()) ile çarpılıyor, üçgen değil GERÇEK face alanı kullanılıyor
+    — bu yüzden 1/6 kullanmak hacmi tam 2 kat küçük hesaplıyordu (bir kutu için doğrulanabilir:
+    analitik hacim ile karşılaştırıldığında eski kod yarısını dönüyordu).
     */
     public double GetVolume()
     {
         double volume = 0;
-        
+
         foreach (var face in Faces)
         {
             var area = face.GetArea();
-            var normal = face.Normal;
-            
-            // Face center (basitleştirilmiş: ilk vertex)
-            var firstEdge = face.GetOuterLoop()?.Edges.FirstOrDefault();
-            if (firstEdge == null) continue;
-            
-            var center = firstEdge.StartVertex.Position;
-            
-            // Dot product
-            double contribution = (center.X * normal.X + center.Y * normal.Y + center.Z * normal.Z) * area;
+            if (area < 1e-12) continue;
+
+            var normal = face.Normal.Normalize();
+            if (normal.LengthSquared() < 1e-12) continue;
+
+            var loop = face.GetOuterLoop();
+            var vertices = loop?.GetOrderedVertices();
+            if (vertices == null || vertices.Count == 0) continue;
+
+            var p = vertices[0].Position;
+
+            double contribution = (p.X * normal.X + p.Y * normal.Y + p.Z * normal.Z) * area;
             volume += contribution;
         }
-        
-        return Math.Abs(volume / 6.0);
+
+        return Math.Abs(volume / 3.0);
     }
 
     /*

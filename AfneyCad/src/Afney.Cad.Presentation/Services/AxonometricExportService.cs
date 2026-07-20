@@ -4,8 +4,10 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Services;
 
@@ -28,6 +30,9 @@ namespace Afney.Cad.Presentation.Services;
    - Pan + zoom JS.
    - DN / sistem etiketi her boru üstünde.
    - Kat kesit çizgileri.
+   - Duvarlar: WallBRepService (kapı/pencere boşluklu B-Rep segmentasyon) + BRepTessellator
+     ile üretilen gerçek 3D katı geometrinin wireframe izdüşümü — artık sadece boru
+     noktalarının değil, gerçek mimari B-Rep verisinin projeksiyonu.
 */
 public class AxonometricExportService
 {
@@ -79,6 +84,39 @@ public class AxonometricExportService
                            $"stroke=\"#3A3A5A\" stroke-width=\"0.5\" stroke-dasharray=\"6,4\"/>");
             svg.AppendLine($"<text x=\"{lx1 + ox - 50:F1}\" y=\"{ly1 + oy:F1}\" " +
                            $"fill=\"#5566AA\" font-size=\"10\" font-family=\"monospace\">{fl}. KAT ({wz:F1} m)</text>");
+        }
+
+        // ── Duvarlar (gerçek B-Rep tessellasyonundan wireframe) ─────────────────
+        // NEDEN: Önceden bu servis sadece boru NOKTALARINI projekte ediyordu — mimari bağlam
+        // (duvar) hiç yoktu. Artık WallBRepService (kapı/pencere boşluklu segmentasyon dahil)
+        // + BRepTessellator ile üretilen gerçek 3D katı geometri, aynı kabinetik projeksiyonla
+        // wireframe olarak çiziliyor — axonometrik şema artık gerçek B-Rep verisinden türetiliyor.
+        var wallSolids = new WallBRepService(database).GenerateAllWallSolids();
+        svg.AppendLine($"<!-- Duvarlar ({wallSolids.Count} B-Rep parça) -->");
+        foreach (var solid in wallSolids)
+        {
+            var (verts, faces) = BRepTessellator.Tessellate(solid);
+            if (verts.Count == 0 || faces.Count == 0) continue;
+
+            var projected = verts.Select(v => Project(v.X / 1000.0, v.Y / 1000.0, v.Z / 1000.0)).ToList();
+            double ox = SVG_W / 2, oy = SVG_H * 0.6;
+
+            var drawnEdges = new HashSet<(int, int)>();
+            void DrawEdge(int a, int b)
+            {
+                var key = a < b ? (a, b) : (b, a);
+                if (!drawnEdges.Add(key)) return;
+                var (ex1, ey1) = projected[a];
+                var (ex2, ey2) = projected[b];
+                svg.AppendLine($"<line x1=\"{ex1 + ox:F1}\" y1=\"{ey1 + oy:F1}\" x2=\"{ex2 + ox:F1}\" y2=\"{ey2 + oy:F1}\" stroke=\"#4A5568\" stroke-width=\"0.8\" opacity=\"0.65\"/>");
+            }
+
+            foreach (var (a, b, c) in faces)
+            {
+                DrawEdge(a, b);
+                DrawEdge(b, c);
+                DrawEdge(c, a);
+            }
         }
 
         // ── Borular ───────────────────────────────────────────────────────────
@@ -209,7 +247,7 @@ public class AxonometricExportService
 <body>
 <header>
   <h1>📐 AfneyCAD — {projectName} — Axonometrik Boru Şeması</h1>
-  <small>Projeksiyon: Kabinetik Axonometri · {pipes.Count} boru · {valves.Count} vana · {fixtures.Count} armatür · {totalFloors} kat</small>
+  <small>Projeksiyon: Kabinetik Axonometri (B-Rep wireframe) · {pipes.Count} boru · {valves.Count} vana · {fixtures.Count} armatür · {wallSolids.Count} duvar parçası · {totalFloors} kat</small>
 </header>
 <div id=""svgwrap"">
   <svg width=""{SVG_W:F0}"" height=""{SVG_H:F0}"" xmlns=""http://www.w3.org/2000/svg"">

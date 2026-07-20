@@ -106,7 +106,7 @@ public class PipeWizardService
         var dusPos = origin + new Vector3D(2200, 200, 0);
 
         var wc = CreateFixture("WC", wcPos, 3.0, sys);
-        var lavabo = CreateFixture("Lavabo", lavaboPos, 1.5, sys);
+        var lavabo = CreateFixture("Lavabo", lavaboPos, 0.5, sys); // TS EN 806-2 Tablo 1 — standart lavabo
         var dus = CreateFixture("Duş", dusPos, 2.0, sys);
         entities.AddRange(new CadEntity[] { wc, lavabo, dus });
 
@@ -138,8 +138,8 @@ public class PipeWizardService
         var bidePos = origin + new Vector3D(800, 200, 0);
 
         entities.Add(CreateFixture("WC", wcPos, 3.0, sys));
-        entities.Add(CreateFixture("Lavabo", lavabo1Pos, 1.5, sys));
-        entities.Add(CreateFixture("Lavabo", lavabo2Pos, 1.5, sys));
+        entities.Add(CreateFixture("Lavabo", lavabo1Pos, 0.5, sys));
+        entities.Add(CreateFixture("Lavabo", lavabo2Pos, 0.5, sys));
         entities.Add(CreateFixture("Küvet", kuvetPos, 3.0, sys));
         entities.Add(CreateFixture("Bide", bidePos, 1.0, sys));
 

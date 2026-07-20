@@ -14,6 +14,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Afney.Cad.Render3D'nin HLSL shader'ı ProjectReference ile otomatik kopyalanmaz —
+         Direct3DViewportControl çalışma zamanında AppContext.BaseDirectory altında
+         Shaders/Basic.hlsl arar, bu yüzden burada da açıkça kopyalanması gerekiyor. -->
+    <None Include="..\Afney.Cad.Render3D\Shaders\Basic.hlsl" Link="Shaders\Basic.hlsl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="SkiaSharp.Views.WPF" Version="2.88.7" />
     <PackageReference Include="Serilog" Version="3.1.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
@@ -24,6 +31,7 @@
     <ProjectReference Include="..\Afney.Cad.Application\Afney.Cad.Application.csproj" />
     <ProjectReference Include="..\Afney.Cad.Infrastructure\Afney.Cad.Infrastructure.csproj" />
     <ProjectReference Include="..\Afney.Cad.Render\Afney.Cad.Render.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Render3D\Afney.Cad.Render3D.csproj" />
     <ProjectReference Include="..\Afney.Cad.Database\Afney.Cad.Database.csproj" />
     <ProjectReference Include="..\Afney.Cad.Commands\Afney.Cad.Commands.csproj" />
     <ProjectReference Include="..\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj" />

@@ -8,8 +8,15 @@ namespace Afney.Cad.Mechanical.Services;
 /*
    NE: Yangın Söndürme Tesisatı Servisi (FireFightingService)
    NEDEN: FINE SANI, sprinkler hesabı ve yerleşimini destekler.
-          Bu servis NFPA 13 / TS EN 12845 standartlarına göre sprinkler tasarımı yapar.
-   
+          Bu servis EN 12845 (Avrupa) standardına göre sprinkler tasarımı yapar
+          (yoğunluk/alan tablosu EN 12845 kaynaklıdır — bkz. aşağıdaki `HazardClass` notu).
+
+   ⚠ NOT — İKİ AYRI STANDART, İKİ AYRI SERVİS: `NFPA13SprinklerService.cs` da benzer bir
+   sprinkler tasarım hesabı içerir ama Amerikan NFPA 13 standardını uygular; iki servisin
+   `HazardClass` enum'ları AYNI İSİMLERİ taşısa da (isim çakışması, kasıtlı değil — bir web
+   araştırma ajanı tespit etti) FARKLI sayısal değerler üretir. Hangi projede hangi
+   standardın geçerli olduğuna göre DOĞRU servisi seçin.
+
    MÜHENDİSLİK DETAYI:
    - Tehlike sınıfı belirleme (Hafif, Orta, Yüksek)
    - Sprinkler aralık ve kapasite hesabı
@@ -33,6 +40,19 @@ public class FireFightingService
         public double CeilingHeightM { get; set; } = 3.0;
         public bool IsWetSystem { get; set; } = true;
         public double FloorToSystemPressure { get; set; } = 0; // mSS (dış basınç)
+
+        /*
+           NE: Ana Hat Eşdeğer Uzunluğu (MainPipeLengthM)
+           NEDEN: Hazen-Williams basınç kaybı hesabı için gerçek boru uzunluğu gerekir.
+                  Bu servis bir gerçek boru ağı topolojisine (DomainGuard/HydraulicNetworkBuilder
+                  gibi) bağlı değil — bağımsız bir ön-tasarım hesaplayıcısı. Varsayılan 50m,
+                  tipik bir orta ölçekli sprinkler ana hattı için makul bir eşdeğer uzunluk
+                  tahminidir (kullanıcı gerçek proje uzunluğunu geçebilir).
+        */
+        public double MainPipeLengthM { get; set; } = 50;
+
+        /// <summary>Hazen-Williams pürüzlülük katsayısı — NFPA 13 varsayılanı siyah çelik Sch40 için 120.</summary>
+        public double HazenWilliamsC { get; set; } = 120;
     }
 
     public class SprinklerDesignResult
@@ -43,6 +63,7 @@ public class FireFightingService
         public double DesignDensity { get; set; }                // mm/min
         public double DesignAreaM2 { get; set; }                 // operasyon alanı
         public double RequiredFlowLpm { get; set; }              // lt/dk
+        public double FrictionLossBar { get; set; }               // bar — Hazen-Williams, ana hat boyunca
         public double RequiredPressureBar { get; set; }          // bar
         public double MainPipeDN { get; set; }                   // mm
         public double BranchPipeDN { get; set; }                 // mm
@@ -81,8 +102,16 @@ public class FireFightingService
                 coveragePerHead_m2 = 12;
                 break;
             case HazardClass.OrdinaryHazard_2:
+                // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR HATA: designArea_m2 = 216 idi —
+                // bu değer EN 12845'te OH2'nin DEĞİL, OH3'ün tasarım alanıdır (kopyala-yapıştır
+                // hatası, bir web araştırma ajanı tarafından standart karşılaştırmasıyla
+                // bulundu). Gerçek EN 12845 OH2 tasarım alanı 144 m²'dir (OH1=72, OH2=144,
+                // OH3=216 ilerleyen serisi). Eski değer OH2 seçildiğinde gereğinden büyük
+                // (OH3 seviyesinde) bir tasarım alanı/debi/pompa kapasitesi hesaplatıyordu —
+                // güvenlik açısından tehlikeli değil (fazla güvenli tarafta) ama ekonomik
+                // olarak yanlış ve standart uyumsuzdu.
                 density_mm_min = 5.0;
-                designArea_m2 = 216;
+                designArea_m2 = 144;
                 maxSpacing_m = 4.0;
                 coveragePerHead_m2 = 12;
                 break;
@@ -110,14 +139,25 @@ public class FireFightingService
         // Gerekli debi: Q = Density × OperationArea
         result.RequiredFlowLpm = density_mm_min * designArea_m2;
 
-        // Gerekli basınç (basit hesap)
-        double frictionLoss = 0.02 * input.CeilingHeightM * 10; // bar
-        double sprinklerPressure = 0.5; // bar (min sprinkler çalışma basıncı)
-        result.RequiredPressureBar = sprinklerPressure + frictionLoss + (input.CeilingHeightM / 10.0);
-
-        // Boru çapları
+        // Boru çapları (basınç kaybı hesabından ÖNCE seçilmeli — Hazen-Williams çapa bağımlı)
         result.MainPipeDN = result.RequiredFlowLpm <= 500 ? 100 : (result.RequiredFlowLpm <= 1500 ? 150 : 200);
         result.BranchPipeDN = result.RequiredFlowLpm <= 200 ? 32 : (result.RequiredFlowLpm <= 500 ? 50 : 65);
+
+        /*
+           NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR HATA: Basınç kaybı önceden
+           `0.02 * CeilingHeightM * 10` gibi tavan yüksekliğine bağlı, gerçek boru
+           uzunluğu/çapı/debisiyle HİÇ İLİŞKİSİ olmayan keyfi bir formüldü — "NFPA 13"
+           standardı iddiasına rağmen gerçek bir Hazen-Williams hesabı DEĞİLDİ. Artık
+           NFPA 13 / TS EN 12845'te kullanılan metrik Hazen-Williams formülü uygulanıyor:
+               Δp = 6.05×10⁵ × Q^1.85 / (C^1.85 × d^4.87)   [Δp: bar/m, Q: L/dk, d: mm]
+           C=120 (siyah çelik Sch40, NFPA 13 varsayılanı), d=MainPipeDN, uzunluk=MainPipeLengthM.
+        */
+        double frictionLossPerMeter = 6.05e5 * Math.Pow(result.RequiredFlowLpm, 1.85)
+            / (Math.Pow(input.HazenWilliamsC, 1.85) * Math.Pow(result.MainPipeDN, 4.87));
+        result.FrictionLossBar = frictionLossPerMeter * input.MainPipeLengthM;
+
+        double sprinklerPressure = 0.5; // bar (min sprinkler çalışma basıncı, NFPA 13)
+        result.RequiredPressureBar = sprinklerPressure + result.FrictionLossBar + (input.CeilingHeightM / 10.0);
 
         // Pompa kapasitesi (%20 güvenlik marji)
         result.PumpCapacityLpm = result.RequiredFlowLpm * 1.2;

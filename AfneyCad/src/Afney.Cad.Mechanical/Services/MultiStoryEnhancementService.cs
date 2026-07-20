@@ -133,10 +133,18 @@ public class MultiStoryEnhancementService
         {
             var topPoint = riser.EndPoint.Z > riser.StartPoint.Z ? riser.EndPoint : riser.StartPoint;
             var bottomOfNew = topPoint + new Vector3D(0, 0, dz - source.Height);
-            var topOfNew = topPoint + new Vector3D(0, 0, dz);
 
-            // Kat arası bağlantı borusu
-            if (Math.Abs(dz) > 100)
+            // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR HATA: Bağlantı borusu üretme koşulu
+            // önceden `Math.Abs(dz) > 100` idi — yani KAT ARASI MESAFEYİ kontrol ediyordu,
+            // bağlantı borusunun KENDİ UZUNLUĞUNU değil. Kopyalanan kat doğrudan kaynak katın
+            // ÜSTÜNE istiflendiğinde (en yaygın durum: dz == source.Height, ör. 3000mm), bu
+            // koşul geçiyordu (3000 > 100) AMA gerçek bağlantı uzunluğu |dz - source.Height| = 0
+            // idi — yani sıfır uzunluklu, dejenere bir PipeEntity veritabanına ekleniyordu
+            // (hidrolik hesaplarda sıfıra bölme/NaN riski). Artık gerçek boşluk uzunluğu
+            // kontrol ediliyor — sadece GERÇEKTEN bir boşluk varsa (>10mm) bağlantı borusu
+            // üretiliyor.
+            double gapLength = Math.Abs(dz - source.Height);
+            if (gapLength > 10)
             {
                 var connectionPipe = new PipeEntity(topPoint, bottomOfNew, riser.InnerDiameter)
                 {

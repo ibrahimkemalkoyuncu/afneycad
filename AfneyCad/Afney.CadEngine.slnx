@@ -35,6 +35,9 @@
     <Project Path="src/Afney.Cad.Render/Afney.Cad.Render.csproj">
       <Platform Solution="*|x64" Project="x64" />
     </Project>
+    <Project Path="src/Afney.Cad.Render3D/Afney.Cad.Render3D.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
     <Project Path="src/Afney.Cad.SpatialIndex/Afney.Cad.SpatialIndex.csproj">
       <Platform Solution="*|x64" Project="x64" />
     </Project>

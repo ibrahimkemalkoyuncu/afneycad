@@ -5,9 +5,18 @@ namespace Afney.Cad.Mechanical.Services;
 
 /*
    NE: Sprinkler Hesap Servisi (NFPA13SprinklerService)
-   NEDEN: NFPA 13 / TS EN 12845 — otomatik sprinkler sistemi tasarımı.
+   NEDEN: NFPA 13 (Amerikan) sprinkler sistemi tasarımı — yoğunluk/alan tablosu imperial
+          NFPA 13 kaynağından metriğe çevrilmiştir (bkz. `HazardClass` altındaki değerler).
           FINE MEP yalnızca boru çizimi yapar; yoğunluk/alan metodu yoktur.
           Yangın departmanı onayı için hesap raporu zorunlu.
+
+   ⚠ NOT — İKİ AYRI STANDART, İKİ AYRI SERVİS: `FireFightingService.cs` da benzer bir
+   sprinkler tasarım hesabı içerir ama farklı bir standardı (EN 12845 — Avrupa) uygular;
+   iki servisin `HazardClass` enum'ları AYNI İSİMLERİ (LightHazard/OrdinaryHazard...)
+   taşısa da FARKLI sayısal değerler üretir (biri NFPA13, diğeri EN12845 kaynaklı). Bu
+   kasıtlı bir tasarım değil, iki ayrı oturumda bağımsız eklenmiş servislerin isim
+   çakışmasıdır (bir web araştırma ajanı tarafından tespit edildi). Hangi projede hangi
+   standardın geçerli olduğuna göre DOĞRU servisi seçin — ikisini karıştırmayın.
 
    HESAP YÖNTEMİ:
    - Tehlike Sınıfı → Tasarım Yoğunluğu + Tasarım Alanı

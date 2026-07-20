@@ -2545,4 +2545,48 @@ Bu oturum boyunca Notion MCP bağlantısı kopuktu; puanlama/haritalama sohbette
 
 ---
 
-*Son guncelleme: 2026-07-19 | AfneyCAD v4.0.0 — Session #51*
+## Session #52 — B-Rep Kernel Aktivasyonu · FineSANI Denetimi · Sıfırdan D3D11 Render Motoru · CSG Boolean Faz 1-3 (2026-07-20)
+
+Bu oturumun teması: `Afney.Cad.Geometry/Topology` altında oturum öncesinden kalma, hiç örneklenmeyen ölü bir winged-edge B-Rep iskeletini gerçek çalışır hale getirmek; ardından kullanıcının "4M FineSANI ile kategori bazlı, kod-doğrulamalı karşılaştır" isteğiyle 12 kategoride gerçek denetim yapıp bulunan eksikleri kapatmak; sonra iki büyük mimari girişim — sıfırdan GPU hızlandırmalı 3D render motoru ve tam topolojik B-Rep boolean — başlatmak.
+
+### 1. B-Rep Kernel Aktivasyonu
+- `Face.GetArea()` düzeltildi (XY-izdüşüm → Newell's method, düşey yüzeylerde artık doğru alan).
+- `Solid.GetVolume()` divizör hatası düzeltildi (1/6 → 1/3, divergence theorem).
+- Yeni: `PolygonTriangulator` (ear-clipping), `BRepBuilder` (`ExtrudePolygon`/`ExtrudeBox`), `BRepTessellator`, `WallBRepService`, `DuctBRepService` — B-Rep artık gerçek duvar/kanal geometrisine bağlı, `Pipe3DViewWindow`, DXF/IFC export ve axonometrik SVG'de kullanılıyor.
+
+### 2. FineSANI Denetimi — 12 Kategori, Kod Doğrulamalı
+`karsilastirma.md`/`Eksiklikler.md` (öz-değerlendirme, 610/630) referans alınmadı — `docs/Denetim_Gecmisi.md` yeni, kod-okuma tabanlı bir denetim geçmişi başlattı. En düşükten yukarı doğru gerçek bug'lar bulunup düzeltildi (her biri bağımsız bir ajanla şüpheci doğrulandı):
+
+| Servis | Bulunan Gerçek Hata |
+|---|---|
+| `RealTimeCostService` | Fiyat sorgusu yanlış enum (`SystemType` yerine `PipeMaterialType` olmalıydı) — her boru varsayılan 50 TRY/m alıyordu |
+| `MultiStoryEnhancementService` | Riser guard yanlış eşik kontrolü — kat üst üsteyken sıfır-uzunluklu bağlantı borusu oluşuyordu |
+| `FireFightingService` | Basınç kaybı formülü debiden bağımsızdı (gerçek Hazen-Williams'a çevrildi); OH2/OH3 tasarım alanı karışıklığı (216→144 m²) |
+| `WasteWaterDesignService` | TS EN 12056-2 Tablo 3 K-katsayı etiketleme hatası (System_IV: 1.0→1.2) |
+| `SanitaryFixtureEntity` + `PipeWizardService` (3 yer) | Standart lavabo LU=1.5 (yanlış, DIN "Cerrahi Lavabo" değeri) → 0.5 (TS EN 806-2 doğru değer) |
+| `PortEngineeringTests` (2 bilinen hata) | Reaktif hesap testi açık-uçlu şebeke kuruyordu (gerçek DomainGuard sertleşmesi, test eskiydi); washbasin LU testi de yukarıdaki hatayı doğruluyordu |
+
+Ayrıca: DXF `DIMENSION` entity export, IFC duvar export (B-Rep→IFC4 tessellation, ilk kez), 43 yeni test (5 daha önce test edilmeyen serviste: HeatingSystem, PumpSelection, PressureDrop, GutterSizing, ClashDetection).
+
+**Sonuç: 286/286 test — bu oturumda ilk kez sıfır bilinen hata. Genel denetim ortalaması 6.8 → 7.3/10.**
+
+### 3. Sıfırdan D3D11 Render Motoru (Faz 1) — `Afney.Cad.Render3D`
+Kullanıcı kararı: WPF `Viewport3D` KULLANILMADAN, gerçek GPU hızlandırmalı (Direct3D11, Vortice.Windows) bir motor sıfırdan yazıldı — mevcut Skia 2D motoru ve `Pipe3DViewWindow` dokunulmadan kaldı. `D3D11DeviceResources`, `D3DImageBridge` (WPF `D3DImage` köprüsü), `Camera3D`, `MeshBuffer`, `Basic.hlsl`, `Renderer`, `Direct3DViewportControl` — komut satırından `d3dtest`.
+
+**Hata avı (3 tur):** Çalışma zamanında `E_INVALIDARG` (`IDirect3DDevice9Ex.CreateTexture`) hatası alındı. İlk iki düzeltme denemesi ("D3D11/D3D9Ex farklı fiziksel GPU'lara bağlanıyor" teorisiyle adaptör index/LUID eşleştirmesi) hatayı GİDERMEDİ. Bu ortamda gerçek bir GPU (NVIDIA GTX 1050 Ti) olduğu fark edilip küçük bir WinForms tabanlı program ile hata yerel olarak BİREBİR tekrar üretildi — adaptör LUID'lerinin zaten eşleştiği doğrulandı (teori tamamen yanlıştı). Vortice.Windows'un resmi örneği (`DrawingSurface.cs`) satır satır karşılaştırılınca gerçek fark bulundu: paylaşılan D3D11 texture `BindFlags.RenderTarget | BindFlags.ShaderResource` gerektiriyordu, kodda sadece `RenderTarget` vardı. Düzeltme yerel tekrar-üretimde doğrulandı, ardından ana koda uygulandı; gereksiz adaptör-eşleştirme kodu geri alındı.
+
+**Endüstriyel standart yükseltmeleri:** MSAA (4x, donanım desteklemezse otomatik düşer — ayrı MSAA renk hedefine render edip D3D9-paylaşımlı tek-örnekli hedefe `ResolveSubresource`), gamma-doğru (lineer uzay) aydınlatma, Shader Model 4→5 yükseltme.
+
+Detay: `docs/Roadmap_3D_Render_Motoru.md`. Faz 1 kod seviyesinde tamamlandı, kullanıcının `d3dtest` ile görsel doğrulaması gerekiyor.
+
+### 4. Tam Topolojik B-Rep Boolean (Faz 1-3) — `Afney.Cad.Geometry/Topology/Boolean`
+Kullanıcı kararı: mesh-seviyesi kısayol değil, **tam topolojik winged-edge boolean**. `PlaneIntersection`, `FaceIntersection`, `EdgeSplitter` (winged-edge cerrahi), `FaceSplitter` (kiriş bölme), `SolidClassifier` (Möller-Trumbore nokta-içi testi) — hepsi ilk denemede test geçti. Faz 4 (tam SUBTRACT orkestrasyonu, eksene-hizalı "dilim kesme" senaryosuyla) henüz başlanmadı — detay `docs/Roadmap_CSG_Boolean.md`.
+
+### Sonraki Oturum Öncelikleri (sırayla)
+1. **CSG Boolean Faz 4** — eksene-hizalı slab-cut SUBTRACT senaryosu (`docs/Roadmap_CSG_Boolean.md`'deki önerilen test).
+2. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü (kullanıcının `d3dtest` görsel onayından sonra).
+3. **Manuel Mahal — kapı/pencere pervaz-snap** (`ManualMahalCommand.cs`): açıklık tıklamaları şu an ham imleç koordinatına gidiyor, gerçek `DoorEntity`/`WindowEntity` genişliğine snap etmiyor — kullanıcıdan pervaz noktası referansı (duvar ekseni mi iç yüz mü) ve snap davranışı (sessiz mi onaylı mı) netleşmeyi bekliyor.
+
+---
+
+*Son guncelleme: 2026-07-20 | AfneyCAD v4.0.0 — Session #52*

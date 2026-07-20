@@ -1,0 +1,28 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.Direct3DTestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:r3d="clr-namespace:Afney.Cad.Render3D;assembly=Afney.Cad.Render3D"
+        Title="🧪 D3D11 Motor Testi — Faz 1 Pipeline Doğrulama" Height="700" Width="900"
+        WindowStartupLocation="CenterOwner" Background="#0D1117" Foreground="White">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Margin="0,0,0,10" FontSize="14" Foreground="#AAAAAA">
+            Sıfırdan Direct3D11 render motoru — WPF Viewport3D KULLANILMIYOR. Küp, bu oturumun
+            B-Rep kernel'inden (BRepBuilder.ExtrudeBox + BRepTessellator) üretiliyor.
+            Sağ fare: yörünge (orbit) · Orta fare: kaydır (pan) · Tekerlek: yakınlaştır.
+        </TextBlock>
+
+        <Border Grid.Row="1" BorderBrush="#333" BorderThickness="1">
+            <r3d:Direct3DViewportControl x:Name="Viewport3D"/>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0" HorizontalAlignment="Right">
+            <Button Content="Kapat" Click="Close_Click" Width="80" Height="30" Background="#555" Foreground="White" BorderThickness="0"/>
+        </StackPanel>
+    </Grid>
+</Window>

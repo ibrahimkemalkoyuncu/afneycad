@@ -81,10 +81,10 @@
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBlock Text="Hesap Yöntemi:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <ComboBox x:Name="MethodCombo" Width="260" Background="#333" Foreground="Black" SelectedIndex="1">
-                            <ComboBoxItem Content="System I  — Tam Kapasite (Hastane, Endüstri)"/>
-                            <ComboBoxItem Content="System II — Konut (K=0.5) [Varsayılan]"/>
-                            <ComboBoxItem Content="System III — Ticari/Ofis (K=0.7)"/>
-                            <ComboBoxItem Content="System IV — Özel / Her cihaz tam kapasite"/>
+                            <ComboBoxItem Content="System I   — Umumi/Yoğun kullanım (K=1.0)"/>
+                            <ComboBoxItem Content="System II  — Konut (K=0.5) [Varsayılan]"/>
+                            <ComboBoxItem Content="System III — Hastane/Okul/Otel/Ofis, sık kullanım (K=0.7)"/>
+                            <ComboBoxItem Content="System IV  — Özel dikkat gerektiren (laboratuvar vb.) (K=1.2)"/>
                         </ComboBox>
                     </StackPanel>
                 </StackPanel>

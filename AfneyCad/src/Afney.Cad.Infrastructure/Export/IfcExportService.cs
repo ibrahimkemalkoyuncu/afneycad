@@ -4,9 +4,14 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.IO;
+using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Abstractions;
+using Afney.Cad.Domain.Entities.Annotation;
+using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Mechanical.Entities;
+using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Infrastructure.Export;
 
@@ -30,8 +35,13 @@ public class IfcExportService
     private int _cartesianPointId_000; // (0,0,0)
     private int _axis2Placement3DId_Default;
 
-    public void ExportToIfc(IEnumerable<CadEntity> entities, string filePath)
+    public void ExportToIfc(IEnumerable<CadEntity> entitiesSource, string filePath)
     {
+        var entities = entitiesSource.ToList();
+        var doors = entities.OfType<DoorEntity>().ToList();
+        var windows = entities.OfType<WindowEntity>().ToList();
+        var wallBRep = new WallBRepService(new CadDatabase());
+
         _idCounter = 1;
         _sb.Clear();
 
@@ -96,6 +106,16 @@ public class IfcExportService
             {
                 int ductId = ExportDuct(duct);
                 if (ductId > 0) productIds.Add(ductId);
+            }
+            else if (entity is DimensionEntity dim)
+            {
+                int dimId = ExportDimension(dim);
+                if (dimId > 0) productIds.Add(dimId);
+            }
+            else if (entity is WallEntity wall)
+            {
+                int wallId = ExportWall(wall, wallBRep, doors, windows);
+                if (wallId > 0) productIds.Add(wallId);
             }
         }
 
@@ -230,6 +250,118 @@ public class IfcExportService
         _sb.AppendLine($"#{spaceId}= IFCSPACE('{ToIfcGuid(room.Id)}',#{_ownerHistoryId},'{room.Name}',$,$,#{_axis2Placement3DId_Default},#{productDefShapeId},.ELEMENT.,.INTERNAL.,$);");
 
         return spaceId;
+    }
+
+    /*
+        NE: Ölçü (Dimension) Dışa Aktarımı (ExportDimension)
+        NEDEN: DimensionEntity'ler önceden IFC dışa aktarımında HİÇ ele alınmıyordu (grep ile
+               doğrulandı — export type-switch'inde hiç geçmiyordu, sessizce atlanıyordu).
+        NASIL: IFC'nin AutoCAD DXF'teki gibi birinci sınıf bir "DIMENSION" varlığı YOKTUR —
+               endüstri standardı (Revit/ArchiCAD dahil) IFC dışa aktarımlarında ölçüler
+               IfcAnnotation + düzlemsel eğri seti (GeometricCurveSet) olarak temsil edilir.
+               Geometri, DimensionEntity'nin KENDİ `ExplodeToBasicEntities()` metodundan
+               (ölçü çizgisi + uzatma çizgileri) alınır — bu, DXF export'unun da benzer
+               şekilde kullandığı, tek doğruluk kaynağından (single source of truth) üretim.
+        KAPSAM: Ölçü metni IfcAnnotation.Name alanına yazılır (gerçek bir IfcTextLiteral
+               entity'si değil — bu, ek bir IfcAnnotationTextOccurrence/IfcPresentationStyle
+               zinciri gerektirirdi; bilinçli, dokümante edilmiş kapsam sınırı).
+    */
+    private int ExportDimension(DimensionEntity dim)
+    {
+        var parts = dim.ExplodeToBasicEntities();
+        var lines = parts.OfType<LineEntity>().ToList();
+        if (lines.Count == 0) return 0;
+
+        var curveIds = new List<int>();
+        foreach (var line in lines)
+        {
+            int p1 = CreateCartesianPoint(line.StartPoint);
+            int p2 = CreateCartesianPoint(line.EndPoint);
+            int polylineId = NextId();
+            _sb.AppendLine($"#{polylineId}= IFCPOLYLINE((#{p1},#{p2}));");
+            curveIds.Add(polylineId);
+        }
+
+        int curveSetId = NextId();
+        string curvesStr = string.Join(",", curveIds.Select(id => $"#{id}"));
+        _sb.AppendLine($"#{curveSetId}= IFCGEOMETRICCURVESET(({curvesStr}));");
+
+        int shapeRepId = NextId();
+        _sb.AppendLine($"#{shapeRepId}= IFCSHAPEREPRESENTATION(#{GetServiceId("IfcGeometricRepresentationContext")},'Annotation','GeometricCurveSet',(#{curveSetId}));");
+
+        int productDefShapeId = NextId();
+        _sb.AppendLine($"#{productDefShapeId}= IFCPRODUCTDEFINITIONSHAPE($,$,(#{shapeRepId}));");
+
+        var text = parts.OfType<TextEntity>().FirstOrDefault();
+        string label = (text?.Text ?? "Dimension").Replace("'", "");
+
+        int annotationId = NextId();
+        _sb.AppendLine($"#{annotationId}= IFCANNOTATION('{ToIfcGuid(dim.Id)}',#{_ownerHistoryId},'{label}','Dimension annotation',$,#{_axis2Placement3DId_Default},#{productDefShapeId});");
+
+        return annotationId;
+    }
+
+    /*
+        NE: Duvar Dışa Aktarımı (ExportWall) — B-Rep KAYNAKLI
+        NEDEN: WallEntity'ler önceden IFC dışa aktarımında HİÇ ele alınmıyordu (grep ile
+               doğrulandı — export type-switch'inde hiç geçmiyordu). Bu, projenin diğer
+               tüm ExportXxx metotlarından (Pipe/Duct/Elbow/Tee) FARKLI bir yaklaşım kullanır:
+               onlar entity parametrelerinden doğrudan IFCEXTRUDEDAREASOLID STEP metni üretir
+               (B-Rep kernel'e hiç uğramaz). Burada ise gerçek kaynak `WallBRepService` —
+               yani duvar 3D görünümünde (Pipe3DViewWindow) ve axonometrik export'ta
+               kullanılan AYNI B-Rep Solid nesneleri `BRepTessellator` ile üçgenlenip
+               IFC4'ün tessellation temsiliyle (IFCCARTESIANPOINTLIST3D + IFCPOLYGONALFACESET)
+               yazılıyor. Kapı/pencere boşlukları (WallBRepService segmentasyonu) bu sayede
+               IFC çıktısına da otomatik yansıyor — ayrıca yeniden hesaplanmıyor.
+        KAPSAM: Kapı/pencere elemanlarının kendisi (IfcDoor/IfcWindow, açıklık boşluğu
+               IfcOpeningElement ile) hâlâ ayrı export edilmiyor — sadece duvar gövdesi
+               (boşluklu) doğru geometriyle çıkıyor. Bu bilinçli, dokümante edilmiş bir sonraki
+               adım.
+    */
+    private int ExportWall(WallEntity wall, WallBRepService wallBRep, List<DoorEntity> doors, List<WindowEntity> windows)
+    {
+        var segments = wallBRep.GenerateWallSolids(wall, doors, windows);
+        if (segments.Count == 0) return 0;
+
+        var itemIds = new List<int>();
+        foreach (var solid in segments)
+        {
+            var (verts, faces) = BRepTessellator.Tessellate(solid);
+            if (verts.Count == 0 || faces.Count == 0) continue;
+
+            int pointListId = NextId();
+            string coordsStr = string.Join(",", verts.Select(v =>
+                $"({v.X.ToString("F4", CultureInfo.InvariantCulture)},{v.Y.ToString("F4", CultureInfo.InvariantCulture)},{v.Z.ToString("F4", CultureInfo.InvariantCulture)})"));
+            _sb.AppendLine($"#{pointListId}= IFCCARTESIANPOINTLIST3D(({coordsStr}));");
+
+            var faceIds = new List<int>();
+            foreach (var (a, b, c) in faces)
+            {
+                int faceId = NextId();
+                _sb.AppendLine($"#{faceId}= IFCINDEXEDPOLYGONALFACE(({a + 1},{b + 1},{c + 1}));");
+                faceIds.Add(faceId);
+            }
+
+            int faceSetId = NextId();
+            string facesStr = string.Join(",", faceIds.Select(id => $"#{id}"));
+            _sb.AppendLine($"#{faceSetId}= IFCPOLYGONALFACESET(#{pointListId},.T.,({facesStr}),$);");
+            itemIds.Add(faceSetId);
+        }
+
+        if (itemIds.Count == 0) return 0;
+
+        int shapeRepId = NextId();
+        string itemsStr = string.Join(",", itemIds.Select(id => $"#{id}"));
+        _sb.AppendLine($"#{shapeRepId}= IFCSHAPEREPRESENTATION(#{GetServiceId("IfcGeometricRepresentationContext")},'Body','Tessellation',({itemsStr}));");
+
+        int productDefShapeId = NextId();
+        _sb.AppendLine($"#{productDefShapeId}= IFCPRODUCTDEFINITIONSHAPE($,$,(#{shapeRepId}));");
+
+        int wallId = NextId();
+        string name = $"{wall.GetMaterialText()} {wall.ThicknessMm:F0}mm";
+        _sb.AppendLine($"#{wallId}= IFCWALL('{ToIfcGuid(wall.Id)}',#{_ownerHistoryId},'{name}',$,$,#{_axis2Placement3DId_Default},#{productDefShapeId},$,$);");
+
+        return wallId;
     }
 
     private int ExportElbow(ElbowEntity elbow)

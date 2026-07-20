@@ -32,13 +32,25 @@ public class WasteWaterDesignService
         _database = database;
     }
 
-    // TS EN 12056 Pis Su Debi Hesap Yöntemleri (Eş Zamanlılık Sistemleri)
+    /*
+       NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR ETİKETLEME HATASI: TS EN 12056-2 Tablo 3'ün
+       4 K-faktörü kategorisi şudur: K=0.5 seyrek/düzensiz kullanım (konut), K=0.7 sık
+       kullanım (hastane/okul/otel/ofis), K=1.0 yoğun/umumi kullanım (halka açık tuvalet
+       gibi tepe debi eğilimli), K=1.2 özel dikkat gerektiren kullanım (laboratuvar vb.).
+       Önceki kod System_I'i "Hastane, Endüstriyel" olarak etiketleyip K=1.0 veriyordu —
+       ama standarda göre hastane K=0.7 (sık kullanım) kategorisine girer, K=1.0 değil.
+       System_IV ("Özel") ise K=1.0 alıyordu, standardın en üst katmanı olan K=1.2 hiç
+       kullanılmıyordu. Bir web araştırma ajanı bu standardı bağımsız doğrulayıp hatayı
+       tespit etti — düzeltme: System_I → umumi/yoğun kullanım (K=1.0, değer doğruydu,
+       sadece etiket yanlıştı), System_III → hastane dahil sık kullanım (K=0.7), System_IV
+       → gerçek K=1.2 (özel dikkat gerektiren).
+    */
     public enum DesignMethod
     {
-        System_I,    // Her cihazın debisi ayrı (Hastane, Endüstriyel)
-        System_II,   // Konut (Eş zamanlılık katsayılı) - K = 0.5
-        System_III,  // Ticari (Düşük eş zamanlılık) - K = 0.7
-        System_IV    // Özel (Tam kapasite) - K = 1.0
+        System_I,    // Umumi/Yoğun kullanım (halka açık tuvalet vb.) - K = 1.0
+        System_II,   // Konut (seyrek/düzensiz kullanım) - K = 0.5
+        System_III,  // Sık kullanım (Hastane, Okul, Otel, Ofis) - K = 0.7
+        System_IV    // Özel dikkat gerektiren (laboratuvar vb.) - K = 1.2
     }
 
     /*
@@ -55,7 +67,7 @@ public class WasteWaterDesignService
             DesignMethod.System_I => 1.0,
             DesignMethod.System_II => 0.5,
             DesignMethod.System_III => 0.7,
-            DesignMethod.System_IV => 1.0,
+            DesignMethod.System_IV => 1.2,
             _ => 0.5
         };
 

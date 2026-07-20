@@ -23,6 +23,7 @@
                     <TextBlock Text="Yenile" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            <CheckBox x:Name="ShowWallsCheckBox" Content="Duvarları Göster (B-Rep)" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Checked="ShowWalls_Changed" Unchecked="ShowWalls_Changed"/>
         </StackPanel>
         <Border Grid.Row="1" BorderBrush="#555" BorderThickness="1" Background="#0A0A1A">
             <Viewport3D x:Name="MainViewport">

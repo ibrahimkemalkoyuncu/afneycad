@@ -481,9 +481,18 @@ public class SanitaryFixtureEntity : MechanicalEntity
     // NE: Standart cihazları tek satırda örneğini alma.
     // NEDEN: Birim testlerde, sihirbazda ve DWG import'ta hızlı obje üretimi için.
 
-    /// <summary>Standart yarım ayak lavabo — 550×450mm, DN40 gider, DN15 sıcak+soğuk.</summary>
+    /*
+       NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR STANDART HATASI: Bu metod LU=1.5 kullanıyordu —
+       ama TS EN 806-2 Tablo 1'e göre standart bir lavabonun LU değeri 0.5'tir (bkz.
+       AdvancedHydraulicsService.cs: ["Lavabo"]=new(0.5,...), RoomDefinitionService.cs'deki 8
+       farklı lavabo eşanlamlısı — hepsi 0.5 kullanıyor). 1.5 değeri aslında "Cerrahi Lavabo"
+       (DIN 1988-300 §5.3, çok daha yüksek debili özel bir armatür) için ayrılmış — burada
+       yanlışlıkla standart lavaboya kopyalanmış. Bir test (PortEngineeringTests) bu hatayı
+       yakalamıştı (0.5 bekliyordu, 1.5 alıyordu) — kodun kendisi düzeltildi, test doğruydu.
+    */
+    /// <summary>Standart yarım ayak lavabo — 550×450mm, DN40 gider, DN15 sıcak+soğuk, LU=0.5 (TS EN 806-2 Tablo 1).</summary>
     public static SanitaryFixtureEntity CreateWashbasin(Vector3D position)
-        => new(position, "Lavabo (Yarım Ayak)", 1.5)
+        => new(position, "Lavabo (Yarım Ayak)", 0.5)
         {
             Width = 550, Depth = 450,
             ColdWaterOffset = new Vector3D(80, -50, -500),

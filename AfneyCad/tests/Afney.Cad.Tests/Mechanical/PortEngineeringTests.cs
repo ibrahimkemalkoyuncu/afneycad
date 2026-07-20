@@ -178,10 +178,20 @@ public class PortEngineeringTests
         var pipe = new PipeEntity(new Vector3D(0, 0, 0), new Vector3D(1000, 0, 0), 25.0);
         var riser = new PipeEntity(new Vector3D(1000, 0, 0), new Vector3D(1000, 0, 3000), 25.0);
 
+        // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR TEST HATASI: riser'ın uç noktası
+        // (1000,0,3000) hiçbir şeye bağlı değildi — "açık uç" (DomainGuardService.CheckOpenEnds,
+        // _database'den bağımsız çalışır, bu testte de devrede). RecalculateProject artık
+        // ValidationGate'ten geçmeden hesaplama YAPMIYOR (bilinçli, sertleştirilmiş davranış —
+        // gerçek bir sistemde açık uçlu bir boru hattında hesaplama yapmak anlamsızdır). Bu
+        // yüzden riser'ın ucuna tek portlu bir MechanicalLoadNode (sink) eklenip açık uç
+        // kapatılıyor — artık gerçek, uçtan uca kapalı bir şebeke test ediliyor.
+        var sinkNode = new MechanicalLoadNode(new Vector3D(1000, 0, 3000), 1.0);
+
         // Kernel'e ekle (OnEntityAdded -> AutoConnectPorts tetiklenir)
         kernel.OnEntityAddedToDatabase(loadNode);
         kernel.OnEntityAddedToDatabase(pipe);
         kernel.OnEntityAddedToDatabase(riser);
+        kernel.OnEntityAddedToDatabase(sinkNode);
 
         // Manuel Connect'e gerek yok; çünkü AutoConnectPorts (Mühendislik Zekası) 
         // koordinatlar 0mm farkla örtüştüğü için bunları bağlamış olmalı.
@@ -191,7 +201,7 @@ public class PortEngineeringTests
         Assert.True(pipeNode.Ports.Any(p => p.IsConnected), "Boru otomatik olarak bağlanmış olmalı.");
 
         // İlk tam hesaplama (Bağlantılar kurulduktan sonra)
-        var allEntities = new System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity> { loadNode, pipe, riser };
+        var allEntities = new System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity> { loadNode, pipe, riser, sinkNode };
         kernel.RecalculateProject(allEntities);
 
         double initialVelocity = pipe.Velocity;

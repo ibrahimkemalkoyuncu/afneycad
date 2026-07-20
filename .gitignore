@@ -20,6 +20,9 @@ obj/
 .DS_Store
 Thumbs.db
 
+# Claude Code local config (machine-specific permission allowlist, scratchpad paths)
+.claude/
+
 
 # Other outputs
 CALC/

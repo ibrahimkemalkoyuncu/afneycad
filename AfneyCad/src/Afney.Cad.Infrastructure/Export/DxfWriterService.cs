@@ -49,9 +49,11 @@ public class DxfWriterService
     public void WriteToFile(string filePath)
     {
         var sb = new StringBuilder(1024 * 64);
+        var entities = _database.GetAllEntities().ToList();
         WriteHeader(sb);
         WriteTables(sb);
-        WriteEntities(sb, _database.GetAllEntities().ToList());
+        var dimBlocks = WriteBlocksSection(sb, entities);
+        WriteEntities(sb, entities, dimBlocks);
         WriteFooter(sb);
         File.WriteAllText(filePath, sb.ToString(), Encoding.ASCII);
     }
@@ -63,9 +65,11 @@ public class DxfWriterService
     public void WriteEntitiesToFile(string filePath, IEnumerable<CadEntity> entities)
     {
         var sb = new StringBuilder(1024 * 32);
+        var list = entities.ToList();
         WriteHeader(sb);
         WriteTables(sb);
-        WriteEntities(sb, entities.ToList());
+        var dimBlocks = WriteBlocksSection(sb, list);
+        WriteEntities(sb, list, dimBlocks);
         WriteFooter(sb);
         File.WriteAllText(filePath, sb.ToString(), Encoding.ASCII);
     }
@@ -153,9 +157,139 @@ public class DxfWriterService
         sb.AppendLine("ENDSEC");
     }
 
+    // ── BLOCKS (anonim ölçü blokları) ──────────────────────────────────────────────
+
+    /*
+       NE: Ölçü Bloğu Geometrisi (DimBlockGeometry)
+       NEDEN: Gerçek bir DXF DIMENSION entity'si, çizim geometrisini (ok, uzatma çizgisi, metin)
+              kendi içinde taşımaz — AutoCAD'in de yaptığı gibi anonim bir BLOCK'a (*D1, *D2, ...)
+              koyar ve DIMENSION entity'si sadece o bloğu + tanım noktalarını referanslar. Bu sayede
+              AutoCAD'de dimension GERÇEK bir DIMENSION nesnesi olarak seçilir/düzenlenir —
+              önceki davranış (düz LINE+TEXT) sadece görsel olarak benziyordu, CAD anlamda
+              "dimension" değildi.
+    */
+    private readonly record struct DimBlockGeometry(
+        string BlockName, Vector3D DimLineP1, Vector3D DimLineP2,
+        Vector3D Ext1Origin, Vector3D Ext2Origin, Vector3D TextPos,
+        double TextRotation, double TextHeight, string Text, int TypeFlag);
+
+    /*
+       NE: BLOCKS Bölümünü Yaz (WriteBlocksSection)
+       NEDEN: DIMENSION entity'leri ENTITIES bölümünden ÖNCE gelen BLOCKS bölümünde tanımlı
+              olmalı (DXF dosya sırası zorunluluğu) — bu yüzden önce tüm Linear/Aligned
+              DimensionEntity'ler için blok geometrisi hesaplanıp yazılıyor, sonra ENTITIES
+              bölümünde bu bloklara referans veren DIMENSION kayıtları üretiliyor.
+
+       KAPSAM: Radius/Angular DimensionType'lar hâlâ eski (patlatılmış LINE+TEXT) yönteme
+              düşüyor — R12 DIMENSION group code'ları radius/angular için (15/25/35 merkez
+              noktası, ek leader uzunluğu vb.) daha karmaşık ve hatalı üretilirse AutoCAD'in
+              dosyayı reddetmesi riski var; bu yüzden sadece iyi anlaşılan Linear/Aligned için
+              gerçek DIMENSION üretiliyor (bilinçli, dokümante edilmiş kapsam sınırı).
+    */
+    private static Dictionary<Guid, DimBlockGeometry> WriteBlocksSection(StringBuilder sb, List<CadEntity> entities)
+    {
+        var dims = entities.OfType<DimensionEntity>()
+            .Where(d => d.DimType == DimensionType.Linear || d.DimType == DimensionType.Aligned)
+            .ToList();
+
+        var result = new Dictionary<Guid, DimBlockGeometry>();
+
+        sb.AppendLine("  0");
+        sb.AppendLine("SECTION");
+        sb.AppendLine("  2");
+        sb.AppendLine("BLOCKS");
+
+        int counter = 1;
+        foreach (var dim in dims)
+        {
+            var geo = ComputeDimensionGeometry(dim, $"*D{counter++}");
+            result[dim.Id] = geo;
+
+            string layer = dim.Layer ?? "0";
+            int aci = ArgbToAci(dim.Color);
+
+            sb.AppendLine("  0");
+            sb.AppendLine("BLOCK");
+            Group(sb, 8, layer);
+            Group(sb, 2, geo.BlockName);
+            Group(sb, 70, "1"); // 1 = anonim blok (dimension/hatch türetilmiş)
+            GroupXYZ(sb, 10, 20, 30, new Vector3D(0, 0, 0));
+            Group(sb, 3, geo.BlockName);
+
+            WriteDxfLine(sb, layer, aci, geo.DimLineP1, geo.DimLineP2);
+            WriteDxfLine(sb, layer, aci, geo.Ext1Origin, geo.DimLineP1);
+            WriteDxfLine(sb, layer, aci, geo.Ext2Origin, geo.DimLineP2);
+            WriteDxfText(sb, layer, aci, geo.Text, geo.TextPos, geo.TextHeight, geo.TextRotation);
+
+            sb.AppendLine("  0");
+            sb.AppendLine("ENDBLK");
+        }
+
+        sb.AppendLine("  0");
+        sb.AppendLine("ENDSEC");
+
+        return result;
+    }
+
+    private static DimBlockGeometry ComputeDimensionGeometry(DimensionEntity dim, string blockName)
+    {
+        if (dim.DimType == DimensionType.Aligned)
+        {
+            var seg = dim.SecondPoint - dim.FirstPoint;
+            double len = seg.Length();
+            var dir = len > 1e-9 ? new Vector3D(seg.X / len, seg.Y / len, 0) : new Vector3D(1, 0, 0);
+            var perp = new Vector3D(-dir.Y, dir.X, 0);
+            var dp = dim.DimLinePoint - dim.FirstPoint;
+            double off = dp.X * perp.X + dp.Y * perp.Y;
+            var dimP1 = new Vector3D(dim.FirstPoint.X + perp.X * off, dim.FirstPoint.Y + perp.Y * off, 0);
+            var dimP2 = new Vector3D(dim.SecondPoint.X + perp.X * off, dim.SecondPoint.Y + perp.Y * off, 0);
+            double angle = Math.Atan2(dir.Y, dir.X) * 180.0 / Math.PI;
+            var mid = new Vector3D((dimP1.X + dimP2.X) / 2, (dimP1.Y + dimP2.Y) / 2, 0);
+
+            return new DimBlockGeometry(blockName, dimP1, dimP2, dim.FirstPoint, dim.SecondPoint,
+                mid, angle, dim.TextHeight, dim.GetDxfText(), 1); // 70=1 → Aligned
+        }
+
+        // Linear (Rotated/horizontal/vertical)
+        bool horiz = Math.Abs(dim.SecondPoint.X - dim.FirstPoint.X) >= Math.Abs(dim.SecondPoint.Y - dim.FirstPoint.Y);
+        if (horiz)
+        {
+            double dimY = dim.DimLinePoint.Y;
+            var dimP1 = new Vector3D(dim.FirstPoint.X, dimY, 0);
+            var dimP2 = new Vector3D(dim.SecondPoint.X, dimY, 0);
+            var mid = new Vector3D((dim.FirstPoint.X + dim.SecondPoint.X) / 2, dimY + dim.TextHeight * 0.6, 0);
+            return new DimBlockGeometry(blockName, dimP1, dimP2, dim.FirstPoint, dim.SecondPoint,
+                mid, 0, dim.TextHeight, dim.GetDxfText(), 0); // 70=0 → Linear
+        }
+        else
+        {
+            double dimX = dim.DimLinePoint.X;
+            var dimP1 = new Vector3D(dimX, dim.FirstPoint.Y, 0);
+            var dimP2 = new Vector3D(dimX, dim.SecondPoint.Y, 0);
+            var mid = new Vector3D(dimX + dim.TextHeight * 0.6, (dim.FirstPoint.Y + dim.SecondPoint.Y) / 2, 0);
+            return new DimBlockGeometry(blockName, dimP1, dimP2, dim.FirstPoint, dim.SecondPoint,
+                mid, 90, dim.TextHeight, dim.GetDxfText(), 0);
+        }
+    }
+
+    private static void WriteDimensionEntity(StringBuilder sb, DimensionEntity dim, DimBlockGeometry geo)
+    {
+        sb.AppendLine("  0");
+        sb.AppendLine("DIMENSION");
+        Group(sb, 8, dim.Layer ?? "0");
+        Group(sb, 2, geo.BlockName);
+        GroupXYZ(sb, 10, 20, 30, geo.DimLineP1);
+        GroupXYZ(sb, 11, 21, 31, geo.TextPos);
+        GroupXYZ(sb, 13, 23, 33, geo.Ext1Origin);
+        GroupXYZ(sb, 14, 24, 34, geo.Ext2Origin);
+        Group(sb, 70, geo.TypeFlag.ToString());
+        Group(sb, 1, geo.Text);
+        Group(sb, 3, "STANDARD");
+    }
+
     // ── ENTITIES ────────────────────────────────────────────────────────────────
 
-    private static void WriteEntities(StringBuilder sb, List<CadEntity> entities)
+    private static void WriteEntities(StringBuilder sb, List<CadEntity> entities, Dictionary<Guid, DimBlockGeometry> dimBlocks)
     {
         sb.AppendLine("  0");
         sb.AppendLine("SECTION");
@@ -178,8 +312,11 @@ public class DxfWriterService
                 case ArcEntity arc:
                     WriteArc(sb, arc);
                     break;
+                case DimensionEntity dim when dimBlocks.TryGetValue(dim.Id, out var geo):
+                    WriteDimensionEntity(sb, dim, geo);
+                    break;
                 case DimensionEntity dim:
-                    WriteDimension(sb, dim);
+                    WriteDimension(sb, dim); // Radius/Angular — patlatılmış fallback (bkz. WriteBlocksSection notu)
                     break;
                 case LwPolylineEntity poly:
                     WritePolyline(sb, poly);
