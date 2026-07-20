@@ -56,6 +56,73 @@ public class SpaceDetectionEngineTests
     }
 
     [Fact]
+    public void DetectAllSpaces_TwoDisconnectedFloorPlansSideBySide_FindsExactlyOneRoomPerFloor()
+    {
+        // Kullanıcı senaryosu: aynı dosyada birden fazla kat (bodrum/zemin/normal/çatı) yan
+        // yana, birbirine DEĞMEYEN (fiziksel olarak bağlantısız) duvar adaları olarak çizili
+        // — MultiStoryBuildingService katları Z ile ayırıyor ama SpaceDetectionEngine 2D
+        // çalışıyor, "aktif kat" kavramı da UI'da hiç yok. Her "ada" 4m x 3m tek odalık
+        // KENDİ dış kabuğuna sahip. Eski kod (tek global en-büyük-poligonu-el) bu durumda
+        // SADECE BİR katın dış hattını elerdi, diğer katın dış hattı da yanlışlıkla "oda"
+        // olarak eklenirdi (3 "oda" dönerdi: 1 gerçek + 1 gerçek + 1 yanlış dış-kabuk-kalıntısı).
+        var db = new CadDatabase();
+
+        // "Bodrum" adası — orijin civarı
+        AddWall(db, new Vector3D(0, 0, 0), new Vector3D(4000, 0, 0));
+        AddWall(db, new Vector3D(4000, 0, 0), new Vector3D(4000, 3000, 0));
+        AddWall(db, new Vector3D(4000, 3000, 0), new Vector3D(0, 3000, 0));
+        AddWall(db, new Vector3D(0, 3000, 0), new Vector3D(0, 0, 0));
+
+        // "Zemin Kat" adası — 50 metre öteye, TAMAMEN AYRI (hiçbir köşe paylaşmıyor)
+        double dx = 50000;
+        AddWall(db, new Vector3D(dx + 0, 0, 0), new Vector3D(dx + 4000, 0, 0));
+        AddWall(db, new Vector3D(dx + 4000, 0, 0), new Vector3D(dx + 4000, 3000, 0));
+        AddWall(db, new Vector3D(dx + 4000, 3000, 0), new Vector3D(dx + 0, 3000, 0));
+        AddWall(db, new Vector3D(dx + 0, 3000, 0), new Vector3D(dx + 0, 0, 0));
+
+        var engine = new SpaceDetectionEngine(db);
+        var rooms = engine.DetectAllSpaces();
+
+        Assert.Equal(2, rooms.Count); // her adadan tam olarak 1 oda — dış kabuk kalıntısı YOK
+        foreach (var room in rooms)
+            Assert.Equal(12.0, SpaceDetectionEngine.CalculateAreaM2(room), precision: 3);
+    }
+
+    [Fact]
+    public void DetectAllSpaces_TinyFurnitureScaleClosedLoop_IsFilteredOut_RealRoomSurvives()
+    {
+        // Kullanıcı gerçek bir 6-katlı projede test etti: "Otonom" 1202 "oda" buldu — kod
+        // incelemesiyle GERÇEK kök neden bulundu: FilterOuterBoundary'nin küçük-poligon
+        // eşiği `faceAreas[i] > 1.0` idi — kodun her yerinde mm birimi kullanıldığından bu
+        // pratikte 1mm² (neredeyse hiçbir şeyi elemiyordu). Mobilya/sembol/detay gibi mimari
+        // OLMAYAN ama kapalı küçük şekiller (ör. bu testteki 100mm x 100mm kare) "oda" olarak
+        // tespit ediliyordu. Bu test, DUVAR katmanında olsa BİLE gerçekçi bir oda boyutunun
+        // (0.25 m²) altındaki kapalı döngülerin artık elendiğini, gerçek odanın etkilenmediğini
+        // kanıtlıyor.
+        var db = new CadDatabase();
+
+        // Gerçek oda: 4m x 3m = 12 m²
+        AddWall(db, new Vector3D(0, 0, 0), new Vector3D(4000, 0, 0));
+        AddWall(db, new Vector3D(4000, 0, 0), new Vector3D(4000, 3000, 0));
+        AddWall(db, new Vector3D(4000, 3000, 0), new Vector3D(0, 3000, 0));
+        AddWall(db, new Vector3D(0, 3000, 0), new Vector3D(0, 0, 0));
+
+        // Mobilya/sembol ölçeğinde, TAMAMEN AYRI bir minik kapalı kare: 100mm x 100mm = 0.01 m²
+        // (odanın 100m öteye çizilmiş, bağlantısız bir "adası" gibi — furniture/symbol simülasyonu)
+        double dx = 100_000;
+        AddWall(db, new Vector3D(dx + 0, 0, 0), new Vector3D(dx + 100, 0, 0));
+        AddWall(db, new Vector3D(dx + 100, 0, 0), new Vector3D(dx + 100, 100, 0));
+        AddWall(db, new Vector3D(dx + 100, 100, 0), new Vector3D(dx + 0, 100, 0));
+        AddWall(db, new Vector3D(dx + 0, 100, 0), new Vector3D(dx + 0, 0, 0));
+
+        var engine = new SpaceDetectionEngine(db);
+        var rooms = engine.DetectAllSpaces();
+
+        Assert.Single(rooms); // sadece gerçek oda kaldı, minik kare elendi
+        Assert.Equal(12.0, SpaceDetectionEngine.CalculateAreaM2(rooms[0]), precision: 3);
+    }
+
+    [Fact]
     public void DetectAllSpaces_NonWallLayer_IsIgnoredEntirely()
     {
         // Duvar katmanı anahtar kelimelerinden hiçbirini içermeyen bir katmandaki kapalı

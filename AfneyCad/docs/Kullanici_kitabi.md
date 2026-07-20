@@ -2603,8 +2603,21 @@ Siyah ekran düzeltmesinden sonra küp artık görünüyordu ama viewport'un TAM
 
 **Tam suite: 293/293.**
 
+### 10. Sağ Tık Menüsü — Aktif Komutta "Tamam" Üstte
+Önceden aktif bir komut (ör. Manuel Mahal) sırasında sağ tık sessizce `OnKeyDown(Enter)` çağırıp komutu bitiriyordu, hiçbir menü göstermeden. Kullanıcı isteğiyle: artık normal context menü açılıyor, **en üstte "Tamam"** (Enter'a eşdeğer) ve altında **"İptal"** (Cancel()) dinamik menü öğeleri ekleniyor — AutoCAD'in sağ-tık "Enter" davranışıyla tutarlı ama görsel olarak onaylanması gereken bir işlem.
+
+### 11. Otonom Mahal Tespiti — Çok Katlı Projede 1202 "Oda" Bulunuyordu (2 GERÇEK kök neden)
+Kullanıcı gerçek bir 6-katlı projede ("Otonom" butonu, `AutoDetectSpacesCommand` → `SpaceDetectionEngine`, planar-graph algoritması) test etti — 1202 "oda" bulundu, açıkça yanlış. Kod incelemesiyle 2 gerçek hata bulundu:
+1. **Bağlantısız kat adaları:** `MultiStoryBuildingService` katları Z yüksekliğiyle ayırıyor ama kullanıcının projesinde kat planları 2D'de YAN YANA (birbirine değmeyen, ayrı duvar "adaları") çizili — sistemde hiçbir yerde "aktif kat" kavramı da yok. `FilterOuterBoundary` sadece TEK bir GLOBAL en büyük poligonu "dış kabuk" sayıp eliyordu — her kat kendi dış kabuğuna sahip olduğu için, 1 kat hariç HEPSİNİN dış hattı da yanlışlıkla "oda" olarak ekleniyordu. **Çözüm:** duvar ağı önce Union-Find ile BAĞLANTILI BİLEŞENLERE (her biri ayrı bir kat/bina adası) ayrılıyor, dış-kabuk-eleme HER bileşen için ayrı ayrı çalıştırılıyor.
+2. **Alan eşiği birim hatası (asıl büyük etken):** Küçük-poligon eleme eşiği `faceAreas[i] > 1.0` idi — kodun her yerinde mm birimi kullanıldığından bu pratikte ~1mm² (neredeyse hiçbir şeyi elemiyordu). Mobilya sembolleri, sıhhi tesisat armatürleri, kapı/pencere kanat yayları gibi mimari OLMAYAN ama kapalı binlerce küçük şekil "oda" olarak tespit ediliyordu — 1202 rakamının asıl kaynağı bu. **Çözüm:** gerçekçi bir minimum oda alanı (0.25 m² = 250.000 mm²) eşiği eklendi.
+
+**2 yeni test** (`SpaceDetectionEngineTests`: ayrık kat adaları senaryosu + mobilya-ölçeğinde kapalı şekil filtrelemesi), ikisi de ilk denemede geçti.
+
+**Tam suite: 294/294.**
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü. Faz 1 artık kod+piksel seviyesinde doğrulandı (siyah ekran + framing hataları çözüldü); kullanıcının `d3dtest` ile son görsel onayı bekleniyor.
+2. **Otonom mahal tespiti — kullanıcı onayı bekleniyor:** düzeltmeler sonrası gerçek 6-katlı projede tekrar test edilip 1202 yerine gerçekçi bir oda sayısı çıktığı doğrulanmalı.
 2. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
 
 ---

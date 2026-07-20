@@ -42,15 +42,80 @@ namespace Afney.Cad.Mechanical.Services
             var splitSegments = ResolveIntersections(segments);
             Serilog.Log.Information("[SpaceDetectionEngine] Kesişim sonrası segment sayısı: {Count}", splitSegments.Count);
 
-            // 3. Planar Graph (Yüzey Algoritması)
-            var rooms = ExtractPlanarFaces(splitSegments);
-            Serilog.Log.Information("[SpaceDetectionEngine] Bulunan poligon (yüzey) sayısı: {Count}", rooms.Count);
+            // GERÇEK HATA (kullanıcı bildirdi — birden fazla kat aynı dosyada, yan yana/farklı
+            // X,Y bölgelerinde çizili): Eskiden TÜM duvarlar TEK bir düzlemsel grafa besleniyor,
+            // `FilterOuterBoundary` de sadece TEK bir GLOBAL en büyük poligonu "dış kabuk"
+            // sayıp eliyordu. Ama fiziksel olarak BAĞLANTISIZ duvar adaları (ör. bodrum planı
+            // ile çatı planı birbirine değmiyor) varsa, HER adanın KENDİ dış kabuğu vardır —
+            // eski kod sadece BİRİNİ eliyor, diğer katların dış hatları da yanlışlıkla "oda"
+            // olarak (o katın toplam alanı kadar, dev bir "Oda_N") ekleniyordu. Çözüm: önce
+            // duvar ağını BAĞLANTILI BİLEŞENLERE (her biri fiziksel olarak ayrı bir "ada" —
+            // pratikte ayrı bir kat/bina planı) ayır, planar-face + dış-kabuk-eleme işlemini
+            // HER bileşen için AYRI AYRI çalıştır.
+            var components = GroupIntoConnectedComponents(splitSegments);
+            Serilog.Log.Information("[SpaceDetectionEngine] Bağlantılı duvar bileşeni (ayrı kat/bina adası) sayısı: {Count}", components.Count);
 
-            // 4. Dış Kabuğu Ele (Binayı saran en büyük dış poligonu at)
-            var validRooms = FilterOuterBoundary(rooms);
-            Serilog.Log.Information("[SpaceDetectionEngine] Dış kabuk filtrelendi, kalan geçerli oda: {Count}", validRooms.Count);
+            var validRooms = new List<List<Vector3D>>();
+            foreach (var componentSegments in components)
+            {
+                var rooms = ExtractPlanarFaces(componentSegments);
+                var filtered = FilterOuterBoundary(rooms);
+                validRooms.AddRange(filtered);
+            }
+            Serilog.Log.Information("[SpaceDetectionEngine] Dış kabuklar (bileşen bazında) filtrelendi, kalan geçerli oda: {Count}", validRooms.Count);
 
             return validRooms;
+        }
+
+        /*
+           NE: Bağlantılı Bileşenlere Ayırma (GroupIntoConnectedComponents)
+           NEDEN: Union-Find ile, ortak köşe (vertex) paylaşan segmentleri aynı gruba toplar —
+                  fiziksel olarak birbirine DEĞMEYEN duvar ağları (ör. sayfada uzak bir bölgeye
+                  çizilmiş farklı bir kat planı) ayrı gruplara düşer.
+        */
+        private List<List<(Vector3D P1, Vector3D P2)>> GroupIntoConnectedComponents(List<(Vector3D P1, Vector3D P2)> segments)
+        {
+            var nodes = new List<Vector3D>();
+            int GetOrAddNode(Vector3D p)
+            {
+                for (int i = 0; i < nodes.Count; i++)
+                    if (nodes[i].DistanceTo(p) <= MergeTolerance) return i;
+                nodes.Add(p);
+                return nodes.Count - 1;
+            }
+
+            var segNodeIndices = new List<(int A, int B)>(segments.Count);
+            foreach (var seg in segments)
+                segNodeIndices.Add((GetOrAddNode(seg.P1), GetOrAddNode(seg.P2)));
+
+            var parent = new int[nodes.Count];
+            for (int i = 0; i < parent.Length; i++) parent[i] = i;
+            int Find(int x)
+            {
+                while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+                return x;
+            }
+            void Union(int a, int b)
+            {
+                a = Find(a); b = Find(b);
+                if (a != b) parent[a] = b;
+            }
+
+            foreach (var (a, b) in segNodeIndices) Union(a, b);
+
+            var groups = new Dictionary<int, List<(Vector3D, Vector3D)>>();
+            for (int i = 0; i < segments.Count; i++)
+            {
+                int root = Find(segNodeIndices[i].A);
+                if (!groups.TryGetValue(root, out var list))
+                {
+                    list = new List<(Vector3D, Vector3D)>();
+                    groups[root] = list;
+                }
+                list.Add(segments[i]);
+            }
+
+            return groups.Values.ToList();
         }
 
         /*
@@ -365,11 +430,24 @@ namespace Afney.Cad.Mechanical.Services
            ADIM 4: Outer Boundary Filtering (Binanın dış kabuğunu ele)
            Kapalı döngüler içinden en büyüğünü dış kabuk olarak varsayıp siler.
         */
+        /*
+           GERÇEK HATA (kullanıcı gerçek bir projede test etti — 1202 "oda" bulundu, 6 katlık
+           bir planda bu açıkça yanlıştı): bu metodun küçük-poligon eleme eşiği `faceAreas[i]
+           > 1.0` idi — kodun HER YERİNDE koordinatlar mm cinsinden tutuluyor (bkz. MahalEntity.
+           CalculateGeometry: `Area = ... / 1_000_000.0 // mm² → m²`), yani bu eşik pratikte
+           1mm² (bir toplu iğne başından küçük) — neredeyse HİÇBİR kapalı döngüyü elemiyordu.
+           Mobilya sembolleri, sıhhi tesisat armatür çizimleri, kapı/pencere kanat yayları,
+           merdiven basamakları gibi mimari OLMAYAN ama kapalı olan binlerce küçük şekil
+           "oda" olarak tespit ediliyordu. Çözüm: gerçekçi bir minimum oda alanı (0.25 m² —
+           en küçük gerçekçi pano/tesisat şaftından bile küçük, güvenli bir alt sınır).
+        */
+        private const double MinValidRoomAreaMm2 = 250_000.0; // 0.25 m²
+
         private List<List<Vector3D>> FilterOuterBoundary(List<List<Vector3D>> rawFaces)
         {
             var validFaces = new List<List<Vector3D>>();
             if (rawFaces.Count == 0) return validFaces;
-            
+
             double maxArea = -1;
             int maxIdx = -1;
             var faceAreas = new List<double>();
@@ -382,17 +460,17 @@ namespace Afney.Cad.Mechanical.Services
                     maxIdx = i;
                 }
             }
-            
+
             for(int i = 0; i < rawFaces.Count; i++) {
                 // En büyük alanı taşıyan poligon dış duvardır, eyle
                 if (i == maxIdx) continue;
-                
-                // Çok küçükleri filtrele (Örn 1 birim)
-                if (faceAreas[i] > 1.0) {
+
+                // Gerçekçi minimum oda alanı altındaki (mobilya/sembol/detay kapalı şekilleri) at
+                if (faceAreas[i] > MinValidRoomAreaMm2) {
                     validFaces.Add(rawFaces[i]);
                 }
             }
-            
+
             return validFaces;
         }
 
