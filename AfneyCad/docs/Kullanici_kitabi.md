@@ -2590,8 +2590,16 @@ Roadmap'in önerdiği slab-cut senaryosu (A=[0,2000]³ eksi B=[1000,3000]×[0,20
 
 **Tam suite: 293/293.**
 
+### 7. 3D Motoru — Siyah Ekran Hatası (kök neden bulundu, yerel GPU repro ile)
+Kullanıcı `d3dtest`'i denedi, çökme yoktu ama viewport tamamen siyah kaldı. Bu ortamdaki gerçek GPU'ya `Afney.Cad.Render3D`'in gerçek sınıflarını kullanan bir konsol harness'ı ile bağlanıp, `Renderer.RenderFrame` sonrası paylaşılan texture piksel bazında okundu. Bisection ile hata küpün kameraya dönük yüzlerinin SİYAH (arkaplan değil) çizildiğini gösterdi. Kök neden: `Renderer.cs`, constant buffer'ı sadece Vertex Shader'a bağlıyordu (`VSSetConstantBuffer`) — `PSSetConstantBuffer` çağrısı hiç yoktu, Piksel Shader'ın okuduğu `BaseColor`/`LightDirection` sıfır geliyordu. Eksik satır eklendi, yerel harness'ta küpün doğru mavi tonlarında render edildiği doğrulandı.
+
+### 8. Mahal Tanımı — Mahal Tipi Dropdown Görünüm Hatası
+`MahalDetailsDialog.xaml`'deki `DarkComboBox` stili sadece `Foreground`/`Background` Setter'ları içeriyordu, ComboBox'ın kendi `ControlTemplate`'ini tanımlamıyordu — bu yüzden kapalı kutunun (seçili öğe) gösterimi Windows'un varsayılan sistem temasına düşüyor, seçili metin soluk/okunaksız görünüyordu (ALTTAKİ SEÇİM DEĞERİ HER ZAMAN DOĞRUYDU — sadece görsel). `RoomTagDialog.xaml`'de zaten kanıtlanmış tam `ControlTemplate` deseni (ToggleButton + SelectionBoxItem'a bağlı ContentPresenter + Popup) eklendi.
+
+**Tam suite: 293/293.**
+
 ### Sonraki Oturum Öncelikleri (sırayla)
-1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü (kullanıcının `d3dtest` görsel onayından sonra).
+1. **3D Render Motoru Faz 2** — gerçek B-Rep mesh render + kamera + Fixture/Door/Window/Room için B-Rep adaptörü. Faz 1 artık kod+piksel seviyesinde doğrulandı; kullanıcının `d3dtest` ile son görsel onayı bekleniyor.
 2. **Genel iki-katı CSG SUBTRACT** — coplanar yüz birleştirme + vertex kaynaşması (`docs/Roadmap_CSG_Boolean.md`'deki güncellenmiş Faz 4 notu).
 
 ---

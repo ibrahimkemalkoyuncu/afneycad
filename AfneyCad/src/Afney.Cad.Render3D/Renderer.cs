@@ -148,6 +148,14 @@ public sealed class Renderer : IDisposable
         context.VSSetShader(_vertexShader);
         context.PSSetShader(_pixelShader);
         context.VSSetConstantBuffer(0, _constantBuffer);
+        // GERÇEK HATA: Her GPU aşaması (VS, PS) kendi ayrı constant buffer slotlarına sahiptir —
+        // aynı HLSL dosyasında `register(b0)` ile tanımlanmış olmaları PS'in otomatik erişimini
+        // SAĞLAMAZ. Bu satır eksikti: PSMain'in okuduğu BaseColor/LightDirection PS tarafında
+        // bağlanmamış (sıfır) bir slottan okunuyordu — küp bu yüzden tamamen SİYAH çiziliyordu
+        // (alfa=0 olsa da blend state kapalı olduğu için opak siyah olarak görünüyordu). Yerel
+        // bir tekrar-üretimle (gerçek GPU + piksel okuma) doğrulandı: yüz sayısı arttıkça
+        // kameraya dönük yüzeylerin SİYAH (magenta arkaplan değil) çizildiği gözlemlendi.
+        context.PSSetConstantBuffer(0, _constantBuffer);
 
         float aspect = target.Height > 0 ? (float)target.Width / target.Height : 1f;
         var view = camera.GetViewMatrix();

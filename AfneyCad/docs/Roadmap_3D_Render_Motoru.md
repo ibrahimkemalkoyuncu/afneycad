@@ -113,6 +113,26 @@ endüstriyel standartlara çıkar"):**
   FeatureLevel 11.x donanımıyla tutarlı, daha güncel Shader Model).
 - `dotnet build Afney.CadEngine.slnx` → **0 hata** (bu değişikliklerden sonra doğrulandı).
 
+**GÜNCELLEME — Küp SİYAH görünüyordu (kök neden bulundu, yerel GPU repro ile doğrulandı):**
+Kullanıcı `d3dtest`'i denedi — artık çökme yoktu (bir önceki E_INVALIDARG düzeltmesi kalıcıydı)
+ama viewport tamamen SİYAH kaldı, küp hiç görünmedi. Bu ortamda gerçek bir GPU olduğu daha önce
+keşfedilmişti (bkz. E_INVALIDARG bölümü) — bu kez `Afney.Cad.Render3D`'in GERÇEK sınıflarını
+(`D3D11DeviceResources`, `D3DImageBridge`, `Renderer`, `Camera3D`, `MeshBuffer`, gerçek
+`BRepTessellator` çıktısı) referans alan bir konsol harness'ı yazılıp bir WinForms penceresiyle
+uçtan uca çalıştırıldı, `Renderer.RenderFrame` sonrası paylaşılan D3D11 texture'ı bir staging
+texture'a kopyalanıp PİKSEL BAZINDA okundu. Sistematik bisection (yüz sayısını 1→12 arası
+kademeli artırarak) ile hata TAM OLARAK küpün kameraya dönük yüzlerinin SİYAH (arkaplan rengi
+DEĞİL) çizildiğini gösterdi — yani render pipeline çalışıyordu ama piksel shader'ın okuduğu
+renk/ışık verisi sıfır geliyordu. Kök neden: `Renderer.RenderFrame`, constant buffer'ı SADECE
+Vertex Shader aşamasına bağlıyordu (`context.VSSetConstantBuffer(0, _constantBuffer)`) —
+`context.PSSetConstantBuffer(0, _constantBuffer)` çağrısı HİÇ YOKTU. D3D11'de her GPU aşaması
+(VS, PS) kendi ayrı constant buffer slotlarına sahiptir; aynı HLSL dosyasında `register(b0)`
+ile tanımlanmış olmaları Pixel Shader'ın otomatik erişimini SAĞLAMAZ. Piksel shader'ın okuduğu
+`BaseColor`/`LightDirection` bu yüzden bağlanmamış (sıfır) bir slottan okunuyor, küp tamamen
+siyah çiziliyordu. **Çözüm:** `Renderer.cs`'e eksik `context.PSSetConstantBuffer(0,
+_constantBuffer);` satırı eklendi. Yerel harness'ta doğrulandı: küp artık doğru mavi tonlarında
+(gamma-doğru aydınlatmayla) render ediliyor.
+
 **Sıradaki adım tamamen sizde:** Uygulamayı çalıştırıp komut satırına `d3dtest` yazarak Faz 1'in
 gerçekten çalışıp çalışmadığını (küp görünüyor mu, kenarları MSAA ile pürüzsüz mü, sağ fare ile
 döndürülebiliyor mu) doğrulamanız gerekiyor — bu ortamda GPU'lu görsel test yapılamıyor.
