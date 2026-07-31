@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF"
-             mc:Ignorable="d" 
+             xmlns:r3d="clr-namespace:Afney.Cad.Render3D;assembly=Afney.Cad.Render3D"
+             mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Background="#212830">
         <skia:SKElement x:Name="CadCanvas" 
@@ -64,7 +65,10 @@
                 </ContextMenu>
             </skia:SKElement.ContextMenu>
         </skia:SKElement>
-        
+
+        <!-- Direct3D11 Gerçek 3D Görünüm — SetViewMode(true) ile görünür yapılır -->
+        <r3d:Direct3DViewportControl x:Name="Viewport3D" Visibility="Collapsed"/>
+
         <!-- Viewport Overlay Debug/Info -->
         <Border Background="#44000000" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Padding="5" CornerRadius="3">
             <StackPanel Orientation="Horizontal">

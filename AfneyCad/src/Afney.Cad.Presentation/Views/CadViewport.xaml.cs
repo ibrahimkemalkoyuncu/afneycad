@@ -323,10 +323,25 @@ namespace Afney.Cad.Presentation.Views;
         /*
            NE: Görünüm Modunu Değiştir (2D/3D)
            NEDEN: Çizimi plan görünümünden izometrik görünüme geçirmek için render motorunu bilgilendirir.
+                  Session #55: gerçek Direct3D11 B-Rep render'a bağlandı — 3D moda geçişte
+                  `Viewport3D` (Direct3DViewportControl) görünür yapılır ve güncel veritabanı
+                  yüklenir; 2D moda dönüşte tekrar gizlenir (render döngüsü `IsVisible` ile
+                  otomatik duraklıyor, bkz. Direct3DViewportControl.OnRendering).
         */
         public void SetViewMode(bool isIsometric)
         {
             _isIsometric = isIsometric;
+
+            if (isIsometric)
+            {
+                if (_database != null) Viewport3D.LoadFromDatabase(_database);
+                Viewport3D.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                Viewport3D.Visibility = Visibility.Collapsed;
+            }
+
             CadCanvas.InvalidateVisual();
         }
 

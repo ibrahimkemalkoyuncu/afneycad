@@ -166,7 +166,7 @@ GPU'lu görsel test yapılamıyor (yalnızca off-screen piksel okuma ile doğrul
 
 ### Faz 2 — Gerçek B-Rep mesh render + kamera
 
-**Durum (2026-07-22, Session #55): KISMEN TAMAMLANDI.**
+**Durum (2026-07-31, Session #55): TAMAMLANDI.**
 - ✅ `MeshBuffer` ile `WallBRepService`/`DuctBRepService`/`Pipe3DModelService` çıktıları render
   ediliyor (`Direct3DViewportControl.LoadFromDatabase`) — aynı veri, `Pipe3DViewWindow`'ın
   tükettiğiyle birebir, sadece render hedefi farklı (GPU D3D11 vs. WPF Viewport3D).
@@ -177,13 +177,18 @@ GPU'lu görsel test yapılamıyor (yalnızca off-screen piksel okuma ile doğrul
   `Kullanici_kitabi.md` Session #55 madde 29 (veri şemasındaki yükseklik eksikliği dürüstçe
   not edildi, sabit yer tutucu değerler kullanıldı).
 - ✅ `d3dtest` komutu artık test küpü yerine açık projenin gerçek verisini render ediyor.
-- ⏳ **YAPILMADI:** `OnToggle3DView` komutu ana `CadViewport`'ta bu yeni motoru açmıyor —
-  bilinçli olarak kapsam dışı bırakıldı (ana pencere layout'unu/MDI yaşam döngüsünü etkileyen
-  daha riskli bir entegrasyon; önce `d3dtest` yoluyla veri/render doğruluğu kullanıcı
-  tarafından teyit edilmeli).
+- ✅ **`OnToggle3DView` ana `CadViewport`'a bağlandı (2026-07-31):** `Direct3DViewportControl`,
+  `CadViewport.xaml`'de `CadCanvas` (Skia) ile aynı `Grid`'e sibling olarak eklendi
+  (`Visibility="Collapsed"` varsayılan). `CadViewport.SetViewMode(bool isIsometric)` artık 3D
+  moda geçişte `LoadFromDatabase(_database)` çağırıp görünür yapıyor, 2D moda dönüşte tekrar
+  gizliyor. Ana Yasa gereği önce bir araştırma ajanı `D3DImage`+software-backed `SKElement`'in
+  aynı Grid'de coexistence güvenliğini doğruladı (paylaşılan GPU context yok, airspace sorunu
+  yok); ajan önerisiyle `Direct3DViewportControl.OnRendering`'e `IsVisible` gate'i eklendi (kontrol
+  gizliyken CompositionTarget.Rendering döngüsü boşa çalışmıyor). Bkz. `Kullanici_kitabi.md`
+  Session #55 madde 32.
 - ⏳ **GÖRSEL DOĞRULAMA YİNE KULLANICIDA** — Faz 1'deki gibi bu ortamda GPU'lu interaktif test
-  yapılamıyor, sadece derleme + birim test (`BRepAdapterTests.cs`, 5 test) seviyesinde
-  doğrulama yapılabildi.
+  yapılamıyor, sadece derleme + birim test (334/334) seviyesinde doğrulama yapılabildi.
+  Kullanıcının gerçek projede "3D Görünüm" toggle'ını canlı test etmesi gerekiyor.
 
 ### Faz 3 — Seçim senkronizasyonu
 - 3D moddaki mouse-click'ten ray-casting (dünya-uzayı ışın + mesh üçgen kesişimi, elle

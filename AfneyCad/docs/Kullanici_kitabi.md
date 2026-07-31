@@ -2761,12 +2761,33 @@ Kullanıcı "Genel iki-katı CSG SUBTRACT" ile devam edilmesini istedi. Bu, mevc
 
 **Tam suite: 331/331** (328 → 331, +3 yeni test), tam çözüm derlemesi 0 hata.
 
+### 31. CSG Boolean — Coplanar Face Tespiti (AreCoplanar) Tamamlandı
+Sıradaki öncelik: `docs/Roadmap_CSG_Boolean.md`'nin 2. yapı taşı. `PlaneIntersection.Intersect`, paralel düzlemleri (`dirLenSq≈0`) "dejenere, kapsam dışı" sayıp `null` döndürüyordu — ama bu, "paralel FARKLI düzlem" ile "coplanar (AYNI düzlem)" durumlarını ayırt etmiyordu. Araştırma ajanının bulgusu (VertexWelder'da da izlenen yöntem, [[feedback_agent_industry_standard]]): gerçek CSG kernel'leri (OpenCASCADE/CGAL) bu ikisini İKİ AYRI test ile ayırt ediyor.
+
+- **`Boolean/CoplanarFaceDetector.cs`** (yeni) — `AreCoplanar(Face a, Face b, angleTolerance=1e-6, offsetTolerance=1e-6)`: (1) normal paralelliği (`|na·nb| ≈ 1` — B-Rep'te komşu iki Solid'in ortak yüzü genelde ZIT normal taşır, bu yüzden hem aynı hem ters yönlü paralellik aday sayılıyor), (2) düzlem ofseti eşitliği — her iki yüzün bir noktası da AYNI normal (`na`) ile ölçülüyor (nb ters yönlü olabileceğinden işaret bağımsızlığı için). `PlaneIntersection`'a hiç dokunulmadı, mevcut testleri bozma riski yok.
+- **Yeni testler:** `CoplanarFaceDetectorTests.cs` (3 test) — iki bitişik kutunun paylaştığı ortak yüzün (zıt normal) coplanar=true, aynı kutunun karşılıklı yüzlerinin (paralel, farklı ofset) coplanar=false, farklı yönelimli yüzlerin coplanar=false olduğunu kilitliyor.
+
+**Sıradaki adımlar (değişmedi):** (3) coplanar 2D polygon boolean, (4) genel SUBTRACT montajı.
+
+### 32. `OnToggle3DView`'ı Ana `CadViewport`'a Bağlama — Gerçek 3D Görünüm Artık Ana Ekranda
+Roadmap Faz 2'nin bilinçli olarak kapsam dışı bırakılmış maddesi (#29) tamamlandı. Ana Yasa gereği önce bir araştırma ajanı görevlendirildi — `D3DImage` tabanlı `Direct3DViewportControl` ile yazılım-tabanlı SkiaSharp `SKElement`'in aynı `Grid`'de görünürlük değişimiyle birlikte var olmasının güvenli olup olmadığı araştırıldı.
+
+**Ajan bulgusu:** İkisi arasında paylaşılan bir GPU cihazı/context yok (SKElement burada CPU/software-backed, WriteableBitmap üzerinden çiziyor) — çakışma riski yok. `D3DImage`'in klasik `HwndHost` "airspace" sorunu YOK (gerçek WPF visual, MIL kompozisyon ağacında). `Visibility` toggle standart ve ucuz bir yaklaşım; tek öneri: kontrol gizliyken render döngüsünü (CompositionTarget.Rendering) boşa harcamamak için görünürlüğe göre gate'lemek.
+
+**Uygulanan:**
+- `CadViewport.xaml` — `r3d:Direct3DViewportControl x:Name="Viewport3D"` (`Visibility="Collapsed"`), `CadCanvas` (Skia) ile aynı `Grid`'de sibling olarak eklendi.
+- `CadViewport.SetViewMode(bool isIsometric)` — 3D moda geçişte `Viewport3D.LoadFromDatabase(_database)` çağrılıp `Visibility=Visible` yapılıyor; 2D moda dönüşte `Visibility=Collapsed`.
+- `Direct3DViewportControl.OnRendering` — `if (!IsVisible) return;` eklendi (ajanın önerisi) — kontrol gizliyken GPU render döngüsü otomatik duruyor, kaynak israfı yok.
+- Mevcut `OnToggle3DView`/`OnToggle2DView` (`MainWindow.ViewControls.cs`) zaten `Viewport.SetViewMode(...)` çağırıyordu — hiçbir değişiklik gerekmedi, davranış otomatik olarak gerçek B-Rep render'a geçti.
+
+**Tam suite: 334/334** (331 → 334, +3 yeni test — CoplanarFaceDetector), tam çözüm derlemesi 0 hata. **GÖRSEL DOĞRULAMA kullanıcıda** — bu ortamda GPU'lu interaktif test yapılamıyor, sadece derleme+birim test seviyesinde doğrulama yapılabildi; kullanıcının gerçek projede 3D görünüm toggle'ını (F.ör. "3D Görünüm" butonu) canlı test etmesi gerekiyor.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
-1. Bekleyen kullanıcı-onaylı maddeler (3D render Faz 2, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli.
-2. **CSG Boolean adım 2:** Coplanar Face tespiti (`AreCoplanar(Face, Face, tolerance)` — normal paralelliği + düzlem ofseti eşitliği).
-3. `OnToggle3DView`'ı ana `CadViewport`'a bağlama.
+1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — bu oturumda GÖRSEL doğrulama yapılamadı.**
+2. **CSG Boolean adım 3:** coplanar 2D polygon boolean (mevcut `FaceIntersection.ComputePlaneBasis` genişletilerek).
+3. **CSG Boolean adım 4:** genel SUBTRACT montajı — önce B-convex özel durumu (PlaneCutter + VertexWelder), sonra genel (içbükey B, SolidClassifier ile) durum.
 4. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 
 ---
 
-*Son guncelleme: 2026-07-22 | AfneyCAD v4.0.0 — Session #55*
+*Son guncelleme: 2026-07-31 | AfneyCAD v4.0.0 — Session #55*

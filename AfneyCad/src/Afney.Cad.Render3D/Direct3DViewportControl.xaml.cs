@@ -214,6 +214,7 @@ public partial class Direct3DViewportControl : UserControl, IDisposable
     private void OnRendering(object? sender, EventArgs e)
     {
         if (_renderFailed) return; // Bir kez hata verdiyse her karede aynı hatayı göstermeyi önle
+        if (!IsVisible) return; // 2D moda geçildiğinde (Visibility=Collapsed) GPU döngüsünü boşa harcama
         if (_device == null || _bridge == null || _renderer == null) return;
         if (_bridge.Width <= 0 || _bridge.Height <= 0) return;
 
