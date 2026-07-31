@@ -1,0 +1,81 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.ScaleVerifyDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ölçek Doğrula" Height="360" Width="420"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#1A1C24" Foreground="#E1E4EE" FontFamily="Segoe UI">
+    <Window.Resources>
+        <!--
+            NE: Özel Buton Şablonu (Bd + ContentPresenter)
+            NEDEN — GERÇEK HATA: Button'a sadece Background/Foreground Setter'ı verilip
+            özel bir ControlTemplate verilmezse, WPF'in varsayılan (sistem temalı)
+            ControlTemplate'i IsEnabled=False durumunda KENDİ disabled rengini kullanır —
+            bizim Foreground="White" Setter'ımızı miras ALMAZ, metin görünmez/okunaksız
+            hale gelir (bu proje genelinde ComboBox'larda daha önce yakalanmış AYNI hata
+            sınıfı — bkz. MahalDetailsDialog.xaml). Çözüm: Bd+ContentPresenter'lı basit bir
+            şablon veriyoruz, IsEnabled=False'ta metin okunaklı kalacak şekilde açıkça
+            soluk (ama görünür) renkler ayarlıyoruz.
+        -->
+        <Style x:Key="DialogButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#22344A"/>
+                                <Setter Property="Foreground" Value="#5B6B7C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Mimardan gelen çizimin biriminin doğru olup olmadığını, bildiğiniz gerçek bir ölçüyle (ör. kapı genişliği) karşılaştırarak doğrulayabilirsiniz."
+                   TextWrapping="Wrap" FontSize="12" Foreground="#858899" Margin="0,0,0,14"/>
+
+        <TextBlock Grid.Row="1" Text="Çizimde ölçülen mesafe:" FontSize="12" Foreground="#858899"/>
+        <TextBlock Grid.Row="1" x:Name="MeasuredText" Text="—" FontSize="16" FontWeight="Bold"
+                   Foreground="#FF9500" HorizontalAlignment="Right" Margin="0,0,0,12"/>
+
+        <TextBlock Grid.Row="2" Text="Bu ölçünün GERÇEK uzunluğu (mm):" FontSize="12" Margin="0,0,0,6"/>
+        <TextBox Grid.Row="3" x:Name="RealLengthBox" Height="34"
+                 Background="#12141A" Foreground="#E1E4EE"
+                 BorderBrush="#0A84FF" BorderThickness="1"
+                 CaretBrush="White" FontFamily="Consolas" FontSize="14"
+                 VerticalContentAlignment="Center" Padding="8,0"
+                 TextChanged="RealLengthBox_TextChanged"/>
+
+        <Border Grid.Row="4" Background="#12141A" BorderBrush="#252836" BorderThickness="1"
+                Padding="12,10" Margin="0,14,0,0">
+            <StackPanel>
+                <TextBlock x:Name="FactorText" Text="Düzeltme çarpanı: —" FontSize="13" Foreground="#E1E4EE"/>
+                <TextBlock x:Name="VerdictText" Text="Gerçek uzunluğu girin." FontSize="12" Foreground="#858899" Margin="0,4,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button x:Name="ApplyButton" Style="{StaticResource DialogButton}" Content="ÇİZİME UYGULA" Click="Apply_Click" Width="150" Height="32" Margin="0,0,10,0"
+                    Background="#0A84FF" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
+            <Button Style="{StaticResource DialogButton}" Content="İPTAL" IsCancel="True" Width="80" Height="32"
+                    Background="#24273A" Foreground="#858899"/>
+        </StackPanel>
+    </Grid>
+</Window>

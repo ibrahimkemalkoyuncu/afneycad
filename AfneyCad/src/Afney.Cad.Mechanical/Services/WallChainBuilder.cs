@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Algorithms;
 using Afney.Cad.Geometry.Primitives;
 
 namespace Afney.Cad.Mechanical.Services;
@@ -84,7 +85,7 @@ public class WallChainBuilder
                çok küçük/yanlış bir alana dönüşür. Sessizce yanlış sonuç kaydetmek yerine,
                kapanış sonrası poligon kendi kendini kesiyor mu diye AÇIKÇA kontrol ediliyor.
             */
-            if (HasSelfIntersection(chain))
+            if (GeomUtils.HasSelfIntersection(chain))
             {
                 statusMessage = "HATA: Seçilen duvarlar kendini kesen (çapraz) bir sınır oluşturuyor — " +
                                  "muhtemelen bir duvar eksik seçildi. Alan hesabı güvenilir olmaz, " +
@@ -215,49 +216,4 @@ public class WallChainBuilder
         return result;
     }
 
-    /*
-       NE: Kendi Kendini Kesme Testi (HasSelfIntersection)
-       NEDEN: Greedy zincirleme, eksik/yanlış duvar seçiminde odayı çaprazlayan bir kenar
-              üretebilir (bkz. Build() içindeki NEDEN notu) — bu, poligonu "bowtie" yapar ve
-              Shoelace alan formülünü yanlış (genelde çok küçük) bir sonuca götürür. Bu metod,
-              KOMŞU OLMAYAN her kenar çiftini 2D (X,Y) kesişim testiyle tarar.
-    */
-    private static bool HasSelfIntersection(List<Vector3D> polygon)
-    {
-        int n = polygon.Count;
-        if (n < 4) return false; // üçgen kendi kendini kesemez
-
-        for (int i = 0; i < n; i++)
-        {
-            var a1 = polygon[i];
-            var a2 = polygon[(i + 1) % n];
-
-            for (int j = i + 1; j < n; j++)
-            {
-                // Komşu kenarları (ortak köşeyi paylaşanları) atla — bunlar "kesişim" değil.
-                if (j == i || (j + 1) % n == i || (i + 1) % n == j) continue;
-
-                var b1 = polygon[j];
-                var b2 = polygon[(j + 1) % n];
-
-                if (SegmentsIntersect(a1, a2, b1, b2))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    private static bool SegmentsIntersect(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4)
-    {
-        double d1 = CrossSign(p3, p4, p1);
-        double d2 = CrossSign(p3, p4, p2);
-        double d3 = CrossSign(p1, p2, p3);
-        double d4 = CrossSign(p1, p2, p4);
-
-        return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-               ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
-    }
-
-    private static double CrossSign(Vector3D a, Vector3D b, Vector3D p)
-        => (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
 }

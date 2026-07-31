@@ -25,7 +25,7 @@ namespace Afney.Cad.Presentation
         private readonly Afney.Cad.Presentation.Services.ClipboardService _clipboard = new();
         private readonly Afney.Cad.Presentation.Services.UserSettingsService _userSettings = new();
         private readonly Afney.Cad.Mechanical.Services.DimensionStyleService _dimStyleService = new();
-        private double _dimTextHeight = 250.0;
+        private double _dimTextHeight = 100.0;
 
         public CadDocumentContext ActiveContext
         {

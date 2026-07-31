@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Afney.Cad.Geometry\Afney.Cad.Geometry.csproj" />
+    <!-- Faz 2: gerçek proje verisinden (Wall/Duct/Pipe/Door/Window/Fixture/Room) mesh üretmek için. -->
+    <ProjectReference Include="..\Afney.Cad.Database\Afney.Cad.Database.csproj" />
+    <ProjectReference Include="..\Afney.Cad.Mechanical\Afney.Cad.Mechanical.csproj" />
   </ItemGroup>
 
   <ItemGroup>

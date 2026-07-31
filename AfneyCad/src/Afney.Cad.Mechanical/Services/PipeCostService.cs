@@ -162,17 +162,29 @@ public class PipeCostService
             double dia = pipe.InnerDiameter; // mm
             var price = FindClosestPrice(mat, dia);
 
-            double materialCost = price.PricePerMeterTl * pipe.Length;
-            double laborCost    = price.LaborPerMeterTl  * pipe.Length;
+            /*
+               MÜHENDİSLİK: `pipe.Length` (== GetLength() == StartPoint.DistanceTo(EndPoint))
+               uygulama genelindeki evrensel iç birimle (mm) aynı — TIPKI BillOfMaterialsService'in
+               satır 72'de `/ 1000.0` yaptığı gibi burada da m'ye çevrilmesi gerekiyordu, ama
+               unutulmuştu. Sonuç: PricePerMeterTl (TL/METRE) doğrudan mm cinsinden bir uzunlukla
+               çarpılıyordu — her maliyet 1000 KAT şişik çıkıyordu (ve Description'daki
+               "{pipe.Length:F1} m" de 12.5m'lik bir boruyu "12500.0 m" olarak gösteriyordu).
+               Bu, gerçekten UI'a bağlı (BOMDialog.xaml.cs → CalculateFromDatabase) canlı bir
+               "sessizce yanlış sonuç" hatasıydı, dead code değil.
+            */
+            double lengthM = pipe.Length / 1000.0;
+
+            double materialCost = price.PricePerMeterTl * lengthM;
+            double laborCost    = price.LaborPerMeterTl  * lengthM;
             double fittingCost  = materialCost * price.FittingFactorPct / 100.0;
 
             items.Add(new PipeCostItem
             {
                 Id           = pipe.Id.ToString(),
-                Description  = $"{mat} DN{dia:F0} — {pipe.Length:F1} m",
+                Description  = $"{mat} DN{dia:F0} — {lengthM:F1} m",
                 Material     = mat,
                 DiameterMm   = dia,
-                LengthM      = pipe.Length,
+                LengthM      = lengthM,
                 MaterialCostTl = materialCost,
                 LaborCostTl    = laborCost,
                 FittingCostTl  = fittingCost,

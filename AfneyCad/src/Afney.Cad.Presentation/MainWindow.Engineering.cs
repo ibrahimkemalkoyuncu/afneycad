@@ -334,6 +334,50 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnEdgeCaptureMahalDefine(object sender, RoutedEventArgs e)
+        {
+            if (_database == null)
+            {
+                MessageBox.Show("Önce bir çizim açın.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var cmd = new EdgeCaptureMahalCommand((mahal) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        var dialog = new MahalDetailsDialog(mahal);
+                        dialog.Owner = this;
+                        if (dialog.ShowDialog() == true)
+                        {
+                            _database.TransactionManager.Submit(new AddEntityOperation(_database, mahal));
+                            if (_mechanicalKernel != null)
+                                _mechanicalKernel.TopologyGraph.AddRoom(mahal);
+                            Viewport.InvalidateVisual();
+                            StatusText.Text = $"MAHAL KAYDEDİLDİ (Uç-Yakala): {mahal.MahalName} ({mahal.MahalType}) — {mahal.Area:F2} m²";
+                        }
+                        else
+                        {
+                            StatusText.Text = "Uç-yakala mahal tanımlama iptal edildi.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "[Uç-Yakala Mahal] Dialog açılırken hata");
+                        MessageBox.Show($"Mahal dialog hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                });
+            });
+
+            cmd.OnFeedback  += (msg) => Dispatcher.Invoke(() => StatusText.Text = msg);
+            cmd.OnCompleted += ()    => Dispatcher.Invoke(() => Viewport.SetActiveCommand(null));
+
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnRectMahalDefine(object sender, RoutedEventArgs e)
         {
             if (_database == null)
@@ -2011,11 +2055,12 @@ namespace Afney.Cad.Presentation
            NE: D3D11 Motor Test Penceresi (OnD3D11EngineTest)
            NEDEN: docs/Roadmap_3D_Render_Motoru.md Faz 1 — sıfırdan yazılan Direct3D11 render
                   motorunun (WPF Viewport3D KULLANILMIYOR) gerçekten çalıştığını görsel olarak
-                  doğrulamak için. Komut satırından "d3dtest" ile açılır.
+                  doğrulamak için. Faz 2 ile birlikte artık test küpü yerine açık projenin
+                  GERÇEK verisini (_database) render ediyor. Komut satırından "d3dtest" ile açılır.
         */
         public void OnD3D11EngineTest(object? sender, RoutedEventArgs? e)
         {
-            try { new Dialogs.Direct3DTestWindow { Owner = this }.ShowDialog(); }
+            try { new Dialogs.Direct3DTestWindow(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"D3D11 motor testi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

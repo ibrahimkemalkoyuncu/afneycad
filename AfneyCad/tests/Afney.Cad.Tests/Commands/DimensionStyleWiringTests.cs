@@ -45,9 +45,12 @@ public class DimensionStyleWiringTests
         cmd.OnPointerPressed(new Vector3D(1000, 0, 0));
         cmd.OnPointerPressed(new Vector3D(500, 300, 0));
 
+        // NOT: TextHeight/ArrowSize varsayılanları 250/200 → 100/80 küçültüldü (araştırma ajanı
+        // bulgusu — DoorEntity/WindowEntity etiketleriyle [fontSize=80mm] görsel tutarlılık için,
+        // bkz. Kullanici_kitabi.md Session #55 madde 27).
         var dim = db.GetAllEntities().OfType<DimensionEntity>().Single();
-        Assert.Equal(250, dim.TextHeight, precision: 6);
-        Assert.Equal(200, dim.ArrowSize, precision: 6);
+        Assert.Equal(100, dim.TextHeight, precision: 6);
+        Assert.Equal(80, dim.ArrowSize, precision: 6);
     }
 
     [Fact]
@@ -56,6 +59,7 @@ public class DimensionStyleWiringTests
         var svc = new DimensionStyleService();
         svc.SetActiveStyle("Compact");
         Assert.Equal("Compact", svc.ActiveStyleName);
-        Assert.Equal(125, svc.ActiveStyle.TextHeight, precision: 6);
+        // NOT: Compact TextHeight 125 → 50 küçültüldü (bkz. yukarıdaki not).
+        Assert.Equal(50, svc.ActiveStyle.TextHeight, precision: 6);
     }
 }

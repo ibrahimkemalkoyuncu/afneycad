@@ -20,14 +20,23 @@ public class DimensionEntity : CadEntity
     public Vector3D SecondPoint  { get; set; }
     public Vector3D DimLinePoint { get; set; }
     public DimensionType DimType { get; set; } = DimensionType.Linear;
-    public double TextHeight     { get; set; } = 250.0;
+    /*
+       MÜHENDİSLİK: TextHeight (ve ArrowSize/ExtLineGap/ExtLineOver) önceden 250/200/50/75 idi —
+       araştırma ajanının bulgusuna göre bu, aynı çizimdeki kapı/pencere genişlik etiketlerinin
+       (`DoorEntity`/`WindowEntity`, fontSize=80mm — kullanıcının "doğru görünüm" referansı)
+       ~3 KATI büyüktü. Gerçek AutoCAD/DIMSCALE standardında metin yüksekliği ekran-pikselinde
+       değil DÜNYA BİRİMİNDE sabittir ve diğer geometri gibi zoom'la doğal ölçeklenir — o yüzden
+       SkiaRenderContext'teki piksel-sınırı (Math.Min(...,36px) vb.) YANLIŞ yaklaşımdı ve
+       kaldırıldı; asıl düzeltme burada, referans etikete yakın bir varsayılan boyut.
+    */
+    public double TextHeight     { get; set; } = 100.0;
 
     // NE: Ölçü stili parametreleri (DimensionStyleService ile eşleşir)
     // NEDEN: Önceden ok boyu/uzatma boşluğu/aşımı hep TextHeight'ın sabit oranıydı (0.8/0.2/0.3),
     //        stil tanımlarından bağımsız çalışıyorlardı. Artık her biri ayrı ayarlanabilir.
-    public double ArrowSize   { get; set; } = 200.0;
-    public double ExtLineGap  { get; set; } = 50.0;
-    public double ExtLineOver { get; set; } = 75.0;
+    public double ArrowSize   { get; set; } = 80.0;
+    public double ExtLineGap  { get; set; } = 20.0;
+    public double ExtLineOver { get; set; } = 30.0;
     public int    Precision   { get; set; } = 0;
     public bool   ShowUnits   { get; set; } = true;
     public string UnitFormat  { get; set; } = "mm";

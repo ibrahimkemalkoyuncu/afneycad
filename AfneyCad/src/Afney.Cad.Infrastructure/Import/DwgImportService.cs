@@ -111,6 +111,21 @@ public class DwgImportService
 
                 Serilog.Log.Information("[DWG] Layer verisi çekildi. Toplam {count} model objesi dönüştürülüyor...", cadDoc.Entities.Count);
 
+                /*
+                   NE: INSUNITS Ölçeğini Uygula (unitScaleTransform)
+                   NEDEN: Yukarıda hesaplanan `unitScale` daha önce SADECE loglanıyordu, hiçbir
+                          entity'ye UYGULANMIYORDU — yani DWG metre/santimetre biriminde
+                          çizilmişse (INSUNITS=5/6), içe aktarılan tüm koordinatlar "mm" sanılıp
+                          olduğu gibi kullanılıyordu. Sonuç: mahal alan/çevre hesapları (ve DWG
+                          birimine bağlı her ölçüm) dosyanın gerçek birimine göre sistematik
+                          olarak yanlış çıkıyordu (kullanıcı: "Mahal tanımlama butonlarının
+                          hepsi yanlış alan ölçüyor"). Artık en üst seviye transform Identity
+                          değil, INSUNITS ölçeği — ConvertEntity'nin mevcut `result.Transform(transform)`
+                          ve nested Insert `combinedTransform = transform * localTransform` akışı
+                          sayesinde bu ölçek ağaçtaki HER entity'ye (bloklar dahil) otomatik yayılır.
+                */
+                var unitScaleTransform = Matrix4x4.CreateScale(unitScale);
+
                 // Model Space (Multi-Threaded)
                 int convertedCount = 0;
                 var concurrentEntities = new System.Collections.Concurrent.ConcurrentBag<CadEntity>();
@@ -120,7 +135,7 @@ public class DwgImportService
                 {
                     try
                     {
-                        var convertedList = ConvertEntity(entity, Matrix4x4.Identity, layerColors, layerLinetypes);
+                        var convertedList = ConvertEntity(entity, unitScaleTransform, layerColors, layerLinetypes);
                         foreach (var c in convertedList)
                         {
                             // Frozen layer entity'lerini işaretle

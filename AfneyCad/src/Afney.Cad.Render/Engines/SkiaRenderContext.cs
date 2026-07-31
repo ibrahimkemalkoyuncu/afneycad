@@ -244,7 +244,26 @@ public class SkiaRenderContext : IRenderContext
                 Color = new SKColor(color),
                 IsAntialias = true,
                 Style = SKPaintStyle.Fill,
-                TextSize = (float)Math.Min(fontSize * _zoomFactor, 300.0), // Max 300px — büyük model-space yükseklikleri ekranı kaplamasın
+                /*
+                   MÜHENDİSLİK: Önceden burada "doğru görünüm" için bir piksel-sınırı vardı
+                   (sırasıyla 300, 60, 36px denendi, kullanıcı her seferinde "hâlâ büyük" dedi).
+                   Araştırma ajanı bulgusu: gerçek AutoCAD/DIMSCALE standardında metin yüksekliği
+                   EKRAN PİKSELİNDE değil DÜNYA BİRİMİNDE sabittir — diğer geometri gibi zoom'la
+                   doğal olarak büyür/küçülür. Bu yüzden "görünümü düzeltmek için" bir piksel
+                   sınırı kavramsal olarak YANLIŞTI — asıl düzeltme veri katmanında yapıldı
+                   (DimensionEntity.TextHeight ve DimensionStyleService stilleri, kapı/pencere
+                   etiketleriyle [fontSize=80mm, kullanıcının doğru kabul ettiği referans] görsel
+                   olarak tutarlı olacak şekilde küçültüldü).
+                   ANCAK: bu uygulamada fare tekerleği zoom'u 1e6'ya kadar çıkabiliyor (bkz.
+                   CadViewport.xaml.cs CadCanvas_MouseWheel — Math.Clamp(_zoom*factor, 1e-6, 1e6)),
+                   gerçek AutoCAD'in aksine. fontSize*zoomFactor'ü SINIRSIZ bırakmak, kullanıcı
+                   aşırı yakınlaştırdığında (100mm × 1e6 = 100.000.000px gibi) SkiaSharp'ın
+                   dev bir font rasterize etmeye çalışıp ÇÖKMESİNE/donmasına yol açabilir. Bu
+                   yüzden "görünümü ayarlayan" bir sınır DEĞİL, sadece ÇÖKME ÖNLEYİCİ, hiçbir
+                   normal/hatta çok yakın kullanımda asla dokunulmayacak kadar yüksek bir güvenlik
+                   tavanı (4000px) bırakıldı.
+                */
+                TextSize = (float)Math.Min(fontSize * _zoomFactor, 4000.0),
                 TextAlign = centerAlign ? SKTextAlign.Center : SKTextAlign.Left,
                 Typeface = typeface, 
                 SubpixelText = true,
@@ -256,7 +275,7 @@ public class SkiaRenderContext : IRenderContext
         {
              // TextSize dinamik olduğu için cache'den gelse bile güncellemek gerekebilir (Performans optimizasyonu için burada basitleştirildi)
              // Doğrusu: Font boyutu değiştiyse yeni paint. Şimdilik her frame'de TextSize güncelliyoruz.
-             paint.TextSize = (float)Math.Min(fontSize * _zoomFactor, 300.0);
+             paint.TextSize = (float)Math.Min(fontSize * _zoomFactor, 4000.0);
         }
 
         var p = Project(position);

@@ -5,10 +5,15 @@ namespace Afney.Cad.Mechanical.Services;
 public class DimensionStyle
 {
     public string Name        { get; set; } = "Standard";
-    public double TextHeight   { get; set; } = 250.0;
-    public double ArrowSize    { get; set; } = 200.0;
-    public double ExtLineGap   { get; set; } = 50.0;
-    public double ExtLineOver  { get; set; } = 75.0;
+    /*
+       MÜHENDİSLİK: Değerler (TextHeight/ArrowSize/ExtLineGap/ExtLineOver) önceden 250/200/50/75
+       idi — araştırma ajanı bulgusuna göre bu, aynı çizimdeki kapı/pencere etiketlerinin
+       (fontSize=80mm, kullanıcının doğru kabul ettiği referans) ~3 katıydı. Artık ona yakın.
+    */
+    public double TextHeight   { get; set; } = 100.0;
+    public double ArrowSize    { get; set; } = 80.0;
+    public double ExtLineGap   { get; set; } = 20.0;
+    public double ExtLineOver  { get; set; } = 30.0;
     public uint   Color        { get; set; } = 0xFF00CCFF;
     public string TextFont     { get; set; } = "Consolas";
     public bool   ShowUnits    { get; set; } = true;
@@ -30,9 +35,9 @@ public class DimensionStyleService
     public DimensionStyleService()
     {
         _styles["Standard"] = new DimensionStyle { Name = "Standard" };
-        _styles["ISO-25"]   = new DimensionStyle { Name = "ISO-25", TextHeight = 350, ArrowSize = 280, Precision = 1 };
-        _styles["Compact"]  = new DimensionStyle { Name = "Compact", TextHeight = 125, ArrowSize = 100, ExtLineGap = 25, ExtLineOver = 40 };
-        _styles["Large"]    = new DimensionStyle { Name = "Large", TextHeight = 500, ArrowSize = 400, ExtLineGap = 100, ExtLineOver = 150 };
+        _styles["ISO-25"]   = new DimensionStyle { Name = "ISO-25", TextHeight = 140, ArrowSize = 112, Precision = 1 };
+        _styles["Compact"]  = new DimensionStyle { Name = "Compact", TextHeight = 50, ArrowSize = 40, ExtLineGap = 10, ExtLineOver = 16 };
+        _styles["Large"]    = new DimensionStyle { Name = "Large", TextHeight = 200, ArrowSize = 160, ExtLineGap = 40, ExtLineOver = 60 };
     }
 
     public DimensionStyle ActiveStyle => _styles.TryGetValue(_activeStyleName, out var s) ? s : _styles["Standard"];

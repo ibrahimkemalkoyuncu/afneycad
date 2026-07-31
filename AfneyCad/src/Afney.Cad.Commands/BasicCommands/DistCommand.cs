@@ -53,7 +53,16 @@ public class DistCommand : ICadCommand
 
         double dist = (_cursor - _p1.Value).Length();
         var mid = new Vector3D((_p1.Value.X + _cursor.X) / 2, (_p1.Value.Y + _cursor.Y) / 2, 0);
-        ctx.DrawText(FormatDist(dist), mid, 0, 150, 0xFF00FF00);
+        /*
+           MÜHENDİSLİK: Sabit fontSize=150(mm), zoom ile çarpılıp ekran pikseline çevriliyor
+           (bkz. SkiaRenderContext.DrawText: fontSize*zoomFactor, 300px'te clamp). Kullanıcı
+           küçük bir detayı (ör. 200mm) ölçmek için çok yakın zoom yaptığında bu sabit değer
+           300px cap'e vurup ekranı kaplayan devasa bir etiket üretiyordu. Artık ölçülen
+           mesafeyle orantılı (böylece yakın zoom'da da makul kalıyor), büyük mesafelerde
+           eski davranışla aynı üst sınırda kalıyor.
+        */
+        double fontSize = Math.Clamp(dist * 0.12, 20.0, 150.0);
+        ctx.DrawText(FormatDist(dist), mid, 0, fontSize, 0xFF00FF00);
     }
 
     public void Cancel() { _p1 = null; }

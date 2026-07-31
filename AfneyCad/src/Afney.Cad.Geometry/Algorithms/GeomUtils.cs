@@ -319,4 +319,54 @@ public static class GeomUtils
         }
         return inside;
     }
+
+    /*
+       NE: Poligonun Kendi Kendini Kesip Kesmediğini Test Et (HasSelfIntersection)
+       NEDEN: Kapalı bir poligon, üretim yolu ne olursa olsun (greedy duvar zincirleme —
+              WallChainBuilder, ya da köşe-köşe elle tıklama — EdgeCaptureMahalCommand)
+              eksik/yanlış bir köşe yüzünden çapraz ("bowtie") hale gelebilir. Shoelace alan
+              formülü böyle bir poligonda loop'un bir kulağını diğerinden İPTAL EDER —
+              görsel olarak büyük bir sınır, sayısal olarak çok küçük/yanlış bir alana
+              dönüşür. Bu kontrol, aynı hatanın birden fazla çağıranda ayrı ayrı yeniden
+              yazılmasını (ve aralarında tutarsız davranmasını) önlemek için buraya, genel
+              amaçlı geometri katmanına taşındı — komşu olmayan her kenar çiftini tarar.
+    */
+    public static bool HasSelfIntersection(List<Vector3D> polygon)
+    {
+        int n = polygon.Count;
+        if (n < 4) return false; // üçgen kendi kendini kesemez
+
+        for (int i = 0; i < n; i++)
+        {
+            var a1 = polygon[i];
+            var a2 = polygon[(i + 1) % n];
+
+            for (int j = i + 1; j < n; j++)
+            {
+                // Komşu kenarları (ortak köşeyi paylaşanları) atla — bunlar "kesişim" değil.
+                if (j == i || (j + 1) % n == i || (i + 1) % n == j) continue;
+
+                var b1 = polygon[j];
+                var b2 = polygon[(j + 1) % n];
+
+                if (SegmentsIntersectStrict(a1, a2, b1, b2))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool SegmentsIntersectStrict(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4)
+    {
+        double d1 = CrossSign(p3, p4, p1);
+        double d2 = CrossSign(p3, p4, p2);
+        double d3 = CrossSign(p1, p2, p3);
+        double d4 = CrossSign(p1, p2, p4);
+
+        return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+               ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    }
+
+    private static double CrossSign(Vector3D a, Vector3D b, Vector3D p)
+        => (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
 }

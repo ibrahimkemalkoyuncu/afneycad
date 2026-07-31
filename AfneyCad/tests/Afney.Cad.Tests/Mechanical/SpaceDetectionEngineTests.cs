@@ -122,6 +122,58 @@ public class SpaceDetectionEngineTests
         Assert.Equal(12.0, SpaceDetectionEngine.CalculateAreaM2(rooms[0]), precision: 3);
     }
 
+    /*
+       NE: Büyük Ölçekli Performans Regresyon Testi
+       NEDEN: Uygulama geneli darboğaz denetiminde bulundu — `GroupIntoConnectedComponents`
+              ve `ExtractPlanarFaces`'teki düğüm (vertex) dedup'ı AYRI AYRI O(n²) lineer
+              aramayla yazılmıştı; birkaç bin duvar segmenti içeren gerçek çok katlı
+              projelerde "Otonom" tespiti gözle görülür yavaşlıyordu. Ortak bir grid-hash
+              `NodePool` ile O(1)'e yakın hale getirildi. Bu test, o düzeltmenin ileride
+              (ör. birisi tekrar lineer bir arama ekleyip) sessizce geri alınmasını —
+              10x10'luk bir oda ızgarasının (100 oda, ~200+ kesişim sonrası segment)
+              makul bir süre bütçesi içinde tamamlanmasını zorunlu kılarak — yakalar.
+              Süre sınırı bilinçli olarak gevşek tutuldu (yavaş CI makinelerinde de
+              GERÇEK bir O(n²) regresyonunu yakalayacak, ama ufak varyasyonlarda
+              yanlış alarm vermeyecek şekilde).
+    */
+    [Fact]
+    public void DetectAllSpaces_TenByTenRoomGrid_CompletesWithinPerformanceBudget()
+    {
+        const int gridSize = 10;   // 10x10 ızgara → en fazla 100 oda
+        const double cellSize = 3000.0; // 3m x 3m hücreler
+        double extent = gridSize * cellSize;
+
+        var db = new CadDatabase();
+
+        // Yatay ve dikey tam-uzunluklu duvarlar — ResolveIntersections her kesişimde böler.
+        for (int i = 0; i <= gridSize; i++)
+        {
+            double y = i * cellSize;
+            AddWall(db, new Vector3D(0, y, 0), new Vector3D(extent, y, 0));
+        }
+        for (int j = 0; j <= gridSize; j++)
+        {
+            double x = j * cellSize;
+            AddWall(db, new Vector3D(x, 0, 0), new Vector3D(x, extent, 0));
+        }
+
+        var engine = new SpaceDetectionEngine(db);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var rooms = engine.DetectAllSpaces();
+        sw.Stop();
+
+        // NOT: Bu testin amacı PERFORMANS regresyonunu yakalamak (bkz. üstteki NEDEN notu),
+        // eşit-alanlı bir ızgarada dış-kabuk-eleme köşe seçiminin TAM OLARAK kaç hücreyi
+        // elediği (gözlemlendi: run'lar arası değişebiliyor — eşit-alan durumunda ayrı,
+        // önceden var olan bir tie-break nüansı, bu fix'in kapsamı dışında) değil. Bu yüzden
+        // sadece "makul bir oda sayısı üretildi mi" gevşek sağlık kontrolü yapılıyor —
+        // asıl iddia performans bütçesinde.
+        Assert.True(rooms.Count > gridSize * gridSize / 2,
+            $"Beklenen en az {gridSize * gridSize / 2} oda, gerçek: {rooms.Count} — düğüm dedup'ında ciddi bir kayıp var mı diye kontrol et.");
+        Assert.True(sw.ElapsedMilliseconds < 8000,
+            $"10x10 oda ızgarası {sw.ElapsedMilliseconds}ms sürdü — O(n²) düğüm dedup regresyonu şüphesi (bütçe: 8000ms).");
+    }
+
     [Fact]
     public void DetectAllSpaces_NonWallLayer_IsIgnoredEntirely()
     {

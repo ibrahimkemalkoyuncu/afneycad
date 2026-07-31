@@ -165,12 +165,25 @@ GPU'lu görsel test yapılamıyor (yalnızca off-screen piksel okuma ile doğrul
   göründüğü doğrulanır — **bu fazın tek başarı kriteri: bir üçgen/küp ekranda dönüyor.**
 
 ### Faz 2 — Gerçek B-Rep mesh render + kamera
-- `MeshBuffer` ile `WallBRepService`/`DuctBRepService`/`Pipe3DModelService` çıktıları render
-  edilir (aynı veri, `Pipe3DViewWindow`'ın tükettiğiyle birebir — sadece render hedefi farklı).
-- Orbit/pan/zoom kamera + ışıklandırma.
-- `OnToggle3DView` komutu (zaten var) ana `CadViewport`'ta bu yeni motoru açar.
-- **Genelleştirilmiş B-Rep adaptörü:** Fixture/Door/Window/Room tabanı için de mesh üretimi
-  (şu an sadece Wall/Duct/Pipe var).
+
+**Durum (2026-07-22, Session #55): KISMEN TAMAMLANDI.**
+- ✅ `MeshBuffer` ile `WallBRepService`/`DuctBRepService`/`Pipe3DModelService` çıktıları render
+  ediliyor (`Direct3DViewportControl.LoadFromDatabase`) — aynı veri, `Pipe3DViewWindow`'ın
+  tükettiğiyle birebir, sadece render hedefi farklı (GPU D3D11 vs. WPF Viewport3D).
+- ✅ Orbit/pan/zoom kamera zaten Faz 1'den vardı; kamera artık içeriğin gerçek sınırlayıcı
+  kutusuna göre otomatik ortalanıp uzaklaştırılıyor (`FrameCameraToBounds`).
+- ✅ **Genelleştirilmiş B-Rep adaptörü:** Fixture/Door/Window/Room için yeni servisler
+  (`DoorWindowBRepService`, `FixtureBRepService`, `RoomBRepService`) — bkz.
+  `Kullanici_kitabi.md` Session #55 madde 29 (veri şemasındaki yükseklik eksikliği dürüstçe
+  not edildi, sabit yer tutucu değerler kullanıldı).
+- ✅ `d3dtest` komutu artık test küpü yerine açık projenin gerçek verisini render ediyor.
+- ⏳ **YAPILMADI:** `OnToggle3DView` komutu ana `CadViewport`'ta bu yeni motoru açmıyor —
+  bilinçli olarak kapsam dışı bırakıldı (ana pencere layout'unu/MDI yaşam döngüsünü etkileyen
+  daha riskli bir entegrasyon; önce `d3dtest` yoluyla veri/render doğruluğu kullanıcı
+  tarafından teyit edilmeli).
+- ⏳ **GÖRSEL DOĞRULAMA YİNE KULLANICIDA** — Faz 1'deki gibi bu ortamda GPU'lu interaktif test
+  yapılamıyor, sadece derleme + birim test (`BRepAdapterTests.cs`, 5 test) seviyesinde
+  doğrulama yapılabildi.
 
 ### Faz 3 — Seçim senkronizasyonu
 - 3D moddaki mouse-click'ten ray-casting (dünya-uzayı ışın + mesh üçgen kesişimi, elle

@@ -75,6 +75,35 @@ indirgenmeli (konum bazlı eşleştirme + tolerans) — `PlaneCutter.CutWithPlan
 için bir alt-adım (building block) olarak yeniden kullanılabilir (B'nin her yüzü için A'yı o
 yüzün düzlemiyle art arda kesmek).
 
+**GÜNCELLEME (2026-07-22, Session #55) — 1. yapı taşı (vertex kaynaşması) TAMAMLANDI:**
+Önce bir araştırma ajanı görevlendirildi (gerçek CSG kernel'lerin — OpenCASCADE/CGAL —
+coplanar merge + vertex welding'i nasıl ele aldığı araştırıldı). Ajanın NET tavsiyesi: bu
+oturumda SADECE vertex kaynaşmasını (izole, önceki hiçbir testi bozmayan bir yapı taşı olarak)
+tamamlamak, coplanar yüz birleştirme + genel SUBTRACT montajını (Faz 4'ün asıl hedefi) ayrı bir
+oturuma bırakmak — "genel SUBTRACT + UNION/INTERSECT'i bu oturumda bitirmek gerçekçi değil"
+değerlendirmesiyle.
+
+- ✅ `Boolean/VertexWelder.cs` (yeni) — `Weld(IEnumerable<Solid>, tolerance)` / `Weld(Solid, tolerance)`:
+  birbirine `tolerance` mesafesinden yakın `Vertex` nesnelerini (referans eşitliği — `Vertex`
+  bir `class`, `Equals`/`GetHashCode` override edilmemiş) tek bir ortak nesneye indirger, TÜM
+  `TopologyEdge.StartVertex`/`EndVertex` referanslarını buna göre yönlendirir (Id eşleştirmesi
+  DEĞİL, fiziksel referans mutasyonu — `Solid.GetVertices()`'in `HashSet<Vertex>` kullanımı
+  buna dayanıyor).
+- **Tolerans netliği (araştırma bulgusu):** Bu, `SpaceDetectionEngine`/`WallChainBuilder`'daki
+  kullanıcı-çizim toleransı (`MergeTolerance`, 5mm) ile KARIŞTIRILMAMALI — geometrik "aynı nokta
+  mı" kararı, `PlaneCutter.Tolerance` (1e-6) mertebesinde olmalı; çağıran açıkça seçer,
+  varsayılan yok (kasıtlı).
+- **Kapsam (bilinçli, dar):** Basit O(n²) mesafe karşılaştırması, grup başına SADECE ilk elemana
+  karşı (TRANSİTİF DEĞİL) — büyük Solid sayıları için ileride spatial hash gerekebilir.
+- **Yeni testler:** `VertexWelderTests.cs` (3 test) — iki bağımsız kutunun paylaştığı TEK köşeyi
+  doğru kaynaştırdığını (16→15 tekil vertex, `Assert.Same` ile referans eşitliği), kaynaşacak
+  çift yokken hiçbir şeyi değiştirmediğini, hacim/Euler geçerliliğinin korunduğunu doğruluyor.
+- **Sıradaki adımlar (araştırma ajanının önerdiği sıra):** (2) coplanar Face tespiti (normal
+  paralelliği + düzlem ofseti eşitliği), (3) coplanar 2D polygon boolean (mevcut
+  `FaceIntersection.ComputePlaneBasis`'in genişletilmesi), (4) genel SUBTRACT montajı — ÖNCE B
+  convex özel durumu (PlaneCutter'ın B'nin yüzleriyle art arda çağrılması + VertexWelder),
+  SONRA genel (içbükey B, `SolidClassifier` ile alt-Face sınıflandırma) durum.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

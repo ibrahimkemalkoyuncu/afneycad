@@ -612,6 +612,69 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        /*
+           NE: Ölçek Doğrula (OnScaleVerifyCommand)
+           NEDEN: Kullanıcı isteği — mimardan gelen bir DWG'nin birimi ($INSUNITS) yanlış
+                  veya eksik olabilir. `DwgImportService` artık dosyadaki INSUNITS'i doğru
+                  okuyup uyguluyor (bkz. bugünkü unitScale düzeltmesi) ama dosyanın KENDİSİ
+                  bu bilgiyi hiç taşımıyorsa veya yanlış taşıyorsa otomatik algılama işe
+                  yaramaz. Bu komut kullanıcının çizimde bildiği GERÇEK bir ölçüyle (ör.
+                  bir kapı genişliği) iki nokta seçip karşılaştırmasını, gerekirse TÜM
+                  çizimi seçilen 1. nokta etrafında (AutoCAD SCALE komutundaki "base point"
+                  mantığıyla aynı) tek bir Undo'lu adımda düzeltmesini sağlar.
+        */
+        private void OnScaleVerifyCommand(object sender, RoutedEventArgs e)
+        {
+            if (_database == null)
+            {
+                MessageBox.Show("Önce bir çizim açın.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var cmd = new ScaleVerifyCommand((p1, p2) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    double measuredMm = (p2 - p1).Length();
+                    if (measuredMm < 1.0)
+                    {
+                        StatusText.Text = "Ölçek Doğrula: iki nokta çok yakın, tekrar deneyin.";
+                        return;
+                    }
+
+                    var dialog = new ScaleVerifyDialog(measuredMm) { Owner = this };
+                    if (dialog.ShowDialog() != true) return;
+
+                    double factor = dialog.CorrectionFactor;
+                    if (Math.Abs(factor - 1.0) < 1e-9) return;
+
+                    var toOrigin     = Afney.Cad.Geometry.Primitives.Matrix4x4.TranslationMatrix(-p1.X, -p1.Y, -p1.Z);
+                    var scale        = Afney.Cad.Geometry.Primitives.Matrix4x4.Scaling(factor, factor, factor);
+                    var backToAnchor = Afney.Cad.Geometry.Primitives.Matrix4x4.TranslationMatrix(p1.X, p1.Y, p1.Z);
+                    var transform    = backToAnchor * scale * toOrigin;
+
+                    var toOriginInv     = Afney.Cad.Geometry.Primitives.Matrix4x4.TranslationMatrix(p1.X, p1.Y, p1.Z);
+                    var scaleInv        = Afney.Cad.Geometry.Primitives.Matrix4x4.Scaling(1.0 / factor, 1.0 / factor, 1.0 / factor);
+                    var backToAnchorInv = Afney.Cad.Geometry.Primitives.Matrix4x4.TranslationMatrix(-p1.X, -p1.Y, -p1.Z);
+                    var inverseTransform = toOriginInv * scaleInv * backToAnchorInv;
+
+                    var entities = _database.GetAllEntities().ToList();
+                    var composite = new Afney.Cad.Database.Transactions.CompositeOperation($"Ölçek Düzeltme (×{factor:F4})");
+                    foreach (var ent in entities)
+                        composite.Add(new TransformEntityOperation(ent, transform, inverseTransform, _database));
+
+                    _database.TransactionManager.Submit(composite);
+                    Viewport.InvalidateVisual();
+                    StatusText.Text = $"Ölçek düzeltildi: {entities.Count} nesne ×{factor:F4} oranında ölçeklendi (Ctrl+Z ile geri alınabilir).";
+                });
+            });
+
+            cmd.OnFeedback  += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnDimTextHeightSmall(object sender, RoutedEventArgs e)
         {
             _dimStyleService.SetActiveStyle("Compact");

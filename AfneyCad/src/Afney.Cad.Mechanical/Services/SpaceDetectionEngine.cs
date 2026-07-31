@@ -24,6 +24,49 @@ namespace Afney.Cad.Mechanical.Services
         }
 
         /*
+           NE: Nokta Havuzu — Grid-Hash Tabanlı Dedup (NodePool)
+           NEDEN: GroupIntoConnectedComponents ve ExtractPlanarFaces'te aynı "en yakın mevcut
+                  düğümü bul, yoksa ekle" mantığı ayrı ayrı LİNEER taramayla yazılmıştı — her
+                  segment ucu için nodes.Count kadar mesafe hesabı, yani toplamda O(n²). Birkaç
+                  bin duvar/kapı/pencere segmenti içeren gerçekçi bir çok katlı planda Otonom
+                  mahal tespitini (`OnAutoDetectSpacesCommand`) gözle görülür şekilde
+                  yavaşlatıyordu. Çözüm: MergeTolerance boyutunda hücrelere göre grid-hash —
+                  arama sadece noktanın bulunduğu 3x3 komşu hücreyle sınırlanıyor, ortalama
+                  O(1) ekleme/arama sağlanıyor. İki yerdeki tekrarlı mantık burada birleştirildi.
+        */
+        private sealed class NodePool
+        {
+            private readonly double _tolerance;
+            private readonly Dictionary<(long, long), List<int>> _grid = new();
+            public List<Vector3D> Nodes { get; } = new();
+
+            public NodePool(double tolerance) { _tolerance = tolerance; }
+
+            private (long, long) CellOf(Vector3D p) =>
+                ((long)Math.Floor(p.X / _tolerance), (long)Math.Floor(p.Y / _tolerance));
+
+            public int GetOrAdd(Vector3D p)
+            {
+                var (cx, cy) = CellOf(p);
+                for (long dx = -1; dx <= 1; dx++)
+                    for (long dy = -1; dy <= 1; dy++)
+                        if (_grid.TryGetValue((cx + dx, cy + dy), out var indices))
+                            foreach (var idx in indices)
+                                if (Nodes[idx].DistanceTo(p) <= _tolerance) return idx;
+
+                Nodes.Add(p);
+                int newIndex = Nodes.Count - 1;
+                if (!_grid.TryGetValue((cx, cy), out var list))
+                {
+                    list = new List<int>();
+                    _grid[(cx, cy)] = list;
+                }
+                list.Add(newIndex);
+                return newIndex;
+            }
+        }
+
+        /*
            NE: Ana Tetikleyici Fonksiyon
            NEDEN: Tüm işlem adımlarını sırayla koşturup RoomEntity'leri üretmek için.
         */
@@ -75,20 +118,13 @@ namespace Afney.Cad.Mechanical.Services
         */
         private List<List<(Vector3D P1, Vector3D P2)>> GroupIntoConnectedComponents(List<(Vector3D P1, Vector3D P2)> segments)
         {
-            var nodes = new List<Vector3D>();
-            int GetOrAddNode(Vector3D p)
-            {
-                for (int i = 0; i < nodes.Count; i++)
-                    if (nodes[i].DistanceTo(p) <= MergeTolerance) return i;
-                nodes.Add(p);
-                return nodes.Count - 1;
-            }
+            var pool = new NodePool(MergeTolerance);
 
             var segNodeIndices = new List<(int A, int B)>(segments.Count);
             foreach (var seg in segments)
-                segNodeIndices.Add((GetOrAddNode(seg.P1), GetOrAddNode(seg.P2)));
+                segNodeIndices.Add((pool.GetOrAdd(seg.P1), pool.GetOrAdd(seg.P2)));
 
-            var parent = new int[nodes.Count];
+            var parent = new int[pool.Nodes.Count];
             for (int i = 0; i < parent.Length; i++) parent[i] = i;
             int Find(int x)
             {
@@ -246,6 +282,70 @@ namespace Afney.Cad.Mechanical.Services
         }
 
         /*
+           NE: Segment Aday Izgarası (SegmentGrid)
+           NEDEN: Darboğaz denetimi + araştırma ajanı bulgusu — `ResolveIntersections`'ın iç
+                  döngüsü segA'yı KALAN HER segB ile (O(n²) çift) test ediyordu; bugün eklenen
+                  AABB ön-filtresi (bkz. `BoundingBoxesOverlap`) her çiftin maliyetini düşürdü
+                  ama ÇİFT SAYISINI değiştirmedi. Tam bir Bentley-Ottmann sweep-line yeniden
+                  yazımı (araştırıldı — bkz. Kullanici_kitabi.md Session #55) bu kod tabanı için
+                  YÜKSEK RİSK/EFOR, DÜŞÜK EK KAZANÇ bulundu: gerçek kazanç, adayları bir grid-hash
+                  ile daraltıp sadece YAKINDAKİ segment çiftlerini denemekten geliyor — mevcut
+                  "pass içinde split, aynı sırada test et" mutasyon davranışını (satır ~347-351)
+                  HİÇ bozmadan. Bu sınıf tam olarak bunu yapar: segment index'lerini AABB'lerinin
+                  kapladığı hücrelere göre saklar, `CandidatesAbove` sadece segA'nın yakın
+                  hücrelerindeki (ve index > i olan) adayları döndürür.
+        */
+        private sealed class SegmentGrid
+        {
+            private readonly double _cellSize;
+            private readonly Dictionary<(long, long), List<int>> _cells = new();
+
+            public SegmentGrid(double cellSize) => _cellSize = Math.Max(cellSize, 1.0);
+
+            private (long MinX, long MinY, long MaxX, long MaxY) CellRange((Vector3D P1, Vector3D P2) seg)
+            {
+                double minX = Math.Min(seg.P1.X, seg.P2.X), maxX = Math.Max(seg.P1.X, seg.P2.X);
+                double minY = Math.Min(seg.P1.Y, seg.P2.Y), maxY = Math.Max(seg.P1.Y, seg.P2.Y);
+                return ((long)Math.Floor(minX / _cellSize), (long)Math.Floor(minY / _cellSize),
+                        (long)Math.Floor(maxX / _cellSize), (long)Math.Floor(maxY / _cellSize));
+            }
+
+            public void Index(int idx, (Vector3D P1, Vector3D P2) seg)
+            {
+                var (minX, minY, maxX, maxY) = CellRange(seg);
+                for (long cx = minX; cx <= maxX; cx++)
+                    for (long cy = minY; cy <= maxY; cy++)
+                    {
+                        if (!_cells.TryGetValue((cx, cy), out var list))
+                        {
+                            list = new List<int>();
+                            _cells[(cx, cy)] = list;
+                        }
+                        list.Add(idx);
+                    }
+            }
+
+            public void Rebuild(List<(Vector3D P1, Vector3D P2)> segments)
+            {
+                _cells.Clear();
+                for (int i = 0; i < segments.Count; i++) Index(i, segments[i]);
+            }
+
+            /// <summary>segA'nın hücrelerindeki, index'i minExclusiveIndex'ten büyük aday segment index'lerini (artan sırada, tekrarsız) döndürür.</summary>
+            public List<int> CandidatesAbove(int minExclusiveIndex, (Vector3D P1, Vector3D P2) seg)
+            {
+                var (minX, minY, maxX, maxY) = CellRange(seg);
+                var found = new SortedSet<int>();
+                for (long cx = minX; cx <= maxX; cx++)
+                    for (long cy = minY; cy <= maxY; cy++)
+                        if (_cells.TryGetValue((cx, cy), out var list))
+                            foreach (var idx in list)
+                                if (idx > minExclusiveIndex) found.Add(idx);
+                return found.ToList();
+            }
+        }
+
+        /*
            ADIM 2: Kesişimleri Çöz (Intersection Resolving)
            Tüm segmentleri birbiriyle test edip kesiştiklerinde böler (Split).
         */
@@ -261,14 +361,31 @@ namespace Afney.Cad.Mechanical.Services
                 limit--;
                 var nextPass = new List<(Vector3D P1, Vector3D P2)>();
 
+                /*
+                   MÜHENDİSLİK: Hücre boyutu MergeTolerance'ın çok üstünde, tipik duvar
+                   uzunluğu mertebesinde sabit bir değer — gerçek kat planlarında (duvarlar
+                   genelde birkaç yüz - birkaç bin mm) hücre başına makul (küçük, sabit)
+                   sayıda segment düşürüp aday sayısını n²'den n'e yakın bir şeye indiriyor.
+                */
+                const double CellSize = 3000.0;
+                var grid = new SegmentGrid(CellSize);
+                grid.Rebuild(result);
+
                 for (int i = 0; i < result.Count; i++)
                 {
                     var segA = result[i];
                     bool wasSplitThisPass = false;
 
-                    for (int j = i + 1; j < result.Count; j++)
+                    // NOT: Aday listesi bu i için BİR KEZ materyalize ediliyor — güvenli, çünkü
+                    // bir split bulunur bulunmaz hemen `break` ile bu i'nin taramasından
+                    // çıkılıyor (aşağıdaki grid.Index çağrısı SONRAKİ i'ler için geçerli olur).
+                    foreach (int j in grid.CandidatesAbove(i, segA))
                     {
+                        if (j >= result.Count) continue; // savunma: index kaymışsa atla (olmamalı)
                         var segB = result[j];
+
+                        if (!BoundingBoxesOverlap(segA, segB, MergeTolerance)) continue;
+
                         var intersection = GetIntersection(segA.P1, segA.P2, segB.P1, segB.P2);
 
                         if (intersection.HasValue)
@@ -294,7 +411,9 @@ namespace Afney.Cad.Mechanical.Services
                                 if (splitB)
                                 {
                                     result[j] = (segB.P1, intersection.Value); // B'nin ilk yarısı
-                                    result.Add((intersection.Value, segB.P2)); // B'nin ikinci yarısını sıraya ekle
+                                    var secondHalf = (intersection.Value, segB.P2);
+                                    result.Add(secondHalf); // B'nin ikinci yarısını sıraya ekle
+                                    grid.Index(result.Count - 1, secondHalf); // yeni parçayı grid'e de ekle
                                 }
 
                                 wasSplitThisPass = true;
@@ -313,6 +432,25 @@ namespace Afney.Cad.Mechanical.Services
             }
 
             return result;
+        }
+
+        /*
+           NE: Segment Çiftinin AABB'leri Çakışıyor mu? (BoundingBoxesOverlap)
+           NEDEN: ResolveIntersections'daki O(n²) çift taramasında pahalı (bölmeli)
+                  GetIntersection çağrısına girmeden önce ucuz bir erken-çıkış sağlar —
+                  iki segmentin eksen-hizalı sınırlayıcı kutuları çakışmıyorsa kesişmeleri
+                  matematiksel olarak imkansızdır. `tolerance` payı, ResolveIntersections'ın
+                  kendisinin de MergeTolerance dahilindeki "neredeyse değen" uçları kesişim
+                  saydığı toleransla tutarlı tutuluyor.
+        */
+        private static bool BoundingBoxesOverlap((Vector3D P1, Vector3D P2) a, (Vector3D P1, Vector3D P2) b, double tolerance)
+        {
+            double aMinX = Math.Min(a.P1.X, a.P2.X) - tolerance, aMaxX = Math.Max(a.P1.X, a.P2.X) + tolerance;
+            double aMinY = Math.Min(a.P1.Y, a.P2.Y) - tolerance, aMaxY = Math.Max(a.P1.Y, a.P2.Y) + tolerance;
+            double bMinX = Math.Min(b.P1.X, b.P2.X), bMaxX = Math.Max(b.P1.X, b.P2.X);
+            double bMinY = Math.Min(b.P1.Y, b.P2.Y), bMaxY = Math.Max(b.P1.Y, b.P2.Y);
+
+            return aMinX <= bMaxX && aMaxX >= bMinX && aMinY <= bMaxY && aMaxY >= bMinY;
         }
 
         /*
@@ -342,26 +480,21 @@ namespace Afney.Cad.Mechanical.Services
         private List<List<Vector3D>> ExtractPlanarFaces(List<(Vector3D P1, Vector3D P2)> segments)
         {
             // 1. Düğümü (Vertex) Havuzunu ve Komşulukları (Adjacency List) Oluştur
-            var nodes = new List<Vector3D>();
+            var pool = new NodePool(MergeTolerance);
             var adjacency = new Dictionary<int, List<int>>();
-            
-            int GetOrAddNode(Vector3D p) {
-                for(int i = 0; i < nodes.Count; i++) {
-                    if (nodes[i].DistanceTo(p) <= MergeTolerance) return i;
-                }
-                nodes.Add(p);
-                adjacency[nodes.Count - 1] = new List<int>();
-                return nodes.Count - 1;
-            }
 
             foreach (var seg in segments) {
-                int n1 = GetOrAddNode(seg.P1);
-                int n2 = GetOrAddNode(seg.P2);
+                int n1 = pool.GetOrAdd(seg.P1);
+                int n2 = pool.GetOrAdd(seg.P2);
+                if (!adjacency.ContainsKey(n1)) adjacency[n1] = new List<int>();
+                if (!adjacency.ContainsKey(n2)) adjacency[n2] = new List<int>();
                 if (n1 != n2) {
                     if (!adjacency[n1].Contains(n2)) adjacency[n1].Add(n2);
                     if (!adjacency[n2].Contains(n1)) adjacency[n2].Add(n1);
                 }
             }
+
+            var nodes = pool.Nodes;
 
             // 2. Yönlendirilmiş Kenarları (Directed Edges) Oluştur ve Açıya Göre Sırala
             var sortedNeighbors = new Dictionary<int, List<int>>();

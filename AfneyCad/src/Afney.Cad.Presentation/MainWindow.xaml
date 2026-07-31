@@ -590,6 +590,12 @@
                                                             <TextBlock Text="Dikdörtgen" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
+                                                    <Button Click="OnEdgeCaptureMahalDefine" Style="{StaticResource RbnBtn}" ToolTip="Uç-Yakala: duvar köşelerini sırayla tıklayarak mahal sınırı oluştur (OSNAP açık olmalı)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Target}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Uç-Yakala" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button Click="OnDefineMahalCommand" Style="{StaticResource RbnBtn}">
                                                         <StackPanel Orientation="Horizontal">
                                                             <Path Data="{StaticResource Ico.Tag}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
@@ -1695,6 +1701,15 @@
                                                     <StackPanel>
                                                         <Path Data="{StaticResource Ico.Ruler}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
                                                         <TextBlock Text="Uzaklık" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnScaleVerifyCommand"
+                                                        ToolTip="Ölçek Doğrula — Mimardan gelen çizimin birimi yanlışsa, bilinen bir ölçüyle (ör. kapı genişliği) karşılaştırıp tüm çizimi düzeltin">
+                                                    <StackPanel>
+                                                        <Path Data="{StaticResource Ico.CheckCircle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Ölçek" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Doğrula" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource RbnLarge}"

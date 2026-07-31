@@ -9,14 +9,26 @@ public static class PsychrometricService
 {
     private const double Patm = 101325.0; // Pa (deniz seviyesi)
 
-    // Doyma buhar basıncı (Pa) — Antoine denklemi (ASHRAE)
+    /*
+       NE: Doyma Buhar Basıncı (Pa) — Sıvı: ASHRAE Hyland-Wexler; Buz: WMO/Magnus
+       NEDEN: Buz dalı (0°C altı) daha önce yanlış sabitler taşıyordu — ör. -10°C'de
+              gerçek değer ~260 Pa olması gerekirken (buhar tablosu/WMO CIMO Guide
+              referansı) ~12.877 Pa (yaklaşık 50 KAT fazla) üretiyordu; bu, GERÇEK
+              kullanımda hiç fark edilmeden duran, "10/10" etiketli bir hesap
+              motorunda bulunan sessiz-yanlış-sonuç hatasıydı (bkz. denetim raporu —
+              bağımsız buhar tablosu referans testleri eklenirken -10°C'de yakalandı).
+              Buz dalı artık WMO/Magnus formülüyle (0°C'de sıvı dalıyla süreklilik
+              sağlayan, -80°C'ye kadar geçerli, endüstri standardı) değiştirildi.
+    */
     public static double SaturationPressure(double tempC)
     {
-        double T = tempC + 273.15;
         if (tempC >= 0)
+        {
+            double T = tempC + 273.15;
             return Math.Exp(77.3450 + 0.0057 * T - 7235.0 / T) / Math.Pow(T, 8.2);
-        // Buz üzeri (0°C altı)
-        return Math.Exp(28.5884 - 6244.64 / T) * 100.0;
+        }
+        // Buz üzeri (0°C altı) — WMO/Magnus formülü (611.15 Pa × e^(22.452·Tc / (272.55+Tc)))
+        return 611.15 * Math.Exp(22.452 * tempC / (272.55 + tempC));
     }
 
     // Nem oranı (kg_su/kg_kuru_hava)

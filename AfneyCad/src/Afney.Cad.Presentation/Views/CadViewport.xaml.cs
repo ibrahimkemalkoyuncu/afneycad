@@ -1260,9 +1260,22 @@ namespace Afney.Cad.Presentation.Views;
                                 if (Keyboard.Modifiers != ModifierKeys.Shift)
                                     _selectionManager.ClearSelection();
 
+                                /*
+                                   MÜHENDİSLİK: Önceden burada _database.GetAllEntities() ile TÜM veritabanı
+                                   lineer taranıyordu (her tek tık O(n), polyline'larda vertex sayısıyla daha
+                                   da ağır) — büyük DWG'lerde (binlerce entity) en sık kullanılan etkileşim
+                                   (tek tık seçim) gözle görülür şekilde yavaşlıyordu. QuadTree zaten var
+                                   (double-click hit-test'te ve SnapEngine'de kullanılıyor) — burada da
+                                   pickTol yarıçaplı bir kutu ile önce aday listesi daraltılıyor.
+                                */
+                                double ht = pickTol;
+                                var queryBox = new CadBoundingBox(
+                                    new Vector3D(wp.X - ht, wp.Y - ht, -1e9),
+                                    new Vector3D(wp.X + ht, wp.Y + ht, 1e9));
+
                                 CadEntity? best = null;
                                 double bestDist = pickTol;
-                                foreach (var ent in _database!.GetAllEntities())
+                                foreach (var ent in _database!.QueryEntities(queryBox))
                                 {
                                     if (HiddenLayers.Contains(ent.Layer)) continue;
                                     double d = ent.DistanceTo(wp);

@@ -25,6 +25,17 @@ public static class AcadSharpDocumentBuilder
     {
         var doc = new CadDocument();
 
+        /*
+           MÜHENDİSLİK: $INSUNITS hiç ayarlanmıyordu — ACadSharp'ın CadDocument varsayılanına
+           (Unitless) bırakılıyordu. AfneyCAD içi round-trip'i etkilemiyor (DwgImportService/
+           DxfImportService Unitless için de unitScale=1.0 varsayıyor, ki bu mm-native
+           koordinatlarımızla zaten doğru sonuç veriyor) ama GERÇEK AutoCAD/başka bir MEP
+           yazılımına aktarılan dosyalarda (asıl DXF/DWG export amacı budur) birim meta verisi
+           eksik kalıyordu. Uygulamanın evrensel iç birimi mm olduğundan bunu açıkça belirtmek
+           (INSUNITS=4) hem doğru hem de bedelsiz.
+        */
+        doc.Header.InsUnits = ACadSharp.Types.Units.UnitsType.Millimeters;
+
         foreach (var layer in database.GetLayers())
         {
             if (doc.Layers.Contains(layer.Name)) continue;
