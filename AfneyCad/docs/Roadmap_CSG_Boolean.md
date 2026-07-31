@@ -104,6 +104,69 @@ değerlendirmesiyle.
   convex özel durumu (PlaneCutter'ın B'nin yüzleriyle art arda çağrılması + VertexWelder),
   SONRA genel (içbükey B, `SolidClassifier` ile alt-Face sınıflandırma) durum.
 
+**GÜNCELLEME (2026-07-31, Session #55) — 2. ve 3. yapı taşları TAMAMLANDI:**
+- ✅ `Boolean/CoplanarFaceDetector.cs` — `AreCoplanar(Face, Face, angleTolerance, offsetTolerance)`:
+  normal paralelliği (zıt yönlü dahil) + aynı normal'e göre ölçülen düzlem ofseti eşitliği.
+  `CoplanarFaceDetectorTests.cs` (3 test).
+- ✅ `Boolean/ConvexPolygonClipper2D.cs` — `Intersect(polyA, polyB, normal)`: dışbükey iki
+  coplanar poligonun kesişimi (genelleştirilmiş Sutherland-Hodgman, yarı-düzlem kırpma).
+  **Bilinçli dar kapsam:** SADECE dışbükey∩dışbükey (matematiksel olarak her zaman tek/dışbükey
+  sonuç — çok parçalı çıktı İMKANSIZ, `List<Vector3D>` dönüşü dürüst). İçbükey girdide
+  `InvalidOperationException` (sessiz yanlış sonuç yerine). UNION/DIFFERENCE bilinçli olarak
+  kapsam dışı — SUBTRACT'in coplanar-payı kararı sadece INTERSECT'e ihtiyaç duyuyor.
+  `ConvexPolygonClipper2DTests.cs` (5 test: özdeş kare, kısmi örtüşme, ayrık, biri diğerini
+  kapsıyor, içbükey girdi → throw).
+
+**GÜNCELLEME (2026-07-31, Session #55) — 4. adım (genel SUBTRACT montajı) ARAŞTIRILDI, BİLİNÇLİ
+OLARAK ERTELENDİ (rushed implementasyon yerine):** Ana Yasa gereği bir araştırma ajanı
+görevlendirildi — "(B convex özel durumu, PlaneCutter'ı art arda çağırmak)" fikrinin gerçekten
+doğru olup olmadığı sınandı. **İki kritik bulgu, ikisi de "acele implementasyon yerine dürüst
+erteleme" kararını gerektirdi:**
+
+1. **Naif "B'nin her yüz düzlemiyle art arda kes, dış tarafı tut" YANLIŞ:** Dışbükey B için
+   `B = ∩ᵢ insideᵢ` (yüzlerin iç yarı-uzaylarının KESİŞİMİ), De Morgan'a göre
+   `complement(B) = ∪ᵢ outsideᵢ` — yani bir BİRLEŞİM, kesişim DEĞİL. `PlaneCutter`'ı art arda
+   "dış tarafı tut" şeklinde çağırmak `∩ᵢ outsideᵢ`'yi hesaplar (her kesim bir öncekinden DAHA
+   FAZLA malzeme atar) — B, A'ya göre küçükse bu genelde BOŞ küme çıkar. Doğru yöntem: önce
+   A'yı B'nin düzlemleriyle art arda kesip (bu kez İÇ tarafı tutarak — kesişim-kesişimi yine
+   kesişimdir, bu adım DOĞRU) `A∩B`'yi bulmak, SONRA `A−B`'yi ayrı bir yüz-yeniden-sınıflandırma
+   adımıyla (A'nın B-dışı kalan parçaları + B'nin A-içi parçalarının normali ters çevrilmiş
+   hâli) monte etmek — roadmap'in ORİJİNAL Faz 4 planıyla birebir aynı, `PlaneCutter`'ın kendisi
+   bu ikinci adımı sağlamıyor (attığı "dış" parçayı SAKLAMIYOR, tam da montaj için gereken
+   parça).
+2. **Kernel'in kendisi "boşluklu katı" (solid-with-cavity) temsil EDEMİYOR:** `Solid.cs`
+   incelendi — `Faces` düz bir `List<Face>`, `IsValid()` sabit `V-E+F==2` (genus 0) şartı
+   koşuyor. Kabuk (shell) grubu / iç boşluk kavramı YOK. B TAMAMEN A'nın içinde kalırsa
+   (ör. bir katının ortasında delinmemiş bir boşluk), sonuç prensipte "dış kabuk + iç kabuk"
+   gerektirir — bu veri modelinde KATEGORİK OLARAK temsil edilemez (eksik özellik değil,
+   yapısal bir sınırlama). Dürüst dar kapsam: SADECE B, A'nın SINIRINA değen/kesen durumlar
+   (kanal boşluğu bir duvarı deliyor, cihaz hacmi bir sınır duvarıyla kırpılıyor) — B tam
+   gömülüyse (cavity) AÇIK HATA.
+
+**Karar:** Bu, "PlaneCutter + VertexWelder'ı birleştirmek" değil, GERÇEKTEN YENİ bir algoritma
+(yüz parça takibi + yeniden sınıflandırma + montaj, birkaç yüz satır, çok sayıda incelikli
+hata potansiyeli) — aceleyle bu oturumda sıkıştırmak yerine, ayrı bir ODAKLANMIŞ oturuma
+bırakıldı (VertexWelder/PlaneCutter'ın kendisinin de daha önce aynı şekilde daraltıldığı gibi).
+Somut, hazır algoritma (bir sonraki oturum doğrudan uygulayabilir):
+1. A'yı B'nin her yüz düzlemiyle art arda kes, HER SEFERİNDE İÇ tarafı tut (`PlaneCutter`'ın
+   "pozitif tarafı tut" mantığının aynısı, sadece normal işareti B'nin içine bakacak şekilde
+   seçilir) → sonuç `A∩B` (`C` diyelim).
+2. Adım 1'i, HER orijinal A-yüzü için "B-dışında kalan parça"yı ATMAK yerine SAKLAYACAK şekilde
+   yeniden yapılandır (`PlaneCutter`'ın mevcut "discarded" mantığı tam tersine çevrilmeli).
+3. `C`'nin kesim sırasında oluşan kapak yüzlerinin (B'nin sınırının A içine yansıması) normalini
+   ters çevir — bunlar A'ya açılan oyuğun/çentiğin duvarları olur.
+4. Korunan A-parçaları + ters-çevrilmiş-C-kapak-yüzleri tek bir yeni `Solid`'de birleştirilir,
+   `VertexWelder` ile köşeler kaynaştırılır, `IsValid()` + hacim kontrolüyle (`A.Hacim -
+   Kesişim.Hacim == Sonuç.Hacim`) doğrulanır.
+5. Ön koşul kontrolü: B, A içinde TAM GÖMÜLÜ değilse çalışsın (ör. B'nin en az bir köşesi/yüzü
+   A'nın dışında) — aksi halde açık `NotSupportedException` ("cavity/boşluklu katı kapsam
+   dışı — çok-kabuklu Solid desteği gerekir").
+- **Sıradaki adım (net):** yukarıdaki 5 adımı `Boolean/SolidSubtractor.cs` (veya benzeri) olarak
+  uygula, `PlaneCutter`'a dokunmadan (paralel, ayrı bir "iç tut + parça sakla" varyantı yazarak
+  veya `PlaneCutter`'a opsiyonel bir `keepBothSides`/callback parametresi ekleyerek — hangisi
+  daha az riskli olduğuna implementasyon zamanı karar verilmeli), box-minus-box slab senaryosu
+  + sınır-çentiği senaryosuyla test edilmeli.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

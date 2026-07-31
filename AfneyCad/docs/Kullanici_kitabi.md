@@ -2782,11 +2782,30 @@ Roadmap Faz 2'nin bilinçli olarak kapsam dışı bırakılmış maddesi (#29) t
 
 **Tam suite: 334/334** (331 → 334, +3 yeni test — CoplanarFaceDetector), tam çözüm derlemesi 0 hata. **GÖRSEL DOĞRULAMA kullanıcıda** — bu ortamda GPU'lu interaktif test yapılamıyor, sadece derleme+birim test seviyesinde doğrulama yapılabildi; kullanıcının gerçek projede 3D görünüm toggle'ını (F.ör. "3D Görünüm" butonu) canlı test etmesi gerekiyor.
 
+### 33. CSG Boolean — Coplanar 2D Poligon Kesişimi (ConvexPolygonClipper2D) Tamamlandı
+Sıradaki öncelik: `docs/Roadmap_CSG_Boolean.md`'nin 3. yapı taşı. `CoplanarFaceDetector`'ın (#31) coplanar bulduğu bir A/B yüz çifti, TAM ÇAKIŞIK olmayabilir (B'nin izdüşümü A'nınkinden küçük/kaymış olabilir) — genel SUBTRACT'in bu durumda doğru karar verebilmesi için gerçek bir 2D poligon kesişimi gerekiyordu. Ana Yasa gereği önce bir araştırma ajanı görevlendirildi.
+
+**Ajan bulgusu:** Gerçek endüstri standardı (Vatti/Martinez-Rueda sweep-line — Clipper/GPC'nin temeli) rastgele (içbükey, delikli, çok parçalı) poligonları destekler ama tek oturumda sağlam yazılması gerçekçi değil (üretim kütüphaneleri binlerce satır kullanır). Bu projenin GERÇEK kullanımı (`*BRepService.cs` — hepsi `ExtrudeBox`/`ExtrudePolygon` çıktısı) SADECE dışbükey yüzler üretiyor — matematiksel olarak dışbükey∩dışbükey HER ZAMAN tek, dışbükey bir bölge veya boştur (çok parçalı sonuç imkansız). **Önerilen ve uygulanan dar kapsam:** SADECE dışbükey∩dışbükey (genelleştirilmiş Sutherland-Hodgman, yarı-düzlem kırpma), içbükey girdide açık hata.
+
+- **`Boolean/ConvexPolygonClipper2D.cs`** (yeni) — `Intersect(polyA, polyB, normal)`: her iki poligon `FaceIntersection`'daki ile aynı teknikle (`ComputePlaneBasis`) 2D'ye izdüşürülüyor, dışbükeylik doğrulanıyor (değilse `InvalidOperationException`), poligon B'nin her kenarının yarı-düzlemiyle poligon A sırayla kırpılıyor, sonuç 3D'ye geri izdüşürülüyor.
+- **Yeni testler:** `ConvexPolygonClipper2DTests.cs` (5 test) — özdeş kareler (tam alan), kısmi örtüşen dikdörtgenler (doğru kırpılmış alan), ayrık dikdörtgenler (boş sonuç), biri diğerini kapsıyor (küçüğün alanı), içbükey girdi (throw — sessiz yanlış sonuç yerine).
+
+**Tam suite: 339/339** (334 → 339, +5 yeni test), tam çözüm derlemesi 0 hata.
+
+### 34. CSG Boolean — Genel SUBTRACT Montajı ARAŞTIRILDI, BİLİNÇLİ OLARAK ERTELENDİ
+Öncelik listesindeki son madde: genel iki-katı SUBTRACT montajı. Ana Yasa gereği önce bir araştırma ajanı görevlendirildi — önceki oturumun önerdiği "B-convex özel durumu: PlaneCutter'ı B'nin yüzleriyle art arda çağırmak + VertexWelder" fikrinin GERÇEKTEN doğru olup olmadığı sınandı. **İki kritik bulgu, ikisini de "acele implementasyon yerine dürüst erteleme" kararına götürdü:**
+
+1. **Fikrin kendisi matematiksel olarak YANLIŞ çıktı:** Dışbükey B için `complement(B) = ∪ outsideᵢ` (De Morgan — BİRLEŞİM), `PlaneCutter`'ı art arda "dış tarafı tut" çağırmak ise `∩ outsideᵢ`'yi (KESİŞİM) hesaplıyor — B, A'ya göre küçükse bu genelde BOŞ küme çıkar. Doğru yöntem iki ayrı adım gerektiriyor: önce `A∩B`'yi bulmak (bu kısım doğru — kesişimin art arda kesişimi yine kesişimdir), SONRA `A−B`'yi ayrı bir yüz-yeniden-sınıflandırma+montaj adımıyla kurmak — roadmap'in ORİJİNAL Faz 4 planı. `PlaneCutter`, montaj için gereken "atılan" parçayı SAKLAMIYOR, bu yüzden "sadece birleştirmek" yeterli değil.
+2. **Kernel'in kendisi "boşluklu katı" temsil edemiyor:** `Solid.cs` incelendi — kabuk (shell) grubu/iç boşluk kavramı yok, `IsValid()` sabit genus-0 (`V-E+F==2`) şartı koşuyor. B tamamen A içinde gömülüyse (cavity), sonuç bu veri modelinde KATEGORİK OLARAK temsil edilemez — eksik özellik değil, yapısal sınırlama.
+
+**Karar:** Bu, mevcut parçaları birleştirmek değil, GERÇEKTEN YENİ bir algoritma (yüz-parça takibi + yeniden sınıflandırma + montaj) — aceleyle sıkıştırmak yerine ayrı, odaklanmış bir oturuma bırakıldı (VertexWelder/PlaneCutter'ın kendisi de aynı şekilde daraltılmıştı). Somut, 5 adımlı, hazır algoritma `docs/Roadmap_CSG_Boolean.md`'ye kaydedildi — bir sonraki oturum doğrudan uygulayabilir. Kod değişikliği YAPILMADI (sadece araştırma + dokümantasyon).
+
+**Tam suite: 339/339, regresyon yok.**
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — bu oturumda GÖRSEL doğrulama yapılamadı.**
-2. **CSG Boolean adım 3:** coplanar 2D polygon boolean (mevcut `FaceIntersection.ComputePlaneBasis` genişletilerek).
-3. **CSG Boolean adım 4:** genel SUBTRACT montajı — önce B-convex özel durumu (PlaneCutter + VertexWelder), sonra genel (içbükey B, SolidClassifier ile) durum.
-4. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
+2. **CSG Boolean — genel SUBTRACT montajı:** `docs/Roadmap_CSG_Boolean.md`'deki 5 adımlı somut algoritmayı uygula (`Boolean/SolidSubtractor.cs` veya benzeri) — A'yı B'nin yüzleriyle İÇ-tutarak art arda kesip `A∩B` bulma, orijinal A-yüzlerinin "B-dışı" parçalarını SAKLAYAN bir `PlaneCutter` varyantı, kapak yüzlerinin normalini ters çevirme, `VertexWelder` ile montaj, `IsValid()`+hacim doğrulama. B'nin A içinde tam gömülü (cavity) olduğu durum kapsam dışı kalmalı (açık hata) — kernel çok-kabuklu `Solid`'i desteklemiyor.
+3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 
 ---
 
