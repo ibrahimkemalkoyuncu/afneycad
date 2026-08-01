@@ -167,6 +167,63 @@ Somut, hazır algoritma (bir sonraki oturum doğrudan uygulayabilir):
   daha az riskli olduğuna implementasyon zamanı karar verilmeli), box-minus-box slab senaryosu
   + sınır-çentiği senaryosuyla test edilmeli.
 
+**GÜNCELLEME (2026-08-02) — İmplementasyona başlamadan ÖNCE, gerçek kaynak koda (PlaneCutter/
+FaceSplitter/TopologyEdge, satır satır) karşı doğrulama yapıldı ve önceki araştırma ajanının
+planının da kaçırdığı 2 YENİ yapısal sorun bulundu. Ana Yasa gereği (aceleyle yanlış kod yerine
+dürüst tespit) implementasyon YİNE ertelendi, ama bu kez somut bir çözüm yolu ve net bir kapsam
+sınırı ile:**
+
+1. **Chord-edge "öksüzleşmesi" (çözüldü, tasarım hazır):** `FaceSplitter.SplitAtChord` chord
+   kenarını HEM `faceA.LeftFace`/`RightFace` HEM `faceB`'ye doğru şekilde atıyor — ama
+   `PlaneCutter.BuildCapFace`, kesim sonunda bu ikisinden BİRİNİ (atılan tarafı) körlemesine
+   `capFace` ile EZİYOR (`if (forward) edge.LeftFace = capFace; else edge.RightFace = capFace;`).
+   Atılan yarı (`faceB`) hafızada kalmaya devam ediyor ve kendi Loop'u hâlâ bu chord kenarını
+   referans alıyor, ama artık chord kenarının kendisi `faceB`'yi TANIMIYOR (`LeftFace`/
+   `RightFace` alanları `faceA`+`capFace`'e işaret ediyor). Yani `faceB`'yi doğrudan yeni bir
+   `Solid`'e eklemek, `IsValid()`'i YANLIŞLIKLA geçebilen ama gerçekte tutarsız (kenar-komşuluğu
+   kırık) bir B-Rep üretir — sessiz yanlış sonuç riski.
+   **Çözüm (tasarlandı, kodlanmadı):** `CutWithPlaneKeepDiscarded` varyantı, `BuildCapFace`
+   atılan tarafı ele geçirmeden HEMEN ÖNCE, chord kenarının bir KOPYASINI (`dup`, aynı
+   Start/EndVertex) oluşturup atılan Face'in Loop'undaki referansı buna yönlendirmeli; sonra
+   TÜM bu `dup` kenarlarından, orijinal kapağın (`-n` normalli) TAM AYNASI olan ikinci bir
+   "mirror cap" (`+n` normalli) inşa edilmeli — `BuildCapFace`'in mevcut `forward` mantığı
+   AYNI kenar sırası/yönü üzerinde çalıştığından, mirror cap için "ters slot"a (Left↔Right)
+   yazması gerekiyor (küçük bir `assignToOppositeSide` parametresiyle çözülebilir).
+
+2. **İç-yüz (internal face) çakışması (ÇÖZÜLMEDİ, kapsam sınırlaması gerekiyor):** Roadmap'in
+   "A'yı B'nin HER yüz düzlemiyle art arda kes" adımı matematiksel olarak (`∪Dᵢ = A\B`, ayrık
+   parçalama özdeşliği) DOĞRU — ama bu SADECE bölgelerin (region) birleşimi için doğru, SINIR
+   YÜZEYLERİNİN doğrudan üst üste toplanabileceği anlamına GELMİYOR. `Dᵢ` (adım i'de atılan
+   parça) ile `Dⱼ` (j>i, sonraki bir adımda atılan parça) GEOMETRİK OLARAK KOMŞU olabilir —
+   ikisi de sonuçta `A\B`'nin İÇİNDE kalacağından, aralarındaki ortak sınır (adım i'nin "mirror
+   cap"ının bir kısmı) `A\B`'nin GERÇEK dış sınırı DEĞİL, İÇ (internal) bir yüzey olur ve B-Rep
+   sonucuna DAHİL EDİLMEMELİ. Naif "her `Dᵢ`'nin tam mirror cap'ini ekle" yaklaşımı, B'nin
+   birden fazla yüzü A'nın sınırını farklı yerlerden kesiyorsa (ör. B'nin bir köşesi A'nın bir
+   köşesinden çıkıyorsa), sonuçta FAZLADAN/İÇ-SAPLANMIŞ yüzeyler üretip `IsValid()`'i (Euler)
+   BOZAR ya da (daha kötüsü) Euler sayısı tesadüfen tutsa bile geometrik olarak yanlış (çift
+   duvarlı/boşluklu) bir katı üretir. Bunun doğru çözümü (gerçek CSG kernel'lerinin yaptığı),
+   her mirror cap parçasının HANGİ bölgeyle (C=A∩B mi, yoksa BAŞKA bir Dⱼ mi) komşu olduğunu
+   sınıflandırıp sadece C'ye komşu kısmı sınıra dahil etmek — bu, Faz 3'ün (`SolidClassifier`)
+   tam kapsamlı kullanımını gerektiriyor, roadmap'in basitleştirilmiş "B-convex özel durumu"
+   kısayolunun ÖTESİNDE bir iş.
+   **Ek bulunan dejenere durum:** B'nin bazı yüzlerinin düzlemi A'nın GEÇERLİ sınırını hiç
+   kesmeyebilir (ör. B, A'dan çok daha büyükse B'nin çoğu yüzü A'nın tamamen dışında kalır) —
+   bu durumda `chordEdges` boş kalır ve `BuildCapFace` HEMEN `NotSupportedException` fırlatır
+   (roadmap'in "her B-yüzüyle art arda kes" döngüsü bu durumu hiç ele almıyor); önce
+   "bu B-yüzünün düzlemi A'nın MEVCUT sınırını gerçekten kesiyor mu" ön-kontrolü şart
+   (kesmiyorsa o yüzü sessizce atla).
+
+**Karar (ikinci kez, aynı gerekçeyle):** Genel çok-yüzlü SUBTRACT implementasyonu YİNE
+ertelendi — 2 numaralı sorun (iç-yüz sınıflandırması), roadmap'in öngördüğünden daha büyük bir
+iş (Faz 3 `SolidClassifier`'ın tam entegrasyonu). **Daraltılmış, GERÇEKTEN teslim edilebilir
+alternatif:** B'nin A'nın sınırıyla SADECE TEK BİR düzlemde (yani B'nin SADECE BİR yüzü A'yı
+gerçekten kesiyor, diğerleri A'nın tamamen dışında veya tamamen A'nın B-kesişiminin içinde)
+kesiştiği özel durum — ki bu zaten Faz 4'ün ilk teslimatı olan `PlaneCutter.CutWithPlane` ile
+BİREBİR aynı sonucu veriyor (yukarıdaki "İlerleme Durumu" bölümünde açıklandığı gibi). Yani
+pratikte en yaygın MEP senaryosu (bir kanal/boru tek bir düz duvar yüzünü deliyor) ZATEN
+`PlaneCutter` ile çözülebiliyor — asıl eksik olan, B'nin A'yı BİRDEN FAZLA yüzünden (ör. bir
+köşeden) kestiği GERÇEKTEN genel durum, ve bu hâlâ ayrı, odaklanmış bir oturum gerektiriyor.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

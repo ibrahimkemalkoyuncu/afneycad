@@ -2802,11 +2802,20 @@ Sıradaki öncelik: `docs/Roadmap_CSG_Boolean.md`'nin 3. yapı taşı. `Coplanar
 
 **Tam suite: 339/339, regresyon yok.**
 
+### 35. CSG Boolean — Genel SUBTRACT Montajı: İkinci Kez ARAŞTIRILDI, 2 YENİ Yapısal Sorun Bulundu
+Kullanıcı "Notion'a bağlan + GitHub'a gönder + kitabı güncelle + öncelikleri sırayla tamamla" dedi. Notion MCP bağlantısı bu oturumda da yoktu (kullanıcıya bildirildi, bağlandığında ayrıca güncellenecek). GitHub zaten günceldi. Sıradaki gerçek öncelik — genel SUBTRACT montajı — için kullanıcı onayı alınıp Ana Yasa gereği bir araştırma ajanı görevlendirildi; ajanın planı bu kez UYGULAMAYA GEÇMEDEN önce gerçek kaynak kodla (`PlaneCutter.cs`/`FaceSplitter.cs`/`TopologyEdge.cs`, satır satır) çapraz doğrulandı ve ajanın da kaçırdığı **2 yeni yapısal sorun** bulundu:
+
+1. **Chord-edge öksüzleşmesi:** `PlaneCutter.BuildCapFace`, kesim sonunda chord kenarının "atılan" tarafını (`faceB`) körlemesine kendi kapak yüzüyle (`capFace`) eziyor — `faceB` hafızada kalıyor ama artık kendi chord kenarı onu tanımıyor. `faceB`'yi doğrudan yeni bir `Solid`'e eklemek, `IsValid()`'i (Euler) YANLIŞLIKLA geçebilen ama gerçekte kenar-komşuluğu kırık bir B-Rep üretir. **Çözümü tasarlandı** (chord kenarının BuildCapFace'ten ÖNCE bir kopyasını oluşturup atılan Face'in Loop'unu buna yönlendirmek + bu kopyalardan ikinci bir "ayna kapak" inşa etmek) ama henüz kodlanmadı.
+2. **İç-yüz (internal face) çakışması — ÇÖZÜLEMEDİ, algoritmanın kendisini etkiliyor:** Roadmap'in "A'yı B'nin HER yüzüyle art arda kes" adımı bölgeler (region) için matematiksel olarak doğru (`∪Dᵢ = A\B` — ayrık parçalama özdeşliği, elle doğrulandı), AMA bu, art arda atılan parçaların (`Dᵢ`, `Dⱼ`) sınır yüzeylerinin doğrudan üst üste toplanabileceği anlamına gelmiyor — `Dᵢ` ile `Dⱼ` birbirine komşuysa aralarındaki "ayna kapak" A\B'nin GERÇEK dış sınırı değil, İÇ bir yüzey olur ve dahil edilmemeli. Doğru çözüm, Faz 3'ün (`SolidClassifier`) TAM kapsamlı entegrasyonunu gerektiriyor — roadmap'in "B-convex özel durumu" kısayolunun ötesinde. Ayrıca B'nin bazı yüzlerinin düzlemi A'nın mevcut sınırını hiç kesmeyebilir (`chordEdges` boş kalır → `BuildCapFace` hemen hata fırlatır) — döngü buna karşı korumasız.
+
+**Karar (ikinci kez, aynı gerekçeyle — aceleyle yanlış kod yerine dürüst tespit):** Genel çok-yüzlü SUBTRACT implementasyonu YİNE ertelendi. **Pratik iyi haber:** en yaygın MEP senaryosu (bir kanal/boru TEK bir düz yüzeyi deliyor) zaten mevcut `PlaneCutter.CutWithPlane` ile çözülüyor — eksik olan sadece B'nin A'yı BİRDEN FAZLA yüzünden (ör. bir köşeden) kestiği gerçekten genel durum. Detaylı bulgular ve çözüm taslağı `docs/Roadmap_CSG_Boolean.md`'ye kaydedildi (2026-08-02 güncellemesi) — bir sonraki oturum `SolidClassifier` entegrasyonuyla doğrudan devam edebilir. **Kod değişikliği YAPILMADI** (sadece araştırma + dokümantasyon, mevcut 339 testin hiçbiri etkilenmedi).
+
 ### Sonraki Oturum Öncelikleri (sırayla)
-1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — bu oturumda GÖRSEL doğrulama yapılamadı.**
-2. **CSG Boolean — genel SUBTRACT montajı:** `docs/Roadmap_CSG_Boolean.md`'deki 5 adımlı somut algoritmayı uygula (`Boolean/SolidSubtractor.cs` veya benzeri) — A'yı B'nin yüzleriyle İÇ-tutarak art arda kesip `A∩B` bulma, orijinal A-yüzlerinin "B-dışı" parçalarını SAKLAYAN bir `PlaneCutter` varyantı, kapak yüzlerinin normalini ters çevirme, `VertexWelder` ile montaj, `IsValid()`+hacim doğrulama. B'nin A içinde tam gömülü (cavity) olduğu durum kapsam dışı kalmalı (açık hata) — kernel çok-kabuklu `Solid`'i desteklemiyor.
+1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
+2. **CSG Boolean — genel SUBTRACT montajı (madde 35'teki güncel bulgularla):** Önce chord-edge öksüzleşmesi fix'i (tasarım hazır, `docs/Roadmap_CSG_Boolean.md`), SONRA iç-yüz sınıflandırması için `SolidClassifier`'ın tam entegrasyonu (Faz 3) — roadmap'in "B-convex özel durumu" kısayolu tek başına YETERSİZ. B'nin A içinde tam gömülü (cavity) olduğu durum kapsam dışı kalmalı (açık hata).
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
+4. **Notion bağlantısını doğrula** — bu oturumda Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 
 ---
 
-*Son guncelleme: 2026-07-31 | AfneyCAD v4.0.0 — Session #55*
+*Son guncelleme: 2026-08-02 | AfneyCAD v4.0.0 — Session #56*
