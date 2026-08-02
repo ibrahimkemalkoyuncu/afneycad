@@ -224,6 +224,64 @@ pratikte en yaygın MEP senaryosu (bir kanal/boru tek bir düz duvar yüzünü d
 `PlaneCutter` ile çözülebiliyor — asıl eksik olan, B'nin A'yı BİRDEN FAZLA yüzünden (ör. bir
 köşeden) kestiği GERÇEKTEN genel durum, ve bu hâlâ ayrı, odaklanmış bir oturum gerektiriyor.
 
+**GÜNCELLEME (2026-08-02, devam) — 1. adım (chord-edge düzeltmesi) VE dar-kapsamlı
+`SolidSubtractor` UYGULANDI:**
+
+1. ✅ `Boolean/PlaneCutter.cs` — `CutWithPlaneKeepDiscarded(Solid, planePoint, planeNormal,
+   discardedSolidName)` (yeni, ADDITIVE — `CutWithPlane` DOKUNULMADI, davranışı BİREBİR aynı
+   kalıyor, testle doğrulandı). Yukarıda tasarlanan çözüm birebir uygulandı: her chord'un atılan
+   tarafa bakan yarısı, `BuildCapFace` tarafından ele geçirilmeden HEMEN ÖNCE aynı Start/End
+   Vertex'e sahip bir `dup` kopyasına devredilir (`ReplaceEdgeInFace` ile atılan Face'in Loop'u
+   `dup`'a yönlendirilir); tüm `dup` kenarlarından `BuildCapFaceOnFreeSide` ile ikinci bir
+   "mirror cap" (ters normal) inşa edilir. `BuildCapFaceOnFreeSide`, orijinal `BuildCapFace`'in
+   "forward" yön kuralı yerine her kenarın HÂLÂ BOŞ olan Left/Right slotuna bakar — bu, ayrı bir
+   `assignToOppositeSide` parametresine gerek KALMADAN doğru slotu otomatik seçiyor (tasarımda
+   öngörülenden daha basit çıktı).
+   - Yeni testler: `PlaneCutterKeepDiscardedTests.cs` (3 test) — (a) atılan yarının bağımsız bir
+     `Solid` olarak Euler-geçerli olduğunu VE her kenarın Left/Right Face'inin kendi Loop'unda
+     GERÇEKTEN o kenarı referans aldığını (öksüzleşme yok) doğruluyor, (b) mirror cap'in ZIT
+     normal + AYNI alan taşıdığını, (c) kept tarafın `CutWithPlane`'in doğrudan çağrılmasıyla
+     BİREBİR aynı sonucu (hacim, Euler, kapak alanı/normali) verdiğini kanıtlıyor.
+   - **Bulunan gerçek test hatası (yakalandı, düzeltildi):** İlk yazımda mirror cap testi
+     `Math.Abs(Normal.X) > 0.9` filtresiyle YANLIŞLIKLA 2 eşleşme buluyordu — çünkü kübün
+     tamamen atılan X=-1000 yan yüzü de (normal (-1,0,0)) mirror cap ile (normal (+1,0,0))
+     AYNI alana (4.000.000, 2000×2000) sahip. Filtre `Normal.X > 0.9` (mutlak değer DEĞİL) olarak
+     düzeltildi — implementasyonda hata YOKTU, test ayırt edici gücü yetersizdi.
+
+2. ✅ `Boolean/SolidSubtractor.cs` (yeni) — `Subtract(Solid a, Solid b)`: roadmap'in "tek-düzlem"
+   özel durumunu (B'nin A'nın sınırını SADECE TEK BİR yüz düzleminde GERÇEKTEN/transversal
+   kestiği durum) otomatik TESPİT edip `PlaneCutter.CutWithPlane`'e devrediyor — B'nin o yüzünün
+   KENDİ outward Normal'i doğrudan `planeNormal` olarak kullanılabiliyor (roadmap'in elle
+   `-Vector3D.XAxis` seçtiği kuralın genelleştirilmiş/otomatik hâli — bkz. dosya başındaki NEDEN
+   NORMAL DOĞRUDAN KULLANILABİLİR notu).
+   - Dejenere atlama: `PlaneIntersectsSolidBoundary` yardımcı fonksiyonu, `PlaneCutter.
+     CutWithPlane`'in KENDİ per-face "mixed" (hasPos && hasNeg) sınıflandırma kuralıyla BİREBİR
+     aynı testi kullanıyor — B'nin bir yüzü A'nın sınırını hiç kesmiyorsa (tamamen dışında veya
+     coplanar) sessizce ADAY LİSTESİNE eklenmiyor (throw YOK).
+   - Aday sayısı 0 → `NotSupportedException` ("B tamamen dışında veya gömülü/cavity — kapsam
+     dışı"). Aday sayısı >1 → `NotSupportedException` ("çok-yüzlü genel SUBTRACT kapsam dışı,
+     SolidClassifier entegrasyonu gerekir").
+   - Yeni testler: `SolidSubtractorTests.cs` (3 test) — (a) box-minus-box slab senaryosunun
+     `SolidSubtractor.Subtract` ile doğrudan `PlaneCutter.CutWithPlane` çağrısıyla BİREBİR aynı
+     sonucu (hacim, Euler, kapak alanı/normali) verdiği, (b) B'nin A'yı BİRDEN FAZLA yüzden
+     kestiği köşe-çentiği senaryosunda (`B=[1500,3000]×[1500,3000]×[0,2000]`, A'nın X VE Y
+     sınırlarını AYRI AYRI transversal kesiyor) `NotSupportedException` fırlatıldığı, (c) B
+     tamamen A'nın dışındayken de aynı hatanın fırlatıldığı doğrulandı.
+
+**Test sonucu:** `dotnet test` — 345/345 BAŞARILI (önceki 339 + bu oturumun 6 yeni testi), 0
+başarısız, hiçbir mevcut test (özellikle `PlaneCutterTests`, `VertexWelderTests`) BOZULMADI.
+
+**Kapsam dışı kalan (BİLİNÇLİ, DEĞİŞMEDİ):** Genel çok-yüzlü SUBTRACT (roadmap'in 2 numaralı
+"iç-yüz/internal-face çakışması" sorunu — bkz. yukarıdaki 2026-08-02 girişi) HÂLÂ
+uygulanmadı — bu, `SolidClassifier`'ın (Faz 3) tam entegrasyonunu (her mirror-cap parçasının
+hangi bölgeyle komşu olduğunu sınıflandırma) gerektiriyor, roadmap'in kendi değerlendirmesiyle
+(iki ayrı araştırma turu sonrası) tek oturumda güvenle teslim edilemeyecek kadar büyük bir iş.
+`SolidSubtractor.Subtract`, bu genel durumla karşılaşınca AÇIK `NotSupportedException` fırlatır
+(sessiz yanlış geometri ÜRETMEZ) — sıradaki odaklanmış oturum, roadmap'in "Somut, hazır
+algoritma" bölümündeki (satır ~150-163) 5 adımı doğrudan uygulayabilir; `CutWithPlaneKeepDiscarded`
+artık o adımların (özellikle 2 ve 3 numaralı, "discarded parçaları saklama" ve "mirror cap normal
+ters çevirme") temel yapı taşı olarak HAZIR.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut
