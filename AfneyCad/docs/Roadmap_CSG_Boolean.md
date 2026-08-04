@@ -329,6 +329,37 @@ bozmadı, +7 yeni test: 4 `GeneralSolidSubtractorTests`, 3 `FaceRegionClassifier
 - **(B) `ConvexPolygonClipper2D` ile mirror-cap Face bölme** (SADECE köşe-çentiğini çözer — MEP
   senaryolarında muhtemelen daha sık karşılaşılan durum, ör. bir kanalın bir duvar köşesini kesmesi).
 
+**GÜNCELLEME (2026-08-04, aynı gün devam) — (A) UYGULANDI (aşağıda), (B) DENENDİ, DAHA BÜYÜK
+BİR ENGEL BULUNUP ERTELENDİ:**
+
+**(A) tamamlandı:** `Solid.IsValid()` artık bağlantılı-bileşen (kabuk) başına Euler doğrulaması
+yapıyor (`V-E+F==2` her kabuk için ayrı ayrı, TOPLAMDA değil) — through-slot senaryosu artık
+GEÇERLİ ve doğru hacimle çalışıyor. **Uygulama sırasında GERÇEK bir regresyon yakalandı ve
+düzeltildi:** komşuluk grafiği ilk yazımda `TopologyEdge.LeftFace`/`RightFace` alanlarına
+bakarak kuruluyordu — ama `FaceSplitter` bir Face'i böldüğünde KOMŞU Face'in bu alanları HER
+ZAMAN yeni (bölünmüş) Face'e güncellemiyor (stale referans). Bu, `Faces` listesinde artık
+OLMAYAN "hayalet" Face'lerin bileşene dahil edilip yanlış V/E/F sayımına yol açmasına neden
+oldu (`PlaneCutterTests`/`SolidSubtractorTests` kırıldı). **Düzeltme:** komşuluk artık SADECE
+`Faces` listesindeki (authoritative) Face'lerin kendi `Loop.Edges`'inde PAYLAŞTIKLARI kenarlara
+bakılarak kuruluyor, stale alanlara değil.
+
+**(B) denendi — SANILANDAN DAHA BÜYÜK bir yapısal engel bulundu:** Matematiksel olarak doğru
+yaklaşım netti: D₀'ın mirror cap'i, SONRAKİ aday düzlemlerin (D₀'dan sonra kesilen) "içeri"
+yarı-uzaylarına göre `ConvexPolygonClipper2D` benzeri bir yarı-düzlem kırpmayla kırpılırsa,
+kalan parça TAM OLARAK A∩B'nin o düzlemdeki gerçek sınır yüzeyine eşit çıkıyor (elle
+doğrulandı, köşe-çentiği örneğiyle) — `FaceRegionClassifier`'a bile gerek kalmıyor. AMA
+kırpma, mirror cap'in sınırında YENİ bir kesim kenarı yaratıyor ve winged-edge modeli
+(`TopologyEdge.LeftFace`+`RightFace`, İKİSİ DE dolu olmalı — `Solid.IsValid()`'in manifold
+kuralı) bu yeni kenarın "diğer tarafında" bir Face gerektiriyor. Bu diğer taraf, KOMŞU D_j
+parçasının KENDİ topolojisinde EŞLEŞEN bir ikiz kenar olmalı — yani salt 2D poligon kırpma
+YETMİYOR, İKİ AYRI D_i/D_j parçası arasında `PlaneCutter.CutWithPlaneKeepDiscarded`'daki `dup`
+kenar tekniğinin bir GENELLEMESİNİ (parçalar-arası kenar dikişi/cross-piece edge stitching)
+gerektiriyor — bu, chord-edge fix'ten (tek Solid içinde, tek kesim) DAHA BÜYÜK, daha riskli bir
+mühendislik işi (kaç D_i-D_j çiftinin nerede kesiştiğini bulup her biri için doğru ikiz kenarları
+kurmak). **Karar (üçüncü kez, aynı gerekçeyle — sessions #34/#35'in "aceleyle yanlış kod yerine
+dürüst tespit" kararıyla tutarlı):** Bu, ayrı, odaklanmış bir oturum gerektiriyor. Kod
+değişikliği YAPILMADI (araştırma + matematiksel doğrulama, mevcut 356 testin hiçbiri etkilenmedi).
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

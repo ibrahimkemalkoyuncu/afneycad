@@ -2834,9 +2834,18 @@ Uygulandı — ama gerçek kutu-kutu test senaryolarıyla sınanınca **ajanın 
 
 **Tam suite: 352/352** (345 → 352, +7 yeni test), tam çözüm derlemesi 0 hata, regresyon yok.
 
+### 38. CSG Boolean — Yol A (Çok-Kabuklu Solid) TAMAMLANDI, Yol B (Face Bölme) Denendi, Daha Büyük Engel Bulunup Ertelendi
+Kullanıcı madde 37'deki iki yolu ("sırayla yap") ikisini de istedi.
+
+**Yol A — tamamlandı:** `Solid.IsValid()`'in Euler testi artık bağlantılı-bileşen (kabuk) BAŞINA doğrulama yapıyor (`V-E+F==2` her kabuk için ayrı, TEK global toplam değil) — `GeneralSolidSubtractor`'ın "through-slot" senaryosu (B, A'yı ortadan kesip iki bağlantısız parça bırakıyor) artık GEÇERLİ ve doğru hacimle çalışıyor. **Uygulama sırasında GERÇEK bir regresyon yakalandı:** ilk yazımda komşuluk grafiği `TopologyEdge.LeftFace`/`RightFace` alanlarına bakıyordu — ama `FaceSplitter` bir Face böldüğünde komşu Face'in bu alanları HER ZAMAN güncellenmiyor (stale referans), bu da `Faces` listesinde artık olmayan "hayalet" Face'lerin bileşene sızıp yanlış V/E/F sayımına yol açmasına neden oldu (`PlaneCutterTests`/`SolidSubtractorTests` kırıldı — anında yakalandı, düzeltildi). **Düzeltme:** komşuluk artık SADECE `Faces` listesindeki Face'lerin kendi `Loop.Edges`'inde paylaştığı kenarlara bakılarak kuruluyor.
+
+**Yol B — denendi, SANILANDAN DAHA BÜYÜK bir engel bulundu:** Matematiksel yaklaşım doğrulandı (D₀'ın mirror cap'i sonraki düzlemlerin "içeri" yarı-uzaylarına göre kırpılırsa TAM OLARAK A∩B'nin gerçek sınırına eşit çıkıyor) ama winged-edge modeli (her kenarın İKİ tarafı da dolu olmalı) kırpmanın yarattığı yeni kenarın diğer tarafında komşu D_j parçasıyla EŞLEŞEN bir ikiz kenar gerektiriyor — salt 2D poligon kırpma yetmiyor, parçalar-arası kenar dikişi (chord-edge fix'ten daha büyük, daha riskli) gerekiyor. **Kod değişikliği yapılmadı** (araştırma + matematiksel doğrulama).
+
+**Yeni testler:** `SolidMultiShellTests.cs` (3 — iki bağımsız kutunun birleşimi geçerli, hacmi toplam, gerçek manifold ihlali hâlâ yakalanıyor), `GeneralSolidSubtractorTests`'e +1 (through-slot artık geçerli sonuç). **Tam suite: 356/356** (352 → 356, +4), regresyon yok.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
-2. **CSG Boolean — çok-yüzlü genel SUBTRACT (madde 37'deki 2 net yoldan biri seçilerek):** (A) çok-kabuklu `Solid`/`IsValid()` desteği (daha temel, through-slot+cavity'yi birlikte çözer) VEYA (B) `ConvexPolygonClipper2D` ile mirror-cap Face bölme (sadece köşe-çentiği, MEP'te daha sık karşılaşılan senaryo). Kullanıcı hangisinin öncelikli olduğuna karar vermeli.
+2. **CSG Boolean — köşe-çentiği (Yol B, madde 38'de netleşen gerçek engelle):** Parçalar-arası kenar dikişi (cross-piece edge stitching) — `CutWithPlaneKeepDiscarded`'daki `dup` kenar tekniğinin İKİ AYRI D_i/D_j parçası arasında genellenmesi gerekiyor. Bu, chord-edge fix'ten daha büyük — ayrı, odaklanmış bir oturum gerektiriyor.
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 
