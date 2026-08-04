@@ -2810,12 +2810,22 @@ Kullanıcı "Notion'a bağlan + GitHub'a gönder + kitabı güncelle + öncelikl
 
 **Karar (ikinci kez, aynı gerekçeyle — aceleyle yanlış kod yerine dürüst tespit):** Genel çok-yüzlü SUBTRACT implementasyonu YİNE ertelendi. **Pratik iyi haber:** en yaygın MEP senaryosu (bir kanal/boru TEK bir düz yüzeyi deliyor) zaten mevcut `PlaneCutter.CutWithPlane` ile çözülüyor — eksik olan sadece B'nin A'yı BİRDEN FAZLA yüzünden (ör. bir köşeden) kestiği gerçekten genel durum. Detaylı bulgular ve çözüm taslağı `docs/Roadmap_CSG_Boolean.md`'ye kaydedildi (2026-08-02 güncellemesi) — bir sonraki oturum `SolidClassifier` entegrasyonuyla doğrudan devam edebilir. **Kod değişikliği YAPILMADI** (sadece araştırma + dokümantasyon, mevcut 339 testin hiçbiri etkilenmedi).
 
+### 36. CSG Boolean — Chord-Edge Öksüzleşmesi Fix'i + Dar-Kapsamlı `SolidSubtractor` (Tek-Düzlem SUBTRACT)
+Madde 35'te tasarımı hazırlanan chord-edge fix'i kodlandı ve en yaygın MEP senaryosunu (bir kanal/boru A'nın TEK bir düz yüzeyini deliyor) çözen dar-kapsamlı bir `SolidSubtractor` eklendi.
+
+- **`PlaneCutter.CutWithPlaneKeepDiscarded(Solid, planePoint, planeNormal, discardedSolidName)`** (yeni, ADDITIVE — mevcut `CutWithPlane` dokunulmadı, davranışı birebir aynı kalıyor, testle doğrulandı). Her chord'un atılan tarafa bakan yarısı, `BuildCapFace` tarafından ele geçirilmeden hemen önce aynı Start/End Vertex'e sahip bir `dup` kopyasına devrediliyor (`ReplaceEdgeInFace` ile atılan Face'in Loop'u `dup`'a yönlendiriliyor); tüm `dup` kenarlarından `BuildCapFaceOnFreeSide` ile ikinci bir "mirror cap" (ters normal) inşa ediliyor — bu, atılan yarıyı da topolojik olarak geçerli (Euler-tutarlı, kenar-komşuluğu kırılmamış) bir `Solid` haline getiriyor.
+- **`SolidSubtractor.Subtract(Solid a, Solid b)`** (yeni) — B'nin A'nın sınırını SADECE TEK BİR yüz düzleminde gerçekten/transversal kestiği durumu otomatik tespit edip `PlaneCutter.CutWithPlane`'e devrediyor (B'nin o yüzünün outward Normal'i doğrudan `planeNormal` olarak kullanılıyor). B'nin birden fazla yüzden kestiği (çok-yüzlü) veya hiç kesmediği (dışında/gömülü) durumlarda **açık `NotSupportedException`** fırlatıyor — sessiz yanlış geometri üretmiyor.
+- Çok-yüzlü genel SUBTRACT (iç-yüz sınıflandırması, `SolidClassifier` Faz 3 tam entegrasyonu gerektiriyor) roadmap'in kendi analiziyle **bilinçli olarak kapsam dışı** bırakıldı.
+- **Yeni testler:** `PlaneCutterKeepDiscardedTests.cs` (3), `SolidSubtractorTests.cs` (3) — atılan yarının Euler-geçerli olduğu, mirror cap'in zıt normal+aynı alan taşıdığı, kept tarafın `CutWithPlane` ile birebir aynı sonucu verdiği, çok-yüzlü/dışında durumlarda doğru şekilde reddedildiği doğrulandı. Test yazarken bir test-ayırt-ediciliği hatası (`Normal.X > 0.9` yerine mutlak değer kullanılmıştı) yakalanıp düzeltildi — implementasyonda hata yoktu.
+
+**Tam suite: 345/345** (339 → 345, +6 yeni test), tam çözüm derlemesi 0 hata.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
-2. **CSG Boolean — genel SUBTRACT montajı (madde 35'teki güncel bulgularla):** Önce chord-edge öksüzleşmesi fix'i (tasarım hazır, `docs/Roadmap_CSG_Boolean.md`), SONRA iç-yüz sınıflandırması için `SolidClassifier`'ın tam entegrasyonu (Faz 3) — roadmap'in "B-convex özel durumu" kısayolu tek başına YETERSİZ. B'nin A içinde tam gömülü (cavity) olduğu durum kapsam dışı kalmalı (açık hata).
+2. **CSG Boolean — çok-yüzlü genel SUBTRACT montajı:** `SolidClassifier`'ın (Faz 3) tam entegrasyonu — her mirror-cap parçasının hangi bölgeyle komşu olduğunu sınıflandırma. `CutWithPlaneKeepDiscarded` artık bunun temel yapı taşı olarak hazır. B'nin A içinde tam gömülü (cavity) olduğu durum kapsam dışı kalmalı (açık hata).
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
-4. **Notion bağlantısını doğrula** — bu oturumda Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
+4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 
 ---
 
-*Son guncelleme: 2026-08-02 | AfneyCAD v4.0.0 — Session #56*
+*Son guncelleme: 2026-08-04 | AfneyCAD v4.0.0 — Session #57*
