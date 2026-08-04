@@ -83,37 +83,53 @@ public class Solid
     IsValid
 
     AMACI:
-    Euler-Poincaré formülü ile topological validity kontrolü.
+    Euler-Poincaré formülü ile topological validity kontrolü — ÇOK-KABUKLU (bağlantısız
+    parçalardan oluşan) Solid'leri destekler.
 
-    FORMÜL:
-    V - E + F = 2 - 2*G
-    G = genus (torus için 1, sphere için 0)
+    NEDEN ÇOK-KABUKLU (2026-08-04 güncellemesi): `docs/Roadmap_CSG_Boolean.md` —
+    `GeneralSolidSubtractor`'ın "through-slot" senaryosunda (B, A'yı ortadan bir dilim gibi
+    kesip GERÇEKTEN İKİ AYRI bağlantısız parça bırakıyor) eski TEK global `V-E+F==2` testi
+    kategorik olarak reddediyordu (iki bağımsız kutu birleşince eulerChar=4 çıkıyor) — ama
+    bu GEÇERLİ bir B-Rep'tir (iki ayrı, kendi içinde topolojik olarak sağlam kabuk).
+    GERÇEK CSG kernel'leri (OpenCASCADE/CGAL) Solid'i "kabuk (shell) listesi" olarak
+    modelleyip HER kabuğun kendi Euler karakteristiğini genus-0 (`V-E+F==2`) olarak
+    doğrular, TOPLAMDA değil.
+
+    FORMÜL (HER bağlantılı bileşen için ayrı ayrı):
+    V - E + F = 2 - 2*G  (G = genus, bu implementasyon SADECE genus-0/basit kabukları
+    destekler — bir kabuğun kendi içinde delik/tünel içermesi hâlâ kapsam dışı, TEK
+    değişiklik "kaç kabuk var" sorusunun artık 1'e sabitlenmemiş olması).
 
     KURAL:
-    - Her edge tam 2 face'e ait olmalı (manifold)
-    - Her loop kapalı olmalı
-    - Self-intersection olmamalı
+    - Her edge tam 2 face'e ait olmalı (manifold) — TÜM Solid için, kabuk sınırı fark etmez.
+    - Her loop kapalı olmalı.
+    - Face'ler, paylaştıkları TopologyEdge'ler üzerinden bağlantılı bileşenlere (kabuklara)
+      ayrılır (BFS); HER bileşen kendi başına V-E+F==2 sağlamalı.
+    - Self-intersection kontrolü YOK (roadmap'in bilinen sınırlaması, değişmedi).
+
+    NEDEN KOMŞULUK `edge.LeftFace`/`RightFace` ÜZERİNDEN DEĞİL, `Faces` LİSTESİ ÜZERİNDEN
+    KURULUYOR (ilk yazımda GERÇEK bir regresyon yakalandı — `PlaneCutterTests`/`SolidSubtractorTests`
+    başarısız oldu): `FaceSplitter`/`PlaneCutter` bir Face'i ikiye böldüğünde, KOMŞU Face'in
+    paylaşılan kenarındaki `LeftFace`/`RightFace` alanı HER ZAMAN yeni (bölünmüş) Face'e
+    yönlendirilmiyor olabilir — eski kod bu "stale" referanslara hiç bakmıyordu (V/E/F HEP
+    `Faces` listesinden sayılıyordu). `LeftFace`/`RightFace` alanlarını komşuluk GRAFI için
+    kullanmak, `Faces` listesinde ARTIK OLMAYAN "hayalet" Face'leri bileşene dahil edebiliyordu
+    (yanlış V/E/F sayımı). Çözüm: komşuluk, HER zaman `Faces`'teki (authoritative) Face'lerin
+    kendi `Loop.Edges`'inde HANGİ kenarları PAYLAŞTIĞINA bakılarak kurulur — `LeftFace`/
+    `RightFace` alanları sadece manifold (2-face) kontrolünde kullanılır (değişmedi).
     */
     public bool IsValid()
     {
-        int V = GetVertices().Count();
-        int E = GetEdges().Count();
-        int F = Faces.Count;
-        
-        // Euler characteristic (genus 0)
-        int eulerChar = V - E + F;
-        
-        if (eulerChar != 2)
-            return false;
-        
-        // Manifold check: Her edge'in 2 face'i olmalı
-        foreach (var edge in GetEdges())
+        var edges = GetEdges().ToList();
+
+        // Manifold check: Her edge'in 2 face'i olmalı (kabuk sınırından BAĞIMSIZ, global).
+        foreach (var edge in edges)
         {
             if (edge.LeftFace == null || edge.RightFace == null)
                 return false;
         }
-        
-        // Loop closure check
+
+        // Loop closure check.
         foreach (var face in Faces)
         {
             foreach (var loop in face.Loops)
@@ -122,7 +138,78 @@ public class Solid
                     return false;
             }
         }
-        
+
+        // Komşuluk grafiği: `Faces` listesindeki (authoritative) Face'ler, PAYLAŞTIKLARI
+        // TopologyEdge nesneleri üzerinden bağlanır (stale LeftFace/RightFace alanlarına DEĞİL).
+        var edgeOwners = new Dictionary<TopologyEdge, List<Face>>();
+        foreach (var face in Faces)
+        {
+            foreach (var loop in face.Loops)
+            {
+                foreach (var edge in loop.Edges)
+                {
+                    if (!edgeOwners.TryGetValue(edge, out var owners))
+                    {
+                        owners = new List<Face>();
+                        edgeOwners[edge] = owners;
+                    }
+                    owners.Add(face);
+                }
+            }
+        }
+
+        // Bağlantılı bileşenlere (kabuklara) ayır, HER birini kendi Euler karakteristiğiyle doğrula.
+        var visited = new HashSet<Face>();
+        foreach (var startFace in Faces)
+        {
+            if (!visited.Add(startFace))
+                continue;
+
+            var componentFaces = new List<Face>();
+            var queue = new Queue<Face>();
+            queue.Enqueue(startFace);
+
+            while (queue.Count > 0)
+            {
+                var face = queue.Dequeue();
+                componentFaces.Add(face);
+
+                foreach (var loop in face.Loops)
+                {
+                    foreach (var edge in loop.Edges)
+                    {
+                        foreach (var neighbor in edgeOwners[edge])
+                        {
+                            if (!ReferenceEquals(neighbor, face) && visited.Add(neighbor))
+                                queue.Enqueue(neighbor);
+                        }
+                    }
+                }
+            }
+
+            var componentVertices = new HashSet<Vertex>();
+            var componentEdges = new HashSet<TopologyEdge>();
+            foreach (var face in componentFaces)
+            {
+                foreach (var loop in face.Loops)
+                {
+                    foreach (var edge in loop.Edges)
+                    {
+                        componentEdges.Add(edge);
+                        componentVertices.Add(edge.StartVertex);
+                        componentVertices.Add(edge.EndVertex);
+                    }
+                }
+            }
+
+            int V = componentVertices.Count;
+            int E = componentEdges.Count;
+            int F = componentFaces.Count;
+
+            if (V - E + F != 2)
+                return false;
+        }
+
         return true;
     }
 
