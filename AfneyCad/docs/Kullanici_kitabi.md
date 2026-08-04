@@ -2820,9 +2820,23 @@ Madde 35'te tasarımı hazırlanan chord-edge fix'i kodlandı ve en yaygın MEP 
 
 **Tam suite: 345/345** (339 → 345, +6 yeni test), tam çözüm derlemesi 0 hata.
 
+### 37. CSG Boolean — `GeneralSolidSubtractor` + `FaceRegionClassifier`: Uygulandı, Ampirik Olarak 2 Ayrı Yapısal Engel Bulundu
+Madde 36'daki (tek-düzlem `SolidSubtractor`) sonraki adım — çok-yüzlü genel SUBTRACT — için Ana Yasa gereği bir araştırma ajanı görevlendirildi. Ajan, `SolidClassifier`'ı `FaceRegionClassifier` (yeni, izole yapı taşı — bir Face'in KENDİ outward normali boyunca komşu bir Solid'e bitişik olup olmadığını test ediyor) ile sarmalayıp `GeneralSolidSubtractor.Subtract`'te (adayları ard arda B'nin içine doğru keserek `a`'yı A∩B'ye daraltan, atılan her parçanın mirror cap'ini sınıflandırıp filtreleyen montaj) kullanmayı önerdi ve "bu oturumda güvenle uygulanabilir" dedi.
+
+Uygulandı — ama gerçek kutu-kutu test senaryolarıyla sınanınca **ajanın kaçırdığı 2 AYRI, GERÇEK yapısal engel** ortaya çıktı (üçüncü tur — önceki iki turda da ajanın ilk önerisi eksik çıkmıştı, bkz. madde 34-35):
+
+1. **Köşe-çentiği** (B, A'nın bir köşesini örtüyor): ardışık kesimlerin mirror cap'leri KISMEN örtüşüyor (bir mirror cap'in bir kısmı gerçekten A∩B'ye, bir kısmı SONRAKİ kesimde atılacak parçaya bitişik) — `FaceRegionClassifier`'ın ikili (tam/hiç) kararı yetersiz, Face'in kendisinin (`ConvexPolygonClipper2D` ile) bölünmesi gerekiyor.
+2. **"Through-slot"** (B, A'yı ortadan bir dilim gibi kesiyor, mirror cap'ler bu kez GERÇEKTEN örtüşmüyor): ama sonuç İKİ AYRI bağlantısız parçadan oluşuyor — `Solid.IsValid()`'in Euler testi (`V-E+F==2`) TEK kabuk varsayıyor, `SolidSubtractor`'ın zaten bilinen "cavity kapsam dışı" sınırlamasıyla AYNI kök neden (çok-kabuklu Solid desteği yok).
+
+**Karar:** Kod yine de eklendi (additive, değerli) — tek-düzlem durumunu `SolidSubtractor` ile birebir delegasyonla çözüyor, çok-düzlem durumunda SESSİZ yanlış geometri ÜRETMİYOR (`IsValid()` güvenlik ağı her iki bilinen başarısızlığı da açık `InvalidOperationException` ile yakalıyor — testle kilitlendi). **Yeni testler:** `GeneralSolidSubtractorTests.cs` (4 — tek-düzlem delegasyon, dışında/gömülü hata, köşe-çentiği hatası, through-slot hatası), `FaceRegionClassifierTests.cs` (3 — komşu Solid'e bitişiklik, uzak Solid, yanlış-yön Face testi; bu testler yazılırken bir GERÇEK işaret hatası bulundu: probe yönü ilk yazımda `-Normal` idi, doğrusu `+Normal` — Face'in KENDİ outward normali komşu bölgeye bakar).
+
+**Sonraki oturum için net, artık ampirik olarak doğrulanmış iki yol (kullanıcı önceliklendirmeli):** (A) çok-kabuklu `Solid`/`IsValid()` desteği (through-slot + cavity'yi birlikte çözer, daha temel), (B) `ConvexPolygonClipper2D` ile mirror-cap Face bölme (sadece köşe-çentiğini çözer, MEP'te muhtemelen daha sık). Detaylar `docs/Roadmap_CSG_Boolean.md`'ye (2026-08-04 güncellemesi) kaydedildi.
+
+**Tam suite: 352/352** (345 → 352, +7 yeni test), tam çözüm derlemesi 0 hata, regresyon yok.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
-2. **CSG Boolean — çok-yüzlü genel SUBTRACT montajı:** `SolidClassifier`'ın (Faz 3) tam entegrasyonu — her mirror-cap parçasının hangi bölgeyle komşu olduğunu sınıflandırma. `CutWithPlaneKeepDiscarded` artık bunun temel yapı taşı olarak hazır. B'nin A içinde tam gömülü (cavity) olduğu durum kapsam dışı kalmalı (açık hata).
+2. **CSG Boolean — çok-yüzlü genel SUBTRACT (madde 37'deki 2 net yoldan biri seçilerek):** (A) çok-kabuklu `Solid`/`IsValid()` desteği (daha temel, through-slot+cavity'yi birlikte çözer) VEYA (B) `ConvexPolygonClipper2D` ile mirror-cap Face bölme (sadece köşe-çentiği, MEP'te daha sık karşılaşılan senaryo). Kullanıcı hangisinin öncelikli olduğuna karar vermeli.
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 

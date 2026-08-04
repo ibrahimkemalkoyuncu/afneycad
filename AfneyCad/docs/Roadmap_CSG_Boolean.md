@@ -282,6 +282,53 @@ algoritma" bölümündeki (satır ~150-163) 5 adımı doğrudan uygulayabilir; `
 artık o adımların (özellikle 2 ve 3 numaralı, "discarded parçaları saklama" ve "mirror cap normal
 ters çevirme") temel yapı taşı olarak HAZIR.
 
+**GÜNCELLEME (2026-08-04) — `GeneralSolidSubtractor` + `FaceRegionClassifier` UYGULANDI, AMPİRİK
+OLARAK 2 AYRI YAPISAL ENGEL BULUNDU (ikisi de mevcut kutu-tabanlı test senaryolarında GERÇEKTEN
+tetiklendi, teorik değil):**
+
+Bir araştırma ajanı (Ana Yasa gereği) yukarıdaki 5 adımlı algoritmayı kaynak kodla çapraz
+doğrulayıp `FaceRegionClassifier.IsFaceAdjacentToRegion` (mirror cap'in centroid'ini KENDİ
+outward normali boyunca epsilon-kaydırıp `SolidClassifier.IsPointInside` ile komşu bölgeye
+bitişikliğini test eden yeni, izole bir yapı taşı) + `GeneralSolidSubtractor.Subtract` (adayları
+ard arda `CutWithPlaneKeepDiscarded` ile B'nin İÇİNE doğru keserek `a`'yı A∩B'ye daraltan, her
+adımda atılan Dᵢ parçasının mirror cap'ini `FaceRegionClassifier` ile filtreleyip sonucu
+`VertexWelder`+`IsValid()` ile monte eden montaj) önerdi ve "bu oturumda güvenle uygulanabilir"
+dedi. Uygulandı, testlerle sınandı — **iki farklı gerçek kutu-kutu senaryosunun İKİSİ de
+`IsValid()` başarısızlığına çarptı, farklı kök nedenlerle:**
+
+1. **Köşe-çentiği** (B, A'nın bir köşesini örtüyor, sonuç TEK PARÇA olurdu): ardışık kesimlerin
+   mirror cap'leri KISMEN örtüşüyor — ilk kesimin mirror cap'i (o anki `a`'nın TAM kesitini
+   kaplıyor, henüz sonraki düzlemlerle daraltılmamış) hem gerçek A∩B'ye HEM DE ikinci kesimde
+   atılacak Dⱼ'ye bitişik alanlar İÇERİYOR. `FaceRegionClassifier` Face'i BÜTÜN olarak tek bir
+   bölgeye atıyor (ikili karar) — bu yüzden Face'in KENDİSİNİN (`ConvexPolygonClipper2D` ile
+   diğer aday düzlemlerin yarı-uzaylarına göre kırpılması) bölünmesi gerekiyor, ayrı bir
+   mühendislik adımı.
+2. **"Through-slot"** (B, A'yı X ekseninde ortadan bir dilim gibi kesiyor, diğer 2 eksende A'yı
+   TAM kapsıyor — mirror cap'ler bu kez GERÇEKTEN örtüşmüyor): ama sonuç Solid'i İKİ AYRI,
+   BAĞLANTISIZ parçadan (X'in iki ucundaki kalan bloklar) oluşuyor. `Solid.IsValid()`'in Euler
+   testi (`V-E+F==2`) TEK bağlantılı bileşen (genus 0, tek kabuk) varsayıyor — iki bağımsız kutu
+   birleştirilince `eulerChar=4` çıkıyor, KATEGORİK olarak geçersiz sayılıyor. Bu, `SolidSubtractor`'ın
+   zaten dokümante ettiği "cavity kapsam dışı" sınırlamasıyla AYNI kök neden (çok-kabuklu Solid
+   desteği yok) — sadece farklı bir tetikleyici senaryo.
+
+**Sonuç:** Bu codebase'in basit kutu-tabanlı `Solid` modelinde, çok-düzlem SUBTRACT'in denenen
+İKİ doğal aday senaryosunun (köşe-çentiği, through-slot) HİÇBİRİ şu anki yapı taşlarıyla
+gerçekleşmiyor — güvenli, gerçekleşen bir "happy path" YOK. `GeneralSolidSubtractor` yine de
+DEĞERLİ: (a) tek-düzlem durumunu `SolidSubtractor` ile birebir aynı sonuçla çözüyor (delegasyon),
+(b) çok-düzlem durumunda SESSİZ yanlış geometri ÜRETMİYOR — `IsValid()` güvenlik ağı her iki
+bilinen başarısızlık modunu da AÇIK `InvalidOperationException` ile yakalıyor. `FaceRegionClassifier`
+kendi başına doğru ve test edilmiş bir yapı taşı (komşu-Solid bitişiklik testi) — sadece
+Face-bölme olmadan tek başına yeterli değil. **Kod tabanına EKLENDİ** (additive, mevcut 345 testi
+bozmadı, +7 yeni test: 4 `GeneralSolidSubtractorTests`, 3 `FaceRegionClassifierTests`).
+
+**Sıradaki oturum için net, ampirik olarak doğrulanmış iki ayrı yol (kullanıcı hangisinin
+öncelikli olduğuna karar vermeli):**
+- **(A) Çok-kabuklu `Solid` desteği** (through-slot + cavity'yi AYNI ANDA çözer, `Solid.IsValid()`'in
+  Euler testini "bağlantılı bileşen başına 2" olacak şekilde genelleştirmek gerekir — muhtemelen
+  daha temel/geniş etkili).
+- **(B) `ConvexPolygonClipper2D` ile mirror-cap Face bölme** (SADECE köşe-çentiğini çözer — MEP
+  senaryolarında muhtemelen daha sık karşılaşılan durum, ör. bir kanalın bir duvar köşesini kesmesi).
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut
