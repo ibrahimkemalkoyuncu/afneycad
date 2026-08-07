@@ -7,20 +7,22 @@ namespace Afney.Cad.Tests.Geometry;
 
 /*
    NE: GeneralSolidSubtractor Testleri — çok-yüzlü genel SUBTRACT montajı
-   NEDEN GERÇEK KAPSAM (bu oturumda AMPİRİK olarak netleşti): Tek-düzlem özel durumu
-       (`SolidSubtractor.Subtract` ile birebir) ÇALIŞIYOR. Çok-düzlem (B, A'yı BİRDEN FAZLA
-       yüzden kesiyor) durumunda İKİ AYRI, BAĞIMSIZ yapısal engel bulunmuştu:
+   NEDEN GERÇEK KAPSAM (2026-08-06 güncellemesi): Tek-düzlem özel durumu (`SolidSubtractor.
+       Subtract` ile birebir) ÇALIŞIYOR. Çok-düzlem (B, A'yı BİRDEN FAZLA yüzden kesiyor)
+       durumunda ÖNCEKİ oturumlarda bulunan İKİ yapısal engel, algoritmanın klasik "subdivide
+       → classify → reconstruct" (Requicha & Voelcker) yaklaşımıyla YENİDEN YAZILMASIYLA
+       ikisi de ÇÖZÜLDÜ:
          1. **Köşe-çentiği** (B, A'nın bir köşesini örtüyor, sonuç TEK PARÇA/bağlantılı):
-            ardışık kesimlerin mirror cap'leri KISMEN örtüşüyor — bir mirror cap'in bir kısmı
-            gerçekten A∩B'ye, bir kısmı DİĞER kesilen parçaya (Dⱼ) bitişik. `FaceRegionClassifier`
-            İKİLİ (tam/hiç) karar verdiğinden bunu ayıramıyor — Face'in KENDİSİNİN
-            (`ConvexPolygonClipper2D` ile yarı-düzlem kırpma) bölünmesi gerekir. **HÂLÂ KAPSAM
-            DIŞI** (bkz. `Subtract_CornerNotch_PartiallyOverlappingMirrorCaps_ThrowsExplicitError`).
+            ÖNCEDEN (`FaceRegionClassifier`'ın ikili mirror-cap sınıflandırmasıyla) mirror
+            cap'lerin KISMİ örtüşmesi `IsValid()`'i bozuyordu. **ÇÖZÜLDÜ** — yeni algoritma
+            her kapağı DİĞER aday düzlemlerin yarı-uzaylarına göre kırpıyor
+            (`ClipPolygonByHalfSpace`) ve kırpma sınırında oluşan YENİ kenarları
+            `OpenEdgeStitcher` ile otomatik dikiyor (bkz. `Subtract_CornerNotch_*` testleri).
          2. **"Through-slot"** (B, A'yı ortadan ikiye bölecek şekilde kesiyor, sonuç İKİ AYRI
-            BAĞLANTISIZ parça): mirror cap'ler örtüşmüyor AMA sonuç Solid'i iki bağımsız
-            "kabuk" (shell) içeriyordu. **ÇÖZÜLDÜ** (2026-08-04, devam) — `Solid.IsValid()`
-            artık bağlantılı-bileşen (kabuk) başına Euler doğrulaması yapıyor, TEK global
-            `V-E+F==2` varsayımı kaldırıldı. Bkz. `docs/Roadmap_CSG_Boolean.md`.
+            BAĞLANTISIZ parça): `Solid.IsValid()`'in kabuk-başına Euler doğrulamasıyla
+            (2026-08-04) ÇÖZÜLDÜ, yeni algoritmayla da GEÇERLİ.
+       Bkz. `docs/Roadmap_CSG_Boolean.md` (2026-08-06 güncellemesi) — araştırma, tasarım ve
+       algoritmanın kaynağı (klasik B-Rep boundary-evaluation literatürü).
 */
 public class GeneralSolidSubtractorTests
 {
@@ -51,14 +53,56 @@ public class GeneralSolidSubtractorTests
     }
 
     [Fact]
-    public void Subtract_CornerNotch_PartiallyOverlappingMirrorCaps_ThrowsExplicitError()
+    public void Subtract_CornerNotch_ProducesValidResultWithCorrectVolume()
     {
-        // Köşe-çentiği: sonuç TEK PARÇA olurdu ama mirror cap'ler KISMEN örtüşüyor
-        // (bkz. sınıf başı NEDEN notu, 1. engel) -> IsValid() başarısız, açık istisna.
+        // Köşe-çentiği: B, A'nın [1500,2000]x[1500,2000]x[0,2000] köşesini örtüyor (2 aday
+        // düzlem: B'nin X=1500 ve Y=1500 yüzleri). Sonuç TEK bağlantılı parça (L-şeklinde
+        // taban kesiti) — `ClipPolygonByHalfSpace` + `OpenEdgeStitcher` ile artık GEÇERLİ.
         var a = BRepBuilder.ExtrudeBox(new Vector3D(0, 0, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 2000, 2000, 2000);
         var b = BRepBuilder.ExtrudeBox(new Vector3D(1500, 1500, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 1500, 1500, 2000);
 
-        Assert.Throws<InvalidOperationException>(() => GeneralSolidSubtractor.Subtract(a, b));
+        var result = GeneralSolidSubtractor.Subtract(a, b);
+
+        Assert.True(result.IsValid());
+
+        // A_hacim - kesişim_hacmi = sonuç_hacmi (A∩B = [1500,2000]x[1500,2000]x[0,2000] = 500x500x2000).
+        double expectedVolume = 2000.0 * 2000.0 * 2000.0 - 500.0 * 500.0 * 2000.0;
+        Assert.Equal(expectedVolume, result.GetVolume(), precision: 3);
+    }
+
+    [Fact]
+    public void Subtract_CornerNotch_ResultContainsRemainderNotCorner()
+    {
+        var a = BRepBuilder.ExtrudeBox(new Vector3D(0, 0, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 2000, 2000, 2000);
+        var b = BRepBuilder.ExtrudeBox(new Vector3D(1500, 1500, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 1500, 1500, 2000);
+
+        var result = GeneralSolidSubtractor.Subtract(a, b);
+
+        // Kesilen köşenin (A∩B) merkezi -> sonuç Solid'in DIŞINDA olmalı.
+        Assert.False(SolidClassifier.IsPointInside(result, new Vector3D(1750, 1750, 1000)));
+
+        // A'nın geri kalanının (köşe hariç) çeşitli noktaları -> sonuç Solid'in İÇİNDE olmalı.
+        Assert.True(SolidClassifier.IsPointInside(result, new Vector3D(1000, 1000, 1000)));
+        Assert.True(SolidClassifier.IsPointInside(result, new Vector3D(1750, 1000, 1000)));
+        Assert.True(SolidClassifier.IsPointInside(result, new Vector3D(1000, 1750, 1000)));
+    }
+
+    [Fact]
+    public void Subtract_TrueCornerNotch_ThreePlanes_ProducesValidResultWithCorrectVolume()
+    {
+        // B, A'nın GERÇEK bir 3D köşesini (X, Y VE Z eksenlerinin ÜÇÜNÜ birden) örtüyor —
+        // 3 aday düzlem (X=1500, Y=1500, Z=1500). Her kapağın DİĞER İKİ düzlemin yarı-uzayına
+        // göre kırpılması gerekiyor (`ClipPolygonByHalfSpace`'in çift-kırpma yolu) — 2-düzlem
+        // köşe-çentiği testinden DAHA GENEL bir doğrulama.
+        var a = BRepBuilder.ExtrudeBox(new Vector3D(0, 0, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 2000, 2000, 2000);
+        var b = BRepBuilder.ExtrudeBox(new Vector3D(1500, 1500, 1500), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 1500, 1500, 1500);
+
+        var result = GeneralSolidSubtractor.Subtract(a, b);
+
+        Assert.True(result.IsValid());
+
+        double expectedVolume = 2000.0 * 2000.0 * 2000.0 - 500.0 * 500.0 * 500.0;
+        Assert.Equal(expectedVolume, result.GetVolume(), precision: 3);
     }
 
     [Fact]

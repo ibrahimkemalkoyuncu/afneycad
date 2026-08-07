@@ -2843,12 +2843,32 @@ Kullanıcı madde 37'deki iki yolu ("sırayla yap") ikisini de istedi.
 
 **Yeni testler:** `SolidMultiShellTests.cs` (3 — iki bağımsız kutunun birleşimi geçerli, hacmi toplam, gerçek manifold ihlali hâlâ yakalanıyor), `GeneralSolidSubtractorTests`'e +1 (through-slot artık geçerli sonuç). **Tam suite: 356/356** (352 → 356, +4), regresyon yok.
 
+### 39. CSG Boolean — Köşe-Çentiği (Yol B) NİHAYET ÇÖZÜLDÜ: Algoritma Değişti (Ardışık Kesim → Subdivide/Classify/Reconstruct)
+Madde 38'in bıraktığı son engel: çok-düzlem SUBTRACT'in köşe-çentiği senaryosunda (B, A'nın bir köşesini örtüyor) parçalar-arası kenar dikişi gerekiyordu, "chord-edge fix'ten daha büyük" olarak değerlendirilmişti. Ana Yasa gereği önce bir araştırma ajanı görevlendirildi — klasik B-Rep boolean literatürü (Requicha & Voelcker'in subdivide→classify→reconstruct üç aşaması, Naylor/Amanatides/Thibault'nin BSP-tree merging'i) araştırıldı, sonra kaynak kod satır satır incelendi.
+
+**Kritik bulgu:** Önceki oturumların "ardışık kesim" yaklaşımının (`PlaneCutter.CutWithPlaneKeepDiscarded`'ı B'nin düzlemleriyle sırayla çağırmak) KENDİSİ yapısal olarak kusurluydu — sadece mirror-cap'lerin kısmi örtüşmesi değil, bir SONRAKİ adımın kestiği "A yüzü" önceki bir adımın ürettiği ARA-kapak yüzü olabiliyordu ve bu kendi içinde sahte iç-parçalar üretebiliyordu. Bu, roadmap'in daha önce hiç yakalamadığı ikinci bir gizli hata kaynağıydı.
+
+**Çözüm — algoritma DEĞİŞTİRİLDİ (ardışık kesim terk edildi):**
+- A'nın HER orijinal Face'i TÜM aday düzlemlere göre TEK SEFERDE (eşzamanlı) alt-parçalara ayrılıp doğrudan sınıflandırılıyor (`SplitFaceAgainstPlanes` — bir alt-parça bir düzlemin tamamen dışında bulunur bulunmaz KESİN "kept", De Morgan kısa-devresi) — her alt-parça SADECE A'nın orijinal 1 yüzünden türüyor, ara-kapak sorunu yapısal olarak ortadan kalkıyor.
+- Her aday düzlemin TAM kesit poligonu, A'nın MUTASYONA UĞRAMAMIŞ orijinal geometrisinden BAĞIMSIZ toplanıp (`FindPlaneChordOnPolygon`), diğer aday düzlemlerin yarı-uzaylarına göre 3D'de kırpılıyor (`ClipPolygonByHalfSpace`, coplanar izdüşüme gerek kalmadan doğrudan Sutherland-Hodgman).
+- **Yeni genel yapı taşı — `Boolean/OpenEdgeStitcher.cs`:** `VertexWelder.Weld` sonrası, hâlâ "açık" (tek tarafı dolu) kenarları uç-nokta çiftine göre eşleştirip birleştiriyor — aranan "cross-piece edge stitching"in GENEL, parça-bağımsız çözümü. Kaynak kod incelemesi gösterdi ki bu codebase'te `LeftFace`/`RightFace` SADECE manifold-null kontrolünde ve Face-bağlantı BFS'inde kullanılıyor (gerçek yön bilgisi her zaman her Face'in KENDİ `Loop.GetOrderedVertices()`'inden geliyor) — bu yüzden dikiş, düşünüldüğünden çok daha basit (yön uyumu kontrolüne gerek yok, sadece boş slotu doldurmak yeterli).
+
+**Bulunan ve düzeltilen 2 gerçek implementasyon hatası (testlerle yakalandı):**
+1. Kapak normali TERS işaretliydi (B'nin kendi outward normali doğrudan kullanılmıştı, `-normal` olması gerekiyordu) — through-slot hacim testi `4e9` yerine `6.67e9` çıkararak yakaladı.
+2. Temizlik geçişi sadece `FaceSplitter`'ın ürettiği kirişleri tarıyordu, `EdgeSplitter`'ın alt-bölünmüş kenarlarını (eski stale referansı miras alan) atlıyordu — köşe-çentiği testinde 2 kenar dikilmeden açık kalıyordu. Düzeltme: temizlik artık `a.GetEdges()` üzerinden TÜM erişilebilir kenarları tarıyor.
+
+**Değiştirilen/eklenen dosyalar:** `Boolean/GeneralSolidSubtractor.cs` (çok-düzlem yolu tamamen yeniden yazıldı — tek-düzlem `SolidSubtractor` delegasyonu dokunulmadı), `Boolean/OpenEdgeStitcher.cs` (yeni). `PlaneCutter.cs`, `SolidSubtractor.cs`, `VertexWelder.cs`, `FaceRegionClassifier.cs` DOKUNULMADI (additive; `FaceRegionClassifier` artık kullanılmıyor ama testleriyle kalıyor).
+
+**Yeni testler:** köşe-çentiği artık `IsValid()`=`true` + analitik hacim doğrulamasıyla geçiyor (eski throw-testi güncellendi), + nokta-içi/dışı doğrulama testi, + daha genel bir 3-düzlem senaryosu (B, A'nın GERÇEK bir 3D köşesini — X/Y/Z üçünü birden — örtüyor, her kapağın diğer İKİ düzlemle çift-kırpılması gerekiyor).
+
+**Tam suite: 358/358** (356 → 358, +2 net yeni test — 1 eski test güncellendi, 3 yeni eklendi), regresyon yok. **Roadmap'in aylardır süren "genel çok-yüzlü SUBTRACT" hedefi artık TAMAMLANDI** — kalan bilinçli kapsam dışı durumlar (içbükey B, cavity/gömülü B, T-birleşim) açık istisnalarla korunuyor.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
-2. **CSG Boolean — köşe-çentiği (Yol B, madde 38'de netleşen gerçek engelle):** Parçalar-arası kenar dikişi (cross-piece edge stitching) — `CutWithPlaneKeepDiscarded`'daki `dup` kenar tekniğinin İKİ AYRI D_i/D_j parçası arasında genellenmesi gerekiyor. Bu, chord-edge fix'ten daha büyük — ayrı, odaklanmış bir oturum gerektiriyor.
+2. CSG Boolean — UNION/INTERSECT (Faz 5): aynı Faz 1-3 + yeni `OpenEdgeStitcher` altyapısı üzerine, farklı birleştirme kuralıyla kurulabilir.
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 
 ---
 
-*Son guncelleme: 2026-08-04 | AfneyCAD v4.0.0 — Session #57*
+*Son guncelleme: 2026-08-06 | AfneyCAD v4.0.0 — Session #58*

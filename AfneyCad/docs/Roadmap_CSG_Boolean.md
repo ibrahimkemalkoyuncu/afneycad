@@ -360,6 +360,86 @@ kurmak). **Karar (üçüncü kez, aynı gerekçeyle — sessions #34/#35'in "ace
 dürüst tespit" kararıyla tutarlı):** Bu, ayrı, odaklanmış bir oturum gerektiriyor. Kod
 değişikliği YAPILMADI (araştırma + matematiksel doğrulama, mevcut 356 testin hiçbiri etkilenmedi).
 
+**GÜNCELLEME (2026-08-06) — "Yol B" (mirror-cap Face bölme + cross-piece edge stitching)
+TAMAMLANDI — algoritma DEĞİŞTİRİLEREK (ardışık kesim yerine klasik subdivide→classify→
+reconstruct) çözüldü, KOD YAZILDI, testlerle doğrulandı:**
+
+Bir araştırma ajanı (Ana Yasa gereği), önce klasik B-Rep boolean literatürünü (Requicha &
+Voelcker, "Boolean Operations in Solid Modeling: Boundary Evaluation and Merging Algorithms",
+Proc. IEEE 1985 — subdivision/classification/reconstruction üç aşaması; ayrıca Naylor/
+Amanatides/Thibault'nin BSP-tree merging yaklaşımı) araştırdı, sonra kaynak kodu (`PlaneCutter`,
+`GeneralSolidSubtractor`, `FaceRegionClassifier`, `Solid`, `TopologyEdge`, `FaceSplitter`,
+`SolidClassifier`) satır satır inceledi. **Kritik bulgu:** önceki oturumun "Yol B" analizi
+DOĞRUYDU ama eksikti — sadece mirror-cap'lerin KISMEN örtüşmesi değil, ARDIŞIK kesim
+yaklaşımının kendisi (`PlaneCutter.CutWithPlaneKeepDiscarded`'ı B'nin düzlemleriyle sırayla
+çağırmak) yapısal olarak kusurluydu: bir SONRAKİ adımın kestiği "A yüzü", önceki bir adımın
+ürettiği ARA-kapak yüzü olabiliyordu (ör. iki adımlı köşe-çentiğinde ikinci kesim, ilk kesimin
+mirror cap'inin bir parçasını "A yüzü" gibi işleyip KENDİ İÇİNDE de sahte/iç parça üretebiliyordu)
+— bu, roadmap'in daha önce hiç belgelemediği İKİNCİ bir gizli hata kaynağıydı.
+
+**Çözüm (ardışık kesim TAMAMEN TERK EDİLDİ, yerine):** `GeneralSolidSubtractor.Subtract`'in
+çok-düzlem yolu, klasik subdivide→classify→reconstruct ile yeniden yazıldı:
+1. A'nın HER orijinal Face'i TÜM aday düzlemlere göre TEK SEFERDE (eşzamanlı) alt-parçalara
+   ayrılıyor (`SplitFaceAgainstPlanes`) — bir alt-parça bir düzlemin TAMAMEN dışında bulunur
+   bulunmaz KESİN "kept" sayılıyor (De Morgan OR, kısa devre — daha fazla düzlem kontrol
+   edilmiyor); TÜM düzlemlerden "insideB" olarak hayatta kalan bir parça KESİN "discarded".
+   Bu, her alt-parçanın SADECE A'nın orijinal 1 yüzünden türemesini garanti ediyor (önceki
+   ara-kapak sorunu YAPISAL OLARAK ortadan kalkıyor — hiçbir ara-kapak "A yüzü" gibi tekrar
+   işlenmiyor).
+2. Her aday düzlemin TAM (kırpılmamış) kesit poligonu, A'nın MUTASYONA UĞRAMAMIŞ orijinal
+   Face'lerinin sınır poligonlarından BAĞIMSIZ bir geçişte toplanıyor (`FindPlaneChordOnPolygon`)
+   — sınıflandırma geçişinin kısa-devresine bağlı KALMADAN (ilk yazımda bu ayrım yapılmamıştı,
+   köşe-çentiği testinde "kesim kirişleri kapanmıyor" hatasına yol açtı — düzeltildi).
+3. Bu tam kesit poligonu, DİĞER TÜM aday düzlemlerin "içeri" (insideB) yarı-uzaylarına göre
+   3D yarı-uzay kırpılıyor (`ClipPolygonByHalfSpace`, coplanar izdüşüme gerek kalmadan doğrudan
+   3D'de Sutherland-Hodgman) — kırpılmış poligondan TAMAMEN YENİ (fresh) Vertex/TopologyEdge'lerden
+   oluşan bağımsız bir kapak Face'i inşa ediliyor, her kenarın SADECE TEK tarafı dolduruluyor.
+4. **YENİ genel yapı taşı — `Boolean/OpenEdgeStitcher.cs`:** `VertexWelder.Weld` sonrası, TÜM
+   "açık" (tek tarafı dolu) kenarları (StartVertex,EndVertex) çiftine göre gruplayıp eşleşen
+   ikizleri birleştiriyor — roadmap'in aylardır aradığı "cross-piece edge stitching"in GENEL,
+   parça-bağımsız çözümü (hangi D_i/D_j çiftinin nerede kesiştiğini AYRICA izlemeye gerek
+   KALMADAN). Kaynak kod incelemesiyle doğrulandı: bu codebase'te `TopologyEdge.LeftFace`/
+   `RightFace` alanları SADECE `Solid.IsValid()`'in manifold-null kontrolünde ve Face-bağlantı
+   BFS'inde kullanılıyor — gerçek geometrik traversal HER ZAMAN her Face'in kendi
+   `Loop.GetOrderedVertices()`'i ile bağımsız kuruluyor (Next/Prev işaretçileri zaten tam
+   bakımlı değil, `EdgeSplitter`'ın kendi notunda da kabul edildiği gibi) — bu yüzden dikiş
+   "yön uyumu" kontrolüne gerek KALMADAN, sadece boş slotu doldurarak yapılabiliyor (başta
+   düşünülenden ÇOK daha basit çıktı).
+
+**Bulunan ve düzeltilen 2 gerçek implementasyon hatası (testlerle yakalandı):**
+1. Kapak normali TERS işaretliydi (`planes[i].Normal` — B'nin KENDİ dışa-dönük normali —
+   doğrudan kullanılmıştı; ama kapak A∖B'nin sınırı olduğundan `-normal` olmalıydı — through-slot
+   senaryosunun hacim testi `4e9` yerine `6.67e9` çıkararak bunu yakaladı).
+2. Temizlik geçişi (kırpma sonrası artık `a.Faces`'te olmayan Face'lere işaret eden kenar
+   referanslarını serbest bırakma) SADECE `FaceSplitter`'ın ürettiği YENİ kiriş kenarlarını
+   tarıyordu — `EdgeSplitter`'ın bir kiriş kenarını SONRAKİ bir düzlemle TEKRAR böldüğünde
+   ürettiği alt-parça kenarları (`edgeA.LeftFace=edge.LeftFace` ile ESKİ referansı miras alan)
+   bu taramada YOKTU. Köşe-çentiği testinde 2 kenar dikilmeden açık kalıyordu (`IsValid()`
+   `False` dönüyordu, hacim doğru olmasına rağmen). **Düzeltme:** temizlik artık `a.GetEdges()`
+   üzerinden (yani `a.Faces`'ten ULAŞILABİLEN HER kenardan) geçiyor, sadece izlenen kirişlerden
+   değil.
+
+**Test sonucu:** `dotnet test` — **358/358 BAŞARILI** (önceki 356 + net +2), 0 başarısız,
+HİÇBİR mevcut test bozulmadı. Köşe-çentiği senaryosu artık `NotSupportedException`/
+`InvalidOperationException` fırlatmıyor — `IsValid()`=`true` VE hacim analitik olarak doğru
+(`A_hacim − kesişim_hacmi = sonuç_hacmi`, `precision:3`). Ek olarak DAHA GENEL bir senaryo da
+eklenip doğrulandı: B, A'nın GERÇEK bir 3D köşesini (X, Y VE Z eksenlerinin ÜÇÜNÜ birden)
+örtüyor (3 aday düzlem, her kapağın DİĞER İKİ düzlemle çift-kırpılması gerekiyor) — bu da
+`IsValid()`=`true` ve doğru hacimle çalışıyor (`Subtract_TrueCornerNotch_ThreePlanes_...`).
+
+**Değiştirilen/eklenen dosyalar:** `Boolean/GeneralSolidSubtractor.cs` (çok-düzlem yolu TAMAMEN
+yeniden yazıldı — tek-düzlem `SolidSubtractor`'a delegasyon yolu DOKUNULMADI, davranışı birebir
+aynı), `Boolean/OpenEdgeStitcher.cs` (yeni, genel/tekrar-kullanılabilir yapı taşı — sadece
+SUBTRACT değil, ileride UNION/INTERSECT montajında da kullanılabilir). `PlaneCutter.cs`,
+`SolidSubtractor.cs`, `VertexWelder.cs`, `FaceRegionClassifier.cs` DOKUNULMADI (additive —
+`FaceRegionClassifier` artık `GeneralSolidSubtractor` tarafından kullanılmıyor ama kendi
+testleriyle birlikte codebase'te kalıyor, başka bir bağlamda faydalı olabilir).
+
+**Kapsam dışı (bilinçli, hâlâ geçerli):** B içbükeyse veya A'nın bir Face'i bir aday düzlemi
+2'den fazla kenarında kesiyorsa (dışbükey olmayan kesişim) `NotSupportedException`; B tamamen
+A'nın dışında/gömülü (cavity) ise `NotSupportedException`; 3+ parçanın TAM AYNI kenarda
+buluştuğu (T-birleşim) dejenere durumda `OpenEdgeStitcher` açık `InvalidOperationException`.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut
