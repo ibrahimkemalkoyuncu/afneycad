@@ -440,6 +440,78 @@ testleriyle birlikte codebase'te kalıyor, başka bir bağlamda faydalı olabili
 A'nın dışında/gömülü (cavity) ise `NotSupportedException`; 3+ parçanın TAM AYNI kenarda
 buluştuğu (T-birleşim) dejenere durumda `OpenEdgeStitcher` açık `InvalidOperationException`.
 
+**GÜNCELLEME (2026-08-07) — Faz 5 (UNION/INTERSECT) ele alındı: INTERSECT TAMAMLANDI (kod
+yazıldı, testlerle doğrulandı), UNION için YENİ bir yapısal engel bulunup BİLİNÇLİ OLARAK
+ERTELENDİ (kod değişikliği yapılmadan, sadece araştırma/analiz):**
+
+Roadmap'in Faz 5 notu ("Aynı Faz 1-3 altyapısı üzerine, farklı birleştirme kuralı") test edildi.
+Önce kaynak kod (`GeneralSolidSubtractor.cs`'in 2026-08-06 subdivide→classify→reconstruct
+yeniden yazımı, `SolidSubtractor`, `PlaneCutter`, `VertexWelder`, `OpenEdgeStitcher`,
+`SolidClassifier`) satır satır incelendi, sonra bir web araştırmasıyla (Requicha & Voelcker
+1985'in kendisi) genel B-Rep boundary-merging'in gerçekten "boundary evaluation AND merging"
+olarak ikiye ayrıldığı (yani sınır BİRLEŞTİRME'nin kesişim/kırpmadan AYRI, kendi başına bir
+algoritma sınıfı olduğu) doğrulandı — bu, aşağıdaki elle türetilen bulguyla tutarlı.
+
+**INTERSECT(A,B) — GÜVENLE tamamlandı, `GeneralSolidSubtractor`'a DOKUNMADAN:** Matematiksel
+inceleme, `GeneralSolidSubtractor.SubtractMultiPlane`'in subdivide adımının (`SplitFaceAgainstPlanes`)
+aslında SAF bir "A'yı B'nin (dışbükey) yarı-uzaylarına göre kırp" (3D Sutherland-Hodgman)
+operasyonu olduğunu gösterdi — SUBTRACT bu kırpmanın "outsideB" dalını tutar (+ kapak, normali
+B'nin normalinin TERSİ), INTERSECT ise AYNI kırpmanın "insideB" dalını (SUBTRACT'in şu ana kadar
+ATTIĞI `discardedFragments`) tutmalı (+ AYNI kapak, ama normali B'NİN KENDİ normaliyle, TERS
+ÇEVRİLMEDEN). Köşe-çentiği ve through-slot senaryoları ELLE (köşe koordinatları takip edilerek)
+doğrulandı: her iki senaryoda da bu formül eksiksiz, boşluksuz bir katı üretiyor — çünkü
+INTERSECT, TEK bir Solid'in (A'nın) B'ye göre dışbükey-kırpılmasından ibaret, B'nin kendi
+Face'lerini AYRICA bölüp iki bağımsız decomposition'ı dikişlemeye gerek YOK.
+- ✅ `Boolean/GeneralSolidIntersector.cs` (yeni) — `Intersect(Solid a, Solid b)`. Tek-düzlem
+  durumu `PlaneCutter.CutWithPlane(a, point, -normal)`'e devrediyor (B'nin içi, B'nin outward
+  normalinin TERSİ yönünde). Çok-düzlem durumu, `GeneralSolidSubtractor`'ın ŞİMDİ `internal`
+  yapılan (davranışı DEĞİŞMEYEN, saf erişilebilirlik değişikliği) yardımcı metodlarını
+  (`SplitFaceAgainstPlanes`, `FindPlaneChordOnPolygon`, `ChainVertexPairsIntoLoop`,
+  `ClipPolygonByHalfSpace`, `BuildFreshOpenCapFace`, `PlaneIntersectsSolidBoundary`) YENİDEN
+  KULLANIYOR — 250 satırlık test edilmiş bir algoritmayı kopyalamak yerine.
+  `GeneralSolidSubtractor.Subtract`'in KENDİSİ (public API, davranış) DOKUNULMADI.
+- Yeni testler: `GeneralSolidIntersectorTests.cs` (7 test) — tek-düzlem, B tamamen dışarıda
+  (throw), köşe-çentiği (hacim + nokta-içi/dışı), gerçek 3D köşe (3 düzlem), through-slot
+  (hacim + nokta-içi/dışı). Hacimler, `GeneralSolidSubtractorTests`'in "kesişim_hacmi"
+  terimleriyle ÇAPRAZ tutarlı (aynı A,B girdileri, aynı beklenen sayılar).
+- **Test sonucu: `dotnet test` — 365/365 BAŞARILI** (önceki 358 + 7 yeni), 0 başarısız, HİÇBİR
+  mevcut test bozulmadı.
+
+**UNION(A,B) — YENİ bir yapısal engel bulundu, KOD YAZILMADAN ertelendi:** UNION, INTERSECT'in
+aksine SUBTRACT'in altyapısı üzerine GÜVENLE oturmuyor. Sebep (elle, köşe-çentiği senaryosuyla
+somut olarak doğrulandı — A=[0,2000]³, B=[1500,3000]²×[0,2000]):
+- UNION(A,B)'nin sınırı = (A'nın B-DIŞI parçaları) ∪ (B'nin A-DIŞI parçaları) — bu SUBTRACT/
+  INTERSECT'in aksine İKİ BAĞIMSIZ decomposition gerektiriyor: A, B'nin düzlemleriyle VE AYRICA
+  B, A'nın düzlemleriyle (`SplitFaceAgainstPlanes`'in simetriği, B üzerinde de çağrılması).
+- Bu iki decomposition'ın "kesilmiş" açık kenar döngüleri GENEL OLARAK AYNI 3D eğri
+  ÜZERİNDE DEĞİL. Somut örnek (köşe-çentiği): A'nın açık kenar döngüsü B'nin düzlemlerinde
+  (X=1500/Y=1500, A'nın İÇİNDEN geçen bir kesim) oluşuyor — köşe kutusunun [1500,2000]²
+  KENDİSİNİN İKİ yüzünü (X=1500 ve Y=1500 yüzlerini) çevreliyor. B'nin açık kenar döngüsü ise
+  A'nın düzlemlerinde (X=2000/Y=2000, B'nin İÇİNDEN geçen bir kesim) oluşuyor — AYNI köşe
+  kutusunun DİĞER İKİ yüzünü (X=2000 ve Y=2000) çevreliyor. Bu iki 6-köşeli döngü sadece 2
+  köşede (köşe kutusunun (2000,1500,·) ve (1500,2000,·) dikey kenarlarında) kesişiyor —
+  `OpenEdgeStitcher` bu 2 kenarı dikebilir, ama GERİYE kalan 4 kenar (A'nın döngüsünden 2,
+  B'nin döngüsünden 2) HİÇBİR eşleşen ikiz bulamadan açık kalıyor — çünkü gerçek boşluk,
+  köşe kutusunun geriye kalan İKİ yüzünü (X=1500-X=2000 arası "köprü" yüzeyleri) örten YENİ bir
+  yüzeyle doldurulmalı, bu iki bağımsız decomposition'ın kenarlarını basitçe eşleştirerek DEĞİL.
+- Bu "köprü yüzü" (bridging face) inşası, `OpenEdgeStitcher`'ın çözdüğü sorundan (TEK bir
+  Solid'in kendi içindeki tutarlı kırpma sınırı) YAPISAL OLARAK FARKLI bir problem sınıfı —
+  görevin kendisinin de önceden işaret ettiği üçüncü terim ("ikisinin sınırının dışa bakan
+  kesişimi") tam olarak bu eksik parça. Bu üçüncü terimin genel inşası (hangi köprü
+  yüzeylerinin nerede gerektiği, kaç tane olacağı, nasıl yönlendirileceği) roadmap'in şu ana
+  kadar çözdüğü hiçbir yapı taşıyla (VertexWelder, OpenEdgeStitcher, ConvexPolygonClipper2D,
+  FaceRegionClassifier) DOĞRUDAN karşılanmıyor — ayrı, odaklanmış bir mühendislik oturumu
+  gerektiriyor.
+
+**Karar (Ana Yasa gereği, "aceleyle yanlış kod yerine dürüst tespit" — sessions #34/#35/#55'in
+kararlarıyla tutarlı):** UNION için KOD YAZILMADI. `GeneralSolidSubtractor.cs`/
+`GeneralSolidIntersector.cs`/mevcut 365 testin HİÇBİRİ bu araştırmadan etkilenmedi.
+**Sıradaki oturum için net başlangıç noktası:** `SplitFaceAgainstPlanes`'i B üzerinde de
+(A'nın candidate planes'ine göre) çağırıp `outsideFragments`'i (hem A hem B için) birleştirmek
+kolay kısım; asıl iş, köşe kutusunun kalan yüzlerini kapatan köprü yüzey(ler)inin genel
+inşası — muhtemelen `SolidClassifier`/`FaceRegionClassifier`'ın tam entegrasyonunu (hangi açık
+kenarın hangi köprü yüzeyine ait olduğunu sınıflandırmak için) gerektirecek.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

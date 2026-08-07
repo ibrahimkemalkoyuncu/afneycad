@@ -230,7 +230,18 @@ public static class GeneralSolidSubtractor
        NE: TEK bir A-Face'ini (ve ondan doğan alt-parçaları) TÜM aday düzlemlere göre bölüp
            sınıflandırır — bkz. dosya başı YÖNTEM notu, adım 2.
     */
-    private static void SplitFaceAgainstPlanes(
+    /*
+       NE (2026-08-07 EK NOT): Aşağıdaki yardımcı metodlar `GeneralSolidIntersector.Intersect`
+           tarafından da (additive, bu dosyaya DOKUNMADAN) yeniden kullanılabilmesi için
+           `private` yerine `internal` yapıldı — SAF bir erişilebilirlik değişikliği, davranış
+           AYNI (imza/gövde değişmedi). Gerekçe: INTERSECT, matematiksel olarak SUBTRACT'in
+           AYNI subdivide adımının (`SplitFaceAgainstPlanes`) SADECE hangi dalın ("outsideB" mı
+           "insideB" mi) sonuca dahil edildiği ve kapak normalinin işareti farklı bir kullanımı
+           (bkz. Roadmap_CSG_Boolean.md, 2026-08-07 güncellemesi) — 250 satırlık bir algoritmayı
+           KOPYALAMAK yerine (drift/hata riski), TEK doğrulanmış implementasyonu paylaşmak
+           tercih edildi.
+    */
+    internal static void SplitFaceAgainstPlanes(
         Solid a, Face originalFace, List<(Vector3D Point, Vector3D Normal)> planes,
         List<Face> keptFragments, List<Face> discardedFragments)
     {
@@ -337,7 +348,7 @@ public static class GeneralSolidSubtractor
            olarak toplandığı için ortak bir Vertex nesnesi paylaşmıyor olabilirler, ama AYNI
            kesişim noktasını sayısal olarak üretmiş olmalılar).
     */
-    private static List<Vector3D> ChainVertexPairsIntoLoop(List<(Vector3D P1, Vector3D P2)> pairs)
+    internal static List<Vector3D> ChainVertexPairsIntoLoop(List<(Vector3D P1, Vector3D P2)> pairs)
     {
         bool SamePoint(Vector3D a, Vector3D b) => a.DistanceTo(b) <= 1e-6;
 
@@ -371,7 +382,7 @@ public static class GeneralSolidSubtractor
            `PlaneCutter`'ın per-face mixed-crossing mantığıyla AYNI (bilinçli duplicate), ama
            SAF (Solid'i MUTASYONA UĞRATMADAN, sadece pozisyon listesi üzerinde) çalışır.
     */
-    private static (Vector3D, Vector3D)? FindPlaneChordOnPolygon(List<Vector3D> polygon, Vector3D planePoint, Vector3D planeNormal)
+    internal static (Vector3D, Vector3D)? FindPlaneChordOnPolygon(List<Vector3D> polygon, Vector3D planePoint, Vector3D planeNormal)
     {
         var dists = polygon.Select(p => (p - planePoint).Dot(planeNormal)).ToList();
         bool hasPos = dists.Any(d => d > Tolerance);
@@ -416,7 +427,7 @@ public static class GeneralSolidSubtractor
            noktalar hem de doğrusal enterpolasyonla bulunan yeni kesişim noktaları o
            düzlemin İÇİNDE kalır).
     */
-    private static List<Vector3D> ClipPolygonByHalfSpace(List<Vector3D> polygon, Vector3D planePoint, Vector3D planeNormal)
+    internal static List<Vector3D> ClipPolygonByHalfSpace(List<Vector3D> polygon, Vector3D planePoint, Vector3D planeNormal)
     {
         var n = planeNormal.Normalize();
         double SignedDist(Vector3D p) => (p - planePoint).Dot(n);
@@ -463,7 +474,7 @@ public static class GeneralSolidSubtractor
            `RightFace` BİLEREK boş bırakılıyor (`OpenEdgeStitcher.Stitch` tarafından, komşu
            parçanın/kapağın eşleşen kenarıyla, `VertexWelder.Weld` sonrasında dikilecek).
     */
-    private static Face BuildFreshOpenCapFace(List<Vector3D> polygonPoints, Vector3D capNormal)
+    internal static Face BuildFreshOpenCapFace(List<Vector3D> polygonPoints, Vector3D capNormal)
     {
         var capFace = new Face { Normal = capNormal };
         var loop = new Loop(isOuter: true);
@@ -485,7 +496,7 @@ public static class GeneralSolidSubtractor
            olarak duplicate edildi — `SolidSubtractor.cs`'e dokunmamak, mevcut testlerini
            regresyon riskine sokmamak için).
     */
-    private static bool PlaneIntersectsSolidBoundary(Solid solid, Vector3D planePoint, Vector3D planeNormal)
+    internal static bool PlaneIntersectsSolidBoundary(Solid solid, Vector3D planePoint, Vector3D planeNormal)
     {
         var n = planeNormal.Normalize();
         double SignedDist(Vector3D p) => (p - planePoint).Dot(n);

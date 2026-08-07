@@ -2863,12 +2863,26 @@ Madde 38'in bıraktığı son engel: çok-düzlem SUBTRACT'in köşe-çentiği s
 
 **Tam suite: 358/358** (356 → 358, +2 net yeni test — 1 eski test güncellendi, 3 yeni eklendi), regresyon yok. **Roadmap'in aylardır süren "genel çok-yüzlü SUBTRACT" hedefi artık TAMAMLANDI** — kalan bilinçli kapsam dışı durumlar (içbükey B, cavity/gömülü B, T-birleşim) açık istisnalarla korunuyor.
 
+### 40. CSG Boolean — Faz 5: INTERSECT TAMAMLANDI, UNION Yeni Bir Yapısal Engelle Ertelendi
+Madde 39'un bıraktığı yer: Faz 5 (UNION/INTERSECT), "aynı altyapı üzerine farklı birleştirme kuralı" varsayımıyla ele alındı. Önce kaynak kod (`GeneralSolidSubtractor`'ın 2026-08-06 subdivide→classify→reconstruct yeniden yazımı) satır satır incelendi, sonra Ana Yasa gereği kısa bir web araştırmasıyla (Requicha & Voelcker 1985) genel B-Rep'te "boundary evaluation" ile "merging"in gerçekten ayrı algoritma sınıfları olduğu doğrulandı.
+
+**INTERSECT — güvenle tamamlandı:** Matematiksel inceleme, `SplitFaceAgainstPlanes`'in aslında SAF bir "A'yı B'nin (dışbükey) yarı-uzaylarına göre kırp" operasyonu olduğunu gösterdi. SUBTRACT bu kırpmanın "outsideB" dalını tutuyor (+ kapak, normali B'nin normalinin TERSİ); INTERSECT ise AYNI kırpmanın SUBTRACT'in şu ana kadar ATTIĞI "insideB" dalını (`discardedFragments`) tutmalı (+ AYNI kapak, ama normali B'nin KENDİ normaliyle, ters çevrilmeden). Köşe-çentiği ve through-slot senaryoları elle (köşe koordinatları takip edilerek) doğrulandı — INTERSECT, TEK bir Solid'in dışbükey-kırpılmasından ibaret, B'nin kendi yüzlerini ayrıca bölüp iki bağımsız decomposition dikişlemeye gerek yok.
+
+- **`Boolean/GeneralSolidIntersector.cs`** (yeni) — `Intersect(Solid a, Solid b)`. `GeneralSolidSubtractor`'ın yardımcı metodları (`SplitFaceAgainstPlanes`, `FindPlaneChordOnPolygon`, `ChainVertexPairsIntoLoop`, `ClipPolygonByHalfSpace`, `BuildFreshOpenCapFace`, `PlaneIntersectsSolidBoundary`) `private`'dan `internal`'a çevrilip (davranış DEĞİŞMEDİ, saf erişilebilirlik) yeniden kullanıldı — 250 satırlık test edilmiş algoritmayı kopyalamak yerine. `GeneralSolidSubtractor.Subtract`'in kendisi dokunulmadı.
+- **Yeni testler:** `GeneralSolidIntersectorTests.cs` (7) — tek-düzlem, dışarıda/throw, köşe-çentiği (hacim + nokta-içi/dışı), 3-düzlem gerçek köşe, through-slot (hacim + nokta-içi/dışı). Hacimler `GeneralSolidSubtractorTests`'in "kesişim_hacmi" terimleriyle çapraz tutarlı.
+
+**UNION — YENİ bir yapısal engel bulundu, kod yazılmadan ertelendi:** UNION(A,B)'nin sınırı = (A'nın B-dışı parçaları) ∪ (B'nin A-dışı parçaları) — bu, SUBTRACT/INTERSECT'in aksine İKİ BAĞIMSIZ decomposition gerektiriyor (A, B'nin düzlemleriyle VE AYRICA B, A'nın düzlemleriyle). Köşe-çentiği senaryosuyla elle doğrulandı: bu iki decomposition'ın açık kenar döngüleri GENEL OLARAK AYNI eğri üzerinde değil (A'nın döngüsü B'nin düzlemlerinde/köşe kutusunun İÇ iki yüzünü çevreliyor, B'nin döngüsü A'nın düzlemlerinde/AYNI köşe kutusunun DIŞ iki yüzünü çevreliyor — sadece 2 köşede kesişiyorlar). Aradaki boşluğu kapatan bir "köprü yüzü" inşası gerekiyor — bu, `OpenEdgeStitcher`'ın çözdüğü sorundan (TEK Solid'in kendi içindeki tutarlı kırpma sınırı) yapısal olarak farklı bir problem sınıfı, roadmap'in mevcut hiçbir yapı taşıyla (VertexWelder, OpenEdgeStitcher, ConvexPolygonClipper2D, FaceRegionClassifier) doğrudan karşılanmıyor.
+
+**Karar (Ana Yasa gereği):** UNION için kod yazılmadı — bulgular ve somut başlangıç noktası `docs/Roadmap_CSG_Boolean.md`'ye (2026-08-07 güncellemesi) kaydedildi.
+
+**Tam suite: 365/365** (358 → 365, +7 yeni test), regresyon yok.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
-2. CSG Boolean — UNION/INTERSECT (Faz 5): aynı Faz 1-3 + yeni `OpenEdgeStitcher` altyapısı üzerine, farklı birleştirme kuralıyla kurulabilir.
+2. CSG Boolean — UNION (Faz 5'in son parçası): "köprü yüzü" inşası gerektiriyor, muhtemelen `SolidClassifier`/`FaceRegionClassifier`'ın tam entegrasyonuyla — ayrı, odaklanmış bir oturum (bkz. madde 40, Roadmap 2026-08-07 güncellemesi).
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 
 ---
 
-*Son guncelleme: 2026-08-06 | AfneyCAD v4.0.0 — Session #58*
+*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #59*
