@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Afney.Cad.Domain\Afney.Cad.Domain.csproj" />
     <ProjectReference Include="..\Afney.Cad.Geometry\Afney.Cad.Geometry.csproj" />
     <ProjectReference Include="..\Afney.Cad.Database\Afney.Cad.Database.csproj" />
+    <ProjectReference Include="..\Afney.Cad.SpatialIndex\Afney.Cad.SpatialIndex.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

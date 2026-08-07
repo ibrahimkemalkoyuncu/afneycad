@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Models;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.SpatialIndex.Core;
 using Serilog;
 
 namespace Afney.Cad.Mechanical.Services;
@@ -26,23 +28,56 @@ public class ClashDetectionService
         _obstacles = obstacles;
     }
 
+    // NE: Devasa Sanal Çalışma Alanı (CadDatabase._spatialIndex ile aynı desen)
+    // NEDEN: Broad-phase QuadTree'lerin, UTM/Global koordinatlar dahil her konumdaki
+    //        varlığı kapsayabilmesi için (bkz. Afney.Cad.Database.Core.CadDatabase ctor).
+    private static CadBoundingBox CreateWorldBounds() => new CadBoundingBox(
+        new Vector3D(-1000000000000, -1000000000000, -100000000),
+        new Vector3D(1000000000000, 1000000000000, 100000000));
+
     public List<ClashResult> DetectClashes(IEnumerable<MechanicalEntity> entities)
     {
         var results = new List<ClashResult>();
         var mechanicalEntities = entities.ToList();
-        
+
         // Sadece fiziksel tesisat elemanlarını al (Oda vb. hariç)
         var physicalEntities = mechanicalEntities.Where(e => e is PipeEntity || e is ElbowEntity || e is TeeEntity).ToList();
 
         // 1. Tesisat vs Mimari Engel (Örn: Duvar, Kolon)
-        foreach (var entity in physicalEntities)
+        // Broad-phase: physicalEntities için bir QuadTree kurulur, her engel için SADECE
+        // bounding-box'ı kesişen aday varlıklar sorgulanır (O(n*m) yerine O(m log n)).
+        // QuadTree.QueryRange zaten "Intersects(range, entBox)" testini uyguladığından
+        // (CadBoundingBox.Intersects simetriktir), narrow-phase'te tekrar kontrol gerekmez —
+        // eski davranışla birebir aynı sonuç kümesi üretilir.
+        if (physicalEntities.Count > 0 && _obstacles.Count > 0)
         {
+            var entityQuadTree = new QuadTree(CreateWorldBounds());
+            foreach (var e in physicalEntities) entityQuadTree.Insert(e);
+
+            // Eski kodun sırasını (entity dış döngü, _obstacles iç döngü, _obstacles sırasıyla)
+            // korumak için önce eşleşmeleri entity Id'sine göre topluyoruz.
+            var entityToObstacles = new Dictionary<Guid, List<ArchitecturalObstacle>>();
             foreach (var obs in _obstacles)
             {
-                var entityBox = entity.GetBoundingBox();
-                var obsBox = obs.GetBoundingBox();
+                var candidates = new HashSet<CadEntity>();
+                entityQuadTree.QueryRange(obs.GetBoundingBox(), candidates);
+                foreach (var cand in candidates)
+                {
+                    if (!entityToObstacles.TryGetValue(cand.Id, out var list))
+                    {
+                        list = new List<ArchitecturalObstacle>();
+                        entityToObstacles[cand.Id] = list;
+                    }
+                    list.Add(obs);
+                }
+            }
 
-                if (entityBox.Intersects(obsBox))
+            foreach (var entity in physicalEntities)
+            {
+                if (!entityToObstacles.TryGetValue(entity.Id, out var matchedObstacles)) continue;
+
+                var entityBox = entity.GetBoundingBox();
+                foreach (var obs in matchedObstacles)
                 {
                     results.Add(new ClashResult
                     {
@@ -53,7 +88,7 @@ public class ClashDetectionService
                         Severity = obs.Type == ObstacleType.Column ? ClashSeverity.Critical : ClashSeverity.Warning,
                         Message = $"{obs.Type} ile {entity.EntityType} çakışması tespit edildi."
                     });
-                    
+
                     if (entity is PipeEntity p) p.HasHydraulicViolation = true;
                     // Not: Diğer varlıklar için de görsel bir hata bayrağı eklenebilir.
                 }
@@ -61,47 +96,91 @@ public class ClashDetectionService
         }
 
         // 2. Boru vs Boru — 3D segment mesafe kontrolü
+        // Broad-phase: her boru için, olası en büyük minClearance kadar genişletilmiş
+        // bounding-box'ı ile QuadTree'den aday komşular sorgulanır; hassas
+        // SegmentToSegmentDistance hesabı (narrow-phase) SADECE bu adaylara uygulanır.
         var pipes = physicalEntities.OfType<PipeEntity>().ToList();
-        for (int i = 0; i < pipes.Count; i++)
+        if (pipes.Count > 1)
         {
-            for (int j = i + 1; j < pipes.Count; j++)
+            double maxDiameter = pipes.Max(p => p.InnerDiameter);
+            var pipeQuadTree = new QuadTree(CreateWorldBounds());
+            foreach (var p in pipes) pipeQuadTree.Insert(p);
+
+            var pipeIndex = new Dictionary<Guid, int>();
+            for (int idx = 0; idx < pipes.Count; idx++) pipeIndex[pipes[idx].Id] = idx;
+
+            for (int i = 0; i < pipes.Count; i++)
             {
                 var p1 = pipes[i];
-                var p2 = pipes[j];
-                if (IsConnected(p1, p2)) continue;
 
-                double minClearance = (p1.InnerDiameter + p2.InnerDiameter) / 2.0 + 25.0; // +25mm boşluk
-                double dist = SegmentToSegmentDistance(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
+                // En kötü durum: p1 en büyük çaplı boruyla eşleşirse minClearance = (d1+maxD)/2+25.
+                // Bu marj kadar genişletilmiş kutu, gerçekten çakışabilecek TÜM adayları kapsar
+                // (broad-phase'te kaçırma riski yok, sadece fazladan aday olabilir).
+                double margin = (p1.InnerDiameter + maxDiameter) / 2.0 + 25.0;
+                var queryBox = p1.GetBoundingBox().Expand(margin);
 
-                if (dist < minClearance)
+                var candidates = new HashSet<CadEntity>();
+                pipeQuadTree.QueryRange(queryBox, candidates);
+
+                var candidateIndices = candidates
+                    .Select(c => pipeIndex[c.Id])
+                    .Where(j => j > i)
+                    .OrderBy(j => j);
+
+                foreach (var j in candidateIndices)
                 {
-                    bool isCrossing = LineIntersectsLine(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
-                    results.Add(new ClashResult
+                    var p2 = pipes[j];
+                    if (IsConnected(p1, p2)) continue;
+
+                    double minClearance = (p1.InnerDiameter + p2.InnerDiameter) / 2.0 + 25.0; // +25mm boşluk
+                    double dist = SegmentToSegmentDistance(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
+
+                    if (dist < minClearance)
                     {
-                        Type     = ClashType.MechanicalVsMechanical,
-                        EntityA_Id = p1.Id,
-                        EntityB_Id = p2.Id,
-                        Position = CalculateIntersectionPoint(p1, p2),
-                        Severity = isCrossing ? ClashSeverity.Critical : ClashSeverity.Warning,
-                        Message  = $"{p1.SystemType}↔{p2.SystemType}: {(isCrossing ? "Kesişiyor" : $"Aralık {dist:F0}mm < {minClearance:F0}mm")}"
-                    });
-                    p1.HasHydraulicViolation = true;
-                    p2.HasHydraulicViolation = true;
+                        bool isCrossing = LineIntersectsLine(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
+                        results.Add(new ClashResult
+                        {
+                            Type     = ClashType.MechanicalVsMechanical,
+                            EntityA_Id = p1.Id,
+                            EntityB_Id = p2.Id,
+                            Position = CalculateIntersectionPoint(p1, p2),
+                            Severity = isCrossing ? ClashSeverity.Critical : ClashSeverity.Warning,
+                            Message  = $"{p1.SystemType}↔{p2.SystemType}: {(isCrossing ? "Kesişiyor" : $"Aralık {dist:F0}mm < {minClearance:F0}mm")}"
+                        });
+                        p1.HasHydraulicViolation = true;
+                        p2.HasHydraulicViolation = true;
+                    }
                 }
             }
         }
 
         // 3. Vana vs Boru — ValveEntity BoundingBox kontrolü
+        // Broad-phase: borular için kurulan QuadTree (varsa yeniden kullanılır) her vananın
+        // kendi bbox'ı ile sorgulanır. QueryRange zaten "vBox.Intersects(pBox)" testini
+        // uyguladığından, narrow-phase'te tekrar kontrol gerekmez.
         var valves = mechanicalEntities.OfType<ValveEntity>().ToList();
-        foreach (var valve in valves)
+        if (valves.Count > 0 && pipes.Count > 0)
         {
-            var vBox = valve.GetBoundingBox();
-            foreach (var pipe in pipes)
+            var valvePipeQuadTree = new QuadTree(CreateWorldBounds());
+            foreach (var p in pipes) valvePipeQuadTree.Insert(p);
+
+            var pipeIndexForValves = new Dictionary<Guid, int>();
+            for (int idx = 0; idx < pipes.Count; idx++) pipeIndexForValves[pipes[idx].Id] = idx;
+
+            foreach (var valve in valves)
             {
-                if (pipe.SystemType == valve.SystemType) continue; // Aynı sistemde bağlı olabilir
-                var pBox = pipe.GetBoundingBox();
-                if (vBox.Intersects(pBox))
+                var vBox = valve.GetBoundingBox();
+
+                var candidates = new HashSet<CadEntity>();
+                valvePipeQuadTree.QueryRange(vBox, candidates);
+
+                var candidateIndices = candidates.Select(c => pipeIndexForValves[c.Id]).OrderBy(j => j);
+
+                foreach (var j in candidateIndices)
                 {
+                    var pipe = pipes[j];
+                    if (pipe.SystemType == valve.SystemType) continue; // Aynı sistemde bağlı olabilir
+
                     results.Add(new ClashResult
                     {
                         Type      = ClashType.MechanicalVsMechanical,

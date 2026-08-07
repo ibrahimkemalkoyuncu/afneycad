@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Geometry.Primitives;
@@ -221,5 +222,171 @@ public class ClashDetectionServiceTests
         var results = svc.DetectClashes(new MechanicalEntity[] { pipe, valve });
 
         Assert.Contains(results, r => r.Type == ClashType.MechanicalVsMechanical && r.Severity == ClashSeverity.Warning);
+    }
+
+    /*
+       NE: QuadTree Broad-Phase ile Brute-Force (O(n^2)) Referans Sonucunun Eşdeğerliği
+       NEDEN: ClashDetectionService performans optimizasyonu (Session #58) — entity×obstacle,
+              boru×boru ve vana×boru taramaları artık Afney.Cad.SpatialIndex.QuadTree ile
+              broad-phase filtrelemesi yapıyor. Bu test, rastgele dağıtılmış büyükçe bir
+              varlık kümesinde servisin ürettiği sonuç kümesinin, burada bağımsız olarak
+              yeniden yazılmış saf O(n^2) brute-force referans algoritmasıyla BİREBİR aynı
+              çift kümesini (aynı Entity/Obstacle id eşleşmeleri) ürettiğini kanıtlar —
+              yani algoritmik karmaşıklık iyileşmesi davranışı DEĞİŞTİRMEMİŞTİR.
+    */
+    [Fact]
+    public void DetectClashes_QuadTreeBroadPhase_MatchesBruteForceReference_OnRandomLayout()
+    {
+        var rnd = new Random(12345); // deterministik tohum
+
+        var obstacles = new List<ArchitecturalObstacle>();
+        for (int i = 0; i < 12; i++)
+        {
+            double x = rnd.Next(-5000, 5000);
+            double y = rnd.Next(-5000, 5000);
+            double size = rnd.Next(200, 600);
+            obstacles.Add(MakeWall(new Vector3D(x, y, 0), new Vector3D(x + size, y + size, 3000),
+                i % 3 == 0 ? ObstacleType.Column : ObstacleType.Wall));
+        }
+
+        var pipes = new List<PipeEntity>();
+        for (int i = 0; i < 40; i++)
+        {
+            double x1 = rnd.Next(-5000, 5000), y1 = rnd.Next(-5000, 5000), z1 = rnd.Next(0, 3000);
+            double len = rnd.Next(300, 1500);
+            bool alongX = rnd.Next(2) == 0;
+            var start = new Vector3D(x1, y1, z1);
+            var end = alongX ? new Vector3D(x1 + len, y1, z1) : new Vector3D(x1, y1 + len, z1);
+            double diameter = new[] { 15.0, 25.0, 32.0, 50.0, 63.0 }[rnd.Next(5)];
+            pipes.Add(MakePipe(start, end, diameter));
+        }
+
+        var valves = new List<ValveEntity>();
+        for (int i = 0; i < 8; i++)
+        {
+            var pos = new Vector3D(rnd.Next(-5000, 5000), rnd.Next(-5000, 5000), rnd.Next(0, 3000));
+            valves.Add(new ValveEntity(pos, ValveType.GateValve, 25)
+            {
+                SystemType = i % 2 == 0 ? MechanicalSystemType.DomesticColdWater : MechanicalSystemType.WasteWater
+            });
+        }
+
+        var allEntities = pipes.Cast<MechanicalEntity>().Concat(valves).ToList();
+
+        var svc = new ClashDetectionService(obstacles);
+        var actual = svc.DetectClashes(allEntities);
+
+        var expectedArchPairs = BruteForceArchitecturalPairs(pipes, obstacles);
+        var expectedPipePairs = BruteForcePipePairs(pipes);
+        var expectedValvePairs = BruteForceValvePairs(valves, pipes);
+
+        var actualArchPairs = actual
+            .Where(r => r.Type == ClashType.MechanicalVsArchitectural)
+            .Select(r => (r.EntityA_Id, r.ObstacleId!.Value))
+            .ToHashSet();
+
+        var actualMechPairs = actual
+            .Where(r => r.Type == ClashType.MechanicalVsMechanical)
+            .Select(r => Normalize(r.EntityA_Id, r.EntityB_Id!.Value))
+            .ToHashSet();
+
+        Assert.Equal(expectedArchPairs, actualArchPairs);
+
+        var expectedMechPairs = expectedPipePairs.Concat(expectedValvePairs)
+            .Select(p => Normalize(p.Item1, p.Item2))
+            .ToHashSet();
+
+        Assert.Equal(expectedMechPairs, actualMechPairs);
+    }
+
+    private static (Guid, Guid) Normalize(Guid a, Guid b) => a.CompareTo(b) <= 0 ? (a, b) : (b, a);
+
+    private static HashSet<(Guid, Guid)> BruteForceArchitecturalPairs(List<PipeEntity> pipes, List<ArchitecturalObstacle> obstacles)
+    {
+        var set = new HashSet<(Guid, Guid)>();
+        foreach (var pipe in pipes)
+        {
+            var pipeBox = pipe.GetBoundingBox();
+            foreach (var obs in obstacles)
+            {
+                if (pipeBox.Intersects(obs.GetBoundingBox()))
+                    set.Add((pipe.Id, obs.Id));
+            }
+        }
+        return set;
+    }
+
+    private static bool IsConnectedRef(PipeEntity p1, PipeEntity p2)
+    {
+        const double eps = 10.0;
+        return p1.StartPoint.DistanceTo(p2.StartPoint) < eps ||
+               p1.StartPoint.DistanceTo(p2.EndPoint) < eps ||
+               p1.EndPoint.DistanceTo(p2.StartPoint) < eps ||
+               p1.EndPoint.DistanceTo(p2.EndPoint) < eps;
+    }
+
+    private static double SegmentToSegmentDistanceRef(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4)
+    {
+        var d1 = p2 - p1;
+        var d2 = p4 - p3;
+        var r = p1 - p3;
+
+        double a = d1.Dot(d1), e = d2.Dot(d2);
+        double f = d2.Dot(r);
+
+        double s, t;
+        if (a <= 1e-10 && e <= 1e-10) return r.Length();
+        if (a <= 1e-10) { s = 0; t = Math.Clamp(f / e, 0, 1); }
+        else
+        {
+            double c2 = d1.Dot(r);
+            if (e <= 1e-10) { t = 0; s = Math.Clamp(-c2 / a, 0, 1); }
+            else
+            {
+                double b2 = d1.Dot(d2);
+                double denom = a * e - b2 * b2;
+                s = denom != 0 ? Math.Clamp((b2 * f - c2 * e) / denom, 0, 1) : 0;
+                t = (b2 * s + f) / e;
+                if (t < 0) { t = 0; s = Math.Clamp(-c2 / a, 0, 1); }
+                else if (t > 1) { t = 1; s = Math.Clamp((b2 - c2) / a, 0, 1); }
+            }
+        }
+        return (p1 + d1 * s - (p3 + d2 * t)).Length();
+    }
+
+    private static HashSet<(Guid, Guid)> BruteForcePipePairs(List<PipeEntity> pipes)
+    {
+        var set = new HashSet<(Guid, Guid)>();
+        for (int i = 0; i < pipes.Count; i++)
+        {
+            for (int j = i + 1; j < pipes.Count; j++)
+            {
+                var p1 = pipes[i];
+                var p2 = pipes[j];
+                if (IsConnectedRef(p1, p2)) continue;
+
+                double minClearance = (p1.InnerDiameter + p2.InnerDiameter) / 2.0 + 25.0;
+                double dist = SegmentToSegmentDistanceRef(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
+                if (dist < minClearance)
+                    set.Add((p1.Id, p2.Id));
+            }
+        }
+        return set;
+    }
+
+    private static HashSet<(Guid, Guid)> BruteForceValvePairs(List<ValveEntity> valves, List<PipeEntity> pipes)
+    {
+        var set = new HashSet<(Guid, Guid)>();
+        foreach (var valve in valves)
+        {
+            var vBox = valve.GetBoundingBox();
+            foreach (var pipe in pipes)
+            {
+                if (pipe.SystemType == valve.SystemType) continue;
+                if (vBox.Intersects(pipe.GetBoundingBox()))
+                    set.Add((valve.Id, pipe.Id));
+            }
+        }
+        return set;
     }
 }
