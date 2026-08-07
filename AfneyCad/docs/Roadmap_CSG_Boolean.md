@@ -512,6 +512,105 @@ kolay kısım; asıl iş, köşe kutusunun kalan yüzlerini kapatan köprü yüz
 inşası — muhtemelen `SolidClassifier`/`FaceRegionClassifier`'ın tam entegrasyonunu (hangi açık
 kenarın hangi köprü yüzeyine ait olduğunu sınıflandırmak için) gerektirecek.
 
+**GÜNCELLEME (2026-08-07, devam) — UNION için önerilen "mirror-cap kısayolu" hipotezi ELLE
+ÇÜRÜTÜLDÜ, ayrıca BAĞIMSIZ bir ikinci yapısal engel daha bulundu (KOD YAZILMADI, sadece
+araştırma/analiz):**
+
+Bir sonraki oturuma önerilen kısayol hipotezi şuydu: "`SUBTRACT(A,B)`'nin ürettiği mirror cap
+(A∩B sınırının A tarafından türetilmiş kopyası) ile `SUBTRACT(B,A)`'nın ürettiği mirror cap
+(AYNI sınırın B tarafından türetilmiş kopyası) aslında AYNI yüzeyin iki kopyası olmalı — ikisi
+de `VertexWelder` ile kaynaştırılıp İKİSİ DE elenebilir, böylece köprü yüzü hiç gerekmez."
+Bu hipotez, `GeneralSolidSubtractorTests.cs`'teki köşe-çentiği senaryosunun (A=[0,2000]³,
+B=[1500,3000]×[1500,3000]×[0,2000]) GERÇEK köşe koordinatlarıyla elle sınandı:
+
+- **`SUBTRACT(A,B)`'nin kapakları:** aday düzlemler B'nin X=1500 ve Y=1500 yüzleri. Kapaklar
+  TAM OLARAK bu düzlemlerde oluşuyor — X=1500 kapağı `Y∈[1500,2000], Z∈[0,2000]` dikdörtgeni,
+  Y=1500 kapağı `X∈[1500,2000], Z∈[0,2000]` dikdörtgeni (her biri A'nın TAM kesitinin diğer
+  aday düzlemin insideB yarı-uzayına göre kırpılmasıyla, `ClipPolygonByHalfSpace`).
+- **`SUBTRACT(B,A)`'nın kapakları:** aday düzlemler (simetrik olarak) A'nın X=2000 ve Y=2000
+  yüzleri. Kapaklar X=2000 (`Y∈[1500,2000], Z∈[0,2000]`) ve Y=2000 (`X∈[1500,2000], Z∈[0,2000]`)
+  konumunda oluşuyor.
+- **Sonuç: hipotez YANLIŞ.** `SUBTRACT(A,B)`'nin kapakları X=1500/Y=1500'de, `SUBTRACT(B,A)`'nın
+  kapakları X=2000/Y=2000'de — **500 birim ARALARINDA**, aynı yüzeyin iki kopyası DEĞİL, dört
+  ayrı, birbirine PARALEL/UZAK dikdörtgen. `VertexWelder`'ın kaynaştıracağı ortak bir köşe/kenar
+  bile yok (en yakın ortak nokta sadece köşe kutusunun `(2000,1500,·)` ve `(1500,2000,·)`
+  köşegen kenarları — roadmap'in 2026-08-07 (ilk) girdisinin zaten belgelediği "sadece 2 köşede
+  kesişen iki 6-köşeli döngü" bulgusuyla BİREBİR tutarlı). Görev tanımının önerdiği kısayol,
+  önceki araştırmanın bulgusunu DOĞRULUYOR, ÇÜRÜTMÜYOR — köprü yüzü ihtiyacı GERÇEK.
+
+**İKİNCİ, önceki turlarda hiç belgelenmemiş bir engel bulundu — üst/alt kapaklar için de sorun
+var:** Köşe-çentiği testinde A ve B AYNI Z aralığını kullanıyor (`ExtrudeBox(..., ZAxis, ...,
+2000)` her ikisinde de) — yani A'nın üst/alt yüzleri (Z=2000/Z=0) ile B'nin üst/alt yüzleri
+TAM ÇAKIŞIK (coplanar) düzlemlerde. `PlaneIntersectsSolidBoundary` bu yüzden Z=2000/Z=0'ı hiçbir
+zaman aday düzlem olarak SEÇMİYOR (tüm A köşeleri ya `dist=0` ya `dist<0`, `hasPos` hiç `true`
+olmuyor) — bu ZATEN çok-düzlem SUBTRACT/INTERSECT'in doğru çalışmasının bir koşulu. Ama UNION
+için bu, farklı bir sorun yaratıyor: UNION'ın üst yüzü, A'nın kare izdüşümü İLE B'nin kare
+izdüşümünün TAM birleşimi (8 köşeli "merdiven" oktogon: `(0,0),(2000,0),(2000,1500),(3000,1500),
+(3000,3000),(1500,3000),(1500,2000),(0,2000)` — elle türetildi, A'nın [0,2000]² karesi ile B'nin
+[1500,3000]² karesinin geometrik birleşimi) OLMALI. Ama `SUBTRACT(A,B)`'nin ürettiği A'nın
+üst-yüz parçası SADECE A'nın kendi L-şekli (A'nın karesi EKSİ A∩B köşesi — [1500,2000]²'lik köşe
+"delinmiş"), `SUBTRACT(B,A)`'nın ürettiği B'nin üst-yüz parçası da SADECE B'nin kendi L-şekli
+(B'nin karesi EKSİ AYNI köşe). **Bu iki L-şeklinin 2D birleşimi ((A_L)∪(B_L)) = (A∪B) EKSİ köşe
+— yani ORTADA GERÇEKTE OLMAMASI GEREKEN bir DELİK/ÇENTİK bırakır** (köşe bölgesi A∪B'nin
+GERÇEKTEN İÇİNDE/dolu olması gerekirken, iki L-şekli ayrı ayrı oradan kaçınıyor). Doğru üst yüz
+(tam oktogon) SADECE A_top ∪ B_top'un GERÇEK bir 2D poligon BİRLEŞİMİ (union, kesişim değil) ile
+elde edilebilir — ama bu iki poligon dışbükey OLSA BİLE birleşimleri genel olarak dışbükey
+DEĞİLDİR (bu örnekte oktogon açıkça içbükey köşeler içeriyor). `ConvexPolygonClipper2D` kendi
+başlığında BUNU açıkça kapsam dışı bırakıyor ("UNION/DIFFERENCE bilinçli olarak kapsam dışı —
+SUBTRACT'in coplanar-payı kararı sadece INTERSECT'e ihtiyaç duyuyor") — kod tabanında HİÇBİR
+poligon-BİRLEŞİM (union) primitifi yok, sadece kesişim (`ConvexPolygonClipper2D.Intersect`,
+`ClipPolygonByHalfSpace`, ikisi de yarı-uzay/dışbükey KIRPMA, birleşim değil). **Not:** bu ikinci
+engel köşe-çentiği senaryosuna ÖZGÜ bir koşula (A/B'nin Z aralıklarının TESADÜFEN aynı olması)
+bağlı görünüyor — 3-düzlemli "gerçek köşe" senaryosunda (`Subtract_TrueCornerNotch_ThreePlanes`,
+B'nin Z aralığı A'dan FARKLI) her üç eksen de aday düzlem olduğundan bu ÖZEL coplanarlık sorunu
+oluşmuyor, ama o senaryoda da birinci engel (köprü yüzü ihtiyacı, üç düzlemde) AYNEN geçerli —
+yani ikinci engel EK bir komplikasyon, birincinin YERİNE geçmiyor.
+
+**Kısa web araştırması (Ana Yasa gereği) — gerçek kernel'ler bunu nasıl çözüyor:** OpenCASCADE
+`BOPAlgo_Builder`/`BOPAlgo_BOP`, boolean operasyondan ÖNCE ayrı bir **"Section" aşaması**
+(`BOPAlgo_Section`/genel "General Fuse" algoritması) çalıştırır: TÜM girdi katılarının
+yüzey-yüzey kesişim EĞRİLERİNİ (p-curve'ler dahil) TEK SEFERDE, PAYLAŞILAN bir veri yapısında
+hesaplar — yani A'nın kestiği kenar ile B'nin kestiği kenar A VE B ARASINDA PAYLAŞILAN AYNI
+kenar nesnesidir (iki BAĞIMSIZ, sonradan dikilen kopya DEĞİL). SUBTRACT/UNION/INTERSECT hepsi bu
+TEK PAYLAŞILAN decomposition üzerinden, sadece hangi parçaların/hangi yönde tutulacağına dair bir
+sınıflandırma FARKI ile üretilir (`BOPAlgo_BOP`, `BOPAlgo_Builder`'ı miras alır, "aynı General
+Fuse altyapısı üzerine farklı birleştirme kuralı" — roadmap'in Faz 5 notunun umduğu ŞEY tam
+olarak bu, ama gerçek kernel'de bu, PAYLAŞILAN kesişim hesaplamasıyla baştan doğru inşa ediliyor,
+bizim kodumuzdaki gibi SONRADAN iki bağımsız sonucu dikmeye ÇALIŞMIYOR). CGAL Nef polyhedra ise
+tamamen FARKLI bir stratejiyle bu sorunu YAPISAL OLARAK ortadan kaldırıyor: yarı-uzayların
+kesişim/tümleyen kombinasyonlarına dayalı bir temsil kullanıyor (boolean operasyonlara göre
+KAPALI/closed by construction) — "iki ayrı sınır decomposition'ını dikme" adımı hiç YOK.
+
+**Bu bulgunun kod tabanı için anlamı:** `GeneralSolidSubtractor`/`GeneralSolidIntersector`'ın
+şu anki mimarisi (A'yı B'nin düzlemlerine göre BAĞIMSIZ kes / B'yi A'nın düzlemlerine göre
+BAĞIMSIZ kes, sonra sonuçları dikmeye çalış) UNION için YAPISAL OLARAK YANLIŞ temel — doğru çözüm
+bir "dikiş numarası" (stitching trick) DEĞİL, A VE B'nin kesişim kenarlarını/eğrilerini EN
+BAŞTAN PAYLAŞILAN/ORTAK bir hesaplama olarak üretip HER İKİ solid'i de bu ORTAK kesişim kümesine
+göre bölmek (ki bu, `SplitFaceAgainstPlanes`'in ŞU ANKİ tek-yönlü "A'yı B'nin düzlemlerine göre
+böl" tasarımının temelden değiştirilmesini gerektirir) — bu, `VertexWelder`/`OpenEdgeStitcher`/
+chord-edge fix gibi önceki oturumların çözdüğü sorunlardan (TEK bir solid'in kendi İÇİNDEKİ
+tutarlı decomposition'ı) NİTELİKSEL OLARAK daha büyük bir mimari değişiklik — muhtemelen
+`GeneralSolidSubtractor`/`GeneralSolidIntersector`'ın kendisinin YENİDEN yazılmasını gerektirir
+(additive bir ek DEĞİL). Ayrıca ikinci engel (coplanar üst/alt yüzler için gerçek 2D poligon
+BİRLEŞİMİ) `ConvexPolygonClipper2D`'nin bilinçli kapsam dışı bıraktığı bir primitifi (non-convex
+polygon union) gerektiriyor — bu da AYRI bir mühendislik çabası (Vatti/Martinez-Rueda sweep-line
+veya en azından "iki dışbükey poligonun genel birleşimi" için özel bir algoritma).
+
+**Karar (Ana Yasa gereği, dördüncü kez aynı gerekçeyle):** UNION için KOD YAZILMADI — görev
+tanımının önerdiği kısayol hipotezi elle çürütüldü (yanlış çıktı), bulunan engel önceki
+oturumun belgelediğinden DAHA BÜYÜK (iki ayrı, birbirinden bağımsız yapısal sorun: köprü yüzü +
+non-convex poligon birleşimi). `GeneralSolidSubtractor.cs`/`GeneralSolidIntersector.cs`/mevcut
+365 testin HİÇBİRİNE dokunulmadı, dokunulmadığı için hiçbiri etkilenmedi (kod değişikliği yok).
+**Sıradaki oturum için net başlangıç noktası (güncellenmiş, iki ayrı alt-problem olarak):**
+(1) A/B arasında PAYLAŞILAN bir kesişim-kenarı/eğrisi temsili tasarlamak (OpenCASCADE'in
+"Section" aşamasının bu koda uyarlanmış, küçültülmüş bir versiyonu — muhtemelen
+`SplitFaceAgainstPlanes`'in iki-yönlü/simetrik bir varyantı, A'nın kestiği her kirişin B'nin
+kestiği KARŞILIK GELEN kirişle AYNI Vertex nesnesini paylaşmasını garanti eden bir mekanizma);
+(2) coplanar üst/alt (veya genel olarak iki solid'in aynı düzlemde çakışan yüzleri) için gerçek
+bir dışbükey-poligon BİRLEŞİMİ primitifi (`ConvexPolygonClipper2D.Intersect`'in yanına, AYNI
+dosyada veya yeni bir dosyada, additive). Her iki alt-problem de kendi başına, ayrı, odaklanmış
+birer oturum gerektirebilir.
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

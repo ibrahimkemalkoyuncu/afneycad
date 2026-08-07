@@ -2877,12 +2877,25 @@ Madde 39'un bıraktığı yer: Faz 5 (UNION/INTERSECT), "aynı altyapı üzerine
 
 **Tam suite: 365/365** (358 → 365, +7 yeni test), regresyon yok.
 
+### 41. CSG Boolean — UNION: Önerilen "Mirror-Cap Kısayolu" Hipotezi Elle Çürütüldü, İkinci (Daha Büyük) Yapısal Engel Bulundu
+Madde 40'ın bıraktığı yer: bir sonraki oturuma önerilen kısayol hipotezi şuydu — "`SUBTRACT(A,B)`'nin mirror cap'i ile `SUBTRACT(B,A)`'nın mirror cap'i aynı yüzeyin iki kopyası olmalı, ikisi de `VertexWelder` ile kaynaştırılıp elenebilir, köprü yüzü hiç gerekmez." Bu hipotez köşe-çentiği senaryosunun (A=[0,2000]³, B=[1500,3000]²×[0,2000]) GERÇEK köşe koordinatlarıyla elle sınandı.
+
+**Hipotez çürütüldü:** `SUBTRACT(A,B)`'nin kapakları B'nin düzlemlerinde (X=1500, Y=1500) oluşuyor; `SUBTRACT(B,A)`'nın kapakları A'nın düzlemlerinde (X=2000, Y=2000) oluşuyor — 500 birim ARALARINDA, aynı yüzeyin kopyaları DEĞİL, dört ayrı paralel dikdörtgen. Ortak bir köşe/kenar bile yok (madde 40'ın "sadece 2 köşede kesişen iki 6-köşeli döngü" bulgusunu doğruluyor, çürütmüyor).
+
+**İkinci, daha önce hiç belgelenmemiş bir engel bulundu:** Köşe-çentiği testinde A ve B AYNI Z aralığını kullanıyor — üst/alt yüzleri TAM ÇAKIŞIK (coplanar). UNION'ın üst yüzü, A'nın karesi İLE B'nin karesinin TAM 2D birleşimi (8 köşeli oktogon) olmalı — ama `SUBTRACT(A,B)`/`SUBTRACT(B,A)`'nın ürettiği L-şekilli üst-yüz parçalarının birleşimi, köşe bölgesinde YANLIŞLIKLA bir delik/çentik bırakıyor (iki L-şekli de o köşeden kaçınıyor, oysa gerçek birleşimde o köşe DOLU olmalı). Doğru sonuç sadece gerçek bir 2D poligon BİRLEŞİMİ (union, kesişim değil) ile elde edilebilir — `ConvexPolygonClipper2D` bunu kendi başlığında açıkça kapsam dışı bırakıyor ("UNION/DIFFERENCE bilinçli kapsam dışı"), kod tabanında hiçbir poligon-birleşim primitifi yok. (3-düzlemli "gerçek köşe" senaryosunda Z aralıkları farklı olduğu için bu ÖZEL coplanarlık sorunu oluşmuyor, ama birinci engel — köprü yüzü — orada da aynen geçerli.)
+
+**Kısa web araştırması:** OpenCASCADE `BOPAlgo_Builder`/`BOPAlgo_BOP`, boolean'dan ÖNCE ayrı bir "Section" aşamasında TÜM girdi katılarının kesişim eğrilerini TEK SEFERDE, PAYLAŞILAN bir veri yapısında hesaplıyor (A'nın kestiği kenar = B'nin kestiği kenar, aynı nesne) — SUBTRACT/UNION/INTERSECT bu TEK paylaşılan decomposition üzerinden sadece sınıflandırma farkıyla üretiliyor. CGAL Nef polyhedra ise tamamen farklı bir temsille (yarı-uzay kombinasyonları, boolean'a göre kapalı-by-construction) bu sorunu yapısal olarak ortadan kaldırıyor. **Anlamı:** bu kod tabanının "A'yı B'ye göre BAĞIMSIZ kes / B'yi A'ya göre BAĞIMSIZ kes, sonra dik" mimarisi UNION için temelden yanlış — doğru çözüm bir dikiş numarası değil, A/B arasında PAYLAŞILAN bir kesişim-kenarı temsili baştan kurmak (muhtemelen `GeneralSolidSubtractor`/`GeneralSolidIntersector`'ın kendisinin yeniden yazılmasını gerektirir, additive bir ek değil).
+
+**Karar (Ana Yasa gereği, dördüncü kez aynı gerekçeyle):** UNION için KOD YAZILMADI. `GeneralSolidSubtractor.cs`/`GeneralSolidIntersector.cs`/mevcut 365 testin hiçbirine dokunulmadı. Bulgular `docs/Roadmap_CSG_Boolean.md`'ye (2026-08-07, devam güncellemesi) kaydedildi — sıradaki oturum için net İKİ ayrı alt-problem tanımlandı: (1) paylaşılan A/B kesişim-kenarı temsili, (2) coplanar yüzler için gerçek dışbükey-poligon birleşimi primitifi.
+
+**Tam suite: 365/365** (değişiklik yok — bu oturum sadece araştırma/analiz, kod değişikliği yapılmadı).
+
 ### Sonraki Oturum Öncelikleri (sırayla)
 1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
-2. CSG Boolean — UNION (Faz 5'in son parçası): "köprü yüzü" inşası gerektiriyor, muhtemelen `SolidClassifier`/`FaceRegionClassifier`'ın tam entegrasyonuyla — ayrı, odaklanmış bir oturum (bkz. madde 40, Roadmap 2026-08-07 güncellemesi).
+2. CSG Boolean — UNION (Faz 5'in son parçası): İKİ ayrı yapısal engel bulundu (bkz. madde 41) — (a) A/B arasında paylaşılan kesişim-kenarı temsili (OpenCASCADE "Section" aşaması benzeri), (b) coplanar yüzler için gerçek dışbükey-poligon BİRLEŞİMİ primitifi (`ConvexPolygonClipper2D`'nin şu an kapsam dışı bıraktığı). İkisi de ayrı, odaklanmış birer oturum gerektirebilir.
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
 4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
 
 ---
 
-*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #59*
+*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #60*
