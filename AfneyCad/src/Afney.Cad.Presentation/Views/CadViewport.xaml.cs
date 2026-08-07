@@ -117,6 +117,15 @@ namespace Afney.Cad.Presentation.Views;
         private readonly SKPaint _originTxtPaint = new() { Color = SKColors.White, TextSize = 13, IsAntialias = true };
         private readonly SKPaint _hoverBoxPaint  = new() { Color = new SKColor(173, 216, 230, 190), Style = SKPaintStyle.Stroke, StrokeWidth = 3f, IsAntialias = true };
 
+        // NE: Kalıcı Render Context (SkiaRenderContext)
+        // NEDEN: Önceden OnPaintSurface HER FRAME'de "new SkiaRenderContext(...)" ile bu sınıfı
+        // sıfırdan yaratıyordu. Sınıfın paint cache'i (_paintCache/_textPaintCache) instance alanı
+        // olduğu için bu, cache'in hiçbir zaman isabet almaması ve binlerce SKPaint'in hiç
+        // Dispose edilmeden birikmesi (native memory leak) anlamına geliyordu. Artık viewport
+        // ömrü boyunca TEK instance tutuluyor; her frame'de sadece SetCanvas ile canvas/pixelSize
+        // güncelleniyor, cache'ler kalıcı kalıyor.
+        private SkiaRenderContext? _renderContext;
+
         // ── Smooth Zoom (Animasyonlu, AutoCAD hissiyatı) ─────────────────────────────────
         private System.Windows.Threading.DispatcherTimer? _zoomTimer;
         private const double ZoomLerp = 0.22;   // Her frame %22 yaklaşma → ~15 frame'de yerine oturur
@@ -145,6 +154,8 @@ namespace Afney.Cad.Presentation.Views;
             _originYPaint?.Dispose();
             _originTxtPaint?.Dispose();
             _hoverBoxPaint?.Dispose();
+            _renderContext?.Dispose();
+            _renderContext = null;
             _zoomTimer?.Stop();
             Serilog.Log.Information("🧹 CadViewport Skia kaynakları temizlendi.");
         }
@@ -456,7 +467,12 @@ namespace Afney.Cad.Presentation.Views;
             canvas.Scale(density);
 
             var pixelSize = _zoom > 0 ? 1.0 / _zoom : 1.0;
-            var renderContext = new SkiaRenderContext(canvas, pixelSize);
+            // Tek instance: sadece canvas/pixelSize/kamera güncellenir, paint cache'leri korunur.
+            if (_renderContext == null)
+                _renderContext = new SkiaRenderContext(canvas, pixelSize);
+            else
+                _renderContext.SetCanvas(canvas, pixelSize);
+            var renderContext = _renderContext;
             renderContext.IsIsometric = _isIsometric;
             renderContext.SetCamera(_offset, _zoom);
 

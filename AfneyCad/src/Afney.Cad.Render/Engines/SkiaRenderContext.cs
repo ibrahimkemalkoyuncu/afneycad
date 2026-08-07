@@ -20,17 +20,42 @@ using System.Linq;
 
 namespace Afney.Cad.Render.Engines;
 
-public class SkiaRenderContext : IRenderContext
+public class SkiaRenderContext : IRenderContext, IDisposable
 {
-    private readonly SKCanvas _canvas;
-    private readonly Dictionary<uint, SKPaint> _paintCache = new();
-    private readonly Dictionary<string, SKPaint> _textPaintCache = new();
+    /// <summary>
+    /// NE: Paint Önbellek Anahtarı (PaintKey)
+    /// NEDEN: Önceden string interpolasyonu + GetHashCode() ile üretilen uint anahtar, hem her
+    /// çağrıda allocation yaratıyordu hem de teorik hash-çakışmasında yanlış paint dönebiliyordu.
+    /// Struct tabanlı, value-equality'li anahtar hem allocation-free hem çakışmasız.
+    /// </summary>
+    private readonly record struct PaintKey(uint Color, float Thickness, bool IsDashed, string Linetype);
 
-    public double PixelSize { get; }
+    // NOT: _canvas ve PixelSize artık viewport ömrü boyunca SetCanvas() ile güncellenir;
+    // sınıf her frame'de yeniden yaratılmaz (bkz. CadViewport.OnPaintSurface).
+    private SKCanvas _canvas;
+    private readonly Dictionary<PaintKey, SKPaint> _paintCache = new();
+    private readonly Dictionary<string, SKPaint> _textPaintCache = new();
+    private SKPaint? _highlightPaint;
+    private bool _disposed;
+
+    public double PixelSize { get; private set; }
     public bool IsIsometric { get; set; } = false;
     public bool IsHighlightMode { get; set; } = false;
 
     public SkiaRenderContext(SKCanvas canvas, double pixelSize)
+    {
+        _canvas = canvas;
+        PixelSize = pixelSize;
+    }
+
+    /// <summary>
+    /// NE: Canvas Güncelle (SetCanvas)
+    /// NEDEN: SkiaSharp her frame'de yeni bir SKCanvas/SKSurface üretir (WPF OnPaintSurface).
+    /// Önceden bu yüzden her frame yeni bir SkiaRenderContext yaratılıyordu ve paint cache'i
+    /// hiç isabet almıyordu. Artık tek instance korunuyor, sadece canvas referansı ve
+    /// pixelSize her frame'de burada güncelleniyor — paint cache'leri kalıcı kalıyor.
+    /// </summary>
+    public void SetCanvas(SKCanvas canvas, double pixelSize)
     {
         _canvas = canvas;
         PixelSize = pixelSize;
@@ -47,7 +72,9 @@ public class SkiaRenderContext : IRenderContext
         {
             // Vurgu (Selection Glow) Efekti
             // AutoCAD standardı: Seçili nesneler parlak, kalın ve yarı-şeffaf mavi/sarı çizilir.
-            return new SKPaint
+            // Sabit bir görünüm olduğu için tek bir paint yeterli — artık cache'leniyor,
+            // her segment için yeni (sahiplenilmeyen, hiç Dispose edilmeyen) SKPaint yaratılmıyor.
+            return _highlightPaint ??= new SKPaint
             {
                 Color = new SKColor(255, 255, 0).WithAlpha(200), // Parlak Sarı Glow
                 StrokeWidth = 3f, // Kalın sınır
@@ -59,20 +86,19 @@ public class SkiaRenderContext : IRenderContext
             };
         }
 
-        string key = $"{color}_{thickness:F3}_{isDashed}_{linetype}";
-        uint hKey = (uint)key.GetHashCode();
+        var key = new PaintKey(color, (float)thickness, isDashed, linetype ?? "Continuous");
 
-        if (!_paintCache.TryGetValue(hKey, out var paint))
+        if (!_paintCache.TryGetValue(key, out var paint))
         {
             // MÜHENDİSLİK MODU: Hairline (Kıl Çizgi) Teknolojisi
             // StrokeWidth = 0f yaparak çizginin her zoom seviyesinde 1 piksel (Jilet gibi) görünmesini sağlarız.
             // Sadece çok kalın çizgiler (Polyline width > 0) fiziksel kalınlıkla çizilir.
-            bool isThick = thickness > 1.5; 
+            bool isThick = thickness > 1.5;
 
             paint = new SKPaint
             {
                 Color = new SKColor(color),
-                StrokeWidth = isThick ? (float)thickness : 0f, 
+                StrokeWidth = isThick ? (float)thickness : 0f,
                 IsAntialias = isThick, // Kıl çizgiler (hairline) için antialias KAPALI (AutoCAD netliği/crisp)
                 Style = SKPaintStyle.Stroke,
                 FilterQuality = SKFilterQuality.None, // En net (keskin) piksel görünümü için
@@ -87,7 +113,7 @@ public class SkiaRenderContext : IRenderContext
                 // Bu yüzden Dash Array değerleri doğrudan "Piksel" cinsindendir.
                 // Zoom faktörüyle çarpmamalıyız. Sabit değer verirsek, zoom yapınca desen ekranda sabit kalır.
                 // Bu da AutoCAD'in Paper Space (Layout) görünümüne eşdeğerdir ve en okunaklısıdır.
-                
+
                 float s = 10.0f; // 10 Piksel baz uzunluk (Sabit)
 
                 if (isDashed || linetype.Contains("Dash", StringComparison.OrdinalIgnoreCase) || linetype.Contains("Hidden", StringComparison.OrdinalIgnoreCase))
@@ -98,7 +124,7 @@ public class SkiaRenderContext : IRenderContext
                     paint.PathEffect = SKPathEffect.CreateDash(new float[] { 0.2f * s, 1 * s }, 0);
             }
 
-            _paintCache[hKey] = paint;
+            _paintCache[key] = paint;
         }
 
         return paint;
@@ -115,6 +141,29 @@ public class SkiaRenderContext : IRenderContext
     {
         _cameraOffset = offset;
         _zoomFactor = zoom;
+    }
+
+    /// <summary>
+    /// NE: Kaynakları Serbest Bırak (Dispose)
+    /// NEDEN: SKPaint unmanaged (native Skia) kaynak tutar; instance artık viewport ömrü boyunca
+    /// yaşadığı için (bkz. CadViewport tek alan olarak tutuyor) kontrol kapanırken/unload olurken
+    /// tüm cache'lenmiş paint'ler burada tek seferde temizlenir.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        foreach (var paint in _paintCache.Values) paint.Dispose();
+        _paintCache.Clear();
+
+        foreach (var paint in _textPaintCache.Values) paint.Dispose();
+        _textPaintCache.Clear();
+
+        _highlightPaint?.Dispose();
+        _highlightPaint = null;
+
+        GC.SuppressFinalize(this);
     }
 
     /*
