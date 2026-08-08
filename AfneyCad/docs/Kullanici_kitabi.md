@@ -2890,12 +2890,19 @@ Madde 40'ın bıraktığı yer: bir sonraki oturuma önerilen kısayol hipotezi 
 
 **Tam suite: 365/365** (değişiklik yok — bu oturum sadece araştırma/analiz, kod değişikliği yapılmadı).
 
+### 42. DxfReader Loglama Düzeltmesi Commit'i Eksik Kalmıştı — Tamamlandı; 3D Görünüm Canlı Testi Denendi (Kısmi Sonuç)
+Bir önceki oturumda `DxfReader.cs`'teki 10 sessiz `catch{}` bloğu düzeltilmişti ama doğrudan ana ağaçta yapılan bu değişiklik hiç commit edilmemiş, sonraki worktree merge'leri boyunca sessizce "uncommitted" kalmıştı. Bu oturumda fark edilip commit edildi ve push edildi.
+
+**3D görünüm canlı testi:** Native Windows UI Automation (System.Windows.Automation + Win32 API) ile uygulama başlatılıp `View3DBtn`/`View2DBtn`/`Zoom Extents` gibi kontroller AutomationId ile bulunup tıklandı. **Doğrulanan:** 2D render (`SkiaRenderContext` düzeltmesi sonrası) gerçek bir DWG projesinde (6 katlı `ornek_proje.dwg`) temiz çalışıyor — renkler, katmanlar, ölçüler sorunsuz; 3D toggle butonu uygulamayı ÇÖKERTMİYOR, state doğru değişiyor. **Doğrulanamayan:** 3D viewport'un gerçekten 3D içerik render ettiğinin net görsel kanıtı — `SetForegroundWindow` Win32 çağrısı bu ortamda güvenilir çalışmadı (bazı ekran görüntüleri yanlışlıkla başka pencereleri yakaladı, bir tanesi kullanıcının ilgisiz bir başka projesinin VSCode penceresini içeriyordu — bu içerik görmezden gelindi/kullanılmadı). Otomasyon riskli hale geldiği için durduruldu; kullanıcı 3D görünüm + kalan bekleyen maddeleri (metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) kendi manuel test etmeyi tercih etti.
+
+**Not (yan bulgu, hata değil):** `ornek_proje.dwg` 6 kat planı içeriyor; Zoom Extents hepsini sığdırdığı için başlangıçta küçük görünüyorlar — bu bir render hatası değil, kullanıcının önceki ekran görüntüsü zaten belirli bir kata yakınlaştırılmış haldeydi.
+
 ### Sonraki Oturum Öncelikleri (sırayla)
-1. Bekleyen kullanıcı-onaylı maddeler (3D render ana viewport entegrasyonu, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) — gerçek projede canlı test edilmeli. **Özellikle #32'deki `OnToggle3DView` entegrasyonu — hâlâ GÖRSEL doğrulama yapılamadı.**
+1. **3D görünüm ana viewport entegrasyonu + diğer bekleyen kullanıcı-onaylı maddeler (metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala)** — kullanıcı kendi canlı test edecek, sonucu bir sonraki oturumda bildirecek.
 2. CSG Boolean — UNION (Faz 5'in son parçası): İKİ ayrı yapısal engel bulundu (bkz. madde 41) — (a) A/B arasında paylaşılan kesişim-kenarı temsili (OpenCASCADE "Section" aşaması benzeri), (b) coplanar yüzler için gerçek dışbükey-poligon BİRLEŞİMİ primitifi (`ConvexPolygonClipper2D`'nin şu an kapsam dışı bıraktığı). İkisi de ayrı, odaklanmış birer oturum gerektirebilir.
 3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
-4. **Notion bağlantısını doğrula** — bu oturumda da Notion MCP aracı yine bağlı değildi, Aktif Session sayfası güncellenemedi.
+4. Native UI Automation ile canlı görsel test için daha güvenilir bir yöntem (örn. `AutomationElement.SetFocus()` veya alternatif bir pencere yakalama API'si) — bu oturumda `SetForegroundWindow` güvenilmez bulundu.
 
 ---
 
-*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #60*
+*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #61*
