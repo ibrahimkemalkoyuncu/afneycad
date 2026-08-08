@@ -77,7 +77,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     IsVisible = true 
                 };
                 
-                try { cLay.IsVisible = layer.IsOn; } catch {} // IsOn yoksa true kalır
+                try { cLay.IsVisible = layer.IsOn; } catch (Exception exOn) { Serilog.Log.Debug("[DXF] Katman '{Layer}' IsOn okunamadı, varsayılan görünür kalıyor: {Error}", name, exOn.Message); } // IsOn yoksa true kalır
                 
                 db.AddLayer(cLay);
             }
@@ -97,8 +97,10 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     try {
                         var p = block.Origin;
                         bp = new Vector3D(p.X, p.Y, p.Z);
-                    } catch {
-                         try { var p = block.BasePoint; bp = new Vector3D(p.X, p.Y, p.Z); } catch {}
+                    } catch (Exception exOrigin) {
+                         Serilog.Log.Debug("[DXF] Blok Origin okunamadı, BasePoint deneniyor: {Error}", exOrigin.Message);
+                         try { var p = block.BasePoint; bp = new Vector3D(p.X, p.Y, p.Z); }
+                         catch (Exception exBasePoint) { Serilog.Log.Debug("[DXF] Blok BasePoint de okunamadı, (0,0,0) kullanılıyor: {Error}", exBasePoint.Message); }
                     }
 
                     var bRec = new CadBlockRecord { Name = block.Name, BasePoint = bp };
@@ -151,7 +153,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
             
             uint color = GetColorDyn(entity, asRef);
             string layerName = "0";
-            try { layerName = entity.Layer.Name; } catch {}
+            try { layerName = entity.Layer.Name; } catch (Exception exLayer) { Serilog.Log.Debug("[DXF] Entity Layer.Name okunamadı, '0' katmanına düşülüyor: {Error}", exLayer.Message); }
 
             // INSERT (Blok)
             if (typeName == "Insert")
@@ -250,7 +252,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
                 // Pattern hatch'leri (ANSI31, ANSI37 vb.) yoksay — sadece solid/gradient
                 // IsSolid: true → solid fill
                 bool isSolid = false;
-                try { isSolid = entity.IsSolid; } catch { }
+                try { isSolid = entity.IsSolid; } catch (Exception exIsSolid) { Serilog.Log.Debug("[DXF] Hatch IsSolid okunamadı, pattern hatch varsayılıyor: {Error}", exIsSolid.Message); }
                 
                 if (!isSolid)
                 {
@@ -266,10 +268,11 @@ namespace Afney.Cad.Infrastructure.FileFormats
                                 string edgeType = edge.GetType().Name;
                                 if (edgeType == "HatchLineBoundary" || edgeType == "HatchPolylineBoundary")
                                 {
-                                    try { foreach (var v in edge.Vertices) verts.Add(new Vector3D(v.X, v.Y, 0)); } catch { }
+                                    try { foreach (var v in edge.Vertices) verts.Add(new Vector3D(v.X, v.Y, 0)); }
+                                    catch (Exception exVerts) { Serilog.Log.Debug("[DXF] Hatch edge vertex'leri okunamadı: {Error}", exVerts.Message); }
                                 }
                             }
-                        } catch { }
+                        } catch (Exception exPathEdges) { Serilog.Log.Debug("[DXF] Hatch path edge'leri okunamadı: {Error}", exPathEdges.Message); }
                         if (verts.Count >= 2)
                         {
                             var poly = new LwPolylineEntity(verts, true) { Color = color, Layer = layerName };
@@ -291,18 +294,19 @@ namespace Afney.Cad.Infrastructure.FileFormats
                             foreach (var v in path.Vertices)
                                 verts.Add(new Vector3D(v.X, v.Y, 0));
                         }
-                        catch { }
+                        catch (Exception exPolyVerts) { Serilog.Log.Debug("[DXF] Hatch poly boundary vertex'leri okunamadı, edge-based deneniyor: {Error}", exPolyVerts.Message); }
 
                         // Edge-based boundary (LwPolyline edge)
                         if (verts.Count == 0)
                         {
                             foreach (var edge in path.Edges)
                             {
-                                try { foreach (var v in edge.Vertices) verts.Add(new Vector3D(v.X, v.Y, 0)); } catch { }
+                                try { foreach (var v in edge.Vertices) verts.Add(new Vector3D(v.X, v.Y, 0)); }
+                                catch (Exception exEdgeVerts) { Serilog.Log.Debug("[DXF] Hatch solid-fill edge vertex'leri okunamadı: {Error}", exEdgeVerts.Message); }
                             }
                         }
                     }
-                    catch { }
+                    catch (Exception exBoundary) { Serilog.Log.Debug("[DXF] Hatch boundary path okunamadı: {Error}", exBoundary.Message); }
 
                     if (verts.Count >= 3)
                     {
@@ -335,7 +339,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     case 250: case 251: return 0xFF666666;
                     default: return 0xFFCCCCCC;
                 }
-            } catch { return 0xFFFFFFFF; }
+            } catch (Exception exColor) { Serilog.Log.Debug("[DXF] Renk çözümlenemedi, beyaz varsayılıyor: {Error}", exColor.Message); return 0xFFFFFFFF; }
         }
 
         private uint GetColorDyn(dynamic e, bool asRef)
@@ -349,12 +353,12 @@ namespace Afney.Cad.Infrastructure.FileFormats
                     try {
                         string lName = e.Layer.Name;
                         if (_layerColors.TryGetValue(lName, out uint lc)) return lc;
-                    } catch {}
+                    } catch (Exception exLayerColor) { Serilog.Log.Debug("[DXF] ByLayer rengi çözümlenemedi (Layer.Name okunamadı), beyaz varsayılıyor: {Error}", exLayerColor.Message); }
                     return 0xFFFFFFFF;
                 }
                 if (idx == 0) return 0xFFFFFFFF;
                 return ResolveColorDyn(c);
-            } catch { return 0xFFFFFFFF; }
+            } catch (Exception exGetColor) { Serilog.Log.Debug("[DXF] Entity rengi çözümlenemedi, beyaz varsayılıyor: {Error}", exGetColor.Message); return 0xFFFFFFFF; }
         }
 
         private void Transform(CadEntity e, Vector3D ip, Vector3D s, double c, double sn, Vector3D bp)
