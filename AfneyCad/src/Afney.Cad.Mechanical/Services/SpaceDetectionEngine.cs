@@ -230,9 +230,26 @@ namespace Afney.Cad.Mechanical.Services
         }
 
         // Oda içindeki text entity'lerden oda adı çıkarma
+        //
+        // NE: Broad-Phase QuadTree Sorgusu (Session #62 — performans)
+        // NEDEN: Bu metod, DetectAllSpaces tarafından bulunan HER oda için bir kez çağrılır ve
+        //        eskiden _database.GetAllEntities() ile veritabanındaki TÜM nesneleri (duvar,
+        //        boru, blok, metin — ne varsa) doğrusal tarıyordu. Çok katlı/büyük planlarda
+        //        (yüzlerce oda × binlerce entity) bu O(oda × toplam_entity) maliyeti gözle
+        //        görülür yavaşlığa yol açar. CadDatabase zaten kendi QuadTree'sini
+        //        (_spatialIndex) tutuyor ve QueryEntities(range) ile açığa çıkarıyor (bkz.
+        //        CadDatabase.QueryEntities, ClashDetectionService'in kullandığı desenin aynısı) —
+        //        burada sadece odanın kendi bounding box'ı ile sorgu yapılır. Bir TextEntity'nin
+        //        BoundingBox'ı Position'ı her zaman içerdiğinden (bkz. TextEntity.
+        //        CalculateBoundingBox), poligonun içindeki bir metin, poligonun bounding box'ıyla
+        //        KESİNLİKLE kesişir — yani narrow-phase (IsPointInPolygon) sonucu DEĞİŞMEZ, sadece
+        //        adayların taranma sayısı azalır.
         public string? DetectRoomNameFromTexts(List<Vector3D> roomBoundary)
         {
-            foreach (var ent in _database.GetAllEntities())
+            if (roomBoundary == null || roomBoundary.Count == 0) return null;
+
+            var roomBox = ComputeBoundingBox(roomBoundary);
+            foreach (var ent in _database.QueryEntities(roomBox))
             {
                 if (ent is TextEntity text && !string.IsNullOrWhiteSpace(text.Text))
                 {
@@ -246,6 +263,18 @@ namespace Afney.Cad.Mechanical.Services
                 }
             }
             return null;
+        }
+
+        private static CadBoundingBox ComputeBoundingBox(List<Vector3D> polygon)
+        {
+            double minX = polygon[0].X, maxX = polygon[0].X;
+            double minY = polygon[0].Y, maxY = polygon[0].Y;
+            foreach (var p in polygon)
+            {
+                if (p.X < minX) minX = p.X; else if (p.X > maxX) maxX = p.X;
+                if (p.Y < minY) minY = p.Y; else if (p.Y > maxY) maxY = p.Y;
+            }
+            return new CadBoundingBox(new Vector3D(minX, minY, 0), new Vector3D(maxX, maxY, 0));
         }
 
         private bool IsPointInPolygon(Vector3D p, List<Vector3D> polygon)

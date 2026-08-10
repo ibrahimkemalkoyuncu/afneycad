@@ -20,6 +20,24 @@ public class PipingPathfinderService
     private readonly List<ArchitecturalObstacle> _obstacles;
     private readonly double _gridSize = 100.0; // 100mm (10cm) grid çözünürlüğü
 
+    // NE: Broad-Phase Uzamsal İndeks (Session #62 — performans)
+    // NEDEN: IsCollision, RunAStar içinde her açılan komşu (max 5000×6=30.000) için çağrılıyordu
+    //        ve her seferinde TÜM _obstacles listesini doğrusal tarıyordu. Bkz. ObstacleSpatialIndex
+    //        dosya başı yorumu — QuadTree burada doğrudan kullanılamadığı için AYNI broad-phase +
+    //        narrow-phase desenini uygulayan hafif bir grid-hash indeks kullanılıyor. Liste
+    //        (MechanicalKernel.ArchitecturalObstacles) yaşam döngüsü boyunca mutasyona uğrayabildiği
+    //        için indeks HER FindPath/IsCollision girişinde ucuz bir Count kontrolüyle "bayat mı"
+    //        diye denetlenir, sadece gerçekten değiştiyse yeniden kurulur (30.000 çağrı için TEK
+    //        inşa, TEK O(1) kontrol — davranış aynı, karmaşıklık O(n) yerine ~O(log n)/O(1)).
+    private ObstacleSpatialIndex? _spatialIndex;
+
+    private ObstacleSpatialIndex GetSpatialIndex()
+    {
+        if (_spatialIndex == null || _spatialIndex.IsStaleFor(_obstacles))
+            _spatialIndex = new ObstacleSpatialIndex(_obstacles);
+        return _spatialIndex;
+    }
+
     /*
        NE: PipingPathfinderService Yapıcı Metodu
        NEDEN: Mimari engelleri (Duvar, Kolon vb.) alarak tesisat rotalarını bu engellerden sakınacak şekilde planlamaya hazır hale gelir.
@@ -167,11 +185,18 @@ public class PipingPathfinderService
     */
     private bool IsCollision(Vector3D p1, Vector3D p2)
     {
-        foreach (var obs in _obstacles)
+        if (_obstacles.Count == 0) return false;
+
+        // Broad-phase: segmentin (X,Y düzlemindeki) bounding box'ı ile kesişen aday engeller.
+        var segBox = new CadBoundingBox(
+            new Vector3D(Math.Min(p1.X, p2.X), Math.Min(p1.Y, p2.Y), 0),
+            new Vector3D(Math.Max(p1.X, p2.X), Math.Max(p1.Y, p2.Y), 0));
+
+        foreach (var obs in GetSpatialIndex().Query(segBox))
         {
             if (obs.Type == ObstacleType.Wall || obs.Type == ObstacleType.Column)
             {
-                // Çizgi ile engel poligonunu kesiştir
+                // Narrow-phase: Çizgi ile engel poligonunu gerçek geometriyle kesiştir
                 if (LineIntersectsObstacle(p1, p2, obs))
                     return true;
             }
