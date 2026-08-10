@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\src\Afney.Cad.Database\Afney.Cad.Database.csproj" />
     <ProjectReference Include="..\..\src\Afney.Cad.Commands\Afney.Cad.Commands.csproj" />
     <ProjectReference Include="..\..\src\Afney.Cad.Infrastructure\Afney.Cad.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Afney.Cad.SpatialIndex\Afney.Cad.SpatialIndex.csproj" />
   </ItemGroup>
 
 </Project>

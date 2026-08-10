@@ -24,6 +24,7 @@ public class SplineEntity : CadEntity
     public int Degree { get; set; } = 3;
 
     private NURBSCurve? _cachedCurve;
+    private List<Vector3D>? _cachedTessellation;
 
     public SplineEntity() { }
 
@@ -103,12 +104,22 @@ public class SplineEntity : CadEntity
     {
         if (ControlPoints.Count <= Degree) return new List<Vector3D>();
 
+        // PERFORMANS: Sonuç noktaları _cachedCurve ile aynı ömre sahip olarak cache'lenir.
+        // ControlPoints/Knots/Weights değişmediği sürece (Move/Transform/MoveGripPointAt
+        // _cachedCurve'ü null'a çekerek invalidasyonu tetikler) her Draw() çağrısında
+        // segments+1 kez O(p^2) NURBSCurve.Evaluate tekrar tekrar hesaplanmaz.
+        if (_cachedCurve != null && _cachedTessellation != null)
+        {
+            return _cachedTessellation;
+        }
+
         var curve = GetCurve();
         double startKnot = Knots[Degree];
         double endKnot = Knots[ControlPoints.Count];
 
-        // Tessellation: Zoom seviyesine göre hassas bölüntü
-        // pixelSize arttıkça (zoom out) bölüntü azalır.
+        // Tessellation: Kontrol noktası sayısına göre sabit bölüntü sayısı kullanılır.
+        // NOT: Zoom seviyesine (LOD) göre dinamik bölüntü şu an uygulanmıyor — Draw(IRenderContext)
+        // zoom/scale bilgisi almıyor, bu yüzden aşağıdaki segment sayısı sabittir.
         int segments = System.Math.Max(20, (int)(ControlPoints.Count * 20));
         double step = (endKnot - startKnot) / segments;
 
@@ -118,6 +129,8 @@ public class SplineEntity : CadEntity
             double u = startKnot + i * step;
             points.Add(curve.Evaluate(u));
         }
+
+        _cachedTessellation = points;
         return points;
     }
 
@@ -150,6 +163,7 @@ public class SplineEntity : CadEntity
         for (int i = 0; i < ControlPoints.Count; i++)
             ControlPoints[i] += delta;
         _cachedCurve = null;
+        _cachedTessellation = null;
     }
 
     /*
@@ -161,6 +175,7 @@ public class SplineEntity : CadEntity
         for (int i = 0; i < ControlPoints.Count; i++)
             ControlPoints[i] = matrix.Transform(ControlPoints[i]);
         _cachedCurve = null;
+        _cachedTessellation = null;
     }
 
     /*
@@ -210,6 +225,7 @@ public class SplineEntity : CadEntity
         {
             ControlPoints[index] = newPosition;
             _cachedCurve = null;
+            _cachedTessellation = null;
         }
         base.MoveGripPointAt(index, newPosition);
     }
