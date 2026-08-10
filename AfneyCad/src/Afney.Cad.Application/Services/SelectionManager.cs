@@ -72,6 +72,11 @@ public class SelectionManager
 
     /*
         NE: Tekil Seçime Ekle (AddToSelection)
+        PERFORMANS: entity.IsSelected sadece bir görsel bayraktır, geometriyi değiştirmez.
+        _database.UpdateEntity(entity) ÇAĞRILMAZ — o metod QuadTree'de Remove+Insert
+        (spatial index churn) VE MechanicalKernel.OnEntityUpdatedInDatabase üzerinden
+        gereksiz hidrolik yeniden hesaplama tetikler. Seçim sadece hafif bir state
+        değişikliğidir, spatial index'e veya mühendislik hesaplarına dokunmamalı.
     */
     public void AddToSelection(CadEntity entity)
     {
@@ -80,7 +85,6 @@ public class SelectionManager
             _selectedEntityIds.Add(entity.Id);
             _selectedEntityCache[entity.Id] = entity;
             entity.IsSelected = true;
-            _database.UpdateEntity(entity);
         }
     }
 
@@ -106,8 +110,7 @@ public class SelectionManager
             {
                 _selectedEntityIds.Add(entity.Id);
                 _selectedEntityCache[entity.Id] = entity; // Cache'e ekle
-                entity.IsSelected = true;
-                _database.UpdateEntity(entity);
+                entity.IsSelected = true; // PERFORMANS: UpdateEntity ÇAĞRILMAZ (bkz. AddToSelection notu)
                 addedCount++;
             }
         }
@@ -137,8 +140,7 @@ public class SelectionManager
             {
                 _selectedEntityIds.Add(entity.Id);
                 _selectedEntityCache[entity.Id] = entity; // Cache'e ekle
-                entity.IsSelected = true;
-                _database.UpdateEntity(entity);
+                entity.IsSelected = true; // PERFORMANS: UpdateEntity ÇAĞRILMAZ (bkz. AddToSelection notu)
                 addedCount++;
             }
         }
@@ -156,8 +158,7 @@ public class SelectionManager
             _selectedEntityIds.Remove(entityId);
             if (_selectedEntityCache.TryGetValue(entityId, out var entityToRemove))
             {
-                entityToRemove.IsSelected = false;
-                _database.UpdateEntity(entityToRemove);
+                entityToRemove.IsSelected = false; // PERFORMANS: UpdateEntity ÇAĞRILMAZ (bkz. AddToSelection notu)
             }
             _selectedEntityCache.Remove(entityId);
         }
@@ -169,8 +170,7 @@ public class SelectionManager
             if (entity != null)
             {
                 _selectedEntityCache[entityId] = entity;
-                entity.IsSelected = true;
-                _database.UpdateEntity(entity);
+                entity.IsSelected = true; // PERFORMANS: UpdateEntity ÇAĞRILMAZ (bkz. AddToSelection notu)
             }
         }
     }
@@ -182,8 +182,7 @@ public class SelectionManager
     {
         foreach (var entity in _selectedEntityCache.Values)
         {
-            entity.IsSelected = false;
-            _database.UpdateEntity(entity);
+            entity.IsSelected = false; // PERFORMANS: UpdateEntity ÇAĞRILMAZ (bkz. AddToSelection notu)
         }
         _selectedEntityIds.Clear();
         _selectedEntityCache.Clear();

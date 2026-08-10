@@ -28,7 +28,12 @@ public class QuadTree
     private QuadTree? _southWest;
     private QuadTree? _southEast;
     private bool _divided;
-    
+
+    // NE: Test/Tanılama Amaçlı Salt-Okunur Erişim (IsDivided)
+    // NEDEN: Merge/shrink davranışını (çocukların birleşip düğümün tekrar yaprak
+    // olduğunu) dışarıdan doğrulayabilmek için (bkz. QuadTreeTests).
+    public bool IsDivided => _divided;
+
     // StackOverflow Koruması için Derinlik Kontrolü
     private readonly int _depth;
     private const int MAX_DEPTH = 12;
@@ -82,6 +87,13 @@ public class QuadTree
 
     // NE: Silme (Remove)
     // NEDEN: Veritabanından silinen nesnelerin indeksten de düşülmesi gerekir.
+    //
+    // ERKEN ÇIKIŞ NOTU: Insert() bir nesneyi birden fazla kesişen çocuğa (boundary-crossing
+    // durumunda) ekleyebiliyor. Bu yüzden "ilk bulunduğu yerde dur" tarzı naif bir erken çıkış
+    // YANLIŞTIR — diğer çocuklarda kalan referanslar silinmeden kalır (hayalet/stale entity,
+    // QueryRange'de silinmiş nesnenin hâlâ görünmesi). Güvenli optimizasyon: entBox'ın kesişmediği
+    // çocuklara hiç rekürsif ÇAĞRI yapılmaz (Intersects önceden hesaplanır) — önceden her 4 çocuğa
+    // çağrı yapılıp kesişmeyenler kendi içinde erken dönüyordu, şimdi o gereksiz çağrılar tamamen atlanıyor.
     public bool Remove(CadEntity entity)
     {
         var entBox = entity.GetBoundingBox();
@@ -95,19 +107,61 @@ public class QuadTree
             removed = true;
         }
 
-        // Eğer bölünmüşse çocuklardan da sil
+        // Eğer bölünmüşse ve kesişiyorsa çocuklardan da sil
         if (_divided)
         {
-            if (_northWest!.Remove(entity)) removed = true;
-            if (_northEast!.Remove(entity)) removed = true;
-            if (_southWest!.Remove(entity)) removed = true;
-            if (_southEast!.Remove(entity)) removed = true;
+            if (Intersects(_northWest!._bounds, entBox) && _northWest.Remove(entity)) removed = true;
+            if (Intersects(_northEast!._bounds, entBox) && _northEast.Remove(entity)) removed = true;
+            if (Intersects(_southWest!._bounds, entBox) && _southWest.Remove(entity)) removed = true;
+            if (Intersects(_southEast!._bounds, entBox) && _southEast.Remove(entity)) removed = true;
+
+            // Merge (Optimize): Çocukların toplam eleman sayısı kapasitenin altına
+            // düştüyse ve çocukların kendileri bölünmemişse (tek seviye), çocukları
+            // birleştirip bu düğümü tekrar yaprak yap.
+            TryMergeChildren();
         }
-        
-        // TODO: Merge (Optimize) -> Eğer çocuklar boşaldıysa birleştir.
-        // Şimdilik karmaşıklığı artırmamak için yapmıyoruz.
-        
+
         return removed;
+    }
+
+    /*
+       NE: Çocukları Birleştir (TryMergeChildren)
+       NEDEN: Uzun düzenleme oturumlarında (çok sayıda ekle/sil) ağaç sürekli bölünüp hiç
+              toparlanmazsa, düğümler zamanla seyrekleşir (çoğu boş/az dolu). Silme sonrası
+              4 çocuğun (yalnızca yaprak iseler — grandchild kaybı riskini önlemek için)
+              toplam nesne sayısı kapasitenin altına düşerse, çocukları bu düğümde birleştirip
+              tekrar yaprak düğüme dönüştürür. Eşik, Insert()'teki bölünme eşiğiyle birebir
+              aynıdır (Count < _capacity => yaprak kalır) — bu yüzden merge/split arasında
+              salınım (thrashing) oluşmaz.
+    */
+    private void TryMergeChildren()
+    {
+        if (!_divided) return;
+
+        // Çocuklardan biri bile kendi içinde bölünmüşse, birleştirme yapılmaz
+        // (torun düğümlerdeki nesneleri kaybetmemek için).
+        if (_northWest!._divided || _northEast!._divided || _southWest!._divided || _southEast!._divided)
+            return;
+
+        var combined = new HashSet<CadEntity>(_northWest._entities);
+        combined.UnionWith(_northEast._entities);
+        combined.UnionWith(_southWest._entities);
+        combined.UnionWith(_southEast._entities);
+
+        // Split ile aynı eşik: Count < _capacity ise yaprak olarak kalınabilir.
+        if (combined.Count + _entities.Count >= _capacity) return;
+
+        foreach (var ent in combined)
+        {
+            if (!_entities.Contains(ent))
+                _entities.Add(ent);
+        }
+
+        _northWest = null;
+        _northEast = null;
+        _southWest = null;
+        _southEast = null;
+        _divided = false;
     }
 
     /*
