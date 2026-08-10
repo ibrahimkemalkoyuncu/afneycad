@@ -254,7 +254,7 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void OnSave(object sender, RoutedEventArgs e)
+        private async void OnSave(object sender, RoutedEventArgs e)
         {
             if (_activeContext == null || _database == null) return;
 
@@ -266,19 +266,30 @@ namespace Afney.Cad.Presentation
                 return;
             }
 
+            var btn = sender as Control;
             try
             {
-                SaveToFile(filePath);
+                if (btn != null) btn.IsEnabled = false;
+                StatusText.Text = "Kaydediliyor... Lütfen bekleyin.";
+
+                // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
+                await System.Threading.Tasks.Task.Run(() => SaveToFile(filePath));
+
                 _activeContext.IsModified = false;
                 StatusText.Text = $"Kaydedildi: {Path.GetFileName(filePath)}";
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Kaydetme hatası");
                 MessageBox.Show($"Kaydetme hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
             }
         }
 
-        private void OnSaveAs(object sender, RoutedEventArgs e)
+        private async void OnSaveAs(object sender, RoutedEventArgs e)
         {
             if (_database == null) return;
 
@@ -294,9 +305,15 @@ namespace Afney.Cad.Presentation
 
             if (dlg.ShowDialog() == true)
             {
+                var btn = sender as Control;
                 try
                 {
-                    SaveToFile(dlg.FileName);
+                    if (btn != null) btn.IsEnabled = false;
+                    StatusText.Text = "Kaydediliyor... Lütfen bekleyin.";
+
+                    // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
+                    await System.Threading.Tasks.Task.Run(() => SaveToFile(dlg.FileName));
+
                     if (_activeContext != null)
                     {
                         _activeContext.FilePath = dlg.FileName;
@@ -307,7 +324,12 @@ namespace Afney.Cad.Presentation
                 }
                 catch (Exception ex)
                 {
+                    Log.Error(ex, "Kaydetme hatası");
                     MessageBox.Show($"Kaydetme hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    if (btn != null) btn.IsEnabled = true;
                 }
             }
         }
@@ -366,9 +388,10 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { Log.Debug("[Katman Durumu] Yüklenemedi: {Error}", ex.Message); }
         }
 
-        private void OnExportDwgCommand(object sender, RoutedEventArgs e)
+        private async void OnExportDwgCommand(object sender, RoutedEventArgs e)
         {
             if (_database == null) return;
+            var btn = sender as Control;
             try
             {
                 var dlg = new Microsoft.Win32.SaveFileDialog
@@ -380,16 +403,23 @@ namespace Afney.Cad.Presentation
                 };
                 if (dlg.ShowDialog() != true) return;
 
-                if (dlg.FileName.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase))
+                if (btn != null) btn.IsEnabled = false;
+                StatusText.Text = "Dışa aktarılıyor... Lütfen bekleyin.";
+
+                // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
+                await System.Threading.Tasks.Task.Run(() =>
                 {
-                    var dxf = new DxfWriterService(_database);
-                    dxf.WriteToFile(dlg.FileName);
-                }
-                else
-                {
-                    var dwg = new DwgExportService(_database);
-                    dwg.WriteToFile(dlg.FileName);
-                }
+                    if (dlg.FileName.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var dxf = new DxfWriterService(_database);
+                        dxf.WriteToFile(dlg.FileName);
+                    }
+                    else
+                    {
+                        var dwg = new DwgExportService(_database);
+                        dwg.WriteToFile(dlg.FileName);
+                    }
+                });
 
                 StatusText.Text = $"Kaydedildi: {Path.GetFileName(dlg.FileName)}";
                 MessageBox.Show($"Dosya başarıyla kaydedildi:\n{dlg.FileName}", "Kaydet",
@@ -397,7 +427,12 @@ namespace Afney.Cad.Presentation
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "DWG/DXF export hatası");
                 MessageBox.Show($"Kaydetme hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
             }
         }
 
@@ -430,8 +465,9 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void OnExportDxfCommand(object sender, RoutedEventArgs e)
+        private async void OnExportDxfCommand(object sender, RoutedEventArgs e)
         {
+            var btn = sender as Control;
             try
             {
                 var dlg = new Microsoft.Win32.SaveFileDialog
@@ -444,8 +480,16 @@ namespace Afney.Cad.Presentation
 
                 if (dlg.ShowDialog() == true)
                 {
-                    var writer = new DxfWriterService(_database);
-                    writer.WriteToFile(dlg.FileName);
+                    if (btn != null) btn.IsEnabled = false;
+                    StatusText.Text = "DXF dışa aktarılıyor... Lütfen bekleyin.";
+
+                    // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
+                    await System.Threading.Tasks.Task.Run(() =>
+                    {
+                        var writer = new DxfWriterService(_database);
+                        writer.WriteToFile(dlg.FileName);
+                    });
+
                     StatusText.Text = $"DXF kaydedildi: {Path.GetFileName(dlg.FileName)}";
                     MessageBox.Show($"DXF başarıyla kaydedildi:\n{dlg.FileName}", "DXF Export",
                         MessageBoxButton.OK, MessageBoxImage.Information);
@@ -453,13 +497,19 @@ namespace Afney.Cad.Presentation
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "DXF export hatası");
                 MessageBox.Show($"DXF export hatası: {ex.Message}");
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
             }
         }
 
-        private void OnExportExcel(object sender, RoutedEventArgs e)
+        private async void OnExportExcel(object sender, RoutedEventArgs e)
         {
             if (_database == null) return;
+            var btn = sender as Control;
             try
             {
                 var dlg = new Microsoft.Win32.SaveFileDialog
@@ -471,8 +521,15 @@ namespace Afney.Cad.Presentation
                 };
                 if (dlg.ShowDialog() != true) return;
 
-                var svc = new ExcelExportService(_database);
-                svc.WriteToFile(dlg.FileName, projectName: "AfneyCAD Projesi");
+                if (btn != null) btn.IsEnabled = false;
+                StatusText.Text = "Excel dışa aktarılıyor... Lütfen bekleyin.";
+
+                // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    var svc = new ExcelExportService(_database);
+                    svc.WriteToFile(dlg.FileName, projectName: "AfneyCAD Projesi");
+                });
 
                 StatusText.Text = $"Excel kaydedildi: {Path.GetFileName(dlg.FileName)}";
                 var ans = MessageBox.Show($"Excel başarıyla kaydedildi.\nDosyayı açmak ister misiniz?",
@@ -482,7 +539,12 @@ namespace Afney.Cad.Presentation
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Excel export hatası");
                 MessageBox.Show($"Excel export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
             }
         }
 
@@ -492,9 +554,10 @@ namespace Afney.Cad.Presentation
                   kategorisinin somut eksiği). ExcelExportService ile aynı desen: SaveFileDialog
                   → servis çağrısı → durum mesajı → isteğe bağlı dosyayı aç.
         */
-        private void OnExportWord(object sender, RoutedEventArgs e)
+        private async void OnExportWord(object sender, RoutedEventArgs e)
         {
             if (_database == null) return;
+            var btn = sender as Control;
             try
             {
                 var dlg = new Microsoft.Win32.SaveFileDialog
@@ -506,8 +569,15 @@ namespace Afney.Cad.Presentation
                 };
                 if (dlg.ShowDialog() != true) return;
 
-                var svc = new WordExportService(_database);
-                svc.WriteToFile(dlg.FileName, projectName: "AfneyCAD Projesi");
+                if (btn != null) btn.IsEnabled = false;
+                StatusText.Text = "Word dışa aktarılıyor... Lütfen bekleyin.";
+
+                // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    var svc = new WordExportService(_database);
+                    svc.WriteToFile(dlg.FileName, projectName: "AfneyCAD Projesi");
+                });
 
                 StatusText.Text = $"Word kaydedildi: {Path.GetFileName(dlg.FileName)}";
                 var ans = MessageBox.Show("Word dosyası başarıyla kaydedildi.\nDosyayı açmak ister misiniz?",
@@ -517,7 +587,12 @@ namespace Afney.Cad.Presentation
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Word export hatası");
                 MessageBox.Show($"Word export hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
             }
         }
 

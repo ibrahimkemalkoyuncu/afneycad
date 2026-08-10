@@ -94,18 +94,25 @@ namespace Afney.Cad.Presentation.Dialogs
             }
         }
 
-        private void Import_Click(object sender, RoutedEventArgs e)
+        private async void Import_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_filePath) || !File.Exists(_filePath)) return;
 
             try
             {
                 BtnImport.IsEnabled = false;
+                BtnBrowse.IsEnabled = false;
+                BtnPreview.IsEnabled = false;
                 ImportProgress.Value = 50;
+                PreviewLog.Text = "İçeri aktarılıyor... Lütfen bekleyin.";
+                PreviewLog.Foreground = System.Windows.Media.Brushes.LightCyan;
 
                 var options = BuildOptions(previewOnly: false);
                 var svc     = new IfcImportService(_database);
-                var result  = svc.Import(_filePath, options);
+
+                // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen —
+                // bkz. MainWindow.FileOps.cs LoadDwgInternal)
+                var result = await System.Threading.Tasks.Task.Run(() => svc.Import(_filePath, options));
 
                 ImportProgress.Value = 100;
 
@@ -136,8 +143,13 @@ namespace Afney.Cad.Presentation.Dialogs
             {
                 PreviewLog.Text = $"Aktarım hatası: {ex.Message}";
                 PreviewLog.Foreground = System.Windows.Media.Brushes.OrangeRed;
-                BtnImport.IsEnabled = true;
                 ImportProgress.Value = 0;
+            }
+            finally
+            {
+                BtnImport.IsEnabled = true;
+                BtnBrowse.IsEnabled = true;
+                BtnPreview.IsEnabled = true;
             }
         }
 

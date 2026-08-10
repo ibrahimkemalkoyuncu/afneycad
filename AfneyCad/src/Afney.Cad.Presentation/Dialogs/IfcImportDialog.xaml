@@ -44,7 +44,7 @@
             </Grid.ColumnDefinitions>
             <TextBox x:Name="TxtFilePath" IsReadOnly="True" Grid.Column="0"
                      Text="IFC dosyası seçilmedi..." Foreground="#888"/>
-            <Button Grid.Column="1" Click="BrowseFile_Click"
+            <Button Grid.Column="1" x:Name="BtnBrowse" Click="BrowseFile_Click"
                     Margin="8,0,0,0" Width="100">
                 <StackPanel Orientation="Horizontal">
                     <Path Data="{StaticResource Ico.Folder}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
@@ -90,7 +90,7 @@
 
         <!-- Butonlar -->
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-            <Button Click="Preview_Click" Width="90" Margin="0,0,10,0">
+            <Button x:Name="BtnPreview" Click="Preview_Click" Width="90" Margin="0,0,10,0">
                 <StackPanel Orientation="Horizontal">
                     <Path Data="{StaticResource Ico.Search}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
                     <TextBlock Text="Önizle" VerticalAlignment="Center"/>
