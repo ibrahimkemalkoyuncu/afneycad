@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
@@ -218,5 +220,84 @@ public class SpaceDetectionEngineTests
 
         Assert.Equal(10.0, SpaceDetectionEngine.CalculateAreaM2(rect), precision: 6);       // 5m x 2m
         Assert.Equal(14.0, SpaceDetectionEngine.CalculatePerimeterM(rect), precision: 6);   // 2*(5+2)
+    }
+
+    /*
+       NE: DetectRoomNameFromTexts — CadDatabase.QueryEntities Broad-Phase / Brute-Force Eşdeğerliği
+       NEDEN: DetectRoomNameFromTexts, Session #62'de _database.GetAllEntities() ile TÜM
+              veritabanını doğrusal taramaktan, odanın kendi bounding box'ıyla
+              _database.QueryEntities(range) (CadDatabase'in kendi QuadTree'si) sorgusuna
+              geçirildi. Bu test; rastgele dağıtılmış birçok TextEntity (bazıları oda sınırının
+              içinde, bazıları dışında) içeren bir veritabanında, optimize edilmiş sonucun
+              burada bağımsız yeniden yazılmış saf O(n) taramayla (GetAllEntities + IsPointInPolygon)
+              BİREBİR aynı metni döndürdüğünü kanıtlar.
+    */
+    [Fact]
+    public void DetectRoomNameFromTexts_QuadTreeBroadPhase_MatchesBruteForceReference_OnRandomLayout()
+    {
+        var rnd = new Random(24680);
+        var db = new CadDatabase();
+
+        // Oda sınırı: X=[0,4000], Y=[0,3000]
+        var boundary = new List<Vector3D>
+        {
+            new(0, 0, 0), new(4000, 0, 0), new(4000, 3000, 0), new(0, 3000, 0)
+        };
+
+        // Sınırın dışında rastgele dağılmış çok sayıda "gürültü" metni (uzak koordinatlarda)
+        for (int i = 0; i < 40; i++)
+        {
+            double x = rnd.Next(-20000, 20000);
+            double y = rnd.Next(-20000, 20000);
+            // Sınırın içine denk gelenleri filtrelemeye çalış (gerçek testte tek bir "gerçek" isim istiyoruz)
+            if (x is > -200 and < 4200 && y is > -200 and < 3200) continue;
+            db.AddEntity(new TextEntity("N" + i, new Vector3D(x, y, 0), 200));
+        }
+
+        // Sınırın içinde geçerli oda adı
+        db.AddEntity(new TextEntity("Yatak Odasi", new Vector3D(2000, 1500, 0), 250));
+
+        var engine = new SpaceDetectionEngine(db);
+
+        string? actual = engine.DetectRoomNameFromTexts(boundary);
+        string? expected = BruteForceDetectRoomNameFromTexts(db, boundary);
+
+        Assert.Equal(expected, actual);
+        Assert.Equal("Yatak Odasi", actual);
+    }
+
+    // Bağımsız Brute-Force Referans: eski GetAllEntities() + IsPointInPolygon mantığının
+    // production kodundan kopyalanmamış, sıfırdan yazılmış hali.
+    private static string? BruteForceDetectRoomNameFromTexts(CadDatabase db, List<Vector3D> roomBoundary)
+    {
+        foreach (var ent in db.GetAllEntities())
+        {
+            if (ent is TextEntity text && !string.IsNullOrWhiteSpace(text.Text))
+            {
+                if (IsPointInPolygonRef(text.Position, roomBoundary))
+                {
+                    string t = text.Text.Trim();
+                    if (t.Length >= 2 && !double.TryParse(t, out _))
+                        return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static bool IsPointInPolygonRef(Vector3D p, List<Vector3D> polygon)
+    {
+        bool inside = false;
+        int j = polygon.Count - 1;
+        for (int i = 0; i < polygon.Count; i++)
+        {
+            if (((polygon[i].Y > p.Y) != (polygon[j].Y > p.Y)) &&
+                (p.X < (polygon[j].X - polygon[i].X) * (p.Y - polygon[i].Y) / (polygon[j].Y - polygon[i].Y) + polygon[i].X))
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+        return inside;
     }
 }

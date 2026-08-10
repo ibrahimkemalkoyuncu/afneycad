@@ -25,6 +25,18 @@ public class PathfindingService
     private const double PipeClearance = 100.0;   // Boru dış çeperi ve duvar arası pay (mm)
     private const int MaxRecursionDepth = 8;      // Sonsuz döngü koruması
 
+    // NE/NEDEN: Bkz. PipingPathfinderService — aynı broad-phase grid-hash deseni, aynı
+    // "lazy rebuild sadece liste değiştiyse" stratejisi. FindFirstBlockingObstacle ve
+    // IsPointInsideAnyObstacle eskiden HER çağrıda _obstacles'ı tam taramaktaydı.
+    private ObstacleSpatialIndex? _spatialIndex;
+
+    private ObstacleSpatialIndex GetSpatialIndex()
+    {
+        if (_spatialIndex == null || _spatialIndex.IsStaleFor(_obstacles))
+            _spatialIndex = new ObstacleSpatialIndex(_obstacles);
+        return _spatialIndex;
+    }
+
     public PathfindingService(List<ArchitecturalObstacle> obstacles)
     {
         _obstacles = obstacles ?? new List<ArchitecturalObstacle>();
@@ -125,12 +137,23 @@ public class PathfindingService
         ArchitecturalObstacle? closest = null;
         int closestIdx = -1;
 
-        for (int i = 0; i < _obstacles.Count; i++)
+        if (_obstacles.Count == 0) return (null, -1);
+
+        // Broad-phase: AABB-AABB kesişim simetriktir, yani "obstacle kutusu PipeClearance kadar
+        // genişletilmiş ve segment kutusuyla kesişiyor mu" testi, "segment kutusu PipeClearance
+        // kadar genişletilmiş ve (genişletilmemiş) obstacle kutusuyla kesişiyor mu" testiyle
+        // matematiksel olarak birebir eşdeğerdir. Bu sayede indeksteki obstacle kutuları
+        // değişmeden, sadece sorgu kutusu genişletilerek doğru aday kümesi elde edilir.
+        var segBox = new CadBoundingBox(
+            new Vector3D(Math.Min(p1.X, p2.X), Math.Min(p1.Y, p2.Y), 0),
+            new Vector3D(Math.Max(p1.X, p2.X), Math.Max(p1.Y, p2.Y), 0)).Expand(PipeClearance);
+
+        foreach (int i in GetSpatialIndex().QueryIndices(segBox))
         {
             if (avoidedObstacles.Contains(i)) continue;
 
             var box = _obstacles[i].GetBoundingBox();
-            // Clearance eklenmiş kutu
+            // Narrow-phase: Clearance eklenmiş kutu ile gerçek (Liang-Barsky) segment testi
             var expandedBox = new CadBoundingBox(
                 new Vector3D(box.Min.X - PipeClearance, box.Min.Y - PipeClearance, 0),
                 new Vector3D(box.Max.X + PipeClearance, box.Max.Y + PipeClearance, 0));
@@ -208,9 +231,16 @@ public class PathfindingService
     */
     private bool IsPointInsideAnyObstacle(Vector3D point)
     {
-        foreach (var obs in _obstacles)
+        if (_obstacles.Count == 0) return false;
+
+        // Broad-phase: hücre-hash sadece GÜVENLİ BİR ÜST KÜME (aynı hücreyi paylaşan iki AABB
+        // her zaman GERÇEKTEN kesişiyor demek DEĞİLDİR — bkz. ObstacleSpatialIndex yorumu).
+        // Bu yüzden adaylar üzerinde narrow-phase olarak ORİJİNAL tam AABB-genişletilmiş-kutu
+        // içerme testi (aşağıda) MUTLAKA tekrar uygulanır; davranış eskisiyle birebir aynıdır.
+        var pointBox = new CadBoundingBox(point, point).Expand(PipeClearance);
+        foreach (var idx in GetSpatialIndex().QueryIndices(pointBox))
         {
-            var box = obs.GetBoundingBox();
+            var box = _obstacles[idx].GetBoundingBox();
             if (point.X >= box.Min.X - PipeClearance && point.X <= box.Max.X + PipeClearance &&
                 point.Y >= box.Min.Y - PipeClearance && point.Y <= box.Max.Y + PipeClearance)
                 return true;
