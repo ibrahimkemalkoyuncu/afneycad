@@ -80,9 +80,11 @@ public class AutoSizingService
             double requiredDiaMm = DiameterFromFlow(flowLs, vMax);
 
             // WC minimum: DN 100 per TS 1258
+            bool wcMinApplied = false;
             if (pipe.IsCarryingWCLoad && requiredDiaMm < 100)
             {
                 requiredDiaMm = 100;
+                wcMinApplied = true;
                 result.WCMinimumApplied++;
             }
 
@@ -117,7 +119,7 @@ public class AutoSizingService
                     FlowM3h        = flowM3h,
                     VelocityMs     = actualVelocity,
                     LoadUnits      = pipe.LoadUnits,
-                    Reason         = BuildReason(pipe, flowLs, vMax, requiredDiaMm, newDia),
+                    Reason         = BuildReason(pipe, flowLs, vMax, requiredDiaMm, newDia, wcMinApplied),
                 });
             }
             else
@@ -178,10 +180,16 @@ public class AutoSizingService
     private static double GetMaxVelocity(MechanicalSystemType system)
         => _maxVelocity.TryGetValue(system, out double v) ? v : DefaultMaxVelocity;
 
-    private static string BuildReason(PipeEntity pipe, double flowLs, double vMax, double reqDia, double finalDia)
+    private static string BuildReason(PipeEntity pipe, double flowLs, double vMax, double reqDia, double finalDia, bool wcMinApplied)
     {
+        // DÜZELTME (gerçek mantık hatası): Önceden bu metod "reqDia < 100" şartına bakıyordu,
+        // ama SizeAll çağrısından önce WC minimumu uygulandığında reqDia zaten 100'e
+        // yükseltilmiş oluyordu — yani koşul hiçbir zaman true olamıyordu (ölü kod) ve
+        // "[WC min DN100]" notu hiçbir raporda görünmüyordu. Artık çağıran taraf
+        // (SizeAll) WC minimumunun uygulanıp uygulanmadığını ayrı bir bayrakla (wcMinApplied)
+        // bildiriyor.
         string base_ = $"FU={pipe.LoadUnits:F1} → Q={flowLs:F3} l/s, v≤{vMax:F1} m/s → req DN{reqDia:F0} → DN{finalDia:F0}";
-        if (pipe.IsCarryingWCLoad && reqDia < 100) return base_ + " [WC min DN100]";
+        if (wcMinApplied) return base_ + " [WC min DN100]";
         return base_;
     }
 }

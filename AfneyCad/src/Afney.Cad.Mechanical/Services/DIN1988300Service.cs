@@ -79,7 +79,13 @@ public class DIN1988300Service
     {
         double vMax = hotWater ? 2.0 : 2.5;
         // A = Q/v → d = √(4A/π) = √(4Q/(π×v))
-        double aM2  = qdLps / vMax;
+        // DÜZELTME (gerçek birim hatası): qdLps litre/saniye cinsindendir; süreklilik denklemi
+        // (Q=A·V) m³/s gerektirir. Bu dönüşüm (÷1000) eksikti — hesaplanan çap ~√1000 ≈ 31.6
+        // kat büyük çıkıyordu (bkz. PipeSizer.CalculateRequiredInnerDiameter ve
+        // AutoSizingService.DiameterFromFlow: ikisi de aynı formülde l/s→m³/s dönüşümünü
+        // doğru uyguluyor — DIN1988300Service bu ikisiyle tutarsızdı).
+        double qM3s = qdLps / 1000.0;
+        double aM2  = qM3s / vMax;
         double dM   = Math.Sqrt(4.0 * aM2 / Math.PI);
         double dMm  = dM * 1000;
 
