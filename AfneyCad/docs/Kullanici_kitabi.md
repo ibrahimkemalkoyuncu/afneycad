@@ -2897,12 +2897,27 @@ Bir önceki oturumda `DxfReader.cs`'teki 10 sessiz `catch{}` bloğu düzeltilmi�
 
 **Not (yan bulgu, hata değil):** `ornek_proje.dwg` 6 kat planı içeriyor; Zoom Extents hepsini sığdırdığı için başlangıçta küçük görünüyorlar — bu bir render hatası değil, kullanıcının önceki ekran görüntüsü zaten belirli bir kata yakınlaştırılmış haldeydi.
 
-### Sonraki Oturum Öncelikleri (sırayla)
-1. **3D görünüm ana viewport entegrasyonu + diğer bekleyen kullanıcı-onaylı maddeler (metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala)** — kullanıcı kendi canlı test edecek, sonucu bir sonraki oturumda bildirecek.
-2. CSG Boolean — UNION (Faz 5'in son parçası): İKİ ayrı yapısal engel bulundu (bkz. madde 41) — (a) A/B arasında paylaşılan kesişim-kenarı temsili (OpenCASCADE "Section" aşaması benzeri), (b) coplanar yüzler için gerçek dışbükey-poligon BİRLEŞİMİ primitifi (`ConvexPolygonClipper2D`'nin şu an kapsam dışı bıraktığı). İkisi de ayrı, odaklanmış birer oturum gerektirebilir.
-3. `ResolveIntersections`'ın kendisi için gerçek bir sweep-line/R-Tree yeniden yapılandırması (ayrı oturum, düşük öncelik — mevcut grid-hash yeterli bulundu).
-4. Native UI Automation ile canlı görsel test için daha güvenilir bir yöntem (örn. `AutomationElement.SetFocus()` veya alternatif bir pencere yakalama API'si) — bu oturumda `SetForegroundWindow` güvenilmez bulundu.
+### 43. Mimari Denetim (Undo/Redo, Test Kalitesi, Güvenlik/Stabilite, Performans) + 6 Paralel Kök-Neden Düzeltmesi
+Kullanıcının detaylı bir soru listesine (undo/redo mimarisi, test coverage, dosya parser güvenliği, performans darboğazları, "en kritik 10 soru") 4 paralel araştırma agent'ı ile cevap verildi (sadece kod okuması). Sonra kullanıcı "derin tarama yap, sorunları kökten düzelt, performans arttır" isteğiyle bulguların düzeltilmesini istedi — 6 iş, izole worktree'lerde paralel agent'lara devredilip tek tek doğrulanıp merge edildi. **Tam suite: 366 → 474 (+108 yeni test), regresyon yok.**
+
+**Bulgular (araştırma):**
+- **Undo/Redo:** Gerçek Command Pattern (delta tabanlı), ama aktif `TransactionManager`'da undo stack limiti YOKTU (sınırsız büyüyordu); kod tabanında `UndoRedoService.cs` adında MaxStackSize=200 limitli, düzgün tasarlanmış ama HİÇ BAĞLANMAMIŞ bir servis + ayrı, tamamen ölü bir ikinci Command Pattern taslağı (`IReversibleAction` ailesi) bulundu.
+- **Test kalitesi:** 366 test, ama `PipeSizer`/`AutoSizingService`/`AutoBranchingService`/`DIN1988300Service`/`ClosedAreaDetector` gibi para-kritik MEP hesap servislerinin SIFIR testi vardı.
+- **Güvenlik/stabilite:** Blok/INSERT döngü koruması iyiydi, global exception handling vardı ama `TaskScheduler.UnobservedTaskException` handler'ı yoktu, Serilog log retention limiti yoktu.
+- **Performans:** `PipingPathfinderService`/`PathfindingService`/`SpaceDetectionEngine.DetectRoomNameFromTexts` mevcut `QuadTree`'yi hiç kullanmıyordu (A* içinde adım başına O(n) engel taraması).
+
+**Uygulanan 6 düzeltme (paralel, izole worktree'ler, her biri kendi testleriyle doğrulandı):**
+1. **Pathfinding → spatial index** (`ObstacleSpatialIndex.cs`, yeni): `ArchitecturalObstacle` bir `CadEntity` olmadığından mevcut `QuadTree` doğrudan kullanılamadı — `SpaceDetectionEngine`'deki grid-hash desenine (`SegmentGrid`) uyumlu yeni bir hafif spatial indeks yazıldı. `PipingPathfinderService.IsCollision`, `PathfindingService.FindFirstBlockingObstacle`/`IsPointInsideAnyObstacle` ve `DetectRoomNameFromTexts` (bu sonuncusu doğrudan mevcut `CadDatabase.QueryEntities`'e bağlandı) artık broad-phase+narrow-phase. **Not: `PathfindingService` kod tabanında hiçbir yerden çağrılmıyor (ölü kod) — yine de optimize edildi, temizlenip temizlenmeyeceği kullanıcı kararına bırakıldı.**
+2. **IFC import + tüm export akışları async** — DWG import'taki kanıtlanmış `Task.Run` deseni `IfcImportDialog`, `SaveToFile`, DXF/DWG/Excel/Word export'lara taşındı, UI thread artık bloklanmıyor.
+3. **Stabilite:** `TaskScheduler.UnobservedTaskException` handler'ı eklendi (`SetObserved()` ile); Serilog'a `retainedFileCountLimit=30`+`fileSizeLimitBytes=50MB` eklendi; kesin ölü kod silindi (`IReversibleAction` ailesi, kullanılmayan `CostDashboardPanel`, çağrılmayan `LineweightRenderService`).
+4. **Undo stack limiti:** `TransactionManager._undoStack` `Stack<T>`'ten `LinkedList<T>`'e çevrildi (O(1) taban eviction için), `MaxUndoLevels=200` eklendi. Ölü `UndoRedoService.cs` silindi — artık tek undo sistemi var.
+5. **Kritik MEP hesap testleri (81 yeni test) + 2 GERÇEK hata bulunup düzeltildi:**
+   - `DIN1988300Service.SelectPipeDN`: `qdLps` (l/s) süreklilik denklemine (m³/s gerektirir) `/1000` dönüşümü yapılmadan veriliyordu — hesaplanan çap **~31,6 kat** şişiyordu (örn. LU=100 için gerçekte ~DN25 gerekirken DN125+ çıkıyordu). `PipeSizer`/`AutoSizingService`'in doğru uyguladığı aynı formülle karşılaştırılarak doğrulanıp düzeltildi.
+   - `AutoSizingService.BuildReason`: WC min-DN100 kuralı uygulanınca `requiredDiaMm` zaten yükseltildiğinden "[WC min DN100]" notu raporlarda hiçbir zaman görünmüyordu (mühendislik sonucu doğruydu, sadece audit metni yanlıştı) — düzeltildi.
+6. **Render/spatial-index performansı:** `SplineEntity.Tessellate()` artık cache'leniyor (her frame O(p²) tekrarı yok); `SelectionManager` artık seçim değişikliklerinde `_database.UpdateEntity` çağırmıyor (gereksiz QuadTree churn'ü VE `MechanicalKernel`'in gereksiz hidrolik yeniden hesaplamasını önledi — ikinci bir gizli hata); `QuadTree.Remove` erken çıkış + `TODO: Merge (Optimize)` uygulandı (`TryMergeChildren`, uzun oturumlarda ağaç artık toparlanıyor).
+
+**Kapsam dışı bırakılan (bilinçli, henüz yapılmadı):** `GeneralSolidSubtractor`/`SolidSubtractor`/`PlaneCutter` arasındaki kasıtlı kod tekrarının birleştirilmesi (mimari risk), `MainWindow.Engineering.cs`/`CadViewport.xaml.cs` god-object bölünmesi, gerçek profiling/BenchmarkDotNet ölçümü (kullanıcıya ayrı bir görev olarak önerildi, henüz başlatılmadı).
 
 ---
 
-*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #61*
+*Son guncelleme: 2026-08-07 | AfneyCAD v4.0.0 — Session #62*
