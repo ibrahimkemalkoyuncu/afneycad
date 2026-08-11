@@ -40,8 +40,6 @@ namespace Afney.Cad.Geometry.Topology.Boolean;
 */
 public static class SolidSubtractor
 {
-    private const double Tolerance = 1e-6;
-
     /*
        NE: `a` Solid'inden `b` Solid'ini çıkarır — SADECE b'nin a'nın sınırını TEK BİR
            düzlemde kestiği özel durumda çalışır.
@@ -51,22 +49,7 @@ public static class SolidSubtractor
     */
     public static Face Subtract(Solid a, Solid b)
     {
-        var candidatePlanes = new List<(Vector3D Point, Vector3D Normal)>();
-
-        foreach (var face in b.Faces)
-        {
-            var loop = face.GetOuterLoop();
-            if (loop == null) continue;
-
-            var verts = loop.GetOrderedVertices();
-            if (verts.Count == 0) continue;
-
-            var planePoint = verts[0].Position;
-            var planeNormal = face.Normal.Normalize();
-
-            if (PlaneIntersectsSolidBoundary(a, planePoint, planeNormal))
-                candidatePlanes.Add((planePoint, planeNormal));
-        }
+        var candidatePlanes = GeneralSolidSubtractor.CollectCandidatePlanes(a, b);
 
         if (candidatePlanes.Count == 0)
             throw new NotSupportedException(
@@ -82,37 +65,5 @@ public static class SolidSubtractor
 
         var (point, normal) = candidatePlanes[0];
         return PlaneCutter.CutWithPlane(a, point, normal);
-    }
-
-    /*
-       NE: Verilen düzlemin, Solid'in MEVCUT sınırını GERÇEKTEN (transversal — en az bir Face'in
-           köşeleri hem pozitif hem negatif tarafta) kesip kesmediğini kontrol eder.
-       NEDEN: `PlaneCutter.CutWithPlane`'in kendi per-face sınıflandırma mantığıyla (hasPos &&
-           hasNeg = "mixed") BİREBİR aynı kural kullanılıyor — bu yüzden bu kontrolün "evet"
-           dediği her düzlem, `CutWithPlane`'in gerçekten en az bir chord üretileceğini (ve
-           dolayısıyla NotSupportedException fırlatmayacağını) garantiler. Coplanar (tam
-           çakışık) Face'ler dahil edilmez (hasPos VE hasNeg AYNI ANDA gerekir) — bu, roadmap'in
-           dejenere durum notuyla (satır ~209-214: düzlem A'nın sınırını hiç kesmiyorsa sessizce
-           atla) tutarlı.
-    */
-    private static bool PlaneIntersectsSolidBoundary(Solid solid, Vector3D planePoint, Vector3D planeNormal)
-    {
-        var n = planeNormal.Normalize();
-        double SignedDist(Vector3D p) => (p - planePoint).Dot(n);
-
-        foreach (var face in solid.Faces)
-        {
-            var loop = face.GetOuterLoop();
-            if (loop == null) continue;
-
-            var dists = loop.GetOrderedVertices().Select(v => SignedDist(v.Position)).ToList();
-            bool hasPos = dists.Any(d => d > Tolerance);
-            bool hasNeg = dists.Any(d => d < -Tolerance);
-
-            if (hasPos && hasNeg)
-                return true;
-        }
-
-        return false;
     }
 }

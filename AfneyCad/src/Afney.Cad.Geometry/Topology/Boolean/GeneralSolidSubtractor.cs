@@ -32,8 +32,8 @@ namespace Afney.Cad.Geometry.Topology.Boolean;
 
    YÖNTEM (somut adımlar):
      1. B'nin A'nın MEVCUT sınırını GERÇEKTEN (transversal) kestiği yüz düzlemleri toplanır
-        (`SolidSubtractor`'daki AYNI kural — hasPos && hasNeg — bilinçli olarak DUPLICATE
-        edildi, `SolidSubtractor.cs`'e dokunmamak için).
+        (`CollectCandidatePlanes` + `PlaneIntersectsSolidBoundary` — hasPos && hasNeg — bu
+        dosyadaki TEK implementasyon, `SolidSubtractor.Subtract` de bunu çağırıyor).
      2. A'nın HER orijinal Face'i, TÜM aday düzlemlere göre `SplitFaceAgainstPlanes` ile
         alt-parçalara ayrılır: bir alt-parça bir düzlemin TAMAMEN dışında (outsideB) bulunur
         bulunmaz KESİN "kept" (A∖B'nin sınırı) sayılır ve o dal için DAHA FAZLA düzlem
@@ -93,6 +93,32 @@ public static class GeneralSolidSubtractor
     */
     public static Solid Subtract(Solid a, Solid b, string resultName = "A_minus_B")
     {
+        var candidatePlanes = CollectCandidatePlanes(a, b);
+
+        if (candidatePlanes.Count == 0)
+            throw new NotSupportedException(
+                "GeneralSolidSubtractor: B, A'nın sınırını hiçbir yüz düzleminde GERÇEKTEN (transversal) kesmiyor — " +
+                "B tamamen A'nın dışında ya da tamamen A içinde gömülü (cavity/boşluklu katı, çok-kabuklu Solid " +
+                "desteği gerekir) olabilir; her iki durum da kapsam dışı, bkz. Roadmap_CSG_Boolean.md.");
+
+        if (candidatePlanes.Count == 1)
+        {
+            var (p, n) = candidatePlanes[0];
+            PlaneCutter.CutWithPlane(a, p, n);
+            return a;
+        }
+
+        return SubtractMultiPlane(a, candidatePlanes, resultName);
+    }
+
+    /*
+       NE: B'nin yüz düzlemleri arasından, A'nın MEVCUT sınırını GERÇEKTEN (transversal)
+           kesenleri toplar — `SolidSubtractor.Subtract` VE `GeneralSolidSubtractor.Subtract`
+           tarafından PAYLAŞILAN aday-düzlem toplama adımı (önceden bilinçli olarak duplicate
+           edilmişti, artık TEK yerde). Davranış AYNEN korunuyor — sadece taşındı.
+    */
+    internal static List<(Vector3D Point, Vector3D Normal)> CollectCandidatePlanes(Solid a, Solid b)
+    {
         var candidatePlanes = new List<(Vector3D Point, Vector3D Normal)>();
 
         foreach (var face in b.Faces)
@@ -110,20 +136,7 @@ public static class GeneralSolidSubtractor
                 candidatePlanes.Add((planePoint, planeNormal));
         }
 
-        if (candidatePlanes.Count == 0)
-            throw new NotSupportedException(
-                "GeneralSolidSubtractor: B, A'nın sınırını hiçbir yüz düzleminde GERÇEKTEN (transversal) kesmiyor — " +
-                "B tamamen A'nın dışında ya da tamamen A içinde gömülü (cavity/boşluklu katı, çok-kabuklu Solid " +
-                "desteği gerekir) olabilir; her iki durum da kapsam dışı, bkz. Roadmap_CSG_Boolean.md.");
-
-        if (candidatePlanes.Count == 1)
-        {
-            var (p, n) = candidatePlanes[0];
-            PlaneCutter.CutWithPlane(a, p, n);
-            return a;
-        }
-
-        return SubtractMultiPlane(a, candidatePlanes, resultName);
+        return candidatePlanes;
     }
 
     private static Solid SubtractMultiPlane(Solid a, List<(Vector3D Point, Vector3D Normal)> planes, string resultName)
@@ -492,9 +505,11 @@ public static class GeneralSolidSubtractor
     }
 
     /*
-       NE: `SolidSubtractor.PlaneIntersectsSolidBoundary` ile BİREBİR aynı kural (bilinçli
-           olarak duplicate edildi — `SolidSubtractor.cs`'e dokunmamak, mevcut testlerini
-           regresyon riskine sokmamak için).
+       NE: Verilen düzlemin, Solid'in MEVCUT sınırını GERÇEKTEN (transversal — en az bir Face'in
+           köşeleri hem pozitif hem negatif tarafta) kesip kesmediğini kontrol eder — hem
+           `SolidSubtractor.Subtract` hem `GeneralSolidSubtractor.Subtract`/`Intersect` (üzerinden
+           `CollectCandidatePlanes` ve `GeneralSolidIntersector`) tarafından PAYLAŞILAN TEK
+           implementasyon (önceden `SolidSubtractor.cs`'de bilinçli duplicate vardı, artık yok).
     */
     internal static bool PlaneIntersectsSolidBoundary(Solid solid, Vector3D planePoint, Vector3D planeNormal)
     {

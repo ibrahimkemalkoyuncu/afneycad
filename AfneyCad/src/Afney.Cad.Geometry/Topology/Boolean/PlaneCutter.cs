@@ -61,8 +61,35 @@ public static class PlaneCutter
         var n = planeNormal.Normalize();
         double SignedDist(Vector3D p) => (p - planePoint).Dot(n);
 
-        var chordEdges = new List<TopologyEdge>();
         var facesToRemove = new List<Face>();
+        var chordEdges = ClassifyAndSplitFaces(solid, SignedDist, facesToRemove, onNegativeFace: null, onMixedFace: null);
+
+        foreach (var f in facesToRemove)
+            solid.Faces.Remove(f);
+
+        var capFace = BuildCapFace(chordEdges, -n);
+        solid.Faces.Add(capFace);
+        return capFace;
+    }
+
+    /*
+       NE: `CutWithPlane` ile `CutWithPlaneKeepDiscarded`'ın PAYLAŞTIĞI per-face sınıflandırma +
+           bölme (split) çekirdeği — her iki metod da AYNI: pozitif/negatif/karışık sınıflandırma,
+           karışık Face'lerde kiriş toplama + `EdgeSplitter`/`FaceSplitter` ile bölme, `discarded`
+           yarıyı `solid.Faces`'ten çıkarma. Aralarındaki TEK fark, `CutWithPlaneKeepDiscarded`'ın
+           bu ADIMLARIN ÜSTÜNE ekstra iş yapması (atılan Face'leri/chord'ları AYRICA izleyip
+           "dup" kenar + mirror cap inşa etmesi) — bu ekstra iş, `onNegativeFace`/`onMixedFace`
+           callback'leri ile enjekte edilir, çekirdek mantık (davranış) BİREBİR aynı kalır.
+       DÖNÜŞ: kept (pozitif taraf) Face'lerin kapak kirişleri (`BuildCapFace`'e geçirilecek).
+    */
+    private static List<TopologyEdge> ClassifyAndSplitFaces(
+        Solid solid,
+        Func<Vector3D, double> signedDist,
+        List<Face> facesToRemove,
+        Action<Face>? onNegativeFace,
+        Action<Face, TopologyEdge>? onMixedFace)
+    {
+        var chordEdges = new List<TopologyEdge>();
 
         foreach (var face in solid.Faces.ToList())
         {
@@ -71,7 +98,7 @@ public static class PlaneCutter
                 throw new NotSupportedException("PlaneCutter yalnızca tek dış Loop'lu (deliksiz) Face'leri destekler.");
 
             var orderedVerts = loop.GetOrderedVertices();
-            var dists = orderedVerts.Select(v => SignedDist(v.Position)).ToList();
+            var dists = orderedVerts.Select(v => signedDist(v.Position)).ToList();
 
             bool hasPos = dists.Any(d => d > Tolerance);
             bool hasNeg = dists.Any(d => d < -Tolerance);
@@ -82,6 +109,7 @@ public static class PlaneCutter
             if (hasNeg && !hasPos)
             {
                 facesToRemove.Add(face); // tamamen negatif tarafta -> atılır
+                onNegativeFace?.Invoke(face);
                 continue;
             }
 
@@ -134,21 +162,18 @@ public static class PlaneCutter
 
             var (faceA, faceB, chord) = FaceSplitter.SplitAtChord(solid, face, chordVerts[0], chordVerts[1]);
 
-            bool aPositive = IsOnPositiveSide(faceA, SignedDist);
+            bool aPositive = IsOnPositiveSide(faceA, signedDist);
             var kept = aPositive ? faceA : faceB;
             var discarded = aPositive ? faceB : faceA;
             _ = kept; // zaten solid.Faces içinde (FaceSplitter ekledi) — sadece discarded çıkarılacak
 
             solid.Faces.Remove(discarded);
             chordEdges.Add(chord);
+
+            onMixedFace?.Invoke(discarded, chord);
         }
 
-        foreach (var f in facesToRemove)
-            solid.Faces.Remove(f);
-
-        var capFace = BuildCapFace(chordEdges, -n);
-        solid.Faces.Add(capFace);
-        return capFace;
+        return chordEdges;
     }
 
     /*
@@ -179,95 +204,30 @@ public static class PlaneCutter
         var n = planeNormal.Normalize();
         double SignedDist(Vector3D p) => (p - planePoint).Dot(n);
 
-        var chordEdges = new List<TopologyEdge>();
         var discardedChordEdges = new List<TopologyEdge>();
         var facesToRemove = new List<Face>();
         var discardedFaces = new List<Face>();
 
-        foreach (var face in solid.Faces.ToList())
-        {
-            var loop = face.GetOuterLoop();
-            if (loop == null || face.Loops.Count != 1)
-                throw new NotSupportedException("PlaneCutter yalnızca tek dış Loop'lu (deliksiz) Face'leri destekler.");
-
-            var orderedVerts = loop.GetOrderedVertices();
-            var dists = orderedVerts.Select(v => SignedDist(v.Position)).ToList();
-
-            bool hasPos = dists.Any(d => d > Tolerance);
-            bool hasNeg = dists.Any(d => d < -Tolerance);
-
-            if (hasPos && !hasNeg)
-                continue; // tamamen pozitif tarafta -> aynen kalır
-
-            if (hasNeg && !hasPos)
+        var chordEdges = ClassifyAndSplitFaces(solid, SignedDist, facesToRemove,
+            onNegativeFace: face => discardedFaces.Add(face), // tamamen negatif -> DOKUNULMADAN atılan solid'e geçer
+            onMixedFace: (discarded, chord) =>
             {
-                facesToRemove.Add(face);
-                discardedFaces.Add(face); // tamamen negatif -> DOKUNULMADAN atılan solid'e geçer
-                continue;
-            }
+                discardedFaces.Add(discarded);
 
-            if (!hasPos && !hasNeg)
-                throw new NotSupportedException("Bir Face kesim düzlemiyle tam çakışık (coplanar) — kapsam dışı.");
+                // Chord'un atılan tarafa bakan yarısını "dup" kopyasına devret — böylece BuildCapFace
+                // aşağıda chord'u kapak için ele geçirdiğinde `discarded`'ın referansı ÖKSÜZ KALMAZ.
+                var dup = new TopologyEdge(chord.StartVertex, chord.EndVertex);
+                if (ReferenceEquals(chord.LeftFace, discarded))
+                    dup.LeftFace = discarded;
+                else if (ReferenceEquals(chord.RightFace, discarded))
+                    dup.RightFace = discarded;
+                else
+                    throw new InvalidOperationException("chord kirişi 'discarded' Face'e atanmamış (beklenmeyen durum).");
 
-            var chordVerts = new List<Vertex>();
-            int m = orderedVerts.Count;
-            for (int i = 0; i < m; i++)
-            {
-                if (Math.Abs(dists[i]) <= Tolerance)
-                    chordVerts.Add(orderedVerts[i]);
-            }
+                ReplaceEdgeInFace(discarded, chord, dup);
 
-            var originalEdges = loop.Edges.ToList();
-            var pendingSplits = new List<(TopologyEdge Edge, Vector3D Point)>();
-            for (int i = 0; i < m; i++)
-            {
-                double dA = dists[i];
-                double dB = dists[(i + 1) % m];
-                if (Math.Abs(dA) <= Tolerance || Math.Abs(dB) <= Tolerance) continue;
-                if ((dA > 0) == (dB > 0)) continue;
-
-                var vA = orderedVerts[i].Position;
-                var vB = orderedVerts[(i + 1) % m].Position;
-                double t = dA / (dA - dB);
-                var point = vA + (vB - vA) * t;
-                pendingSplits.Add((originalEdges[i], point));
-            }
-            foreach (var (edge, point) in pendingSplits)
-            {
-                var (newVertex, _, _) = EdgeSplitter.SplitEdgeAt(solid, edge, point);
-                chordVerts.Add(newVertex);
-            }
-
-            if (chordVerts.Count != 2)
-                throw new NotSupportedException(
-                    $"Face düzlem tarafından {chordVerts.Count} noktada kesiliyor (2 bekleniyordu) — " +
-                    "dışbükey olmayan/çoklu-kesim durumu kapsam dışı.");
-
-            var (faceA, faceB, chord) = FaceSplitter.SplitAtChord(solid, face, chordVerts[0], chordVerts[1]);
-
-            bool aPositive = IsOnPositiveSide(faceA, SignedDist);
-            var kept = aPositive ? faceA : faceB;
-            var discarded = aPositive ? faceB : faceA;
-            _ = kept;
-
-            solid.Faces.Remove(discarded);
-            discardedFaces.Add(discarded);
-
-            // Chord'un atılan tarafa bakan yarısını "dup" kopyasına devret — böylece BuildCapFace
-            // aşağıda chord'u kapak için ele geçirdiğinde `discarded`'ın referansı ÖKSÜZ KALMAZ.
-            var dup = new TopologyEdge(chord.StartVertex, chord.EndVertex);
-            if (ReferenceEquals(chord.LeftFace, discarded))
-                dup.LeftFace = discarded;
-            else if (ReferenceEquals(chord.RightFace, discarded))
-                dup.RightFace = discarded;
-            else
-                throw new InvalidOperationException("chord kirişi 'discarded' Face'e atanmamış (beklenmeyen durum).");
-
-            ReplaceEdgeInFace(discarded, chord, dup);
-
-            chordEdges.Add(chord);
-            discardedChordEdges.Add(dup);
-        }
+                discardedChordEdges.Add(dup);
+            });
 
         foreach (var f in facesToRemove)
             solid.Faces.Remove(f);
