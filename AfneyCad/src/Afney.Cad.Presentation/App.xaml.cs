@@ -20,6 +20,7 @@ public partial class App : System.Windows.Application
         // GLOBAL EXCEPTION HANDLING
         DispatcherUnhandledException += App_DispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
         Log.Information("Uygulama başlatılıyor...");
         
@@ -78,5 +79,18 @@ public partial class App : System.Windows.Application
              Log.Fatal(ex, "Kritik Sistem Hatası (Non-UI)!");
              MessageBox.Show($"Sistem hatası:\n{ex.Message}\nUygulama kapatılacak.", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Stop);
         }
+    }
+
+    /*
+       NE: Gözlemlenmeyen Task Hatası (TaskScheduler.UnobservedTaskException)
+       NEDEN: Arka planda çalışan Task.Run işlemlerinde (örn. AutoSaveService.AutoSaveLoop) oluşup
+       hiçbir yerde await/try-catch ile gözlemlenmeyen exception'lar, finalizer thread'inde sessizce
+       kaybolmasın veya (eski .NET davranışında) process'i çökertmesin diye loglanır.
+       e.SetObserved() çağrısı, exception'ın "gözlemlendiğini" işaretleyerek riski ortadan kaldırır.
+    */
+    private void TaskScheduler_UnobservedTaskException(object? sender, System.Threading.Tasks.UnobservedTaskExceptionEventArgs e)
+    {
+        Log.Fatal(e.Exception, "Gözlemlenmeyen Arka Plan Task Hatası (UnobservedTaskException)!");
+        e.SetObserved();
     }
 }

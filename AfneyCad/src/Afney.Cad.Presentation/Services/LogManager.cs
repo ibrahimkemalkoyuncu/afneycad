@@ -20,13 +20,19 @@ namespace Afney.Cad.Presentation.Services
                 .MinimumLevel.Debug()
                 .WriteTo.Console()
                 // Genel Loglar (Günlük yuvarlanan dosya)
-                .WriteTo.File(Path.Combine(logFolder, "app-.txt"), 
+                .WriteTo.File(Path.Combine(logFolder, "app-.txt"),
                     rollingInterval: RollingInterval.Day,
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    retainedFileCountLimit: 30,
+                    fileSizeLimitBytes: 50L * 1024 * 1024,
+                    rollOnFileSizeLimit: true)
                 // Sadece Hatalar
                 .WriteTo.File(Path.Combine(logFolder, "error-.txt"),
                     rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error)
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
+                    retainedFileCountLimit: 30,
+                    fileSizeLimitBytes: 50L * 1024 * 1024,
+                    rollOnFileSizeLimit: true)
                 .CreateLogger();
 
             Log.Information("=== AfneyCAD Başlatıldı ===");
