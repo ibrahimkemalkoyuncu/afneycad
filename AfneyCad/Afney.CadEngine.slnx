@@ -47,5 +47,8 @@
     <Project Path="tests/Afney.Cad.Tests/Afney.Cad.Tests.csproj">
       <Platform Solution="*|x64" Project="x64" />
     </Project>
+    <Project Path="tests/Afney.Cad.Benchmarks/Afney.Cad.Benchmarks.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
   </Folder>
 </Solution>
