@@ -29,12 +29,11 @@ public class AdvancedSnapService
     public void SetAperture(double worldUnits) => _worldAperture = worldUnits;
 
     // Intersection snap — iki entity'nin kesişim noktası
-    public Vector3D? FindIntersection(Vector3D cursor)
+    public Vector3D? FindIntersection(Vector3D cursor, IEnumerable<CadEntity>? nearbyEntities = null)
     {
         if (!EnableIntersection) return null;
 
-        var nearbyEntities = GetEntitiesNear(cursor);
-        var lines = nearbyEntities.OfType<LineEntity>().ToList();
+        var lines = (nearbyEntities ?? GetEntitiesNear(cursor)).OfType<LineEntity>().ToList();
 
         for (int i = 0; i < lines.Count; i++)
         {
@@ -49,14 +48,14 @@ public class AdvancedSnapService
     }
 
     // Nearest snap — entity üzerindeki en yakın nokta
-    public Vector3D? FindNearest(Vector3D cursor)
+    public Vector3D? FindNearest(Vector3D cursor, IEnumerable<CadEntity>? nearbyEntities = null)
     {
         if (!EnableNearest) return null;
 
         Vector3D? best = null;
         double bestDist = _worldAperture;
 
-        foreach (var ent in GetEntitiesNear(cursor))
+        foreach (var ent in nearbyEntities ?? GetEntitiesNear(cursor))
         {
             Vector3D? nearest = null;
             if (ent is LineEntity line)
@@ -80,14 +79,14 @@ public class AdvancedSnapService
     }
 
     // Quadrant snap — daire/arc'ın 0°, 90°, 180°, 270° noktaları
-    public Vector3D? FindQuadrant(Vector3D cursor)
+    public Vector3D? FindQuadrant(Vector3D cursor, IEnumerable<CadEntity>? nearbyEntities = null)
     {
         if (!EnableQuadrant) return null;
 
         Vector3D? best = null;
         double bestDist = _worldAperture;
 
-        foreach (var ent in GetEntitiesNear(cursor))
+        foreach (var ent in nearbyEntities ?? GetEntitiesNear(cursor))
         {
             if (ent is CircleEntity circle)
             {
@@ -109,11 +108,11 @@ public class AdvancedSnapService
     }
 
     // Tangent snap — daireden teğet noktası
-    public Vector3D? FindTangent(Vector3D cursor, Vector3D? fromPoint = null)
+    public Vector3D? FindTangent(Vector3D cursor, Vector3D? fromPoint = null, IEnumerable<CadEntity>? nearbyEntities = null)
     {
         if (!EnableTangent || !fromPoint.HasValue) return null;
 
-        foreach (var ent in GetEntitiesNear(cursor))
+        foreach (var ent in nearbyEntities ?? GetEntitiesNear(cursor))
         {
             if (ent is CircleEntity circle)
             {
@@ -126,11 +125,11 @@ public class AdvancedSnapService
     }
 
     // Extension snap — çizgi uzantısı üzerindeki nokta
-    public Vector3D? FindExtension(Vector3D cursor)
+    public Vector3D? FindExtension(Vector3D cursor, IEnumerable<CadEntity>? nearbyEntities = null)
     {
         if (!EnableExtension) return null;
 
-        foreach (var ent in GetEntitiesNear(cursor))
+        foreach (var ent in nearbyEntities ?? GetEntitiesNear(cursor))
         {
             if (ent is LineEntity line)
             {
@@ -152,19 +151,23 @@ public class AdvancedSnapService
     {
         var candidates = new List<SnapResult>();
 
-        var intersection = FindIntersection(cursor);
+        // Performans: 5 ayrı Find* metodu artık aynı "yakındaki entity" taramasını
+        // tekrar tekrar yapmak yerine, tek seferde hesaplanmış listeyi paylaşıyor.
+        var nearbyEntities = GetEntitiesNear(cursor).ToList();
+
+        var intersection = FindIntersection(cursor, nearbyEntities);
         if (intersection.HasValue) candidates.Add(new SnapResult(intersection.Value, "Intersection", "✕"));
 
-        var quadrant = FindQuadrant(cursor);
+        var quadrant = FindQuadrant(cursor, nearbyEntities);
         if (quadrant.HasValue) candidates.Add(new SnapResult(quadrant.Value, "Quadrant", "◇"));
 
-        var tangent = FindTangent(cursor, fromPoint);
+        var tangent = FindTangent(cursor, fromPoint, nearbyEntities);
         if (tangent.HasValue) candidates.Add(new SnapResult(tangent.Value, "Tangent", "○"));
 
-        var extension = FindExtension(cursor);
+        var extension = FindExtension(cursor, nearbyEntities);
         if (extension.HasValue) candidates.Add(new SnapResult(extension.Value, "Extension", "→"));
 
-        var nearest = FindNearest(cursor);
+        var nearest = FindNearest(cursor, nearbyEntities);
         if (nearest.HasValue) candidates.Add(new SnapResult(nearest.Value, "Nearest", "×"));
 
         if (candidates.Count == 0) return null;

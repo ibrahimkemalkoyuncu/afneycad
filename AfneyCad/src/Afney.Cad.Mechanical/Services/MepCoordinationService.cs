@@ -60,11 +60,16 @@ public class MepCoordinationService
         }
 
         // 2. Boru-Mimari mesafe kontrolü
+        // Performans: Duvar filtresi ve obstacle centroid'leri döngü dışında bir kez hesaplanır
+        // (önceden her pipe×obstacle çifti için yeniden hesaplanıyordu).
+        var wallObstacles = obstacles.Where(o => o.Type == ObstacleType.Wall).ToList();
+        var obstacleCentroids = wallObstacles.ToDictionary(o => o, ComputeObstacleCentroid);
+
         foreach (var pipe in pipes)
         {
-            foreach (var obs in obstacles.Where(o => o.Type == ObstacleType.Wall))
+            foreach (var obs in wallObstacles)
             {
-                double dist = DistanceToObstacle(pipe, obs);
+                double dist = DistanceToObstacle(pipe, obs, obstacleCentroids[obs]);
                 double required = ClearanceRules.GetValueOrDefault("Pipe-Wall", 25);
 
                 if (dist < required)
@@ -143,13 +148,20 @@ public class MepCoordinationService
         return (pipeCenter - ductCenter).Length() - pipe.InnerDiameter / 2.0 - duct.WidthMm / 2.0;
     }
 
-    private double DistanceToObstacle(PipeEntity pipe, ArchitecturalObstacle obs)
+    private double DistanceToObstacle(PipeEntity pipe, ArchitecturalObstacle obs, Afney.Cad.Geometry.Primitives.Vector3D obsCenter)
     {
         var pipeCenter = (pipe.StartPoint + pipe.EndPoint) * 0.5;
         if (obs.Boundary.Count < 2) return double.MaxValue;
-        var obsCenter = Afney.Cad.Geometry.Primitives.Vector3D.Zero;
-        foreach (var pt in obs.Boundary) obsCenter = new Afney.Cad.Geometry.Primitives.Vector3D(obsCenter.X + pt.X / obs.Boundary.Count, obsCenter.Y + pt.Y / obs.Boundary.Count, obsCenter.Z + pt.Z / obs.Boundary.Count);
         return (pipeCenter - obsCenter).Length() - pipe.InnerDiameter / 2.0;
+    }
+
+    // Obstacle centroid hesabı — döngü dışında bir kez çağrılıp cache'lenir (bkz. Analyze).
+    private static Afney.Cad.Geometry.Primitives.Vector3D ComputeObstacleCentroid(ArchitecturalObstacle obs)
+    {
+        var obsCenter = Afney.Cad.Geometry.Primitives.Vector3D.Zero;
+        if (obs.Boundary.Count < 2) return obsCenter;
+        foreach (var pt in obs.Boundary) obsCenter = new Afney.Cad.Geometry.Primitives.Vector3D(obsCenter.X + pt.X / obs.Boundary.Count, obsCenter.Y + pt.Y / obs.Boundary.Count, obsCenter.Z + pt.Z / obs.Boundary.Count);
+        return obsCenter;
     }
 
     public static IReadOnlyDictionary<string, double> GetClearanceRules() => ClearanceRules;

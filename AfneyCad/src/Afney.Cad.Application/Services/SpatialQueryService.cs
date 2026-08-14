@@ -85,20 +85,6 @@ public class SpatialQueryService
         };
     }
 
-    // Tekil entity ekle (incremental)
-    public void Insert(CadEntity entity)
-    {
-        _tree.Insert(entity);
-        _entityCount++;
-    }
-
-    // Tekil entity sil
-    public void Remove(CadEntity entity)
-    {
-        _tree.Remove(entity);
-        _entityCount--;
-    }
-
     private CadBoundingBox ComputeWorldBounds(List<CadEntity> entities)
     {
         if (entities.Count == 0)

@@ -11,9 +11,14 @@ namespace Afney.Cad.Application.Services;
 public class AdvancedSelectionService
 {
     private readonly CadDatabase _database;
+    private readonly SpatialQueryService _spatialQuery;
     private List<CadEntity>? _previousSelection;
 
-    public AdvancedSelectionService(CadDatabase database) => _database = database;
+    public AdvancedSelectionService(CadDatabase database)
+    {
+        _database = database;
+        _spatialQuery = new SpatialQueryService(database);
+    }
 
     // Fence seçimi — çizgi boyunca kesişen tüm entity'ler
     public List<CadEntity> SelectByFence(List<Vector3D> fencePoints)
@@ -21,8 +26,18 @@ public class AdvancedSelectionService
         var result = new List<CadEntity>();
         if (fencePoints.Count < 2) return result;
 
+        // Performans: Tüm veritabanını taramak yerine önce fence'in bounding box'ına göre
+        // SpatialQueryService (QuadTree) ile aday küme daraltılır. Bir entity'nin herhangi bir
+        // fence segmentiyle kesişebilmesi için bbox'ının fence'in TOPLAM bbox'ıyla kesişmesi
+        // gerekli bir koşuldur (her segment bbox'ı fence toplam bbox'ının alt kümesidir) —
+        // bu yüzden aday küme daraltması sonucu/sırayı DEĞİŞTİRMEZ, sadece hızlandırır.
+        var fenceBounds = ComputeBounds(fencePoints);
+        var candidates = new HashSet<CadEntity>(_spatialQuery.QueryVisible(fenceBounds));
+
         foreach (var entity in _database.GetAllEntities())
         {
+            if (!candidates.Contains(entity)) continue;
+
             var bbox = entity.GetBoundingBox();
             for (int i = 0; i < fencePoints.Count - 1; i++)
             {
@@ -44,8 +59,16 @@ public class AdvancedSelectionService
         var result = new List<CadEntity>();
         if (polygonPoints.Count < 3) return result;
 
+        // Performans: bbox merkezi polygon içindeyse mutlaka polygon'un bounding box'ı
+        // içindedir de — bu yüzden önce spatial index ile aday küme daraltılır,
+        // ardından tam point-in-polygon testi sadece adaylara uygulanır (sonuç/sıra aynı kalır).
+        var polyBounds = ComputeBounds(polygonPoints);
+        var candidates = new HashSet<CadEntity>(_spatialQuery.QueryVisible(polyBounds));
+
         foreach (var entity in _database.GetAllEntities())
         {
+            if (!candidates.Contains(entity)) continue;
+
             var center = entity.GetBoundingBox().Center;
             if (IsPointInPolygon(center, polygonPoints))
                 result.Add(entity);
@@ -53,6 +76,24 @@ public class AdvancedSelectionService
 
         _previousSelection = result;
         return result;
+    }
+
+    private static CadBoundingBox ComputeBounds(List<Vector3D> points)
+    {
+        double minX = double.MaxValue, minY = double.MaxValue, minZ = double.MaxValue;
+        double maxX = double.MinValue, maxY = double.MinValue, maxZ = double.MinValue;
+
+        foreach (var p in points)
+        {
+            if (p.X < minX) minX = p.X;
+            if (p.Y < minY) minY = p.Y;
+            if (p.Z < minZ) minZ = p.Z;
+            if (p.X > maxX) maxX = p.X;
+            if (p.Y > maxY) maxY = p.Y;
+            if (p.Z > maxZ) maxZ = p.Z;
+        }
+
+        return new CadBoundingBox(new Vector3D(minX, minY, minZ), new Vector3D(maxX, maxY, maxZ));
     }
 
     // Son seçimi geri getir

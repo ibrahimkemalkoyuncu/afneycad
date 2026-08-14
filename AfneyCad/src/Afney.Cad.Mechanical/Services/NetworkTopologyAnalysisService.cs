@@ -118,13 +118,46 @@ public class NetworkTopologyAnalysisService
         var adjLocal = new List<List<(int, Guid)>>();
         adj          = adjLocal;
 
+        // Performans: O(n²) lineer arama yerine grid-hash tabanlı O(1) ortalama arama.
+        // Koordinatlar SnapTolerance boyutlu hücrelere yuvarlanır; bir noktanın SnapTolerance
+        // içindeki komşu node'ları sadece 3x3 (27 3D) komşu hücrede aranır — davranış (tolerans
+        // mantığı: en yakın DEĞİL, ilk bulunan <= SnapTolerance node'a bağlanma) AYNI kalır.
+        double cell = SnapTolerance > 0 ? SnapTolerance : 1.0;
+        var grid = new Dictionary<(long, long, long), List<int>>();
+
+        static (long, long, long) CellOf(Vector3D pt, double cellSize)
+            => ((long)Math.Floor(pt.X / cellSize), (long)Math.Floor(pt.Y / cellSize), (long)Math.Floor(pt.Z / cellSize));
+
         int FindOrAdd(Vector3D pt)
         {
-            for (int i = 0; i < nodes.Count; i++)
-                if (nodes[i].DistanceTo(pt) <= SnapTolerance) return i;
+            var (cx, cy, cz) = CellOf(pt, cell);
+            // Orijinal davranış: nodes listesinde İLK (en küçük index) uygun eşleşme seçilirdi.
+            // 27 hücreyi tarayıp adayları topluyor, sonra en küçük index'i seçiyoruz —
+            // böylece hücre tarama sırası sonucu etkilemez, tolerans-eşleşme mantığı birebir korunur.
+            int best = -1;
+            for (long dx = -1; dx <= 1; dx++)
+            for (long dy = -1; dy <= 1; dy++)
+            for (long dz = -1; dz <= 1; dz++)
+            {
+                if (!grid.TryGetValue((cx + dx, cy + dy, cz + dz), out var bucket)) continue;
+                foreach (var i in bucket)
+                    if ((best == -1 || i < best) && nodes[i].DistanceTo(pt) <= SnapTolerance) best = i;
+            }
+            if (best != -1) return best;
+
             nodes.Add(pt);
             adjLocal.Add([]);
-            return nodes.Count - 1;
+            int newIndex = nodes.Count - 1;
+
+            var key = (cx, cy, cz);
+            if (!grid.TryGetValue(key, out var list))
+            {
+                list = new List<int>();
+                grid[key] = list;
+            }
+            list.Add(newIndex);
+
+            return newIndex;
         }
 
         foreach (var pipe in pipes)

@@ -77,6 +77,14 @@ public class ConnectReceptorsService
         // Bölünen yeni borular bu sette olmaz → ToRemove'a gitmez, NewEntities'den silinir.
         var dbEntityIds = new HashSet<Guid>(allPipes.Select(p => p.Id));
 
+        // Performans: Her fixture×port için TÜM boruları lineer taramak yerine, borular
+        // sistem tipine göre önceden gruplanır — arama sadece ilgili sistemin borularında yapılır.
+        // allPipes'taki tüm ekleme/çıkarma (bölme) işlemleri bu grup listelerine de yansıtılır,
+        // böylece davranış/sonuç birebir aynı kalır — sadece taranan küme daralır.
+        var pipesBySystem = allPipes
+            .GroupBy(p => p.SystemType)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         // Yeni oluşturulan tüm entity'leri ID → entity eşlemesiyle tut.
         // Bir entity hem oluşturulup hem sonradan bölünürse dict'ten silinerek temizlenir.
         var newEntitiesMap = new Dictionary<Guid, CadEntity>();
@@ -93,7 +101,7 @@ public class ConnectReceptorsService
                     continue;
                 }
 
-                var candidate = FindNearestCompatiblePipe(port.Position, targetSystem, allPipes);
+                var candidate = FindNearestCompatiblePipe(port.Position, targetSystem, pipesBySystem);
                 if (candidate == null)
                 {
                     result.SkipReasons.Add(
@@ -114,6 +122,8 @@ public class ConnectReceptorsService
 
                     // 1. Candidate artık bölündü → working listeden çıkar
                     allPipes.Remove(candidate);
+                    if (pipesBySystem.TryGetValue(candidate.SystemType, out var candidateSystemList))
+                        candidateSystemList.Remove(candidate);
 
                     // 2. Candidate DB'deydi → ToRemove; yoksa (daha önce yeni oluşmuştu) → NewEntities'den sil
                     if (dbEntityIds.Contains(candidate.Id))
@@ -131,6 +141,15 @@ public class ConnectReceptorsService
                         .Where(p => IsSameDirection(p, candidate))
                         .ToList();
                     allPipes.AddRange(newSegments);
+                    foreach (var seg in newSegments)
+                    {
+                        if (!pipesBySystem.TryGetValue(seg.SystemType, out var segList))
+                        {
+                            segList = new List<PipeEntity>();
+                            pipesBySystem[seg.SystemType] = segList;
+                        }
+                        segList.Add(seg);
+                    }
 
                     result.ConnectedCount++;
                     Serilog.Log.Information(
@@ -157,13 +176,14 @@ public class ConnectReceptorsService
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
     private PipeEntity? FindNearestCompatiblePipe(
-        Vector3D portPos, MechanicalSystemType targetSystem, List<PipeEntity> pipes)
+        Vector3D portPos, MechanicalSystemType targetSystem, Dictionary<MechanicalSystemType, List<PipeEntity>> pipesBySystem)
     {
         PipeEntity? best = null;
         double minDist = double.MaxValue;
+        if (!pipesBySystem.TryGetValue(targetSystem, out var pipes)) return null;
+
         foreach (var pipe in pipes)
         {
-            if (pipe.SystemType != targetSystem) continue;
             double dist = DistanceToSegment(portPos, pipe.StartPoint, pipe.EndPoint);
             if (dist < minDist && dist <= MaxBranchDistanceMM) { minDist = dist; best = pipe; }
         }
