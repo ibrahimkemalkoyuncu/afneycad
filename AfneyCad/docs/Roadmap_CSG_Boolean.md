@@ -611,6 +611,80 @@ bir dışbükey-poligon BİRLEŞİMİ primitifi (`ConvexPolygonClipper2D.Interse
 dosyada veya yeni bir dosyada, additive). Her iki alt-problem de kendi başına, ayrı, odaklanmış
 birer oturum gerektirebilir.
 
+**GÜNCELLEME (2026-08-14) — "Section-first" mimarisi somutlaştırıldı (`FaceIntersection` +
+segment-zincirleme), YENİ bir yapısal gereksinim (polyline-chord `FaceSplitter`) net olarak
+tespit edildi — KOD YAZILMADAN ertelendi (beşinci kez, Ana Yasa gereği):**
+
+Bu oturum, önceki (2026-08-07) girdinin bıraktığı "PAYLAŞILAN bir kesişim-eğrisi temsili baştan
+kurulmalı" fikrini SOMUTLAŞTIRMAYA çalıştı. Tüm ilgili kaynak dosyalar (bu dosyanın önceki
+güncellemelerinde adı geçen HEPSİ + `FaceIntersection.cs`/`PlaneIntersection.cs`) yeniden okundu,
+sonra köşe-çentiği VE 3-düzlemli "gerçek köşe" (`Subtract_TrueCornerNotch_ThreePlanes` testinin
+AYNI girdisi: A=[0,2000]³, B=[1500,3000]³) senaryolarıyla ELLE koordinat takibi yapıldı.
+
+**Bulunan fırsat:** `FaceIntersection.Intersect(faceA, faceB)` (Faz 1'den beri kod tabanında var,
+şimdiye kadar SADECE Faz 2'nin planlı ama hiç tamamlanmamış genel yüz-bölme akışı için
+düşünülmüştü) iki Face'in kesişimini PLANE-vs-TÜM-SOLID (`SplitFaceAgainstPlanes`'in kullandığı
+yaklaşım) değil, GERÇEK POLİGON SINIRLARINA kırpılmış segment olarak veriyor — bu segmentler A
+tarafında da B tarafında da AYNI 3D noktalarda oluşuyor (iki düzlemin kesişimi, düzlemler A/B'nin
+kendi yüzeyleri) — yani madde 41'in çürüttüğü "SUBTRACT(A,B) kapağı X=1500'de, SUBTRACT(B,A)
+kapağı X=2000'de, 500 birim arada" sorunu bu yaklaşımda YAPISAL OLARAK oluşmuyor (segment aynı
+İKİ düzlemin kesişimi olduğu için tanım gereği tek bir konumda).
+
+**Elle doğrulanan YENİ engel (3-düzlem senaryosu, A=[0,2000]³, B=[1500,3000]³):**
+- A'nın X=2000 yüzü ∩ B'nin Y=1500 yüzü → segment (2000,1500,z), z∈[1500,2000] (B'nin Z sınırı
+  kısıtlıyor — A'nın Z sınırı [0,2000] daha geniş).
+- A'nın X=2000 yüzü ∩ B'nin Z=1500 yüzü → segment (2000,y,1500), y∈[1500,2000].
+- Bu iki segment TAM (2000,1500,1500) noktasında birleşiyor. Zincirlenince
+  (2000,1500,2000) → (2000,1500,1500) → (2000,2000,1500) polyline'ı oluşuyor — bu polyline'ın
+  İKİ UCU (Z=2000 ve Y=2000) A'nın KENDİ Face sınırında, ama ORTA noktası ((2000,1500,1500))
+  A'nın Face'inin İÇİNDE (Y=1500, Z=1500 ikisi de A'nın X=2000 yüzünün [0,2000]×[0,2000]
+  aralığının kesin İÇİNDE, sınırında değil).
+- **Sonuç:** gerçek kesişim "kirişi" genel olarak TEK düz segment DEĞİL, birden fazla yüz-çifti
+  segmentinin zincirlenmesiyle oluşan bir POLYLINE, ve bu polyline'ın ARA noktaları Face'in
+  KENDİ sınırında OLMUYOR. Mevcut `FaceSplitter.SplitAtChord`, `v1`/`v2`'nin İKİSİNİN de
+  `face.GetOuterLoop().GetOrderedVertices()` içinde (yani Face'in kendi sınırında) bulunmasını
+  ZORUNLU kılıyor (`FindIndex` ile arıyor, bulamazsa `ArgumentException`) — bu polyline'ı
+  OLDUĞU GİBİ tek bir `SplitAtChord` çağrısıyla kullanmak mümkün DEĞİL.
+
+**Somut, net gereksinim (bir sonraki oturum için, önceki 4 girdinin hiçbirinde bu netlikte
+yoktu):**
+1. `FaceSplitter`'a (veya yanına, additive) polyline-chord desteği: `SplitAtPolylineChord(Solid,
+   Face, List<Vertex> orderedChordVerts)` — ilk/son eleman Face'in kendi sınırında olmalı (aksi
+   halde açık hata — dejenere/kapsam dışı), ARA elemanlar Face'in İÇİNDE yeni `Vertex`'ler olarak
+   eklenip ardışık `TopologyEdge`'lerle birbirine bağlanmalı, iki alt-Face'in Loop'ları bu
+   YENİ kenar zincirinin İKİ yönünü paylaşmalı (`SplitAtChord`'un tek-kenar deseninin doğal
+   genellemesi).
+2. Bunun üzerine, HER A-Face'i (B'nin TÜM Face'leriyle `FaceIntersection.Intersect` çağrılıp
+   sonuçlar aynı Face üzerinde uç-noktalarına göre zincirlenerek) VE simetrik olarak HER B-Face'i
+   bu polyline'larla bölen, `SolidClassifier.IsPointInside` ile fragman sınıflandırması yapan
+   YENİ bir segment-tabanlı subdivide algoritması (`SplitFaceAgainstPlanes`'in plane-tabanlı
+   değil, segment-tabanlı kardeşi).
+3. Beklenen kazanım: adım 1-2 doğru çalışırsa, A'nın "B-dışı" fragmanları + B'nin "A-dışı"
+   fragmanları `VertexWelder` + `OpenEdgeStitcher` ile DOĞRUDAN dikilebilir OLABİLİR (ayrı bir
+   kapak/köprü-yüzü inşasına GEREK KALMADAN) — çünkü kesim zaten PAYLAŞILAN noktalarda yapıldı.
+   Bu, henüz test edilmemiş bir HİPOTEZ (adım 1-2 olmadan doğrulanamaz), ama madde 40/41'in
+   "ayrı bir köprü-yüzü inşası gerekiyor" karamsarlığından daha iyimser bir olası sonuç.
+
+**Coplanar üst/alt yüzler için düzeltilmiş (daha dar) değerlendirme:** `FaceIntersection`,
+paralel/coplanar düzlem çiftlerinde boş liste döner — köşe-çentiği senaryosunun ÇAKIŞIK üst/alt
+yüzleri (yukarıdaki 1-2 numaralı adımlarla) hiç segment üretmeyecek, bu yüzden doğru birleşimleri
+(8 köşeli oktogon) HÂLÂ ayrı bir 2D poligon-BİRLEŞİM primitifi gerektiriyor — madde 41'in
+tespiti hâlâ geçerli. AMA kapsam düşünüldüğünden DAHA DAR: girdi her zaman İKİ DIŞBÜKEY poligon
+(A/B'nin tüm yüzleri dışbükey) — iki dışbükey kümenin birleşimi (içbükey olsa bile) HER ZAMAN
+TEK bir kapalı döngüdür (basit-bağlantılı, delikli/çok-parçalı olamaz), sınırı SADECE "A'nın
+B-dışı kalan kenar parçaları + B'nin A-dışı kalan kenar parçaları"ndan oluşur — yani TAM
+Vatti/Martinez-Rueda genel sweep-line'ı DEĞİL, çok daha dar bir "Weiler-Atherton, 2-dışbükey-
+girdi özel durumu" (`ConvexPolygonClipper2D.Union`, additive, tahmini 100-150 satır) yeterli
+olurdu.
+
+**Karar (Ana Yasa gereği, beşinci kez aynı gerekçeyle):** UNION için KOD YAZILMADI. Bu oturumda
+bulunan mimari (polyline-chord `FaceSplitter` + segment-tabanlı subdivide + dar-kapsamlı
+convex-convex 2D union), önceki oturumlardan DAHA SOMUT ve daha net bir başlangıç noktası, ama
+EN AZ 3 ayrı yeni yapı taşının sıfırdan yazılıp kapsamlı test edilmesini gerektiriyor —
+tek oturumda "10/10 ilk seferde" kalite bariyerini güvenle geçecek kadar küçük değil.
+`GeneralSolidSubtractor.cs`/`GeneralSolidIntersector.cs`/mevcut 474 testin HİÇBİRİNE
+dokunulmadı (sadece kaynak inceleme + kâğıt üzerinde koordinat doğrulaması, kod değişikliği yok).
+
 ## Kademeli Plan — Tam Topolojik B-Rep Boolean
 
 **Yeni modül:** `Afney.Cad.Geometry.Topology.Boolean` (harici kütüphane yok — projenin mevcut

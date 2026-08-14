@@ -26,6 +26,7 @@ Thumbs.db
 
 # Other outputs
 CALC/
+BenchmarkDotNet.Artifacts/
 *.ifc
 *.bld
 *.md
