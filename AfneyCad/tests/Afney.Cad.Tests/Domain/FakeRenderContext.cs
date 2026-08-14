@@ -31,7 +31,7 @@ public class FakeRenderContext : IRenderContext
     public void DrawArc(Vector3D center, double radius, double startAngle, double endAngle, uint color, double thickness, bool isDashed = false) { }
     public void DrawRectangle(Vector3D min, Vector3D max, uint color, double thickness, bool isDashed = false) { }
     public void DrawSolidLine(Vector3D p1, Vector3D p2, uint color, double innerDiameter, double outerDiameter) { }
-    public void DrawSpline(IEnumerable<Vector3D> points, uint color, double thickness, string linetype = "Continuous") { }
+    public void DrawSpline(IReadOnlyList<Vector3D> points, uint color, double thickness, string linetype = "Continuous") { }
 
     public void DrawText(string text, Vector3D position, double angleDegrees, double fontSize, uint color, bool centerAlign = true)
         => Texts.Add((text, position));

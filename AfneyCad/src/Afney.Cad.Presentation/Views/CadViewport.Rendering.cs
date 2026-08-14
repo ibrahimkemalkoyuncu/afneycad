@@ -272,14 +272,24 @@ namespace Afney.Cad.Presentation.Views;
            NEDEN: Fare bir noktanın üzerine geldiğinde yakalanan yerin tipine göre sembol çizmek için.
            Endpoint=Yeşil Kare, Midpoint=Cyan Üçgen, Center=Sarı Daire, Intersection=Beyaz X, Quadrant=Mor Baklava
         */
-        private void DrawSnapMarker(SKCanvas canvas, SnapPoint snap)
+        /*
+           NE: Snap Marker Paint Cache (GetSnapPaints)
+           NEDEN: DrawSnapMarker sık çağrıldığı için tipe göre stroke/glow/text SKPaint'lerini
+           her frame yeniden yaratmak yerine bir kez oluşturup Dictionary'de cache'liyoruz.
+           Marker'ın çizildiği KONUM (SKPath koordinatları) her seferinde değiştiği için
+           path nesneleri cache'lenmiyor — sadece renk/stil sabit olan paint'ler cache'leniyor.
+        */
+        private (SKPaint stroke, SKPaint glow, SKPaint text) GetSnapPaints(SnapPointType type)
         {
-            var rawP = WorldToScreen(snap.Position);
-            var p = new SKPoint((float)rawP.X, (float)rawP.Y);
-            float size = 14f; // AutoCAD'den büyük (daha görünür)
+            if (_snapStrokePaints.TryGetValue(type, out var cachedStroke) &&
+                _snapGlowPaints.TryGetValue(type, out var cachedGlow) &&
+                _snapTextPaints.TryGetValue(type, out var cachedText))
+            {
+                return (cachedStroke, cachedGlow, cachedText);
+            }
 
             // Snap tipine göre renk — AutoCAD 2026 renkleri
-            SKColor markerColor = snap.Type switch
+            SKColor markerColor = type switch
             {
                 SnapPointType.Endpoint => new SKColor(0, 255, 0),         // Yeşil
                 SnapPointType.Midpoint => new SKColor(0, 255, 255),       // Cyan
@@ -290,8 +300,24 @@ namespace Afney.Cad.Presentation.Views;
                 _ => new SKColor(255, 165, 0)                             // Varsayılan turuncu
             };
 
-            using var paint = new SKPaint { Color = markerColor, Style = SKPaintStyle.Stroke, StrokeWidth = 2.5f, IsAntialias = true };
-            using var glow = new SKPaint { Color = markerColor.WithAlpha(60), Style = SKPaintStyle.Fill, IsAntialias = true };
+            var stroke = new SKPaint { Color = markerColor, Style = SKPaintStyle.Stroke, StrokeWidth = 2.5f, IsAntialias = true };
+            var glow = new SKPaint { Color = markerColor.WithAlpha(60), Style = SKPaintStyle.Fill, IsAntialias = true };
+            var text = new SKPaint { Color = markerColor, TextSize = 10, IsAntialias = true };
+
+            _snapStrokePaints[type] = stroke;
+            _snapGlowPaints[type] = glow;
+            _snapTextPaints[type] = text;
+
+            return (stroke, glow, text);
+        }
+
+        private void DrawSnapMarker(SKCanvas canvas, SnapPoint snap)
+        {
+            var rawP = WorldToScreen(snap.Position);
+            var p = new SKPoint((float)rawP.X, (float)rawP.Y);
+            float size = 14f; // AutoCAD'den büyük (daha görünür)
+
+            var (paint, glow, textPaint) = GetSnapPaints(snap.Type);
 
             // Glow efekti (arkada hafif parıltı)
             canvas.DrawCircle(p.X, p.Y, size, glow);
@@ -349,7 +375,6 @@ namespace Afney.Cad.Presentation.Views;
             }
 
             // Snap tipi etiketi
-            using var textPaint = new SKPaint { Color = markerColor, TextSize = 10, IsAntialias = true };
             string label = snap.Type switch
             {
                 SnapPointType.Endpoint => "END",
@@ -374,28 +399,23 @@ namespace Afney.Cad.Presentation.Views;
             float cx = margin;
             float cy = viewH - margin;
 
-            // X Ekseni (Kırmızı)
-            using var xPaint = new SKPaint { Color = new SKColor(220, 50, 50), StrokeWidth = 2.5f, IsAntialias = true, Style = SKPaintStyle.Stroke };
-            canvas.DrawLine(cx, cy, cx + axisLen, cy, xPaint);
+            // X Ekseni (Kırmızı) — cached paint (no per-frame allocation)
+            canvas.DrawLine(cx, cy, cx + axisLen, cy, _ucsXPaint);
             // Ok ucu
-            canvas.DrawLine(cx + axisLen, cy, cx + axisLen - 6, cy - 4, xPaint);
-            canvas.DrawLine(cx + axisLen, cy, cx + axisLen - 6, cy + 4, xPaint);
+            canvas.DrawLine(cx + axisLen, cy, cx + axisLen - 6, cy - 4, _ucsXPaint);
+            canvas.DrawLine(cx + axisLen, cy, cx + axisLen - 6, cy + 4, _ucsXPaint);
 
             // Y Ekseni (Yeşil) — yukarı
-            using var yPaint = new SKPaint { Color = new SKColor(50, 220, 50), StrokeWidth = 2.5f, IsAntialias = true, Style = SKPaintStyle.Stroke };
-            canvas.DrawLine(cx, cy, cx, cy - axisLen, yPaint);
-            canvas.DrawLine(cx, cy - axisLen, cx - 4, cy - axisLen + 6, yPaint);
-            canvas.DrawLine(cx, cy - axisLen, cx + 4, cy - axisLen + 6, yPaint);
+            canvas.DrawLine(cx, cy, cx, cy - axisLen, _ucsYPaint);
+            canvas.DrawLine(cx, cy - axisLen, cx - 4, cy - axisLen + 6, _ucsYPaint);
+            canvas.DrawLine(cx, cy - axisLen, cx + 4, cy - axisLen + 6, _ucsYPaint);
 
             // Etiketler
-            using var xLabel = new SKPaint { Color = new SKColor(220, 50, 50), TextSize = 12, IsAntialias = true, FakeBoldText = true };
-            using var yLabel = new SKPaint { Color = new SKColor(50, 220, 50), TextSize = 12, IsAntialias = true, FakeBoldText = true };
-            canvas.DrawText("X", cx + axisLen + 4, cy + 5, xLabel);
-            canvas.DrawText("Y", cx - 5, cy - axisLen - 6, yLabel);
+            canvas.DrawText("X", cx + axisLen + 4, cy + 5, _ucsXLabelPaint);
+            canvas.DrawText("Y", cx - 5, cy - axisLen - 6, _ucsYLabelPaint);
 
             // Merkez noktası
-            using var cPaint = new SKPaint { Color = new SKColor(180, 180, 180), StrokeWidth = 1.5f, IsAntialias = true, Style = SKPaintStyle.Stroke };
-            canvas.DrawCircle(cx, cy, 3, cPaint);
+            canvas.DrawCircle(cx, cy, 3, _ucsCenterPaint);
         }
 
         /*
@@ -409,22 +429,11 @@ namespace Afney.Cad.Presentation.Views;
             float r = (float)Math.Max(_selectionStartPoint.X, _selectionCurrentPoint.X);
             float b = (float)Math.Max(_selectionStartPoint.Y, _selectionCurrentPoint.Y);
             bool isCrossing = _selectionCurrentPoint.X < _selectionStartPoint.X;
-            
-            using var fill = new SKPaint 
-            { 
-                Color = isCrossing ? new SKColor(46, 204, 113, 80) : new SKColor(52, 152, 219, 80), // Daha modern Yeşil ve Mavi
-                Style = SKPaintStyle.Fill 
-            };
-            
-            using var stroke = new SKPaint 
-            { 
-                Color = isCrossing ? new SKColor(46, 204, 113) : new SKColor(52, 152, 219),
-                Style = SKPaintStyle.Stroke, 
-                StrokeWidth = 1 
-            };
-            
-            if (isCrossing) stroke.PathEffect = SKPathEffect.CreateDash(new float[] { 5, 5 }, 0);
-            
+
+            // Cached paints (no per-frame allocation) — window (soldan sağa) vs crossing (sağdan sola)
+            var fill = isCrossing ? _selBoxCrossingFill : _selBoxWindowFill;
+            var stroke = isCrossing ? _selBoxCrossingStroke : _selBoxWindowStroke;
+
             var rect = new SKRect(l, t, r, b);
             canvas.DrawRect(rect, fill);
             canvas.DrawRect(rect, stroke);

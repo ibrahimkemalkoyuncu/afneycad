@@ -30,6 +30,16 @@ public class SkiaRenderContext : IRenderContext, IDisposable
     /// </summary>
     private readonly record struct PaintKey(uint Color, float Thickness, bool IsDashed, string Linetype);
 
+    /// <summary>
+    /// NE: Dolgu Paint Önbellek Anahtarı (FillPaintKey)
+    /// NEDEN: DrawFilledPolygon (Hatch) her çağrıda fillPaint/strokePaint'i "using new SKPaint{...}"
+    /// ile yaratıyordu. Diğer Draw* metodlarıyla AYNI cache mekanizması (Dictionary + struct key)
+    /// kullanılarak fill/stroke paint'leri de artık renk+alpha+style bazında önbelleklenir.
+    /// </summary>
+    private readonly record struct FillPaintKey(uint Color, byte Alpha, SKPaintStyle Style);
+
+    private readonly Dictionary<FillPaintKey, SKPaint> _fillPaintCache = new();
+
     // NOT: _canvas ve PixelSize artık viewport ömrü boyunca SetCanvas() ile güncellenir;
     // sınıf her frame'de yeniden yaratılmaz (bkz. CadViewport.OnPaintSurface).
     private SKCanvas _canvas;
@@ -130,6 +140,41 @@ public class SkiaRenderContext : IRenderContext, IDisposable
         return paint;
     }
 
+    /// <summary>
+    /// NE: Dolgu/Kontur Boyası Al (GetFillPaint)
+    /// NEDEN: DrawFilledPolygon için renk+alpha+stil kombinasyonuna göre önbellekten SKPaint döndürür
+    /// (diğer Draw* metodlarındaki GetPaint() ile aynı desen — her çağrıda "new SKPaint" yaratılmaz).
+    /// </summary>
+    private SKPaint GetFillPaint(uint color, byte alpha, SKPaintStyle style)
+    {
+        var key = new FillPaintKey(color, alpha, style);
+        if (!_fillPaintCache.TryGetValue(key, out var paint))
+        {
+            byte r = (byte)((color >> 16) & 0xFF);
+            byte g = (byte)((color >> 8) & 0xFF);
+            byte b = (byte)(color & 0xFF);
+
+            paint = style == SKPaintStyle.Fill
+                ? new SKPaint
+                {
+                    Color = new SKColor(r, g, b, alpha),
+                    Style = SKPaintStyle.Fill,
+                    IsAntialias = true,
+                }
+                : new SKPaint
+                {
+                    Color = new SKColor(r, g, b, alpha),
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 0f, // Hairline
+                    IsAntialias = false,
+                };
+
+            _fillPaintCache[key] = paint;
+        }
+
+        return paint;
+    }
+
     private Vector3D _cameraOffset;
     private double _zoomFactor = 1.0;
 
@@ -159,6 +204,9 @@ public class SkiaRenderContext : IRenderContext, IDisposable
 
         foreach (var paint in _textPaintCache.Values) paint.Dispose();
         _textPaintCache.Clear();
+
+        foreach (var paint in _fillPaintCache.Values) paint.Dispose();
+        _fillPaintCache.Clear();
 
         _highlightPaint?.Dispose();
         _highlightPaint = null;
@@ -340,9 +388,9 @@ public class SkiaRenderContext : IRenderContext, IDisposable
        NE: Spline Eğrisi Çiz (DrawSpline)
        NEDEN: NURBS veya kontrol noktaları verilen eğrileri, çoklu doğru segmentlerine (Polyline) dönüştürüp akıcı bir şekilde render etmek için.
     */
-    public void DrawSpline(IEnumerable<Vector3D> points, uint color, double thickness, string linetype = "Continuous")
+    public void DrawSpline(IReadOnlyList<Vector3D> points, uint color, double thickness, string linetype = "Continuous")
     {
-        var pts = points.ToList();
+        var pts = points;
         if (pts.Count < 2) return;
         var paint = GetPaint(color, thickness, false, linetype);
         using var path = new SKPath();
@@ -398,28 +446,12 @@ public class SkiaRenderContext : IRenderContext, IDisposable
             path.LineTo(pts[i].X, pts[i].Y);
         path.Close();
 
-        // RGB rengi çıkar (uint ARGB → R, G, B)
-        byte r = (byte)((color >> 16) & 0xFF);
-        byte g = (byte)((color >> 8) & 0xFF);
-        byte b = (byte)(color & 0xFF);
-
-        // Fill paint — yarı şeffaf dolgu
-        using var fillPaint = new SKPaint
-        {
-            Color = new SKColor(r, g, b, alpha),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true,
-        };
+        // Fill paint — yarı şeffaf dolgu (cache'lenmiş, diğer Draw* metodlarıyla aynı desen)
+        var fillPaint = GetFillPaint(color, alpha, SKPaintStyle.Fill);
         _canvas.DrawPath(path, fillPaint);
 
         // Kontur çizgisi (hairline, opak) — kenarları belirginleştirir
-        using var strokePaint = new SKPaint
-        {
-            Color = new SKColor(r, g, b, 180),
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 0f, // Hairline
-            IsAntialias = false,
-        };
+        var strokePaint = GetFillPaint(color, 180, SKPaintStyle.Stroke);
         _canvas.DrawPath(path, strokePaint);
     }
 }

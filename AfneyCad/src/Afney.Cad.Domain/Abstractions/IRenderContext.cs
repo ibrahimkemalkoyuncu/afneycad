@@ -32,7 +32,7 @@ public interface IRenderContext
     // AMACI: Boruları sadece çizgi değil, et kalınlığı ve gölgelendirmesi olan silindirler olarak çizmek için.
     void DrawSolidLine(Vector3D p1, Vector3D p2, uint color, double innerDiameter, double outerDiameter);
     
-    void DrawSpline(IEnumerable<Vector3D> points, uint color, double thickness, string linetype = "Continuous");
+    void DrawSpline(IReadOnlyList<Vector3D> points, uint color, double thickness, string linetype = "Continuous");
     void DrawText(string text, Vector3D position, double angleDegrees, double fontSize, uint color, bool centerAlign = true);
 
     // NE: Dolu Çokgen Çiz (Hatch Fill)

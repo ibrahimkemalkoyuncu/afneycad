@@ -127,6 +127,24 @@ namespace Afney.Cad.Presentation.Views;
         private readonly SKPaint _originTxtPaint = new() { Color = SKColors.White, TextSize = 13, IsAntialias = true };
         private readonly SKPaint _hoverBoxPaint  = new() { Color = new SKColor(173, 216, 230, 190), Style = SKPaintStyle.Stroke, StrokeWidth = 3f, IsAntialias = true };
 
+        // ── UCS İkonu paint'leri (DrawUCSIcon her frame koşulsuz çağrılır) ─────────────────
+        private readonly SKPaint _ucsXPaint      = new() { Color = new SKColor(220, 50, 50), StrokeWidth = 2.5f, IsAntialias = true, Style = SKPaintStyle.Stroke };
+        private readonly SKPaint _ucsYPaint      = new() { Color = new SKColor(50, 220, 50), StrokeWidth = 2.5f, IsAntialias = true, Style = SKPaintStyle.Stroke };
+        private readonly SKPaint _ucsXLabelPaint = new() { Color = new SKColor(220, 50, 50), TextSize = 12, IsAntialias = true, FakeBoldText = true };
+        private readonly SKPaint _ucsYLabelPaint = new() { Color = new SKColor(50, 220, 50), TextSize = 12, IsAntialias = true, FakeBoldText = true };
+        private readonly SKPaint _ucsCenterPaint = new() { Color = new SKColor(180, 180, 180), StrokeWidth = 1.5f, IsAntialias = true, Style = SKPaintStyle.Stroke };
+
+        // ── Snap marker paint'leri (tip başına stroke/glow/text — DrawSnapMarker sık çağrılır) ─
+        private readonly System.Collections.Generic.Dictionary<SnapPointType, SKPaint> _snapStrokePaints = new();
+        private readonly System.Collections.Generic.Dictionary<SnapPointType, SKPaint> _snapGlowPaints = new();
+        private readonly System.Collections.Generic.Dictionary<SnapPointType, SKPaint> _snapTextPaints = new();
+
+        // ── Seçim kutusu paint'leri (window/crossing × fill/stroke — sürükleme sırasında sık çağrılır) ─
+        private readonly SKPaint _selBoxWindowFill = new() { Color = new SKColor(52, 152, 219, 80), Style = SKPaintStyle.Fill };
+        private readonly SKPaint _selBoxWindowStroke = new() { Color = new SKColor(52, 152, 219), Style = SKPaintStyle.Stroke, StrokeWidth = 1 };
+        private readonly SKPaint _selBoxCrossingFill = new() { Color = new SKColor(46, 204, 113, 80), Style = SKPaintStyle.Fill };
+        private readonly SKPaint _selBoxCrossingStroke = new() { Color = new SKColor(46, 204, 113), Style = SKPaintStyle.Stroke, StrokeWidth = 1, PathEffect = SKPathEffect.CreateDash(new float[] { 5, 5 }, 0) };
+
         // NE: Kalıcı Render Context (SkiaRenderContext)
         // NEDEN: Önceden OnPaintSurface HER FRAME'de "new SkiaRenderContext(...)" ile bu sınıfı
         // sıfırdan yaratıyordu. Sınıfın paint cache'i (_paintCache/_textPaintCache) instance alanı
@@ -164,6 +182,18 @@ namespace Afney.Cad.Presentation.Views;
             _originYPaint?.Dispose();
             _originTxtPaint?.Dispose();
             _hoverBoxPaint?.Dispose();
+            _ucsXPaint?.Dispose();
+            _ucsYPaint?.Dispose();
+            _ucsXLabelPaint?.Dispose();
+            _ucsYLabelPaint?.Dispose();
+            _ucsCenterPaint?.Dispose();
+            foreach (var p in _snapStrokePaints.Values) p?.Dispose();
+            foreach (var p in _snapGlowPaints.Values) p?.Dispose();
+            foreach (var p in _snapTextPaints.Values) p?.Dispose();
+            _selBoxWindowFill?.Dispose();
+            _selBoxWindowStroke?.Dispose();
+            _selBoxCrossingFill?.Dispose();
+            _selBoxCrossingStroke?.Dispose();
             _renderContext?.Dispose();
             _renderContext = null;
             _zoomTimer?.Stop();
