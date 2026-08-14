@@ -980,12 +980,44 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
-        private void OnRecalculatePlumbing(object sender, RoutedEventArgs e)
+        private async void OnRecalculatePlumbing(object sender, RoutedEventArgs e)
         {
-            _mechanicalKernel.RecalculateProject(_database.GetAllEntities());
-            _mechanicalKernel.ResolveAllClashes(_database.GetAllEntities());
-            Viewport.InvalidateViewport();
-            StatusText.Text = "Tesisat hesaplamaları ve otomatik çakışma giderme tamamlandı.";
+            try
+            {
+                StatusText.Text = "Tesisat hesaplamaları ve otomatik çakışma giderme yapılıyor...";
+                MainProgressBar.IsIndeterminate = false;
+                MainProgressBar.Minimum = 0;
+                MainProgressBar.Maximum = 100;
+                MainProgressBar.Value = 0;
+                MainProgressBar.Visibility = Visibility.Visible;
+
+                var entities = _database.GetAllEntities().ToList();
+
+                var progress = new Progress<(int Percent, string Stage)>(p =>
+                {
+                    MainProgressBar.Value = p.Percent;
+                    StatusText.Text = $"Tesisat hesaplaması: %{p.Percent} — {p.Stage}";
+                });
+
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    _mechanicalKernel.RecalculateProject(entities, progress);
+                    _mechanicalKernel.ResolveAllClashes(entities);
+                });
+
+                Viewport.InvalidateViewport();
+                StatusText.Text = "Tesisat hesaplamaları ve otomatik çakışma giderme tamamlandı.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Tesisat hesaplama hatası: {ex.Message}");
+                StatusText.Text = "Tesisat hesaplaması başarısız.";
+            }
+            finally
+            {
+                MainProgressBar.Visibility = Visibility.Collapsed;
+                MainProgressBar.IsIndeterminate = true;
+            }
         }
 
         private void OnRiserGenerateCommand(object sender, RoutedEventArgs e)
@@ -1111,34 +1143,51 @@ namespace Afney.Cad.Presentation
                 }
             };
 
-            dialog.OnShow3D += (levels) =>
+            dialog.OnShow3D += async (levels) =>
             {
                 try
                 {
                     StatusText.Text = "Bina montajı yapılıyor (BIM Alignment)...";
-
-                    var assemblyService = new BuildingAssemblyService(_database, _mechanicalKernel);
+                    MainProgressBar.IsIndeterminate = false;
+                    MainProgressBar.Minimum = 0;
+                    MainProgressBar.Maximum = 100;
+                    MainProgressBar.Value = 0;
+                    MainProgressBar.Visibility = Visibility.Visible;
 
                     var regs = levels.Select(l => new LevelFileRegistration
                     {
                         FilePath = l.FilePath,
                         Elevation = l.Elevation,
                         LevelName = l.LevelName
+                    }).ToList();
+
+                    var progress = new Progress<(int Percent, string Stage)>(p =>
+                    {
+                        MainProgressBar.Value = p.Percent;
+                        StatusText.Text = $"Bina montajı: %{p.Percent} — {p.Stage}";
                     });
 
-                    assemblyService.AssembleBuilding(regs);
+                    await System.Threading.Tasks.Task.Run(() =>
+                    {
+                        var assemblyService = new BuildingAssemblyService(_database, _mechanicalKernel);
+                        assemblyService.AssembleBuilding(regs);
+                        _mechanicalKernel.RecalculateProject(_database.GetAllEntities(), progress);
+                    });
 
                     Viewport.SetViewMode(true);
                     Viewport.InvalidateViewport();
                     Viewport.ZoomExtents();
-
-                    _mechanicalKernel.RecalculateProject(_database.GetAllEntities());
 
                     StatusText.Text = "3D Bina Modeli ve Tesisat Ağı Oluşturuldu.";
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"3D Model oluşturulurken hata: {ex.Message}");
+                }
+                finally
+                {
+                    MainProgressBar.Visibility = Visibility.Collapsed;
+                    MainProgressBar.IsIndeterminate = true;
                 }
             };
 

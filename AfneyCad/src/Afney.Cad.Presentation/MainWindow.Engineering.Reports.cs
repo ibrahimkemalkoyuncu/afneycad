@@ -67,7 +67,7 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void OnGenerateHydraulicReport(object sender, RoutedEventArgs e)
+        private async void OnGenerateHydraulicReport(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -79,8 +79,27 @@ namespace Afney.Cad.Presentation
                 }
 
                 // Önce tam hidrolik hesap çalıştır (FlowCalc + AutoSize)
+                StatusText.Text = "Hidrolik rapor için hesaplama yapılıyor...";
+                MainProgressBar.IsIndeterminate = false;
+                MainProgressBar.Minimum = 0;
+                MainProgressBar.Maximum = 100;
+                MainProgressBar.Value = 0;
+                MainProgressBar.Visibility = Visibility.Visible;
+
                 var allEntities = _database.GetAllEntities().ToList();
-                _mechanicalKernel.RecalculateProject(allEntities);
+                var progress = new Progress<(int Percent, string Stage)>(p =>
+                {
+                    MainProgressBar.Value = p.Percent;
+                    StatusText.Text = $"Hidrolik rapor hesaplaması: %{p.Percent} — {p.Stage}";
+                });
+
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    _mechanicalKernel.RecalculateProject(allEntities, progress);
+                });
+
+                MainProgressBar.Visibility = Visibility.Collapsed;
+                MainProgressBar.IsIndeterminate = true;
 
                 var pressureService = new PressureDropService(
                     _mechanicalKernel.TopologyGraph, _mechanicalKernel.ProjectSettings, _database);
@@ -113,6 +132,11 @@ namespace Afney.Cad.Presentation
             catch (Exception ex)
             {
                 MessageBox.Show($"Hidrolik Rapor Hatası: {ex.Message}", "Hata");
+            }
+            finally
+            {
+                MainProgressBar.Visibility = Visibility.Collapsed;
+                MainProgressBar.IsIndeterminate = true;
             }
         }
 

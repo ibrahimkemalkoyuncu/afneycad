@@ -15,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Input;
 using Serilog;
 using Afney.Cad.Mechanical.Entities; // Eklendi
+using Afney.Cad.Mechanical;
 
 namespace Afney.Cad.Presentation.Views;
 
@@ -38,6 +39,15 @@ namespace Afney.Cad.Presentation.Views;
         private SnapPoint? _activeSnap;
         private Vector3D? _lastMouseWorldPos;
         public Vector3D? LastMouseWorldPos => _lastMouseWorldPos;
+
+        /*
+           NE: Mekanik Kernel Referansı (MechanicalKernel)
+           NEDEN: Boru grip sürükleme (Stretch) sırasında bağlı Dirsek/T-Parçası topolojisine
+                  erişmek için önceden her MouseMove'da reflection (GetType().GetField/GetProperty)
+                  kullanılıyordu — saniyede onlarca kez çalışan bir hot-path için ağır ve kırılgan.
+                  MainWindow artık CreateNewDocument() içinde bu referansı doğrudan set ediyor.
+        */
+        public MechanicalKernel? MechanicalKernel { get; set; }
 
         // Tab ile üst üste binen nesneler arası geçiş (bkz. CycleOverlappingEntity)
         private List<CadEntity>? _tabCycleCandidates;

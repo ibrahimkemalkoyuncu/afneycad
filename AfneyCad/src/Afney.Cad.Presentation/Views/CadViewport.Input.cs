@@ -15,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Input;
 using Serilog;
 using Afney.Cad.Mechanical.Entities; // Eklendi
+using Afney.Cad.Mechanical.Engine;
 
 namespace Afney.Cad.Presentation.Views;
 
@@ -183,12 +184,7 @@ namespace Afney.Cad.Presentation.Views;
                 // Ve o Dirsek/T-Parçasına bağlı diğer boruların DA o ucu sündürülmeli!
                 if (_activeGripEntity is PipeEntity pipe && (_activeGripIndex == 0 || _activeGripIndex == 1))
                 {
-                    var mainWindow = System.Windows.Application.Current.MainWindow;
-                    var fieldInfo = mainWindow?.GetType().GetField("_mechanicalKernel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                                   ?? mainWindow?.GetType().GetField("MechanicalKernel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                                   
-                    var kernel = fieldInfo?.GetValue(mainWindow);
-                    var graph = kernel?.GetType().GetProperty("TopologyGraph")?.GetValue(kernel) as Afney.Cad.Mechanical.Engine.MechanicalTopologyGraph;
+                    var graph = MechanicalKernel?.TopologyGraph;
 
                     if (graph == null)
                     {

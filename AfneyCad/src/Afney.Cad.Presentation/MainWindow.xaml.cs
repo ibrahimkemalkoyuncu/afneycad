@@ -113,6 +113,7 @@ namespace Afney.Cad.Presentation
 
             var viewport = new Afney.Cad.Presentation.Views.CadViewport();
             viewport.Initialize(ctx.Database, ctx.SnapEngine, ctx.SelectionManager);
+            viewport.MechanicalKernel = ctx.MechanicalKernel;
             viewport.OnFeedback += (msg) => StatusText.Text = msg;
             viewport.OnUndoRequested += () =>
             {
