@@ -29,6 +29,16 @@ public class NURBSCurve
     private readonly double[] _weights;
     private readonly int _degree;
 
+    // NE: Türev eğrisi (GetDerivative'in içindeki degree-1 yardımcı NURBSCurve'ü) cache.
+    // NEDEN: Türev kontrol noktaları/knot'ları SADECE orijinal eğrinin (_controlPoints/
+    //        _knots/_degree) bir fonksiyonudur, GetDerivative'in `parameter` argümanına
+    //        BAĞLI DEĞİLDİR. Önceden her GetDerivative çağrısında (ör. teğet/perpendicular
+    //        snap sırasında tekrar tekrar) yeni control point + knot + weight array'leri
+    //        allocate edilip yeni bir NURBSCurve inşa ediliyordu. Bu eğrinin kontrol
+    //        noktaları/knot'ları değişmediği sürece (readonly alanlar — obje immutable)
+    //        geçerli olduğundan ilk çağrıda hesaplanıp saklanıyor (lazy-init).
+    private NURBSCurve? _cachedDerivativeCurve;
+
     public int Degree => _degree;
     public int ControlPointCount => _controlPoints.Length;
     
@@ -215,12 +225,33 @@ public class NURBSCurve
     {
         // Analytic Calculus: Hodograph Control Points
         // C'(u) = Sum( N_{i,p-1}(u) * Q_i )
-        
+
+        // NE/NEDEN: Türev kontrol noktaları/knot'ları/weight'leri SADECE bu eğrinin
+        // (_controlPoints/_knots/_degree) fonksiyonu — `parameter`'a bağlı değil. Önceden
+        // her çağrıda yeniden allocate edilip yeni bir NURBSCurve inşa ediliyordu; artık
+        // ilk çağrıda hesaplanıp _cachedDerivativeCurve alanında saklanıyor.
+        var derivCurve = _cachedDerivativeCurve ??= BuildDerivativeCurve();
+        if (derivCurve == null) return Vector3D.Zero;
+
+        try
+        {
+            return derivCurve.Evaluate(parameter);
+        }
+        catch
+        {
+             // Fallback: Knot vector uyumsuzluğu olursa (Uç durumlarda)
+             // Manuel hesaplama yap
+             return Vector3D.Zero;
+        }
+    }
+
+    private NURBSCurve? BuildDerivativeCurve()
+    {
         // 1. Türev Kontrol Noktalarını (Q) Hesapla
         // Q_i = p * (P_{i+1} - P_i) / (u_{i+p+1} - u_{i+1})
         int n = _controlPoints.Length - 1;
         var derivControlPoints = new Vector3D[n];
-        
+
         for (int i = 0; i < n; i++)
         {
             double denominator = _knots[i + _degree + 1] - _knots[i + 1];
@@ -235,44 +266,27 @@ public class NURBSCurve
         }
 
         // 2. Bir Derece Düşük (degree-1) Baz Fonksiyonları
-        // Knot Vektörü: Ilk ve son elemanı at (Basitleştirilmiş) 
+        // Knot Vektörü: Ilk ve son elemanı at (Basitleştirilmiş)
         // Gerçek implementasyonda U' = U[1...m-1] kullanılır.
         // Ancak bu proje kapsamında basit Evaluate mantığı yeterli:
-        
-        // Hızlandırma için sadece ilgili span ve baz fonksiyonlarını manuel hesaplayalım
-        // N_{i, p-1}(u)
-        
-        int span = FindSpan(parameter);
-        
-        // ComputeBasisFunctions metodunu (degree-1) için çağırmak gerekir
-        // Bunun yerine recursive formülün türevini burada işletmek daha performanslıdır ama
-        // Kod tekrarı olmasın diye basit bir Evaluate benzeri döngü kuruyoruz:
-        
-        Vector3D derivative = Vector3D.Zero;
-        
-        // Not: Tam implementasyon için yeni bir NURBSCurve instance'ı (degree-1) oluşturup Evaluate demek
-        // temiz bir mühendislik yaklaşımıdır.
-        
+
         // Knot vector for derivative curve: Remove first and last knot
         var derivKnots = new double[_knots.Length - 2];
         Array.Copy(_knots, 1, derivKnots, 0, _knots.Length - 2);
 
-        // Create temporary curve object for derivative evaluation
-        // Bu yaklaşım O(1) değil ama kodun doğruluğu (Correctness) için en güvenli yoldur.
+        // Create cached curve object for derivative evaluation
         // "No Shortcut" prensibi gereği doğru matematik uygulanmalı.
-        try 
+        try
         {
              // Weights şimdilik ihmal (Non-Rational B-Spline varsayımı)
              // Rational (NURBS) türevi çok daha karmaşık: A'(u)/w(u) - A(u)w'(u)/w(u)^2
              // Şimdilik sadece B-Spline türevi:
-             var derivCurve = new NURBSCurve(derivControlPoints, derivKnots, new double[derivControlPoints.Length], _degree - 1);
-             return derivCurve.Evaluate(parameter);
+             return new NURBSCurve(derivControlPoints, derivKnots, new double[derivControlPoints.Length], _degree - 1);
         }
         catch
         {
              // Fallback: Knot vector uyumsuzluğu olursa (Uç durumlarda)
-             // Manuel hesaplama yap
-             return Vector3D.Zero; 
+             return null;
         }
     }
 

@@ -75,10 +75,24 @@ public class RevitIfcMappingService
         var lines = File.ReadAllLines(filePath);
         var stepEntities = ParseStepFile(lines);
 
+        // NE/NEDEN: O(n²) → O(n) — önceden ExtractPlacementPoints/ExtractMaterial/
+        // ExtractSystemClassification her çağrıda `stepEntities.FirstOrDefault(...)` ile
+        // TÜM listeyi lineer tarıyordu (her boru/cihaz/kanal dönüştürülürken tekrar tekrar).
+        // IfcImportService.cs'deki desenle aynı: Id'ye göre bir kez Dictionary kuruluyor;
+        // IFCMATERIAL/IFCSYSTEM referansları için de bir kez (hedef-Id → tanım-entity)
+        // ön-indeks çıkarılıyor. Dönüşüm döngüleri artık O(1) sözlük sorgusu yapıyor.
+        // (ToDictionary yerine döngü kullanılıyor — malformed STEP dosyasında yinelenen
+        //  Id'ler ToDictionary'nin ArgumentException fırlatmasına yol açabilir; burada
+        //  IfcImportService.cs'deki gibi son-yazan-kazanır davranışı tercih edildi.)
+        var byId = new Dictionary<string, StepEntity>(StringComparer.Ordinal);
+        foreach (var e in stepEntities) byId[e.Id] = e;
+        var materialByTargetId = BuildReverseRefIndex(stepEntities, "IFCMATERIAL");
+        var systemByTargetId = BuildReverseRefIndex(stepEntities, "IFCSYSTEM");
+
         // IfcPipeSegment → PipeEntity
         foreach (var ent in stepEntities.Where(e => e.Type is "IFCPIPESEGMENT" or "IFCFLOWSEGMENT"))
         {
-            var pipe = ConvertToPipe(ent, stepEntities);
+            var pipe = ConvertToPipe(ent, byId, materialByTargetId, systemByTargetId);
             if (pipe != null)
             {
                 _database.AddEntity(pipe);
@@ -89,7 +103,7 @@ public class RevitIfcMappingService
         // IfcFlowTerminal → SanitaryFixtureEntity
         foreach (var ent in stepEntities.Where(e => e.Type is "IFCFLOWTERMINAL" or "IFCSANITARYTERMINAL"))
         {
-            var fixture = ConvertToFixture(ent, stepEntities);
+            var fixture = ConvertToFixture(ent, byId);
             if (fixture != null)
             {
                 _database.AddEntity(fixture);
@@ -100,7 +114,7 @@ public class RevitIfcMappingService
         // IfcDuctSegment → DuctEntity
         foreach (var ent in stepEntities.Where(e => e.Type is "IFCDUCTSEGMENT"))
         {
-            var duct = ConvertToDuct(ent, stepEntities);
+            var duct = ConvertToDuct(ent, byId);
             if (duct != null)
             {
                 _database.AddEntity(duct);
@@ -124,14 +138,15 @@ public class RevitIfcMappingService
         return result;
     }
 
-    private PipeEntity? ConvertToPipe(StepEntity ent, List<StepEntity> all)
+    private PipeEntity? ConvertToPipe(StepEntity ent, Dictionary<string, StepEntity> byId,
+        Dictionary<string, StepEntity> materialByTargetId, Dictionary<string, StepEntity> systemByTargetId)
     {
-        var points = ExtractPlacementPoints(ent, all);
+        var points = ExtractPlacementPoints(ent, byId);
         if (points.Count < 2) return null;
 
         double dn = ExtractNominalDiameter(ent);
-        string materialName = ExtractMaterial(ent, all);
-        string systemName = ExtractSystemClassification(ent, all);
+        string materialName = ExtractMaterial(ent, materialByTargetId);
+        string systemName = ExtractSystemClassification(ent, systemByTargetId);
 
         var pipe = new PipeEntity(points[0], points[1], dn > 0 ? dn : 20)
         {
@@ -144,9 +159,9 @@ public class RevitIfcMappingService
         return pipe;
     }
 
-    private SanitaryFixtureEntity? ConvertToFixture(StepEntity ent, List<StepEntity> all)
+    private SanitaryFixtureEntity? ConvertToFixture(StepEntity ent, Dictionary<string, StepEntity> byId)
     {
-        var points = ExtractPlacementPoints(ent, all);
+        var points = ExtractPlacementPoints(ent, byId);
         if (points.Count == 0) return null;
 
         string name = ExtractName(ent);
@@ -162,9 +177,9 @@ public class RevitIfcMappingService
         };
     }
 
-    private DuctEntity? ConvertToDuct(StepEntity ent, List<StepEntity> all)
+    private DuctEntity? ConvertToDuct(StepEntity ent, Dictionary<string, StepEntity> byId)
     {
-        var points = ExtractPlacementPoints(ent, all);
+        var points = ExtractPlacementPoints(ent, byId);
         if (points.Count < 2) return null;
 
         return new DuctEntity(points[0], points[1], 400, 300)
@@ -197,13 +212,13 @@ public class RevitIfcMappingService
         return entities;
     }
 
-    private List<Vector3D> ExtractPlacementPoints(StepEntity ent, List<StepEntity> all)
+    private List<Vector3D> ExtractPlacementPoints(StepEntity ent, Dictionary<string, StepEntity> byId)
     {
         var points = new List<Vector3D>();
         var refs = ent.Args.Split(',').Where(s => s.Trim().StartsWith("#")).Select(s => s.Trim());
         foreach (var r in refs)
         {
-            var refEnt = all.FirstOrDefault(e => e.Id == r);
+            byId.TryGetValue(r, out var refEnt);
             if (refEnt?.Type == "IFCCARTESIANPOINT")
             {
                 var coords = refEnt.Args.Replace("(", "").Replace(")", "").Split(',');
@@ -232,10 +247,9 @@ public class RevitIfcMappingService
         return 0;
     }
 
-    private string ExtractMaterial(StepEntity ent, List<StepEntity> all)
+    private string ExtractMaterial(StepEntity ent, Dictionary<string, StepEntity> materialByTargetId)
     {
-        var matRef = all.FirstOrDefault(e => e.Type == "IFCMATERIAL" && e.Args.Contains(ent.Id));
-        if (matRef != null)
+        if (materialByTargetId.TryGetValue(ent.Id, out var matRef))
         {
             var name = matRef.Args.Split(',').FirstOrDefault()?.Trim().Trim('\'');
             if (!string.IsNullOrEmpty(name)) return name;
@@ -243,15 +257,39 @@ public class RevitIfcMappingService
         return "PPR";
     }
 
-    private string ExtractSystemClassification(StepEntity ent, List<StepEntity> all)
+    private string ExtractSystemClassification(StepEntity ent, Dictionary<string, StepEntity> systemByTargetId)
     {
-        var sysRef = all.FirstOrDefault(e => e.Type == "IFCSYSTEM" && e.Args.Contains(ent.Id));
-        if (sysRef != null)
+        if (systemByTargetId.TryGetValue(ent.Id, out var sysRef))
         {
             var name = sysRef.Args.Split(',').Skip(2).FirstOrDefault()?.Trim().Trim('\'');
             if (!string.IsNullOrEmpty(name)) return name;
         }
         return "Domestic Cold Water";
+    }
+
+    // NE: Bir referans tipinin (IFCMATERIAL/IFCSYSTEM) ARGS'ında geçen her entity Id'sini
+    //     o referans entity'ye eşleyen ters-indeks (hedef Id → tanım entity).
+    // NEDEN: ExtractMaterial/ExtractSystemClassification önceden her çağrıda TÜM entity
+    //        listesini (`all.FirstOrDefault(e => e.Type == X && e.Args.Contains(ent.Id))`)
+    //        tarıyordu. Bu, aynı orijinal "ilk eşleşen tanım entity'yi (doküman sırasına
+    //        göre) döndür" semantiğini KORUYARAK bir kez hesaplanır: tanım entity'leri
+    //        (tipik olarak boru/cihaz sayısından çok daha az) doküman sırasında gezilir,
+    //        her biri hangi hedef Id'leri içeriyorsa (substring — orijinal davranışla
+    //        birebir aynı) ve o hedef Id daha önce atanmamışsa indekse eklenir.
+    private static Dictionary<string, StepEntity> BuildReverseRefIndex(List<StepEntity> all, string refType)
+    {
+        var index = new Dictionary<string, StepEntity>(StringComparer.Ordinal);
+        foreach (var refEnt in all)
+        {
+            if (refEnt.Type != refType) continue;
+            foreach (var candidate in all)
+            {
+                if (index.ContainsKey(candidate.Id)) continue;
+                if (refEnt.Args.Contains(candidate.Id))
+                    index[candidate.Id] = refEnt;
+            }
+        }
+        return index;
     }
 
     private string ExtractName(StepEntity ent)

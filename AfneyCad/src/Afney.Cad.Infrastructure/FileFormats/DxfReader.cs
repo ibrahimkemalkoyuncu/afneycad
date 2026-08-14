@@ -118,13 +118,20 @@ namespace Afney.Cad.Infrastructure.FileFormats
                 }
             }
 
+            // NE/NEDEN: Önceden her INSERT için `blocks.FirstOrDefault(b => b.Name == bName)`
+            // TÜM blok listesini lineer tarıyordu (dosyada çok sayıda INSERT varsa O(n²)).
+            // Blok tanımları oluşturulduktan hemen sonra bir kez isimle indekslenmiş
+            // Dictionary kuruluyor; INSERT işleme döngüsü artık TryGetValue ile O(1) sorguluyor.
+            var blocksByName = new Dictionary<string, CadBlockRecord>(StringComparer.Ordinal);
+            foreach (var b in blockRecords) blocksByName[b.Name] = b;
+
             // 3. ENTITY DÖNÜŞÜMÜ
             foreach (var entity in doc.Entities)
             {
                 // Partial recovery: tek bir hatalı entity tüm import'u iptal etmemeli.
                 try
                 {
-                    var converted = Convert(entity, asReference, blockRecords);
+                    var converted = Convert(entity, asReference, blocksByName);
                     foreach (var c in converted) db.AddEntity(c);
                 }
                 catch (Exception exEnt)
@@ -136,7 +143,7 @@ namespace Afney.Cad.Infrastructure.FileFormats
             return db;
         }
 
-        private IEnumerable<CadEntity> Convert(object item, bool asRef, List<CadBlockRecord>? blocks)
+        private IEnumerable<CadEntity> Convert(object item, bool asRef, Dictionary<string, CadBlockRecord>? blocksByName)
         {
             if (item == null) return Enumerable.Empty<CadEntity>();
             
@@ -160,7 +167,8 @@ namespace Afney.Cad.Infrastructure.FileFormats
             {
                 try {
                     string bName = entity.Block.Name;
-                    var record = blocks?.FirstOrDefault(b => b.Name == bName);
+                    CadBlockRecord? record = null;
+                    blocksByName?.TryGetValue(bName, out record);
                     if (record != null)
                     {
                         Vector3D ip = new Vector3D(entity.InsertPoint.X, entity.InsertPoint.Y, 0);
