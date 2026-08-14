@@ -4,7 +4,22 @@ namespace Afney.Cad.Geometry.Primitives;
 
 public struct Matrix4x4
 {
-    private double[,] _m;
+    /*
+       NE: 16 ayrı alan (satır-öncelikli: M{satır}{sütun}) ile matris depolama
+       NEDEN: Önceden burada `private double[,] _m` (heap array) vardı — struct kopyalandığında
+              (atama, metod parametresi, dönüş değeri) sadece array REFERANSI kopyalanıyordu,
+              yani "bağımsız" iki Matrix4x4 kopyası aslında AYNI arka plan array'ini paylaşıyordu.
+              Biri indexer ile (this[i,j] = ...) mutasyona uğrarsa diğer kopya da sessizce
+              değişiyordu — struct'ın value-type garantisini kıran bir doğruluk hatası.
+              Kod tabanında şu an bunu tetikleyen bir "kopyala sonra mutasyona uğrat" kullanımı
+              yok (tüm static factory'ler taze bir instance üretip dolduruyor) ama indexer public
+              olduğu için gelecekte doğal bir kullanım bu hataya düşebilirdi. 16 ayrı double alanı
+              gerçek value-type kopyalama sağlıyor, hiçbir heap allocation gerektirmiyor.
+    */
+    private double M00, M01, M02, M03;
+    private double M10, M11, M12, M13;
+    private double M20, M21, M22, M23;
+    private double M30, M31, M32, M33;
 
     /*
        NE: Matrix4x4 Yapıcı Metodu
@@ -12,23 +27,40 @@ public struct Matrix4x4
     */
     public Matrix4x4()
     {
-        _m = new double[4, 4];
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < 4; j++)
-                _m[i, j] = (i == j) ? 1.0 : 0.0;
+        M00 = 1.0; M01 = 0.0; M02 = 0.0; M03 = 0.0;
+        M10 = 0.0; M11 = 1.0; M12 = 0.0; M13 = 0.0;
+        M20 = 0.0; M21 = 0.0; M22 = 1.0; M23 = 0.0;
+        M30 = 0.0; M31 = 0.0; M32 = 0.0; M33 = 1.0;
     }
 
     // Erişim İndeksleyicisi
     public double this[int row, int col]
     {
-        get => _m[row, col];
-        set => _m[row, col] = value;
+        get => (row, col) switch
+        {
+            (0, 0) => M00, (0, 1) => M01, (0, 2) => M02, (0, 3) => M03,
+            (1, 0) => M10, (1, 1) => M11, (1, 2) => M12, (1, 3) => M13,
+            (2, 0) => M20, (2, 1) => M21, (2, 2) => M22, (2, 3) => M23,
+            (3, 0) => M30, (3, 1) => M31, (3, 2) => M32, (3, 3) => M33,
+            _ => throw new IndexOutOfRangeException($"Matrix4x4 indeksi 0-3 aralığında olmalı: [{row},{col}]")
+        };
+        set
+        {
+            switch (row, col)
+            {
+                case (0, 0): M00 = value; break; case (0, 1): M01 = value; break; case (0, 2): M02 = value; break; case (0, 3): M03 = value; break;
+                case (1, 0): M10 = value; break; case (1, 1): M11 = value; break; case (1, 2): M12 = value; break; case (1, 3): M13 = value; break;
+                case (2, 0): M20 = value; break; case (2, 1): M21 = value; break; case (2, 2): M22 = value; break; case (2, 3): M23 = value; break;
+                case (3, 0): M30 = value; break; case (3, 1): M31 = value; break; case (3, 2): M32 = value; break; case (3, 3): M33 = value; break;
+                default: throw new IndexOutOfRangeException($"Matrix4x4 indeksi 0-3 aralığında olmalı: [{row},{col}]");
+            }
+        }
     }
 
     public static Matrix4x4 Identity => new Matrix4x4();
 
     // Dönüşüm Matrisindeki Öteleme Vektörü (Position)
-    public Vector3D Translation => new Vector3D(_m[0, 3], _m[1, 3], _m[2, 3]);
+    public Vector3D Translation => new Vector3D(M03, M13, M23);
 
     /*
        NE: Öteleme Matrisi Oluştur (TranslationMatrix)
@@ -37,9 +69,9 @@ public struct Matrix4x4
     public static Matrix4x4 TranslationMatrix(double x, double y, double z)
     {
         var mat = new Matrix4x4();
-        mat._m[0, 3] = x;
-        mat._m[1, 3] = y;
-        mat._m[2, 3] = z;
+        mat.M03 = x;
+        mat.M13 = y;
+        mat.M23 = z;
         return mat;
     }
 
@@ -50,18 +82,18 @@ public struct Matrix4x4
     public static Matrix4x4 Scaling(double s)
     {
         var mat = new Matrix4x4();
-        mat._m[0, 0] = s;
-        mat._m[1, 1] = s;
-        mat._m[2, 2] = s;
+        mat.M00 = s;
+        mat.M11 = s;
+        mat.M22 = s;
         return mat;
     }
 
     public static Matrix4x4 Scaling(double x, double y, double z)
     {
         var mat = new Matrix4x4(); // Identity
-        mat._m[0, 0] = x;
-        mat._m[1, 1] = y;
-        mat._m[2, 2] = z;
+        mat.M00 = x;
+        mat.M11 = y;
+        mat.M22 = z;
         return mat;
     }
 
@@ -72,9 +104,9 @@ public struct Matrix4x4
     */
     public Vector3D Transform(Vector3D v)
     {
-        double x = _m[0, 0] * v.X + _m[0, 1] * v.Y + _m[0, 2] * v.Z + _m[0, 3];
-        double y = _m[1, 0] * v.X + _m[1, 1] * v.Y + _m[1, 2] * v.Z + _m[1, 3];
-        double z = _m[2, 0] * v.X + _m[2, 1] * v.Y + _m[2, 2] * v.Z + _m[2, 3];
+        double x = M00 * v.X + M01 * v.Y + M02 * v.Z + M03;
+        double y = M10 * v.X + M11 * v.Y + M12 * v.Z + M13;
+        double z = M20 * v.X + M21 * v.Y + M22 * v.Z + M23;
         // w bileşenini ihmal ediyoruz (homojen koordinatlar için gerekli olabilir ama şu an basit tutalım)
         return new Vector3D(x, y, z);
     }
@@ -84,10 +116,10 @@ public struct Matrix4x4
         var mat = new Matrix4x4();
         double c = Math.Cos(radians);
         double s = Math.Sin(radians);
-        mat._m[1, 1] = c;
-        mat._m[1, 2] = -s;
-        mat._m[2, 1] = s;
-        mat._m[2, 2] = c;
+        mat.M11 = c;
+        mat.M12 = -s;
+        mat.M21 = s;
+        mat.M22 = c;
         return mat;
     }
 
@@ -96,10 +128,10 @@ public struct Matrix4x4
         var mat = new Matrix4x4();
         double c = Math.Cos(radians);
         double s = Math.Sin(radians);
-        mat._m[0, 0] = c;
-        mat._m[0, 2] = s;
-        mat._m[2, 0] = -s;
-        mat._m[2, 2] = c;
+        mat.M00 = c;
+        mat.M02 = s;
+        mat.M20 = -s;
+        mat.M22 = c;
         return mat;
     }
 
@@ -112,10 +144,10 @@ public struct Matrix4x4
         var mat = new Matrix4x4();
         double c = Math.Cos(radians);
         double s = Math.Sin(radians);
-        mat._m[0, 0] = c;
-        mat._m[0, 1] = -s;
-        mat._m[1, 0] = s;
-        mat._m[1, 1] = c;
+        mat.M00 = c;
+        mat.M01 = -s;
+        mat.M10 = s;
+        mat.M11 = c;
         return mat;
     }
 
@@ -135,11 +167,11 @@ public struct Matrix4x4
     {
         double dx = p2.X - p1.X;
         double dy = p2.Y - p1.Y;
-        
+
         // Eksenin açısı
         double angle = Math.Atan2(dy, dx);
 
-        // Algoritma: 
+        // Algoritma:
         // 1. P1 noktasından Orijine (0,0) taşı
         // 2. Ekseni X ekseni ile hizala (Döndür)
         // 3. Y ekseninde yansıt (Scale: Y = -1)
@@ -155,41 +187,59 @@ public struct Matrix4x4
         // Matris Çarpımı (Sırasıyla sağdan sola uygulanır ama biz a*b yapıyoruz)
         // C#'ta (T2 * R2 * S1 * R1 * T1) şeklinde yazılır (Eğer sol taraf mevcut vektör ise).
         // Veya bizim çarpım metodumuza göre soldan sağa:
-        
+
         return t2 * r2 * s1 * r1 * t1;
     }
 
     public static Matrix4x4 operator *(Matrix4x4 a, Matrix4x4 b)
     {
-        var res = new Matrix4x4();
-        // Identity metodunda 1 olarak atanıyor, burada sıfırlamamız lazım (veya direkt array oluşturup set etmeli)
-        // Ancak constructor Identity çağırıyor, biz üzerine yazacağız.
-        // Daha performanslı olması için Identity() çağrısından kaçınan bir constructor eklenebilir ama şimdilik bu yeterli.
-        for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) res._m[i, j] = 0;
-
-        for (int i = 0; i < 4; i++)
+        var res = new Matrix4x4
         {
-            for (int j = 0; j < 4; j++)
-            {
-                for (int k = 0; k < 4; k++)
-                {
-                    res._m[i, j] += a._m[i, k] * b._m[k, j];
-                }
-            }
-        }
+            M00 = a.M00 * b.M00 + a.M01 * b.M10 + a.M02 * b.M20 + a.M03 * b.M30,
+            M01 = a.M00 * b.M01 + a.M01 * b.M11 + a.M02 * b.M21 + a.M03 * b.M31,
+            M02 = a.M00 * b.M02 + a.M01 * b.M12 + a.M02 * b.M22 + a.M03 * b.M32,
+            M03 = a.M00 * b.M03 + a.M01 * b.M13 + a.M02 * b.M23 + a.M03 * b.M33,
+
+            M10 = a.M10 * b.M00 + a.M11 * b.M10 + a.M12 * b.M20 + a.M13 * b.M30,
+            M11 = a.M10 * b.M01 + a.M11 * b.M11 + a.M12 * b.M21 + a.M13 * b.M31,
+            M12 = a.M10 * b.M02 + a.M11 * b.M12 + a.M12 * b.M22 + a.M13 * b.M32,
+            M13 = a.M10 * b.M03 + a.M11 * b.M13 + a.M12 * b.M23 + a.M13 * b.M33,
+
+            M20 = a.M20 * b.M00 + a.M21 * b.M10 + a.M22 * b.M20 + a.M23 * b.M30,
+            M21 = a.M20 * b.M01 + a.M21 * b.M11 + a.M22 * b.M21 + a.M23 * b.M31,
+            M22 = a.M20 * b.M02 + a.M21 * b.M12 + a.M22 * b.M22 + a.M23 * b.M32,
+            M23 = a.M20 * b.M03 + a.M21 * b.M13 + a.M22 * b.M23 + a.M23 * b.M33,
+
+            M30 = a.M30 * b.M00 + a.M31 * b.M10 + a.M32 * b.M20 + a.M33 * b.M30,
+            M31 = a.M30 * b.M01 + a.M31 * b.M11 + a.M32 * b.M21 + a.M33 * b.M31,
+            M32 = a.M30 * b.M02 + a.M31 * b.M12 + a.M32 * b.M22 + a.M33 * b.M32,
+            M33 = a.M30 * b.M03 + a.M31 * b.M13 + a.M32 * b.M23 + a.M33 * b.M33,
+        };
         return res;
     }
 
-    public static bool operator ==(Matrix4x4 a, Matrix4x4 b)
-    {
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < 4; j++)
-                if (a._m[i, j] != b._m[i, j]) return false;
-        return true;
-    }
+    public static bool operator ==(Matrix4x4 a, Matrix4x4 b) =>
+        a.M00 == b.M00 && a.M01 == b.M01 && a.M02 == b.M02 && a.M03 == b.M03 &&
+        a.M10 == b.M10 && a.M11 == b.M11 && a.M12 == b.M12 && a.M13 == b.M13 &&
+        a.M20 == b.M20 && a.M21 == b.M21 && a.M22 == b.M22 && a.M23 == b.M23 &&
+        a.M30 == b.M30 && a.M31 == b.M31 && a.M32 == b.M32 && a.M33 == b.M33;
 
     public static bool operator !=(Matrix4x4 a, Matrix4x4 b) => !(a == b);
 
     public override bool Equals(object? obj) => obj is Matrix4x4 other && this == other;
-    public override int GetHashCode() => _m?.GetHashCode() ?? 0;
+
+    /*
+       NE: Değer-tabanlı GetHashCode
+       NEDEN: Önceki implementasyon (`_m?.GetHashCode() ?? 0`) array REFERANSININ hash'ini
+              döndürüyordu — iki değerce eşit matris (Equals==true) farklı hash kodu üretebiliyordu,
+              bu Dictionary/HashSet'te Matrix4x4 kullanılırsa sessizce yanlış sonuç doğurabilirdi
+              (kodda şu an Matrix4x4 bir Dictionary/HashSet anahtarı olarak kullanılmıyor, ama
+              Equals/GetHashCode sözleşmesini bozan bir latent hataydı, düzeltilirken giderildi).
+    */
+    public override int GetHashCode()
+    {
+        var h1 = HashCode.Combine(M00, M01, M02, M03, M10, M11, M12, M13);
+        var h2 = HashCode.Combine(M20, M21, M22, M23, M30, M31, M32, M33);
+        return HashCode.Combine(h1, h2);
+    }
 }
