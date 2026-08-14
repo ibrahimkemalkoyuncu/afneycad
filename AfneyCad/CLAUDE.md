@@ -28,8 +28,26 @@ Session #38'de 4745 satırlık MainWindow.xaml.cs 6 dosyaya ayrıldı:
 | `MainWindow.Commands.cs` | 1031 | Çizim komutları, komut satırı, blok işlemleri |
 | `MainWindow.FileOps.cs` | 588 | Dosya aç/kaydet/import/export (DWG/DXF/IFC/PDF/PNG/Excel) |
 | `MainWindow.Layers.cs` | 208 | Layer picker, görünürlük, dondurma, sistem katman toggle |
-| `MainWindow.Engineering.cs` | 1478 | MEP mühendislik: hesaplama, mahal, BOM, pompa, çakışma |
 | `MainWindow.ViewControls.cs` | 135 | Zoom, 2D/3D toggle, OSnap, Ortho, Undo/Redo |
+
+Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt dosyaya ayrıldı:
+
+| Dosya | Satır | Sorumluluk |
+|-------|-------|------------|
+| `MainWindow.Engineering.Hydraulics.cs` | 495 | Hesaplama: hidrolik analiz, otomatik çaplandırma, debi, basınç kaybı, pompa |
+| `MainWindow.Engineering.Rooms.cs` | 602 | Mahal (oda) tanımlama, bağlantı, riser, kolon |
+| `MainWindow.Engineering.Architecture.cs` | 246 | Mimari analiz: tanıma, çakışma, basınç/çakışma overlay |
+| `MainWindow.Engineering.Reports.cs` | 950 | Raporlama, etiketleme, özel hesaplar (pis su/yağmur/gaz/septik/yangın/ısıtma/HVAC), araçlar |
+| `MainWindow.Engineering.Library.cs` | 446 | Kütüphane/katalog (fixture/valve/mimari/üretici/standart) |
+
+`Views/CadViewport.xaml.cs` (1861 satıra büyümüştü) da aynı oturumda bölündü:
+
+| Dosya | Satır | Sorumluluk |
+|-------|-------|------------|
+| `Views/CadViewport.xaml.cs` | 455 | Core: fields, zoom/pan state, ZoomToSelection/ZoomExtents |
+| `Views/CadViewport.Input.cs` | 738 | Fare/klavye olayları, grip sürükleme, seçim, snap |
+| `Views/CadViewport.Rendering.cs` | 432 | Skia render döngüsü, layer/entity çizimi |
+| `Views/CadViewport.ContextMenu.cs` | 317 | Sağ tık bağlam menüsü |
 
 ### MainWindow.xaml.cs (Core)
 - `MainWindow()` — Constructor, event wiring, AutoSave başlatma
@@ -94,7 +112,7 @@ Session #38'de 4745 satırlık MainWindow.xaml.cs 6 dosyaya ayrıldı:
 - `OnToggleColdWater/HotWater/WasteWater/Fire/Gas/Vent()` — Sistem katman toggle
 - `OnShowAllSystems()`, `ToggleSystemLayer()`
 
-### MainWindow.Engineering.cs
+### MainWindow.Engineering.* (Hydraulics/Rooms/Architecture/Reports/Library — bkz. yukarıdaki tablo)
 **Hesaplama:**
 - `OnRecalculateSystem()` — Async hidrolik analiz (TS 1258)
 - `OnAutoPipeSizing()` — Otomatik boru çaplandırma
