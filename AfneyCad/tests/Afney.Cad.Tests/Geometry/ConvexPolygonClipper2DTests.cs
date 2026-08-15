@@ -81,4 +81,107 @@ public class ConvexPolygonClipper2DTests
         var square = Rect(0, 0, 10, 10);
         Assert.Throws<InvalidOperationException>(() => ConvexPolygonClipper2D.Intersect(concave, square, Normal));
     }
+
+    /*
+       NE: Union testleri — `docs/Roadmap_CSG_Boolean.md`'nin "convex-convex 2D union
+           primitifi" (2026-08-15, Session #67) yapı taşı.
+    */
+
+    [Fact]
+    public void Union_CornerNotchSquares_RoadmapScenario_ReturnsOctagonWithCorrectAreaAndVertices()
+    {
+        // Roadmap'in kendi senaryosu: A'nın üst yüzü [0,2000]x[0,2000], B'nin üst yüzü
+        // [1500,3000]x[1500,3000] — köşeden örtüşen iki kare. Elle hesap (bkz. görev
+        // tanımının kendi analizi):
+        //   A_alan = 2000*2000 = 4.000.000 ; B_alan = 1500*1500 = 2.250.000
+        //   kesişim = [1500,2000]x[1500,2000] = 500*500 = 250.000
+        //   UNION_alan = 4.000.000 + 2.250.000 - 250.000 = 6.000.000
+        // Sınır: A'nın 3 köşesi (2000,2000 hariç, B'nin içinde kaldığı için), B'nin 3 köşesi
+        // (1500,1500 hariç, A'nın içinde kaldığı için) + 2 GEÇİŞ (kesişim) noktası
+        // (2000,1500) ve (1500,2000) = TOPLAM 8 köşe (oktogon).
+        var a = Rect(0, 0, 2000, 2000);
+        var b = Rect(1500, 1500, 3000, 3000);
+
+        var result = ConvexPolygonClipper2D.Union(a, b, Normal);
+
+        Assert.Equal(8, result.Count);
+        Assert.Equal(6_000_000.0, PolygonArea(result), 3);
+
+        var expectedVertices = new List<Vector3D>
+        {
+            new(0, 0, 0), new(2000, 0, 0), new(2000, 1500, 0), new(3000, 1500, 0),
+            new(3000, 3000, 0), new(1500, 3000, 0), new(1500, 2000, 0), new(0, 2000, 0)
+        };
+        foreach (var expected in expectedVertices)
+        {
+            Assert.Contains(result, p => p.DistanceTo(expected) < 1e-6);
+        }
+    }
+
+    [Fact]
+    public void Union_IdenticalSquares_ReturnsOriginalSquareArea()
+    {
+        var square = Rect(0, 0, 1000, 1000);
+        var result = ConvexPolygonClipper2D.Union(square, square, Normal);
+        Assert.Equal(1_000_000.0, PolygonArea(result), 3);
+    }
+
+    [Fact]
+    public void Union_OneFullyContainsOther_ReturnsBiggerPolygonArea()
+    {
+        var big = Rect(0, 0, 100, 100);
+        var small = Rect(20, 20, 40, 40);
+
+        var resultBigFirst = ConvexPolygonClipper2D.Union(big, small, Normal);
+        Assert.Equal(10_000.0, PolygonArea(resultBigFirst), 6);
+
+        var resultSmallFirst = ConvexPolygonClipper2D.Union(small, big, Normal);
+        Assert.Equal(10_000.0, PolygonArea(resultSmallFirst), 6);
+    }
+
+    [Fact]
+    public void Union_PartialOverlap_AreaMatchesInclusionExclusion()
+    {
+        var a = Rect(0, 0, 10, 10);
+        var b = Rect(5, 5, 15, 15);
+        // A_alan=100, B_alan=100, kesişim (Intersect testinden bilinen)=25 -> union=175
+        var result = ConvexPolygonClipper2D.Union(a, b, Normal);
+        Assert.Equal(175.0, PolygonArea(result), 6);
+    }
+
+    [Fact]
+    public void Union_DisjointRectangles_ThrowsInsteadOfSilentWrongResult()
+    {
+        var a = Rect(0, 0, 10, 10);
+        var b = Rect(100, 100, 110, 110);
+        Assert.Throws<InvalidOperationException>(() => ConvexPolygonClipper2D.Union(a, b, Normal));
+    }
+
+    [Fact]
+    public void Union_ConcaveInputPolygon_ThrowsInsteadOfSilentWrongResult()
+    {
+        var concave = new List<Vector3D>
+        {
+            new(0, 0, 0), new(10, 0, 0), new(10, 5, 0),
+            new(5, 5, 0), new(5, 10, 0), new(0, 10, 0)
+        };
+        var square = Rect(0, 0, 10, 10);
+        Assert.Throws<InvalidOperationException>(() => ConvexPolygonClipper2D.Union(concave, square, Normal));
+    }
+
+    [Fact]
+    public void Union_ResultIsSimpleClosedLoop_NoSelfIntersectionOrDuplicateVertices()
+    {
+        var a = Rect(0, 0, 2000, 2000);
+        var b = Rect(1500, 1500, 3000, 3000);
+        var result = ConvexPolygonClipper2D.Union(a, b, Normal);
+
+        for (int i = 0; i < result.Count; i++)
+        {
+            for (int j = i + 1; j < result.Count; j++)
+            {
+                Assert.True(result[i].DistanceTo(result[j]) > 1e-6, $"Tekrarlanan köşe: index {i} ve {j}");
+            }
+        }
+    }
 }

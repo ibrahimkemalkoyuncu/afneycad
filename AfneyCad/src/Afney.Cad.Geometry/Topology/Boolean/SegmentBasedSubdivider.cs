@@ -97,11 +97,21 @@ public static class SegmentBasedSubdivider
                 // YERİNE açık hata fırlatılır — bu, convex-convex 2D union primitifi (roadmap'in
                 // sonraki, ayrı adımı) tamamlanmadan güvenle çözülemez.
                 if (HasAmbiguousCoplanarOverlap(originalFace, b))
+                    // NOT (2026-08-15, Session #67): `ConvexPolygonClipper2D.Union` artık YAZILDI/
+                    // TEST EDİLDİ (bu belirsizliği matematiksel olarak çözebilecek primitif hazır)
+                    // ama BURADA kasıtlı olarak KULLANILMADI — entegrasyon, hangi tarafın (A mı B
+                    // mi) union-face'i üreteceğine dair bir KOORDİNASYON kararı gerektiriyor
+                    // (aksi halde nihai Solid'de çift/üst-üste-binen ya da eksik yüz oluşur), bu da
+                    // bu fonksiyonun tek başına yerel bilgiyle veremeyeceği bir karar — henüz
+                    // tasarlanmamış `GeneralSolidUnion` assembly'sinin Face-kimlik/kopyalama
+                    // sözleşmesine bağlı. Detaylı analiz: Roadmap_CSG_Boolean.md, "Session #67"
+                    // güncellemesi.
                     throw new NotSupportedException(
                         "SegmentBasedSubdivider: A-Face, B'nin bir Face'iyle coplanar VE izdüşümleri " +
                         "örtüşüyor ama FaceIntersection hiç kesişim segmenti üretmedi (tutarsız/eksik " +
-                        "kesişim tespiti) — bu durum convex-convex 2D union primitifi olmadan güvenle " +
-                        "sınıflandırılamaz, kapsam dışı. Bkz. Roadmap_CSG_Boolean.md.");
+                        "kesişim tespiti) — bu durum convex-convex 2D union primitifi (mevcut ama " +
+                        "koordinasyon katmanı olmadan burada güvenle bağlanamıyor) ile bile ŞU AN " +
+                        "güvenle sınıflandırılamaz, kapsam dışı. Bkz. Roadmap_CSG_Boolean.md.");
 
                 // Coplanar hiç yok VEYA coplanar ama izdüşümler örtüşmüyor (B ile gerçekten
                 // etkileşimsiz) durumu —

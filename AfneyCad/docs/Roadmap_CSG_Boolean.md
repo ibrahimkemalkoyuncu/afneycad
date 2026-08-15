@@ -780,3 +780,49 @@ HasAmbiguousCoplanarOverlap` eklendi: `CoplanarFaceDetector.AreCoplanar` + 3D AA
    (temiz, transversal kesişimli) durumlar için ŞİMDİ mevcut yapı taşlarıyla denenebilir hâlde;
    coplanar durumlar madde 1'deki primitif tamamlanana kadar `NotSupportedException` ile
    korunacak.
+
+## Güncelleme — 2026-08-15 (Session #67) — `ConvexPolygonClipper2D.Union` (3. Yapı Taşı, TAMAMLANDI)
+
+**Yazıldı ve doğrulandı:** `ConvexPolygonClipper2D.Union(polyA, polyB, normal)` — girdi/ön-koşul
+`Intersect` ile AYNI (dışbükey, basit, tek döngü). Kenar-tabanlı yaklaşım: her poligonun her
+kenarı diğer poligonun TÜM kenarlarıyla kesiştirilip alt-segmentlere bölünür, diğerinin
+KESİNLİKLE dışında kalan alt-segmentler tutulur, tutulanlar uç-nokta eşleşmesiyle TEK kapalı
+döngüye zincirlenir. Tam-kapsama/özdeşlik için ayrı bir kısa-yol var (genel algoritmanın "iki
+taraf da dışlanır → boş sonuç" tuzağından kaçınmak için). Ayrık girdi `InvalidOperationException`
+fırlatır (kapsam dışı — birleşimleri tek basit poligon değil).
+
+**Somut test senaryosu (roadmap'in kendi köşe-çentiği örneği) elle doğrulandı ve kilitlendi:**
+A=[0,2000]², B=[1500,3000]² → 8 köşeli oktogon, alan 6.000.000 (=4.000.000+2.250.000-250.000).
+6 yeni test (`ConvexPolygonClipper2DTests`) — tam kapsama, özdeşlik, kısmi örtüşme, ayrık girdi
+(hata), içbükey girdi (hata), basit-döngü/tekrarsız-köşe doğrulaması. `dotnet build`: 0 hata.
+`dotnet test`: 498/498 geçti (önceki 491 + bu oturumun 7 yeni testi — regresyon yok).
+
+**`SegmentBasedSubdivider` entegrasyonu — YAPILMADI (dürüst gerekçeyle, Ana Yasa):** Görev
+tanımı `HasAmbiguousCoplanarOverlap` durumunda `NotSupportedException` yerine `Union` çağrısıyla
+gerçek sınıflandırma yapılmasını öneriyordu ama analiz şu KOORDİNASYON sorununu ortaya çıkardı:
+
+- `SubdivideAndClassifyOutside(a,b)` HER ZAMAN `a` tarafının "B-dışı" fragmanlarını üretir.
+  Coplanar kısmen-örtüşen bir A-Face/B-Face çifti bulunduğunda, doğru UNION sınırı bu ikisinin
+  `Union`'udur — ama bu union-face'i SADECE BİR TARAF üretmeli (iki taraf da üretirse nihai
+  Solid'de ÇİFT/üst-üste-binen yüz oluşur; hiçbiri üretmezse boşluk/delik oluşur).
+- Bu fonksiyon (`SubdivideAndClassifyOutside`) TEK YÖNLÜ çalışır (A→B) ve `b` parametresini asla
+  mutasyona uğratmaz/tüketmez — simetrik çağrı `SubdivideAndClassifyOutside(b,a)` TAMAMEN AYRI,
+  bağımsız bir çağrıdır, aralarında PAYLAŞILAN bir durum (state) yok. Fonksiyonun kendisi "ben mi
+  üretmeliyim yoksa diğer taraf mı üretecek" sorusunu YEREL bilgiyle cevaplayamaz.
+- Bir tie-break (ör. `Face.Id` karşılaştırması — hangi Face'in Guid'i küçükse o üretsin) İLK
+  bakışta çözüm gibi görünüyor, ama doğruluğu HENÜZ TASARLANMAMIŞ `GeneralSolidUnion`
+  assembly'sinin `a`/`b`'yi nasıl kopyaladığına/orkestre ettiğine bağlı: eğer çağıran taraf
+  `SubdivideAndClassifyOutside(aWorkCopy, b)` ve `SubdivideAndClassifyOutside(bWorkCopy, a)`
+  şeklinde BAĞIMSIZ ÇALIŞMA KOPYALARI kullanırsa (fonksiyonun kendi dokümantasyonunun ZORUNLU
+  kıldığı desen — `a` yerinde mutasyona uğruyor), kopyalanan Face'lerin Guid'leri ORİJİNAL
+  Face'lerinkiyle EŞLEŞMEZ, tie-break tutarsızlaşır (bir çağrı "A kazandı" derken diğeri "A
+  kaybetti" diyebilir — sessizce ÇİFT ya da EKSİK yüz üretir).
+- Bu, kod satırı sayısıyla ilgili bir risk değil (birleştirme/entegrasyon kendisi ~10-20 satır
+  olurdu) — DOĞRULUK GARANTİSİ `GeneralSolidUnion`'ın (madde 3, kapsam dışı) kendi Face-kimlik/
+  kopyalama sözleşmesine bağlı, o henüz YOK. Bu yüzden `SegmentBasedSubdivider.
+  HasAmbiguousCoplanarOverlap` konumundaki `NotSupportedException` KORUNDU (sessizce çift/eksik
+  yüz üretmek yerine dürüst hata) — `Union` birincil primitif olarak HAZIR ve TEST EDİLDİ,
+  entegrasyonu `GeneralSolidUnion` assembly'si Face-kimlik/kopyalama sözleşmesini netleştirdiğinde
+  yapılmalı (aynı oturumda, o assembly'nin kendi tasarımının bir parçası olarak — ayrı bir "sonra
+  entegre et" adımı DEĞİL, çünkü doğru tasarım assembly'nin kendisinin nasıl orkestre ettiğine
+  bağlı).
