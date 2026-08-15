@@ -3000,4 +3000,21 @@ Kullanıcı "sırayla uygula" dedi — madde 47'nin bıraktığı öncelik liste
 
 ---
 
-*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #66*
+### 49. CSG Boolean — UNION NİHAYET ÇALIŞIYOR (Temiz/Coplanar-Olmayan Durum) — 6 Oturumluk Hedef Tamamlandı
+Kullanıcı "sırayla uygula" dedi — madde 48'in bıraktığı iki öncelik (convex-convex 2D union primitifi, `GeneralSolidUnion` assembly'si) sırayla ele alındı, ikisi de tamamlandı.
+
+**1. `ConvexPolygonClipper2D.Union` (`commit 461a86b`):** İki dışbükey poligonun kenar-tabanlı birleşimi (dar-kapsamlı Weiler-Atherton varyantı — girdi her zaman dışbükey olduğu için genel Vatti/Martinez-Rueda gerekmiyor). Köşe-çentiği senaryosu (A=[0,2000]², B=[1500,3000]²) elle doğrulanıp testle kilitlendi: 8 köşeli oktogon, alan 6.000.000. **`SegmentBasedSubdivider` entegrasyonu bilinçli olarak YAPILMADI** — ajan doğru bir tespit yaptı: `HasAmbiguousCoplanarOverlap` durumunda `Union`'ı çağırmak, A ve B'nin coplanar yüzlerinden HANGİSİNİN union sonucunu üreteceğine dair bir koordinasyon kararı gerektiriyor (yanlış yapılırsa sessiz duplicate/eksik geometri — mevcut açık exception'dan DAHA KÖTÜ bir sonuç). Bu karar `GeneralSolidUnion`'ın Face-kimliği/kopyalama sözleşmesi tasarlandıktan SONRA verilmeli diye ertelendi — doğru sırayı bulan isabetli bir bekletme.
+
+**2. `GeneralSolidUnion` (`commit 690112c`) — ROADMAP'İN AYLARDIR SÜREN HEDEFİ TAMAMLANDI:** `SegmentBasedSubdivider.SubdivideAndClassifyOutside`'ı A/B için simetrik çağırıp (`(a,b)` + `(b,a)`), dışarıda kalan fragmanları `VertexWelder`+`OpenEdgeStitcher` ile tek bir `Solid`'e dikiyor. 4 bağımsız `CloneSolid` kopyası kullanılıyor (Subtract/Intersect'in aksine UNION her iki tarafı da simetrik tükettiği için orijinal A/B bozulmamalı — bu yeni bir gereksinim, önceki 3 operasyonda yoktu). **Canlı testte gerçek bir eksiklik bulunup düzeltildi:** `SplitAtPolylineChord`'un ürettiği "kept" fragmanın chord kenarı hâlâ "discarded" (atılan) Face'e işaret ediyordu — `OpenEdgeStitcher`'ın açık-kenar filtresinin görmediği sarkan bir referans. `GeneralSolidSubtractor`/`GeneralSolidIntersector`'daki aynı `ClearDanglingFaceReferences` deseni buraya da getirildi.
+
+3-düzlemli "gerçek köşe" senaryosu (A=[0,2000]³, B=[1500,3000]³) hacim+`IsValid()` ile doğrulandı: **11.250.000.000 mm³** (8×10⁹ + 3,375×10⁹ − 125×10⁶ kesişim). Görev tanımındaki elle hesaplanmış rakam (10.953.125.000) yanlış çıktı (kesişim hacmi 750³ değil 500³ kullanılmalıydı) — ajan bunu fark edip doğru rakamı testle kilitledi, görev tanımının rakamını değil.
+
+**Kapsam netliği (roadmap'in kendi önceki notuyla tutarlı):** Coplanar yüzler (ör. A/B'nin Z aralığı AYNI olduğu köşe-çentiği senaryosu) hâlâ `SegmentBasedSubdivider`'ın `NotSupportedException`'ıyla korunuyor — `GeneralSolidUnion` bunu yutmuyor, yukarı fırlatıyor. Bu, "UNION genel olarak TAMAMLANDI" değil, "UNION temiz/transversal-kesişimli durumlar için ÇALIŞIYOR, coplanar durum bir SONRAKİ, izole adım" anlamına geliyor — ama bu, roadmap'in Session #40'tan beri "temelden yanlış mimari" dediği sorunun GERÇEKTEN çözüldüğü, somut, test edilmiş bir kilometre taşı.
+
+**Genel değerlendirme (6 oturumluk UNION serüveni):** Madde 40'ta ilk kez ele alınıp madde 41'de "mirror-cap kısayolu" çürütülmüş, madde 45'te "section-first" mimarisi somutlaştırılıp polyline-chord ihtiyacı bulunmuş, madde 48'de ilk 2 yapı taşı (polyline-chord `FaceSplitter`, `SegmentBasedSubdivider`) yazılıp coplanar tutarsızlığı keşfedilmiş, bu oturumda son 2 yapı taşı (`ConvexPolygonClipper2D.Union`, `GeneralSolidUnion`) tamamlanmış oldu. Her adımda "Ana Yasa" (araştır, doğrula, sadece güvenliyse uygula, değilse dürüstçe ertele) izlendi — hiçbir oturumda sessizce yanlış kod üretilmedi.
+
+**Tam suite: 503/503** (491 → 503, +12 yeni test — 6 Union primitifi, 5 GeneralSolidUnion, 1 net fark), tam çözüm derlemesi 0 hata, her commit ayrı ayrı doğrulandı, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #67*
