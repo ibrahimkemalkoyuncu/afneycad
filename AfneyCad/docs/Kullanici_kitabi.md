@@ -2982,4 +2982,22 @@ Kullanıcı "kod kalitesinde iyileştirmeler yapılması gereken yerleri tespit 
 
 ---
 
-*Son guncelleme: 2026-08-14 | AfneyCAD v4.0.0 — Session #65*
+### 48. Bir Sonraki Session Öncelikleri Sırayla Uygulandı: Matrix4x4 Düzeltmesi + CSG UNION'da İlk İki Yapı Taşı
+Kullanıcı "sırayla uygula" dedi — madde 47'nin bıraktığı öncelik listesi sırayla ele alındı.
+
+**1. `Matrix4x4` paylaşılan-array düzeltmesi (`commit 80f26b6`):** `private double[,] _m` heap array'i 16 ayrı `double` alanla değiştirildi — struct artık gerçek değer-tipi kopyalama sağlıyor (önceden kopyalanan iki "bağımsız" matris aynı array'i paylaşıyordu, biri mutasyona uğrarsa diğeri de sessizce değişiyordu). Public API (indexer, factory metodlar, operatörler) birebir korundu, hiçbir çağıran kod değişmedi. Bulgusal bir yan-düzeltme: `GetHashCode` de düzeltildi (önceden array REFERANS hash'i dönüyordu, `Equals` ile tutarsızdı). 5 yeni test (kopyalama izolasyonu, çarpma, equality) eklendi. **479/479.**
+
+**2. CSG UNION — İlk iki yapı taşı (5 oturumdur ilk gerçek ilerleme):**
+- **`FaceSplitter.SplitAtPolylineChord` (`commit f2fc124`):** Mevcut `SplitAtChord`'un (tek düz chord) çok-segmentli polyline chord'a genellemesi — ara noktalar Face'in sınırında değil İÇİNDE olabiliyor. İlk denemede engelsiz tamamlandı, 8 yeni test. **487/487.**
+- **`SegmentBasedSubdivider` (`commit 2724880`):** `FaceIntersection.Intersect`'i (plane değil, gerçek poligon-sınırlı kesişim) kullanarak A'nın Face'lerini B'nin GERÇEK Face'leriyle kesiştirip bölen, `SolidClassifier` ile sınıflandıran yapı taşı. 3-düzlemli "gerçek köşe" senaryosu ilk denemede uçtan uca çalıştı — ama canlı testte **yeni bir keşif** yapıldı: `FaceIntersection.Intersect`'in coplanar KISMEN-örtüşen Face çiftlerinde tutarsız davrandığı (bazen segment üretip bazen üretmediği) bulundu; bu, "segments.Count==0 → güvenle sınıflandır" varsayımını kırıyordu. Worktree ajanı bu bulguyla oturum limitine takılıp yarım (3 teşhis testi + 2 gerçek başarısız test) bıraktı — devralınıp `HasAmbiguousCoplanarOverlap` koruması (coplanar+izdüşüm-örtüşmesi tespit edilince sessizce yanlış sınıflandırma YERİNE açık `NotSupportedException`) eklendi, testler dürüst davranışı yansıtacak şekilde düzeltildi (biri artık kasıtlı olarak exception bekliyor, "slab" testi gizli coplanariteyi ortadan kaldıran temiz bir geometriyle yeniden kuruldu). **491/491.**
+- Bulgular + net sıradaki adımlar (convex-convex 2D union primitifi, `GeneralSolidUnion` assembly'si) `docs/Roadmap_CSG_Boolean.md`'ye (2026-08-14/15 güncellemesi) kaydedildi.
+
+**Ders (bu oturuma özgü):** İki ayrı ajan yine yarım bırakarak durdu (biri oturum limiti tam segment-subdivider'ın en can alıcı anında) — ama bu kez "yarım kalan iş" gerçek bir bug/keşifti, sadece eksik kod değil. Devralıp kök nedeni anlamadan (build hatasını gidermek yerine) doğru düzeltmeyi (açık exception, sessiz yanlış sonuç değil) uygulamak, projenin "Ana Yasa" ilkesiyle tutarlı kaldı.
+
+**Kullanıcının kendi manuel testleri** (3D görünüm, metin boyutu, Ölçek Doğrula, Otonom mahal, Uç-Yakala) listenin 3. maddesiydi — bu bana ait bir görev değil, kullanıcı kendi yapacak.
+
+**Tam suite: 491/491**, her commit ayrı ayrı build+test ile doğrulandı, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #66*

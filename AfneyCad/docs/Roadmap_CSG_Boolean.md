@@ -735,3 +735,48 @@ Aynı Faz 1-3 altyapısı üzerine, farklı birleştirme kuralı.
 - Performans: büyük mesh'lerde (ör. tam bir kat) makul sürede tamamlanmalı — R-Tree ile
   broad-phase filtreleme olmadan Faz 1 bile pratik olmayabilir, bu yüzden ilk implementasyonda
   broad-phase dahil edilmeli.
+
+## Güncelleme — 2026-08-14/15 (Session #64-66) — UNION için "Section-First" Yapı Taşları
+
+Madde 40-41'in bıraktığı yer: UNION'ın "A'yı B'ye bağımsız kes / B'yi A'ya bağımsız kes, sonra dik"
+mimarisinin temelden yanlış olduğu, paylaşılan bir kesişim-eğrisi temsili (OpenCASCADE'in
+"Section-first" deseni) gerektiği biliniyordu ama hiç somutlaştırılmamıştı.
+
+**Yapı taşı 1 — `FaceSplitter.SplitAtPolylineChord` (TAMAMLANDI, commit `f2fc124`):** Mevcut
+`SplitAtChord` (tek düz chord, iki ucu da Face'in kendi sınırında) genelleştirildi — çok-segmentli
+polyline chord desteği eklendi, ARA noktalar Face'in İÇİNDE olabiliyor. 2-noktalı polyline
+`SplitAtChord` ile birebir aynı sonucu üretiyor (regresyon riski yok). 3-düzlemli "gerçek köşe"
+senaryosunda elle hesaplanmış alan/Euler/hacim doğrulamalarıyla test edildi.
+
+**Yapı taşı 2 — `SegmentBasedSubdivider` (TAMAMLANDI, commit `2724880`):** `FaceIntersection.
+Intersect`'i (plane değil, GERÇEK poligon-sınırlı kesişim) kullanarak A'nın her Face'ini B'nin
+GERÇEK Face'leriyle kesiştirip polyline'a zincirleyip bölen, `SolidClassifier` ile sınıflandıran
+yapı taşı. 3-düzlemli gerçek köşe senaryosu İLK DENEMEDE uçtan uca çalıştı.
+
+**YENİ keşif (canlı testte bulundu, önceki hiçbir oturumda belgelenmemişti):** `FaceIntersection.
+Intersect`, coplanar (aynı düzlem) Face çiftlerinde HER ZAMAN boş segment listesi döndürür
+varsayımı YANLIŞ. Gerçek davranış: coplanar TAM ÇAKIŞIK çiftlerde boş dönüyor, ama coplanar
+KISMEN ÇAKIŞAN çiftlerde (sınırları birbirini kesen, ör. köşe-çentiği senaryosunun üst/alt
+yüzleri) TUTARSIZ — bazı yüz-çifti kombinasyonlarında sınır-kesişim segmenti üretiyor, bazılarında
+üretmiyor (yön/kenar sırasına bağlı görünüyor, kök nedeni incelenmedi — `FaceIntersection`'ın
+kendisinde, bu yapı taşının kapsamı dışında). Bu, "segments.Count==0 → güvenle bölünmeden
+sınıflandır" varsayımını kırıyordu — düzeltme olarak `SegmentBasedSubdivider.
+HasAmbiguousCoplanarOverlap` eklendi: `CoplanarFaceDetector.AreCoplanar` + 3D AABB izdüşüm
+örtüşme testiyle bu belirsiz durumu tespit edip sessizce yanlış sınıflandırmak YERİNE açık
+`NotSupportedException` fırlatıyor.
+
+**Sıradaki adımlar (net, somut):**
+1. **Convex-convex 2D union primitifi** — coplanar kısmen-örtüşen Face çiftlerini (yukarıdaki
+   `NotSupportedException` durumu) gerçekten çözmek için gerekiyor. Girdi HER ZAMAN iki dışbükey
+   poligon (mevcut `ConvexPolygonClipper2D`'nin kendi varsayımıyla tutarlı) — bu yüzden genel
+   Vatti/Martinez-Rueda YERİNE dar-kapsamlı bir Weiler-Atherton-benzeri "sadece 2 dışbükey girdi"
+   union'ı yeterli (tahminen 100-150 satır, `ConvexPolygonClipper2D.Union` olarak eklenebilir).
+2. **`FaceIntersection.Intersect`'in coplanar-kısmi-örtüşme tutarsızlığının kök nedeni** — ayrı,
+   izole bir araştırma konusu (bu tutarsızlık düzeltilirse `HasAmbiguousCoplanarOverlap` koruması
+   daha az durumda devreye girer, ama koruma yine de kalmalı — savunma katmanı).
+3. **`GeneralSolidUnion` assembly'si** — `SubdivideAndClassifyOutside(a,b)` (A'nın B-dışı
+   fragmanları) + simetrik `SubdivideAndClassifyOutside(b,a)` (B'nin A-dışı fragmanları) sonucunu
+   `VertexWelder`/`OpenEdgeStitcher` ile dikip TEK bir Solid'e montajlamak — coplanar olmayan
+   (temiz, transversal kesişimli) durumlar için ŞİMDİ mevcut yapı taşlarıyla denenebilir hâlde;
+   coplanar durumlar madde 1'deki primitif tamamlanana kadar `NotSupportedException` ile
+   korunacak.
