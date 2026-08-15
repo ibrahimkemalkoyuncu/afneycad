@@ -826,3 +826,66 @@ gerçek sınıflandırma yapılmasını öneriyordu ama analiz şu KOORDİNASYON
   yapılmalı (aynı oturumda, o assembly'nin kendi tasarımının bir parçası olarak — ayrı bir "sonra
   entegre et" adımı DEĞİL, çünkü doğru tasarım assembly'nin kendisinin nasıl orkestre ettiğine
   bağlı).
+
+## Güncelleme — 2026-08-15 (Session #68) — `GeneralSolidUnion` (4. ve SON yapı taşı, coplanar-olmayan durumlar için TAMAMLANDI)
+
+**Yazıldı ve doğrulandı:** `Boolean/GeneralSolidUnion.cs` — `Union(Solid a, Solid b, string
+resultName = "A_union_B")`. Görev tanımının taslağı BİREBİR uygulandı: A ve B'nin bağımsız derin
+kopyaları (`CloneSolid`, bu dosyada YENİ — kod tabanında daha önce genel amaçlı bir Solid
+deep-copy yardımcı metodu YOKTU, grep ile doğrulandı) çıkarılıp `SegmentBasedSubdivider.
+SubdivideAndClassifyOutside(aWork, bRef)` ve simetrik `SubdivideAndClassifyOutside(bWork, aRef)`
+çağrılır (TOPLAM 4 klon — hem çalışma kopyası hem savunmacı salt-okunur referans kopyası her iki
+taraf için ayrı ayrı), sonuçlar (`aOutside ∪ bOutside`) tek bir `Solid`'e eklenir.
+
+**Kaynak kod incelemesiyle BULUNAN, görev tanımında AÇIKÇA yazılmayan kritik bir ek adım:**
+`FaceSplitter.SplitAtPolylineChord` bölünen bir Face'in İKİ yarısını da (`faceA`+`faceB`)
+`solid.Faces`'e ekliyor, ama `SubdivideAndClassifyOutside` bunlardan sadece dışarıda kalanı
+`outsideFragments`'e dahil ediyor — kept fragmanın paylaşılan kesim kirişi kenarı, artık sonuçta
+OLMAYAN "hayalet" bir Face'e (discarded yarı) işaret eden DOLU bir `LeftFace`/`RightFace` alanı
+taşımaya devam ediyordu; bu, `OpenEdgeStitcher`'ın "açık kenar" filtresini (`LeftFace==null XOR
+RightFace==null`) atlatıp kenarın karşı taraftan gelen eşleşen ikiziyle DİKİLMEDEN kalmasına yol
+açıyordu. Çözüm: `ClearDanglingFaceReferences` — `result.Faces`'e eklenen fragmanların TÜM
+kenarları taranır, `result.Faces` içinde OLMAYAN bir Face'e işaret eden `LeftFace`/`RightFace`
+`null`'a çekilir (`GeneralSolidSubtractor`/`GeneralSolidIntersector`'ın AYNI temizlik desenine,
+farklı bir kaynak — İKİ bağımsız Solid'in birleşimi — üzerinde uygulanmış hâli). Bu adımdan
+SONRA `VertexWelder.Weld` + `OpenEdgeStitcher.Stitch` çağrılıyor.
+
+**HİPOTEZ DOĞRULANDI (roadmap'in 2026-08-14 girdisinin "henüz test edilmemiş" dediği varsayım):**
+"Section-first" mimarisi (A'nın kesim kirişinin B'nin kesim kirişiyle TANIM GEREĞİ aynı 3D
+konumda olması) sayesinde köprü/mirror-cap yüzü inşasına HİÇ gerek kalmadan, sadece yukarıdaki
+temizlik + `VertexWelder`/`OpenEdgeStitcher` ile doğru, geçerli bir Solid üretiliyor — roadmap'in
+2026-08-07 girdilerinin belgelediği "köprü yüzü zorunlu" engeli, PLANE-tabanlı eski mimaride
+(`SplitFaceAgainstPlanes`) GERÇEKTEN aşılamazdı ama segment-tabanlı (`SegmentBasedSubdivider`)
+mimaride hiç ORTAYA ÇIKMIYOR.
+
+**Test senaryosu (görev tanımının "gerçek köşe" senaryosu) — DOĞRULANDI, AMA görev tanımının
+KENDİ elle-hesabında bulunan bir aritmetik hata YAKALANDI VE DÜZELTİLDİ:** A=[0,2000]³,
+B=[1500,3000]³ → kesişim [1500,2000]³ = **500³ = 125.000.000** mm³ (görev tanımı "500³" diyip
+ama hesaba 421.875.000 [=750³] koymuştu — kendi içinde tutarsızdı). Doğru UNION hacmi =
+8.000.000.000 + 3.375.000.000 − 125.000.000 = **11.250.000.000** mm³ — `dotnet test` bunu
+üretti, elle A/B koordinatlarından türetilen doğru formülle KİLİTLENDİ (görev tanımının yanlış
+10.953.125.000 değeri testte KULLANILMADI).
+
+**Yeni testler:** `GeneralSolidUnionTests.cs` (5 test) — (a) 3-düzlemli gerçek köşe senaryosunun
+hacmi + `IsValid()`, (b) orijinal A/B'nin mutasyona UĞRAMADIĞI (hacim/Face-sayısı/`IsValid()`
+öncesi-sonrası), (c) nokta-içi/dışı sınıflandırması (A'nın kendi içi, B'nin kendi içi, A∩B içi,
+her ikisinin de dışı), (d) B tamamen A'nın dışında → 2 bağımsız kabuklu GEÇERLİ Solid (Session
+#64'ün çok-kabuklu `IsValid()` desteğiyle), (e) coplanar kısmen-örtüşen köşe-çentiği senaryosunda
+`SegmentBasedSubdivider`'ın `NotSupportedException`'ının YAKALANMADAN/YUTULMADAN yukarı fırladığı.
+
+**Test sonucu: `dotnet build` — 0 hata. `dotnet test` — 503/503 BAŞARILI** (önceki 498 + bu
+oturumun 5 yeni testi), 0 başarısız, HİÇBİR mevcut test bozulmadı.
+
+**Kapsam dışı (bilinçli, DEĞİŞMEDİ):** Coplanar kısmen-örtüşen Face çiftleri — `SegmentBasedSubdivider.
+HasAmbiguousCoplanarOverlap`'ın `NotSupportedException`'ı `GeneralSolidUnion` içinde HİÇ
+yakalanmıyor/yutulmuyor, olduğu gibi çağırana yükseliyor (görev tanımının açık isteği). Bu
+istisnanın gerçek çözümü (`ConvexPolygonClipper2D.Union`'ın, madde/Session #67'nin belgelediği
+Face-kimlik/kopyalama KOORDİNASYON sorununu çözecek şekilde entegrasyonu) HÂLÂ ayrı bir oturum
+gerektiriyor — bu oturum sadece coplanar-OLMAYAN "temiz" durumları teslim etti (görevin kendi
+kapsam sınırıyla TUTARLI).
+
+**Roadmap durumu:** Faz 5'in dört yapı taşı (`FaceSplitter.SplitAtPolylineChord`,
+`SegmentBasedSubdivider`, `ConvexPolygonClipper2D.Union`, `GeneralSolidUnion`) artık kod
+tabanında MEVCUT — UNION artık coplanar-olmayan girdiler için genel, test edilmiş bir operasyon.
+Kalan tek açık iş, coplanar durumun `GeneralSolidUnion`'a entegrasyonu (Session #67'nin
+belgelediği koordinasyon tasarımı).
