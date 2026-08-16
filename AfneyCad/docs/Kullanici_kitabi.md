@@ -3017,4 +3017,23 @@ Kullanıcı "sırayla uygula" dedi — madde 48'in bıraktığı iki öncelik (c
 
 ---
 
-*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #67*
+### 50. CSG Boolean — UNION Coplanar Durumla Birlikte TAMAMEN ÇALIŞIYOR — Session #40'tan Beri Süren Hedef Kapandı
+Kullanıcı "hemen yapalım" dedi — madde 49'un bıraktığı tek açık iş (coplanar durumun `GeneralSolidUnion`'a entegrasyonu) ele alındı.
+
+**Koordinasyon sorunu çözüldü:** Önceki oturumda tespit edilen "hangi taraf union sonucunu üretecek" sorunu, `GeneralSolidUnion.Union`'ın kendisinde bir ÖN-GEÇİŞ (`MergeCoplanarOverlappingFacesInto`) ile çözüldü — A ve B'nin TÜM Face'lerini AYNI ANDA gören tek bir merkezi yer, coplanar+izdüşüm-örtüşen çiftleri `ConvexPolygonClipper2D.Union` ile TEK Face'e indirgeyip 4 çalışma klonundan (aWork/aRefForB/bWork/bRefForA) siliyor — `SegmentBasedSubdivider`'ın kendi `HasAmbiguousCoplanarOverlap` koruması bu çiftler için bir daha hiç tetiklenmiyor.
+
+**Ajan oturum kesintisine uğradı ama iş zaten bitmişti:** Bu görevi yürüten ajanın süreci, son rapor mesajını göndermeden kesildi (araç bildirimi "completed" değil "stopped" olarak geldi). Diskteki değişiklikler kontrol edildiğinde işin GERÇEKTEN tamamlanmış olduğu görüldü — build 0 hata, 503/503 test (yeni coplanar-başarı testi dahil) geçiyordu. Devralınıp doğrulanıp commit edildi — bu, önceki oturumlarda birkaç kez gözlenen "ajan kesintiye uğrasa da iş zaten diskte kalıyor, devralınıp doğrulanabiliyor" deseninin bir örneği daha, ama bu kez kesinti nedeni oturum limiti değil sürecin kendisi kesilmiş olmasıydı.
+
+**Canlı testte bulunan İKİNCİ bug (bu alt-görevde):** Coplanar Face'ler segment-toplama klonlarından silinince, `SolidClassifier.IsPointInside`'ın ışın-üçgen sayımı o Face'in konumundan geçen ışınları hiç saymayıp GERÇEKTEN B'nin içinde kalan noktaları yanlışlıkla "dışarıda" sınıflandırıyordu. Çözüm: `SubdivideAndClassifyOutside`'a opsiyonel `classificationSolid` parametresi eklendi — segment-toplama TAM olmayan bir klonla yapılabilirken, sınıflandırma HER ZAMAN ayrı, TAM/eksiksiz bir kabuk klonuna göre yapılıyor artık (geriye dönük uyumlu — parametre verilmezse eski davranış birebir korunuyor).
+
+**Doğrulama (köşe-çentiği senaryosu, A=[0,2000]³, B=[1500,3000]²×[0,2000]):** Artık `NotSupportedException` FIRLAMIYOR. `IsValid()`, hacim (12.000.000.000 mm³), üst yüzün alanı (6.000.000 — `ConvexPolygonClipper2DTests`'in aynı boyutlarla doğruladığı oktogon alanıyla tutarlı) ve 4 farklı nokta sınıfı (A-yalnız/B-yalnız/A∩B/tamamen-dışarı) ile kilitlendi.
+
+**Kapsam (bilinçli, dar, roadmap'e kaydedildi):** Sadece aynı yönlü (`na·nb>0`) coplanar çiftler birleştiriliyor — zıt yönlü coplanar çakışma (iç boşluk/cavity duvarı) ve bir A-Face'in birden fazla B-Face ile coplanar örtüşmesi kapsam dışı (roadmap'in şu ana kadar hiç karşılaşmadığı senaryolar).
+
+**Genel değerlendirme — 6+ oturumluk CSG UNION serüveni KAPANDI:** Madde 40'ta ilk ele alınıp defalarca "temelden yanlış mimari" bulunup ertelenen UNION, 4 yapı taşı (`FaceSplitter.SplitAtPolylineChord`, `SegmentBasedSubdivider`, `ConvexPolygonClipper2D.Union`, `GeneralSolidUnion`) ve yol boyunca bulunan 3 gerçek bug (chord-öksüzleşmesi zaten çözülmüştü, coplanar tutarsızlık, sınıflandırma/segment-toplama rol karışıklığı) ile artık hem temiz hem coplanar girdiler için çalışan, test edilmiş bir CSG operasyonu. Her adımda Ana Yasa (araştır → doğrula → sadece güvenliyse uygula, değilse dürüstçe ertele) izlendi.
+
+**Tam suite: 503/503** (net değişiklik yok — mevcut bir test "throws" beklentisinden "başarılı sonuç" beklentisine güncellendi), tam çözüm derlemesi 0 hata, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #68*

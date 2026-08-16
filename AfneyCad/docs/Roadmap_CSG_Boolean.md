@@ -889,3 +889,45 @@ kapsam sınırıyla TUTARLI).
 tabanında MEVCUT — UNION artık coplanar-olmayan girdiler için genel, test edilmiş bir operasyon.
 Kalan tek açık iş, coplanar durumun `GeneralSolidUnion`'a entegrasyonu (Session #67'nin
 belgelediği koordinasyon tasarımı).
+
+## Güncelleme — 2026-08-15 (Session #69) — Coplanar Durum ÇÖZÜLDÜ: UNION Artık Genel Olarak Çalışıyor
+
+Session #68'in bıraktığı tek açık iş — coplanar kısmen-örtüşen Face çiftlerinin `GeneralSolidUnion`'a
+entegrasyonu — koordinasyon sorunu şu şekilde çözülerek tamamlandı:
+
+**Tasarım — ön-geçiş (pre-pass), `SegmentBasedSubdivider`'ın İÇİNDE değil `GeneralSolidUnion`'ın
+kendisinde:** `GeneralSolidUnion.Union(a,b)`, `SubdivideAndClassifyOutside`'ı çağırmadan ÖNCE,
+A ve B'nin TÜM Face'lerini AYNI ANDA gören `MergeCoplanarOverlappingFacesInto` adlı bir ön-geçiş
+çalıştırıyor: coplanar+izdüşüm-örtüşen (AYNI YÖNLÜ, `na·nb>0`) her (aFace,bFace) çifti
+`ConvexPolygonClipper2D.Union` ile TEK bir birleşik Face'e indirgenip, bu ikisi segment-toplama
+rolündeki TÜM 4 çalışma klonundan (`aWork`/`aRefForB`/`bWork`/`bRefForA`) SİLİNİYOR — böylece
+`SegmentBasedSubdivider.HasAmbiguousCoplanarOverlap` bu çiftler için bir daha HİÇ tetiklenmiyor
+("hangi taraf üretir" sorusu, tek bir merkezi yerde her iki tarafı da görerek çözüldüğü için
+yapısal olarak ortadan kalkıyor).
+
+**Canlı testte bulunan YENİ (ikinci) bug — sınıflandırma/segment-toplama rol ayrımı gerekiyordu:**
+Coplanar Face'ler segment-toplama klonlarından silinince, `SolidClassifier.IsPointInside`'ın
+ışın-üçgen sayımı o Face'in konumundan geçen ışınları hiç saymıyor, bu da GERÇEKTEN B'nin içinde
+kalan noktaların (özellikle A'nın kesişim bölgesindeki fragmanlarının) yanlışlıkla "dışarıda"
+sınıflandırılmasına yol açıyordu. Çözüm: `SubdivideAndClassifyOutside`'a opsiyonel
+`classificationSolid` parametresi eklendi (varsayılan `null` → eski davranış, TÜM mevcut
+çağıranlar etkilenmez) — segment-toplama TAM olmayan (coplanar Face'leri silinmiş) bir klonla
+yapılabilirken, sınıflandırma HER ZAMAN ayrı, TAM/eksiksiz bir kabuk klonuna (`bClassifyForA`/
+`aClassifyForB` — ön-geçişten muaf tutulan 2 EK klon) göre yapılıyor.
+
+**Doğrulama (köşe-çentiği senaryosu, A=[0,2000]³, B=[1500,3000]²×[0,2000]):** `IsValid()`,
+hacim (12.000.000.000 mm³ = 8×10⁹ + 4,5×10⁹ − 0,5×10⁹ kesişim), üst yüzün alanı (6.000.000 —
+`ConvexPolygonClipper2DTests`'in AYNI kare boyutlarıyla doğruladığı oktogon alanıyla TUTARLI) ve
+4 farklı nokta sınıfı (A-yalnız/B-yalnız/A∩B/tamamen-dışarı) ile kilitlendi.
+
+**Kapsam (bilinçli, dar):** SADECE aynı yönlü (`na·nb>0`) coplanar çiftler birleştiriliyor — zıt
+yönlü coplanar çakışma (iç boşluk/cavity duvarı gibi) farklı bir CSG durumu, kapsam dışı (o durumda
+normal `HasAmbiguousCoplanarOverlap` koruması devreye girer). Her aFace/bFace en fazla BİR kez
+eşleştiriliyor — aynı A-Face'in birden fazla B-Face ile coplanar-örtüştüğü daha karmaşık durumlar
+(roadmap'in şu ana kadar hiç karşılaşmadığı bir senaryo) da kapsam dışı.
+
+**Roadmap durumu — TAMAMLANDI:** Session #40'ta başlayan CSG UNION hedefi (6+ oturum, 4 yapı taşı,
+2 gerçek bug keşfi/düzeltmesi) artık kod tabanında hem temiz hem coplanar durumlar için çalışıyor
+ve test edilmiş. Kalan bilinçli kapsam dışı: zıt yönlü coplanar çakışma (iç boşluk), aynı A-Face'in
+birden fazla B-Face ile coplanar örtüşmesi, `FaceIntersection.Intersect`'in kendi coplanar-tutarsızlık
+kök nedeni (savunma katmanı hâlâ yerinde, ayrı bir araştırma konusu olarak kalıyor).
