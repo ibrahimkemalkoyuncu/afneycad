@@ -69,9 +69,25 @@ public static class SegmentBasedSubdivider
             `GeneralSolidSubtractor.Subtract`'in dokümante ettiği "çağıran taraf `a`'yı sonuç
             olarak KULLANMAMALI" kuralıyla TUTARLI. Orijinal A'yı korumak isteyen çağıran taraf
             önceden bir kopya çıkarmalı.
+       `classificationSolid` (opsiyonel, YENİ — `GeneralSolidUnion`'ın coplanar-birleştirme
+            ön-geçişi için eklendi, additive/geriye-uyumlu): verilmezse `b` kullanılır (ESKİ
+            davranış BİREBİR aynı — TÜM mevcut çağıranlar/testler etkilenmez). Verilirse,
+            `SolidClassifier.IsPointInside` (`ClassifyAndCollect`) `b` YERİNE bu Solid'e göre
+            içeride/dışarıda sınıflandırma yapar — `b`'nin KENDİSİ (segment/kesişim toplama için
+            kullanılan taraf) hâlâ `CollectSegmentsAgainstAllFaces`'e verilir, DEĞİŞMEZ. NEDEN
+            AYRIM GEREKLİ: `SolidClassifier.IsPointInside`, hedef Solid'i `BRepTessellator` ile
+            üçgenleyip bir IŞIN göndererek kesişim SAYISI ile karar verir — bu, hedef Solid'in TAM/
+            eksiksiz KAPALI bir kabuk olmasını gerektirir. `GeneralSolidUnion`'ın coplanar-birleştirme
+            ön-geçişi `b`'den (çalışma kopyasından) coplanar Face'leri SİLERSE (aksi halde bu sınıf
+            kendi `HasAmbiguousCoplanarOverlap` korumasını tetikler), ışın o silinen Face'in
+            konumundan geçtiğinde artık HİÇ kesişim SAYMAZ — bu da GERÇEKTEN B'nin içinde kalan
+            noktaların YANLIŞLIKLA "dışarıda" sınıflandırılmasına yol açar (canlı testte YAKALANDI).
+            Çözüm: `b` segment-toplama için "eksik" (coplanar Face'leri silinmiş) kalabilir, ama
+            sınıflandırma HER ZAMAN TAM/eksiksiz bir kabuğa (`classificationSolid`) göre yapılır.
     */
-    public static List<Face> SubdivideAndClassifyOutside(Solid a, Solid b)
+    public static List<Face> SubdivideAndClassifyOutside(Solid a, Solid b, Solid? classificationSolid = null)
     {
+        var classifyAgainst = classificationSolid ?? b;
         var outsideFragments = new List<Face>();
 
         // ÖNEMLİ: `a.Faces` bölme sırasında mutasyona uğrar (Remove/Add) — orijinal Face
@@ -116,7 +132,7 @@ public static class SegmentBasedSubdivider
                 // Coplanar hiç yok VEYA coplanar ama izdüşümler örtüşmüyor (B ile gerçekten
                 // etkileşimsiz) durumu —
                 // Face BÖLÜNMEDEN, TAM olarak sınıflandırılır.
-                ClassifyAndCollect(originalFace, b, outsideFragments);
+                ClassifyAndCollect(originalFace, classifyAgainst, outsideFragments);
                 continue;
             }
 
@@ -150,7 +166,7 @@ public static class SegmentBasedSubdivider
             }
 
             foreach (var frag in activeFaces)
-                ClassifyAndCollect(frag, b, outsideFragments);
+                ClassifyAndCollect(frag, classifyAgainst, outsideFragments);
         }
 
         return outsideFragments;

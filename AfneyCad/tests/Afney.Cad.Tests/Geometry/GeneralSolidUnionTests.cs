@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Geometry.Topology.Boolean;
@@ -101,15 +103,43 @@ public class GeneralSolidUnionTests
     }
 
     [Fact]
-    public void Union_CoplanarOverlappingCorner_ThrowsNotSupportedInsteadOfWrongGeometry()
+    public void Union_CoplanarOverlappingCorner_MergesTopBottomFacesAndProducesValidResult()
     {
         // Köşe-çentiği: A=[0,2000]^3, B=[1500,3000]^2x[0,2000] — Z aralığı AYNI, üst/alt yüzler
-        // coplanar VE izdüşümleri KISMEN örtüşüyor. `SegmentBasedSubdivider.HasAmbiguousCoplanarOverlap`
-        // koruması burada devreye girmeli — `GeneralSolidUnion` bunu YAKALAMADAN yukarı fırlatmalı
-        // (görev tanımının açık isteği).
+        // coplanar VE izdüşümleri KISMEN örtüşüyor. Bu artık `NotSupportedException` FIRLATMIYOR —
+        // `GeneralSolidUnion.Union`'ın ön-geçişi (`MergeCoplanarOverlappingFaces`) bu coplanar
+        // A-top/B-top (ve A-bottom/B-bottom) çiftini `ConvexPolygonClipper2D.Union` ile TEK bir
+        // birleşik Face'e indirgeyip `SegmentBasedSubdivider`'a hiç göstermiyor (bkz.
+        // Roadmap_CSG_Boolean.md, "Session #69" güncellemesi).
         var a = BRepBuilder.ExtrudeBox(new Vector3D(0, 0, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 2000, 2000, 2000);
         var b = BRepBuilder.ExtrudeBox(new Vector3D(1500, 1500, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 1500, 1500, 2000);
 
-        Assert.Throws<NotSupportedException>(() => GeneralSolidUnion.Union(a, b));
+        var result = GeneralSolidUnion.Union(a, b);
+
+        Assert.True(result.IsValid());
+
+        // A_hacim + B_hacim - kesişim_hacmi. Kesişim = [1500,2000]x[1500,2000]x[0,2000]
+        // (X/Y'de A'nın üst sınırı 2000, B'nin alt sınırı 1500 — 500 birimlik ortak aralık; Z
+        // aralığı TAM ÇAKIŞIK [0,2000], hiç kısıtlamıyor) = 500*500*2000 = 500.000.000 mm^3.
+        double intersectionVolume = 500.0 * 500.0 * 2000.0;
+        Assert.Equal(500_000_000.0, intersectionVolume, precision: 3);
+        double expectedVolume = 2000.0 * 2000.0 * 2000.0 + 1500.0 * 1500.0 * 2000.0 - intersectionVolume;
+        Assert.Equal(8_000_000_000.0 + 4_500_000_000.0 - 500_000_000.0, expectedVolume, precision: 3);
+        Assert.Equal(expectedVolume, result.GetVolume(), precision: 3);
+
+        // Üst yüz (Z=2000, coplanar birleştirilen) — A'nın [0,2000]^2 karesi ile B'nin
+        // [1500,3000]^2 karesinin 2D BİRLEŞİMİ (8 köşeli oktogon), `ConvexPolygonClipper2DTests`'in
+        // AYNI A/B kare boyutlarıyla doğruladığı alanla (6.000.000) TUTARLI olmalı.
+        var topFaces = result.Faces.Where(f =>
+            Math.Abs(f.Normal.Normalize().Z - 1.0) < 1e-6 &&
+            f.GetOuterLoop()!.GetOrderedVertices().All(v => Math.Abs(v.Position.Z - 2000.0) < 1e-6)).ToList();
+        Assert.Single(topFaces);
+        Assert.Equal(6_000_000.0, topFaces[0].GetArea(), precision: 3);
+
+        // İç noktalar sınıflandırması: A-yalnız, B-yalnız, A∩B, ve tamamen dışarı.
+        Assert.True(SolidClassifier.IsPointInside(result, new Vector3D(500, 500, 1000)));
+        Assert.True(SolidClassifier.IsPointInside(result, new Vector3D(2500, 2500, 1000)));
+        Assert.True(SolidClassifier.IsPointInside(result, new Vector3D(1750, 1750, 1000)));
+        Assert.False(SolidClassifier.IsPointInside(result, new Vector3D(-500, -500, 1000)));
     }
 }

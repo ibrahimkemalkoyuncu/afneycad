@@ -98,16 +98,39 @@ public static class GeneralSolidUnion
     public static Solid Union(Solid a, Solid b, string resultName = "A_union_B")
     {
         var aWork = CloneSolid(a, "union_a_work");
-        var bRefForA = CloneSolid(b, "union_b_ref");
-        var aOutside = SegmentBasedSubdivider.SubdivideAndClassifyOutside(aWork, bRefForA);
+        var bRefForA = CloneSolid(b, "union_b_ref"); // A'nın kesişim/segment-toplama tarafı için "B"
 
         var bWork = CloneSolid(b, "union_b_work");
-        var aRefForB = CloneSolid(a, "union_a_ref");
-        var bOutside = SegmentBasedSubdivider.SubdivideAndClassifyOutside(bWork, aRefForB);
+        var aRefForB = CloneSolid(a, "union_a_ref"); // B'nin kesişim/segment-toplama tarafı için "A"
+
+        // `SolidClassifier.IsPointInside`'ın ışın-üçgen sayımının GÜVENİLİR çalışması için TAM/
+        // eksiksiz (coplanar ön-geçişten HİÇ ETKİLENMEMİŞ) birer klon — bkz. aşağıdaki
+        // `MergeCoplanarOverlappingFaces` yorumu ve `SubdivideAndClassifyOutside`'ın YENİ
+        // `classificationSolid` parametresinin dokümantasyonu.
+        var bClassifyForA = CloneSolid(b, "union_b_classify");
+        var aClassifyForB = CloneSolid(a, "union_a_classify");
+
+        // ÖN-GEÇİŞ (pre-pass) — coplanar KISMEN-ÖRTÜŞEN Face çiftlerini `SegmentBasedSubdivider`'a
+        // hiç göstermeden ÖNCE, TEK bir yerde (burada, hem A hem B'nin TÜM Face'lerini AYNI ANDA
+        // görebilen `GeneralSolidUnion`'ın kendisinde) birleştirir — bkz. dosya başı KAPSAM notu.
+        // Bu, "hangi taraf üretir" koordinasyon sorusunu YAPISAL OLARAK ortadan kaldırır: aFace/
+        // bFace çifti bulunur bulunmaz İKİSİ de segment-toplama rolündeki TÜM 4 klondan (aWork/
+        // aRefForB/bWork/bRefForA) SİLİNİR — `SegmentBasedSubdivider.SubdivideAndClassifyOutside`
+        // bu ikisini BİR DAHA HİÇ GÖRMEZ, `HasAmbiguousCoplanarOverlap` bu çift için tetiklenemez
+        // (Face zaten yok) VE `FaceIntersection`'ın coplanar (tam çakışık/teğet) Face çiftlerinde
+        // ürettiği belgelenmemiş dejenere segmentler (canlı testte YAKALANDI — bkz. aşağıdaki
+        // NEDEN notu) diğer, coplanar-OLMAYAN Face'lerin bölünmesine KARIŞMAZ. `bClassifyForA`/
+        // `aClassifyForB` (SADECE sınıflandırma için, segment-toplama rolünde HİÇ kullanılmayan
+        // klonlar) bu silme işleminden BİLİNÇLİ olarak MUAF tutulur.
+        MergeCoplanarOverlappingFacesInto(aWork, bRefForA, bWork, aRefForB, out var mergedCoplanarFaces);
+
+        var aOutside = SegmentBasedSubdivider.SubdivideAndClassifyOutside(aWork, bRefForA, bClassifyForA);
+        var bOutside = SegmentBasedSubdivider.SubdivideAndClassifyOutside(bWork, aRefForB, aClassifyForB);
 
         var result = new Solid(resultName);
         result.Faces.AddRange(aOutside);
         result.Faces.AddRange(bOutside);
+        result.Faces.AddRange(mergedCoplanarFaces);
 
         ClearDanglingFaceReferences(result);
 
@@ -120,6 +143,133 @@ public static class GeneralSolidUnion
                 "başarısız) — beklenmeyen bir dejenere birleşim (bkz. Roadmap_CSG_Boolean.md).");
 
         return result;
+    }
+
+    /*
+       NE: Coplanar VE izdüşümleri (AABB) örtüşen A-Face/B-Face çiftlerini bulup, her çifti
+           `ConvexPolygonClipper2D.Union` ile TEK bir birleşik Face'e indirger — bulunan her çift
+           SEGMENT-TOPLAMA rolündeki TÜM 4 klondan (`aWork`, `aRefForB`, `bWork`, `bRefForA`) SİLİNİR.
+       NEDEN 4 KLONUN HEPSİNDEN SİLİNİYOR (SINIFLANDIRMA klonlarından — `bClassifyForA`/
+           `aClassifyForB` — DEĞİL, bkz. `Union`'ın çağrı noktası): `SubdivideAndClassifyOutside`'ın
+           YENİ `classificationSolid` parametresi sayesinde artık İKİ AYRI rol var —
+           (1) SEGMENT-TOPLAMA (`CollectSegmentsAgainstAllFaces` — `FaceIntersection.Intersect`),
+           (2) SINIFLANDIRMA (`SolidClassifier.IsPointInside` — ışın-üçgen sayımı, TAM/eksiksiz
+           kabuk gerektirir). Coplanar Face'ler SEGMENT-TOPLAMA rolündeki klonlarda KALIRSA, canlı
+           testte YAKALANAN iki farklı BOZULMA türü ortaya çıkıyordu: (a) 4 klonun DÖRDÜNDEN de
+           silinmeden SADECE segment-toplama klonlarından silinip sınıflandırma klonları TAM
+           bırakılınca, coplanar-OLMAYAN diğer Face çiftleri arasında (ör. A'nın bir yan yüzü İLE
+           B'nin, A'nınkiyle AYNI Z aralığında kalan üst/alt yüzü ARASINDA) YENİ, dejenere/teğet
+           (tangent) `FaceIntersection` segmentleri üretiliyordu (Face'in kendi SINIRINA teğet ama
+           DİĞER Face'in İÇİNDEN geçen bir kesişim çizgisi) — bu, coplanar-örtüşme kontrolünün HİÇ
+           yakalamadığı, TAMAMEN FARKLI bir dejenere sınıf (ambiguous-coplanar DEĞİL, "teğet-yüzey"
+           kesişimi) ve `SegmentBasedSubdivider`'ın bunu doğru ele aldığı test edilmemiş; (b) segment-
+           toplama klonlarından HİÇ silinmeyip SADECE sınıflandırma ayrı tutulsaydı coplanar Face
+           çiftleri `HasAmbiguousCoplanarOverlap`'i yeniden tetikleyip `NotSupportedException`
+           fırlatırdı (ön-geçişin TÜM amacı bunu önlemekti). Bu yüzden DOĞRU kombinasyon: segment-
+           toplama rolündeki TÜM 4 klondan sil (coplanar Face'ler hem "hangi Face bölünecek" hem
+           "hangi Face'e karşı kesiştirilecek" listelerinden TAMAMEN kaybolur — ne ambiguous-throw
+           ne teğet-kesişim riski kalır), ama SINIFLANDIRMA klonlarını (`bClassifyForA`/
+           `aClassifyForB`) TAMAMEN DOKUNULMADAN bırak (ışın-üçgen sayımı hâlâ TAM kabuğa göre
+           çalışır, canlı testte YAKALANAN "B'nin içinde kalan bir A-fragmanı üst/alt yüz eksikliği
+           YÜZÜNDEN yanlışlıkla dışarıda sayılıyor" hatası ORTADAN KALKAR).
+       NASIL (index eşleştirmesi): `aWork`/`aRefForB` (ikisi de `a`'nın BAĞIMSIZ klonu) VE
+           `bWork`/`bRefForA` (ikisi de `b`'nin BAĞIMSIZ klonu), `CloneSolid`'in kaynak `Faces`
+           listesini SIRAYLA gezip AYNI SIRAYLA yeni Face eklediği için, `aWork.Faces[i]` HER ZAMAN
+           `aRefForB.Faces[i]`'nin aynı orijinal A-Face'inin klonu (aynı şekilde `bWork.Faces[j]` ~
+           `bRefForA.Faces[j]`) — birleştirilecek Face'in KENDİ (2D) poligonu bu yüzden `aRefForB`/
+           `bRefForA`'dan DEĞİL doğrudan `aWork`/`bWork`'ten okunur (aynı Face, farklı klon
+           gerekmiyor). Bu fonksiyon ÇAĞRILMADAN ÖNCE (yani hiçbir Face henüz silinmemişken) TÜM 4
+           listenin anlık görüntüsü (snapshot) alınır — döngü sırasında `aWork.Faces`/`bWork.Faces`
+           mutasyona uğradığı için orijinal index'lere güvenli erişim SADECE bu snapshot'lar
+           üzerinden mümkün.
+       KAPSAM (bilinçli, dar): SADECE AYNI YÖNLÜ (`na·nb > 0`) coplanar çiftler birleştirilir —
+           ZIT yönlü coplanar çakışma (ör. A'nın dışa bakan bir yüzü B'nin İÇİNE gömülü bir
+           boşluğun duvarıyla çakışıyor) farklı bir CSG durumu (iç yüzey iptali) ve bu ön-geçişin
+           kapsamı DIŞINDA — o durumda normal `SegmentBasedSubdivider` akışı (ve gerekirse kendi
+           `HasAmbiguousCoplanarOverlap` koruması) devreye girer. Her aFace/bFace EN FAZLA BİR kez
+           eşleştirilir (bir aFace zaten birleştirildiyse sonraki bFace adaylarıyla tekrar
+           denenmez) — birden fazla B-Face'in AYNI A-Face ile coplanar-örtüştüğü daha karmaşık
+           durumlar (roadmap'in şu ana kadar hiç karşılaşmadığı bir senaryo) kapsam dışı bırakılır,
+           o durumda ilgili Face'ler bu ön-geçişten ETKİLENMEDEN normal akışa girer (ve gerekirse
+           `HasAmbiguousCoplanarOverlap` kendi korumasını uygular).
+    */
+    private static void MergeCoplanarOverlappingFacesInto(
+        Solid aWork, Solid bRefForA, Solid bWork, Solid aRefForB, out List<Face> merged)
+    {
+        merged = new List<Face>();
+
+        var aWorkSnapshot = aWork.Faces.ToList();
+        var aRefSnapshot = aRefForB.Faces.ToList();
+        var bWorkSnapshot = bWork.Faces.ToList();
+        var bRefSnapshot = bRefForA.Faces.ToList();
+
+        var aMergedIndices = new HashSet<int>();
+        var bMergedIndices = new HashSet<int>();
+
+        for (int i = 0; i < aWorkSnapshot.Count; i++)
+        {
+            if (aMergedIndices.Contains(i)) continue;
+            var aFace = aWorkSnapshot[i];
+
+            for (int j = 0; j < bWorkSnapshot.Count; j++)
+            {
+                if (bMergedIndices.Contains(j)) continue;
+                var bFace = bWorkSnapshot[j];
+
+                if (!IsSameDirectionCoplanarOverlap(aFace, bFace)) continue;
+
+                var polyA = aFace.GetOuterLoop()!.GetOrderedVertices().Select(v => v.Position).ToList();
+                var polyB = bFace.GetOuterLoop()!.GetOrderedVertices().Select(v => v.Position).ToList();
+                var unionPolygon = ConvexPolygonClipper2D.Union(polyA, polyB, aFace.Normal);
+
+                merged.Add(GeneralSolidSubtractor.BuildFreshOpenCapFace(unionPolygon, aFace.Normal));
+
+                aWork.Faces.Remove(aWorkSnapshot[i]);
+                aRefForB.Faces.Remove(aRefSnapshot[i]);
+                bWork.Faces.Remove(bWorkSnapshot[j]);
+                bRefForA.Faces.Remove(bRefSnapshot[j]);
+
+                aMergedIndices.Add(i);
+                bMergedIndices.Add(j);
+                break; // bu aFace işlendi, sıradaki i'ye geç
+            }
+        }
+    }
+
+    /*
+       NE: İki Face aynı yönlü (`na·nb > 0`) coplanar mı VE 3D AABB izdüşümleri örtüşüyor mu?
+       NEDEN AYNI (kopyalanmış) MANTIK `SegmentBasedSubdivider.HasAmbiguousCoplanarOverlap` İLE:
+           o metod `private` (bu dosyanın kapsamı dışında, dokunulmadı — görev tanımının "sen karar
+           ver" notuna göre burada KÜÇÜK ölçekli, bağımsız bir kopya tercih edildi, aynı test
+           mantığı) ama TEK bir A-Face'i B'nin TÜM Face'lerine karşı test ediyordu; burada belirli
+           bir (aFace,bFace) ÇİFTİ için gereken, daha dar bir pairwise test.
+    */
+    private static bool IsSameDirectionCoplanarOverlap(Face aFace, Face bFace)
+    {
+        const double eps = 1e-6;
+
+        if (!CoplanarFaceDetector.AreCoplanar(aFace, bFace)) return false;
+        if (aFace.Normal.Normalize().Dot(bFace.Normal.Normalize()) <= 0) return false;
+
+        var (aMin, aMax) = GetVertexBounds(aFace);
+        var (bMin, bMax) = GetVertexBounds(bFace);
+        bool overlapsX = aMin.X <= bMax.X + eps && aMax.X >= bMin.X - eps;
+        bool overlapsY = aMin.Y <= bMax.Y + eps && aMax.Y >= bMin.Y - eps;
+        bool overlapsZ = aMin.Z <= bMax.Z + eps && aMax.Z >= bMin.Z - eps;
+        return overlapsX && overlapsY && overlapsZ;
+    }
+
+    private static (Vector3D Min, Vector3D Max) GetVertexBounds(Face face)
+    {
+        var vertices = face.GetOuterLoop()!.GetOrderedVertices();
+        var min = new Vector3D(double.MaxValue, double.MaxValue, double.MaxValue);
+        var max = new Vector3D(double.MinValue, double.MinValue, double.MinValue);
+        foreach (var v in vertices)
+        {
+            min = new Vector3D(Math.Min(min.X, v.Position.X), Math.Min(min.Y, v.Position.Y), Math.Min(min.Z, v.Position.Z));
+            max = new Vector3D(Math.Max(max.X, v.Position.X), Math.Max(max.Y, v.Position.Y), Math.Max(max.Z, v.Position.Z));
+        }
+        return (min, max);
     }
 
     /*
