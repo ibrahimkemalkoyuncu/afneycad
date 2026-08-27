@@ -87,4 +87,10 @@ public abstract class MechanicalEntity : CadEntity
 
     // NE: Bağlantı Portları
     public abstract List<MechanicalPort> GetPorts();
+
+    // NE: Mühendislik Uyarısı (Engineering Warning)
+    // NEDEN: Otomatik seçim/hesaplama sırasında standart dışı bir durum (örn: standart olmayan dirsek açısı)
+    //        tespit edildiğinde, bu bilgiyi Debug çıktısına gömmek yerine nesnenin üzerinde taşıyarak
+    //        UI/BOM raporlarında kullanıcıya gösterilebilir hale getirmek için.
+    public string? EngineeringWarning { get; set; }
 }

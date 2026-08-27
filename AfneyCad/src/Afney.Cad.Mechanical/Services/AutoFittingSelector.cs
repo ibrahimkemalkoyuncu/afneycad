@@ -43,25 +43,26 @@ public class AutoFittingSelector
         bool is90 = Math.Abs(angleDeg - 90) <= 1.0 || Math.Abs(angleDeg - 270) <= 1.0;
         bool is45 = Math.Abs(angleDeg - 45) <= 1.0 || Math.Abs(angleDeg - 315) <= 1.0;
 
-        if (!is90 && !is45)
-        {
-            // TODO: Özel üretim fittings veya esnek boru uyarısı verilmeli.
-            // Şimdilik en yakına yuvarlamıyoruz, tam açı istiyoruz.
-            // "Mühendislik Modu": Hata fırlat (veya null dön)
-            // return null; 
-            
-            // Kullanıcı deneyimi için şimdilik devam et ama logla:
-            System.Diagnostics.Debug.WriteLine($"[UYARI] Standart dışı açı tespit edildi: {angleDeg:F2}°");
-        }
-        
         // 3. FITTINGS OLUŞTURMA
         // Şimdilik jenerik bir Elbow dönüyoruz ama ileride StandardsLibrary'den "PPRC 90 Dirsek" nesnesi döneceğiz.
-        return new ElbowEntity(pipe1.EndPoint, pipe1.InnerDiameter, v1, v2)
+        var elbow = new ElbowEntity(pipe1.EndPoint, pipe1.InnerDiameter, v1, v2)
         {
             Color = pipe1.Color, // Boru rengini alır
             SystemType = pipe1.SystemType,
             PipeMaterialType = pipe1.PipeMaterialType
         };
+
+        if (!is90 && !is45)
+        {
+            // Standart dışı açı: hazır (45°/90°) bir dirsek bu açıyı karşılayamaz.
+            // "Mühendislik Modu": burada hata fırlatıp akışı durdurmak yerine, özel üretim
+            // fitting veya esnek boru gerektiğini nesne üzerinde işaretleyip kullanıcıya bırakıyoruz.
+            elbow.EngineeringWarning =
+                $"Standart dışı açı ({angleDeg:F2}°) — özel üretim fittings veya esnek boru gerekebilir.";
+            System.Diagnostics.Debug.WriteLine($"[UYARI] {elbow.EngineeringWarning}");
+        }
+
+        return elbow;
     }
 
     /// <summary>
