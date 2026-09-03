@@ -3036,4 +3036,20 @@ Kullanıcı "hemen yapalım" dedi — madde 49'un bıraktığı tek açık iş (
 
 ---
 
-*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #68*
+### 51. MainWindow.Commands.cs Yeniden Bölündü + CSG UNION'ın Kapsam Dışı Kenar Durumları İncelendi
+Kullanıcı önce bir sonraki oturum önceliklerini sordu, sonra "tüm maddeleri uygula" dedi — 2 bağımsız iş paralel ajanlara verildi. İkisi de çalışırken oturum API limitine takılıp yarım kaldı (rapor mesajı gönderilmeden kesildi) — devralınıp diskteki iş doğrulandı.
+
+**1. `MainWindow.Commands.cs` god-object bölünmesi (`commit 19ae71e`):** Session #38'de 1031 satırken tekrar 1324 satıra büyümüştü — Session #63'ün deseniyle 3 alt dosyaya ayrıldı: `MainWindow.Commands.Drawing.cs` (392, temel çizim+boyutlandırma), `MainWindow.Commands.Mechanical.cs` (592, mekanik çizim/blok/mimari), `MainWindow.Commands.Console.cs` (388, komut satırı+BOM). Saf mekanik refactor, davranış değişmedi. CLAUDE.md dosya haritası güncellendi. **506/506** (503 mevcut + 3, ayrı bir işten kalan geçici teşhis testleri — aşağıda kalıcı hale getirildi).
+
+**2. CSG UNION'ın 2 kapsam dışı kenar durumu incelendi, kod YAZILMADI (`commit 8a36ade`):** Session #69'un bıraktığı "zıt yönlü coplanar çakışma" ve "bir A-Face'in birden fazla B-Face ile örtüşmesi" durumları somut senaryolarla canlı test edildi:
+- **Zıt yönlü coplanar (iki kutu bir düzlemde tam bitişik — en temel "iki hacmi birleştir" senaryosu bile dahil):** `NotSupportedException` ile GÜVENLE reddediliyor, sessiz yanlış geometri YOK. Çok-kabuklu cavity senaryosunda da aynı güvenli ret.
+- **Çoklu coplanar eşleşme (tek döşeme, iki ayrı kolon):** `MergeCoplanarOverlappingFacesInto`'nun "her Face en fazla bir kez eşleşir" sınırlaması devreye giriyor, ama `GeneralSolidUnion`'ın kendi son `Solid.IsValid()` doğrulaması dejenere montajı yakalayıp `InvalidOperationException` fırlatıyor — yine sessiz yanlış sonuç YOK.
+- **Karar:** İkisi de zaten güvenli olduğu (Ana Yasa'nın istediği durum sağlanmış) için kod yazılmadı — gerçek bir çözüm (`FaceIntersection`'ın coplanar tam-çakışık durumları + çok-kabuklu iç/dış yüzey ayrımı) yeni bir mimari problem sınıfı, ayrı bir oturuma bırakıldı. Bu güvenli-ret davranışı 3 kalıcı testle (`GeneralSolidUnionUnsupportedCasesTests.cs`) kilitlendi — ileride bir değişiklik korumaları yanlışlıkla gevşetirse testler kırılıp haber verecek.
+
+**Ders (bu oturuma özgü):** İki ajan da AYNI ANDA oturum limitine takıldı (paralel çalıştırıldıkları için) — ikisinde de iş diskte tamamlanmış haldeydi, devralınıp build/test ile doğrulanarak tamamlandı. Bu, projenin defalarca gözlemlediği "ajan kesintiye uğrasa da iş genelde diskte kalıyor" deseninin bir tekrarı.
+
+**Tam suite: 506/506**, tam çözüm derlemesi 0 hata, her commit ayrı ayrı doğrulandı, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #69*
