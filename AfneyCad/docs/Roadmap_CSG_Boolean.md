@@ -931,3 +931,35 @@ eşleştiriliyor — aynı A-Face'in birden fazla B-Face ile coplanar-örtüşt�
 ve test edilmiş. Kalan bilinçli kapsam dışı: zıt yönlü coplanar çakışma (iç boşluk), aynı A-Face'in
 birden fazla B-Face ile coplanar örtüşmesi, `FaceIntersection.Intersect`'in kendi coplanar-tutarsızlık
 kök nedeni (savunma katmanı hâlâ yerinde, ayrı bir araştırma konusu olarak kalıyor).
+
+## Güncelleme — 2026-08-15 (Session #70) — 2 Kapsam-Dışı Kenar Durumu İncelendi: İkisi de GÜVENLE Reddediyor
+
+Kullanıcı "tüm maddeleri uygula" dedi — Session #69'un bıraktığı 2 bilinçli kapsam dışı kenar durumu
+(zıt yönlü coplanar çakışma, çoklu coplanar eşleşme) somut senaryolarla canlı test edildi.
+
+**1. Zıt yönlü coplanar çakışma (`na·nb<0`) — iki kutu bir düzlemde TAM bitişik:** En temel "iki
+bitişik hacmi birleştir" senaryosu (A=[0,1000]³, B=[1000,2000]×[0,1000]×[0,1000], X=1000'de bitişik)
+dahi bu kapsamda — `MergeCoplanarOverlappingFacesInto` sadece AYNI yönlü çiftleri yakaladığı için bu
+durum normal `SegmentBasedSubdivider` akışına düşüp `HasAmbiguousCoplanarOverlap`'in
+`NotSupportedException`'ıyla GÜVENLE reddediliyor (sessiz yanlış geometri YOK). Çok-kabuklu bir
+cavity senaryosunda (B = dış kabuk + içine gömülü ayrı bir iç kabuk, A cavity duvarıyla coplanar) da
+aynı güvenli ret gözlemlendi.
+
+**2. Bir A-Face'in birden fazla B-Face ile coplanar örtüşmesi — tek döşeme, iki ayrı kolon:** A'nın
+tek üst yüzü, B'nin İKİ AYRI (bağımsız kabuk) kolonunun üst yüzleriyle aynı anda örtüşüyor.
+`MergeCoplanarOverlappingFacesInto`'nun "her Face en fazla bir kez eşleşir" sınırlaması burada
+devreye giriyor: A'nın üst yüzü ilk kolonla birleşip tükeniyor, ikinci kolonun üst yüzü artık A'da
+eşleşecek bir Face bulamıyor — ama bu SESSİZCE yanlış/eksik geometri üretmiyor, `GeneralSolidUnion`'ın
+kendi son `Solid.IsValid()` doğrulama adımı bu dejenere montajı yakalayıp `InvalidOperationException`
+fırlatıyor.
+
+**Karar:** İkisi de kod YAZILMADAN incelendi — çünkü ikisi de zaten GÜVENLİ (Ana Yasa'nın istediği
+"sessiz yanlış sonuç yerine açık hata" durumu sağlanmış). Gerçek bir düzeltme (özellikle #1, gerçek
+MEP kullanımında sık karşılaşılabilecek bir senaryo — iki bitişik hacmi birleştirmek) mimari olarak
+yeni bir problem sınıfı (`FaceIntersection`'ın coplanar tam-çakışık/teğet durumları nasıl ele aldığı,
+çok-kabuklu birleştirmede "iç" ile "dış" coplanar yüzey ayrımı) gerektiriyor — bu oturumun kapsamına
+sığdırılmadı, dürüstçe bir SONRAKİ, izole oturuma bırakıldı. 3 yeni test (`GeneralSolidUnionUnsupportedCasesTests.cs`)
+bu güvenli-ret davranışını kilitledi — ileride bir değişiklik bu korumaları yanlışlıkla gevşetirse
+testler kırılıp haber verecek.
+
+**Tam suite: 506/506** (503 → 506, +3 yeni test), regresyon yok.
