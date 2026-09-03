@@ -25,10 +25,17 @@ Session #38'de 4745 satırlık MainWindow.xaml.cs 6 dosyaya ayrıldı:
 | Dosya | Satır | Sorumluluk |
 |-------|-------|------------|
 | `MainWindow.xaml.cs` | 365 | Core: fields, ctor, tab/panel/keyboard yönetimi |
-| `MainWindow.Commands.cs` | 1031 | Çizim komutları, komut satırı, blok işlemleri |
 | `MainWindow.FileOps.cs` | 588 | Dosya aç/kaydet/import/export (DWG/DXF/IFC/PDF/PNG/Excel) |
 | `MainWindow.Layers.cs` | 208 | Layer picker, görünürlük, dondurma, sistem katman toggle |
 | `MainWindow.ViewControls.cs` | 135 | Zoom, 2D/3D toggle, OSnap, Ortho, Undo/Redo |
+
+Session #70'te `MainWindow.Commands.cs` (1324 satıra tekrar büyümüştü) 3 alt dosyaya ayrıldı:
+
+| Dosya | Satır | Sorumluluk |
+|-------|-------|------------|
+| `MainWindow.Commands.Drawing.cs` | 392 | Temel çizim (Line/Circle/Polyline/Trim/Extend/Mirror/Move/Copy/Offset/Hatch) + Boyutlandırma |
+| `MainWindow.Commands.Mechanical.cs` | 592 | Mekanik çizim (boru/vitrifiye/kolon), Blok işlemleri, Mimari (ArchDetect/Bom/DefineBuilding) |
+| `MainWindow.Commands.Console.cs` | 388 | Komut satırı (CommandInput_KeyDown/ExecuteCommand) + BOM/Metraj |
 
 Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt dosyaya ayrıldı:
 
@@ -59,7 +66,7 @@ Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt d
 - `OnEntityModifiedFromRightPanel()` — Sağ panel property değişikliği
 - `OnClosed()` — Uygulama kapanışında kaynak temizliği
 
-### MainWindow.Commands.cs
+### MainWindow.Commands.* (Drawing/Mechanical/Console — bkz. yukarıdaki tablo)
 **Temel Çizim:**
 - `OnLineCommand`, `OnCircleCommand`, `OnPolylineCommand`, `OnRectangleCommand`
 - `OnTrimCommand`, `OnExtendCommand`, `OnMirrorCommand`, `OnExplodeCommand`
