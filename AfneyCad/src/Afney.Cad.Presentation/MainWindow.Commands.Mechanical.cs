@@ -158,6 +158,30 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnPlaceAirTerminalCommand(object sender, RoutedEventArgs e)
+        {
+            // NE: PlaceAirTerminalCommand kendi içinde _database.AddEntity çağırır (ValveLibraryDialog
+            // ile aynı desen) — burada tekrar TransactionManager'a submit edilmez (çift ekleme olur).
+            var cmd = new PlaceAirTerminalCommand(_database);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnEntityPlaced += entity => Viewport.InvalidateViewport();
+            cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnPlaceDamperCommand(object sender, RoutedEventArgs e)
+        {
+            // NE: PlaceDamperCommand kendi içinde _database.AddEntity/RemoveEntity çağırır (kanal
+            // bölme dahil) — burada tekrar TransactionManager'a submit edilmez (çift ekleme olur).
+            var cmd = new PlaceDamperCommand(_database);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnEntityPlaced += entity => Viewport.InvalidateViewport();
+            cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void SyncMechanicalSettings(RoutePipeCommand? cmd = null)
         {
             if (Viewport == null) return;

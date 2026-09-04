@@ -341,6 +341,9 @@ namespace Afney.Cad.Presentation
                     case "hvacbom": case "kanalmetraj": case "ductbom": OnHvacBomCommand(this, new RoutedEventArgs()); break;
                     case "duct": case "kanal": OnRouteDuctCommand(this, new RoutedEventArgs()); break;
                     case "ductconnect": case "kanalbagla": case "dc": OnConnectDuctCommand(this, new RoutedEventArgs()); break;
+                    case "airterminal": case "difuzor": case "menfez": case "at": OnPlaceAirTerminalCommand(this, new RoutedEventArgs()); break;
+                    case "damper": case "klape": case "dmp": OnPlaceDamperCommand(this, new RoutedEventArgs()); break;
+                    case "silencer": case "susturucu": case "sus": OnSilencerSelection(this, new RoutedEventArgs()); break;
                     case "area": case "alan": OnSelectAreaCommand(this, new RoutedEventArgs()); break;
                     case "secimmetraj": case "selbom": case "sm": OnSelectionBomCommand(this, new RoutedEventArgs()); break;
                     case "mimaribom": case "archbom": case "mb": OnArchBomCommand(this, new RoutedEventArgs()); break;

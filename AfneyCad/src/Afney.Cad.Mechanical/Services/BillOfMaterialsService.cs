@@ -48,7 +48,8 @@ public class BillOfMaterialsService
             .ToList();
 
         var fittings = _database.GetAllEntities().OfType<MechanicalEntity>()
-            .Where(e => e is ElbowEntity || e is TeeEntity || e is Valve)
+            .Where(e => e is ElbowEntity || e is TeeEntity || e is Valve || e is ValveEntity
+                     || e is DamperEntity || e is AirTerminalEntity)
             .GroupBy(e => new { Type = e.GetType().Name, e.InnerDiameter })
             .ToList();
 
@@ -98,8 +99,12 @@ public class BillOfMaterialsService
         currentRow++;
         foreach (var group in fittings)
         {
-            table.SetCell(currentRow, 0, "Set-Poz"); // Dinamik fitting pozu eklenebilir
-            table.SetCell(currentRow, 1, $"{group.Key.InnerDiameter}mm {group.Key.Type}");
+            var sample = group.First();
+            string poz = GetFittingPoz(sample);
+            string desc = GetFittingDescription(sample, group.Key.InnerDiameter);
+
+            table.SetCell(currentRow, 0, poz);
+            table.SetCell(currentRow, 1, desc);
             table.SetCell(currentRow, 2, $"{group.Count()} Ad.");
             currentRow++;
         }
@@ -145,6 +150,66 @@ public class BillOfMaterialsService
             _                                                                  => "Soğuk Su"
         };
         return $"{mat} {sys} Borusu (DN {diameter})";
+    }
+
+    /*
+    NE: Ek Parça/Ekipman Poz ve Açıklama Eşleştirmesi (GetFittingPoz / GetFittingDescription)
+    NEDEN: ValveEntity (vana), DamperEntity (kanal damperi) ve AirTerminalEntity
+           (difüzör/menfez/panjur) için özel poz no ve Türkçe malzeme tanımı üretmek —
+           bu üç kütüphane önceden BOM'a hiç girmiyordu (yalnızca eski Valve/ElbowEntity/
+           TeeEntity tanınıyordu).
+    */
+    private string GetFittingPoz(MechanicalEntity e)
+    {
+        return e switch
+        {
+            ValveEntity v => v.ValveType switch
+            {
+                Afney.Cad.Mechanical.Enums.ValveType.GateValve      => "25.410.1201",
+                Afney.Cad.Mechanical.Enums.ValveType.BallValve      => "25.410.1202",
+                Afney.Cad.Mechanical.Enums.ValveType.ButterflyValve => "25.410.1203",
+                Afney.Cad.Mechanical.Enums.ValveType.CheckValve     => "25.410.1204",
+                Afney.Cad.Mechanical.Enums.ValveType.PRV            => "25.410.1205",
+                Afney.Cad.Mechanical.Enums.ValveType.Filter         => "25.410.1206",
+                _                                                   => "25.410.1200"
+            },
+            DamperEntity d => d.DamperType switch
+            {
+                Afney.Cad.Mechanical.Enums.DamperType.Volume     => "25.430.1301",
+                Afney.Cad.Mechanical.Enums.DamperType.Fire       => "25.430.1302",
+                Afney.Cad.Mechanical.Enums.DamperType.Smoke      => "25.430.1303",
+                Afney.Cad.Mechanical.Enums.DamperType.FireSmoke  => "25.430.1304",
+                Afney.Cad.Mechanical.Enums.DamperType.BackDraft  => "25.430.1305",
+                _                                                => "25.430.1300"
+            },
+            AirTerminalEntity t => t.TerminalType switch
+            {
+                Afney.Cad.Mechanical.Enums.AirTerminalType.SupplyDiffuser => "25.440.1401",
+                Afney.Cad.Mechanical.Enums.AirTerminalType.ReturnGrille   => "25.440.1402",
+                Afney.Cad.Mechanical.Enums.AirTerminalType.ExhaustGrille  => "25.440.1403",
+                Afney.Cad.Mechanical.Enums.AirTerminalType.Louver         => "25.440.1404",
+                Afney.Cad.Mechanical.Enums.AirTerminalType.LinearSlot     => "25.440.1405",
+                Afney.Cad.Mechanical.Enums.AirTerminalType.JetNozzle      => "25.440.1406",
+                Afney.Cad.Mechanical.Enums.AirTerminalType.FloorDiffuser  => "25.440.1407",
+                _                                                         => "25.440.1400"
+            },
+            _ => "Set-Poz"
+        };
+    }
+
+    private string GetFittingDescription(MechanicalEntity e, double diameter)
+    {
+        return e switch
+        {
+            ValveEntity v        => $"{v.ValveType} DN{diameter:F0}",
+            DamperEntity d       => d.DamperType is Afney.Cad.Mechanical.Enums.DamperType.Fire
+                                        or Afney.Cad.Mechanical.Enums.DamperType.Smoke
+                                        or Afney.Cad.Mechanical.Enums.DamperType.FireSmoke
+                                     ? $"{d.DamperType} Damper DN{diameter:F0} ({d.FireRatingMin}dk)"
+                                     : $"{d.DamperType} Damper DN{diameter:F0}",
+            AirTerminalEntity t  => $"{t.TerminalType} {t.Width:F0}x{t.Height:F0} ({t.AirFlowM3h:F0} m³/h)",
+            _                    => $"{diameter}mm {e.GetType().Name}"
+        };
     }
 
     private string GetFixturePoz(string name)

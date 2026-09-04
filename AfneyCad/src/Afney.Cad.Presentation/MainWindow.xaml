@@ -768,6 +768,24 @@
                                                             <TextBlock Text="Boru Sihirbazı" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
+                                                    <Button Click="OnPlaceAirTerminalCommand" Style="{StaticResource RbnBtn}" ToolTip="Difüzör/Menfez/Panjur yerleştir (kanal ucuna yaslanır)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Fan}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Hava Terminali" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnPlaceDamperCommand" Style="{StaticResource RbnBtn}" ToolTip="Damper (Volume/Fire/Smoke) yerleştir — kanal hattı bölünür (EN 1366-2)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Rectangle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Damper Yerleştir" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnSilencerSelection" Style="{StaticResource RbnBtn}" ToolTip="Susturucu seçimi (ASHRAE Ch.48 / ISO 7235)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.VolumeHigh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Susturucu Seçimi" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button Click="OnAutoBranchingClick" Style="{StaticResource RbnBtn}" ToolTip="Otomatik Şube Bağlantısı">
                                                         <StackPanel Orientation="Horizontal">
                                                             <Path Data="{StaticResource Ico.Cog}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>

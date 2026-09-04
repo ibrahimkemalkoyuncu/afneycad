@@ -47,6 +47,12 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"Vana kütüphanesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        private void OnSilencerSelection(object sender, RoutedEventArgs e)
+        {
+            try { new SilencerSelectionDialog { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show($"Susturucu seçimi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         private void OnManageCatalog(object sender, RoutedEventArgs e)
         {
             try { new UserFixtureCatalogDialog(new FixtureLibraryService()) { Owner = this }.ShowDialog(); }

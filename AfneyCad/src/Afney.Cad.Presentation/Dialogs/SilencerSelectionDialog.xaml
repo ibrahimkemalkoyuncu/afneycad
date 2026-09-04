@@ -1,0 +1,119 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.SilencerSelectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Susturucu Seçimi — AfneyCAD" Height="520" Width="820"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="RowBackground" Value="#252535"/><Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0D3060"/><Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <!-- Başlık -->
+        <Border DockPanel.Dock="Top" Background="#0D3060" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource Ico.VolumeHigh}" Fill="#90CAF9" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Susturucu Seçimi" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  ASHRAE HVAC Applications Ch.48 / ISO 7235" FontSize="10" Foreground="#7799BB" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Alt buton çubuğu -->
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="TxtStatus" Grid.Column="0" Text="" Foreground="#77AA77" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="6"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Girdi paneli -->
+            <Border Grid.Row="0" Background="#252535" CornerRadius="4" Padding="10">
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Debi (m³/h)" Foreground="#90CAF9" FontSize="11"/>
+                        <TextBox x:Name="TxtFlow" Text="1000" Width="90"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Hedef Ekleme Kaybı (dB)" Foreground="#90CAF9" FontSize="11"/>
+                        <TextBox x:Name="TxtTargetIL" Text="20" Width="90"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Kritik Oktav Bandı (Hz)" Foreground="#90CAF9" FontSize="11"/>
+                        <ComboBox x:Name="BandCombo" Width="90" SelectedIndex="3">
+                            <ComboBoxItem Content="63"/><ComboBoxItem Content="125"/><ComboBoxItem Content="250"/>
+                            <ComboBoxItem Content="500"/><ComboBoxItem Content="1000"/><ComboBoxItem Content="2000"/>
+                            <ComboBoxItem Content="4000"/><ComboBoxItem Content="8000"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Tip" Foreground="#90CAF9" FontSize="11"/>
+                        <ComboBox x:Name="TypeCombo" Width="120" SelectedIndex="0">
+                            <ComboBoxItem Content="Tümü"/><ComboBoxItem Content="Rectangular"/>
+                            <ComboBoxItem Content="Circular"/><ComboBoxItem Content="Cellular"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Bottom">
+                        <Button Content="Ara" Click="Search_Click" Width="80"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Sonuç tablosu -->
+            <DataGrid Grid.Row="2" x:Name="ResultGrid" AutoGenerateColumns="False"
+                      SelectionChanged="ResultGrid_SelectionChanged">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Model"        Binding="{Binding ModelName}"    Width="*"/>
+                    <DataGridTextColumn Header="Üretici"      Binding="{Binding Manufacturer}" Width="90"/>
+                    <DataGridTextColumn Header="Tip"          Binding="{Binding Type}"          Width="90"/>
+                    <DataGridTextColumn Header="Bağlantı"     Binding="{Binding ConnectionMM}"  Width="90"/>
+                    <DataGridTextColumn Header="Boy (mm)"     Binding="{Binding LengthMm}"      Width="80"/>
+                    <DataGridTextColumn Header="Δp (Pa)"      Binding="{Binding PressureDropPa}" Width="70"/>
+                    <DataGridTextColumn Header="IL Kritik (dB)" Binding="{Binding InsertionLossAtCriticalBandDb}" Width="100"/>
+                    <DataGridTextColumn Header="Debi Marjı (%)" Binding="{Binding FlowMarginPct}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Detay -->
+            <Border Grid.Row="4" Background="#252535" CornerRadius="4" Padding="10">
+                <TextBlock x:Name="DtlText" Text="Bir sonuç seçin — 8 oktav bant (63..8000 Hz) ekleme kaybı burada gösterilir."
+                           TextWrapping="Wrap" Foreground="#CCC" FontSize="11"/>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
