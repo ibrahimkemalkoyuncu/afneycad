@@ -121,4 +121,54 @@ public class HardyCrossSolverTests
         Assert.Equal(3.0, Math.Abs(network.Pipes[0].FlowRate), precision: 6);
         Assert.Equal(1.5, Math.Abs(network.Pipes[1].FlowRate), precision: 6);
     }
+
+    /*
+       NE: Sıcaklık Bağımlılığı Regresyon Testi (WaterTemperatureC)
+       NEDEN: Denetim raporu, HardyCrossSolver'ın MechanicalCalculations.CalculatePressureDrop'u
+              sabit 20°C varsayarak çağırdığını ve WaterPropertiesService'in (IAPWS-IF97) gerçek
+              sıcaklık-bağımlı yoğunluk/viskozite değerlerinin hiç kullanılmadığını tespit etti.
+              Bu test, HydraulicNetwork.WaterTemperatureC değiştirildiğinde hesaplanan basınç
+              kaybının GERÇEKTEN farklı çıktığını (60°C sıcak su -> düşük viskozite -> düşük
+              basınç kaybı) sayısal olarak doğrular.
+    */
+    [Fact]
+    public void CalculatePressureDrop_HotWater_HasLowerPressureDropThanColdWater()
+    {
+        // Aynı boru parametreleri, sadece sıcaklık farklı.
+        double coldDropBar = MechanicalCalculations.CalculatePressureDrop(
+            length: 10.0, diameter: 25.0, flowRate: 1.5, material: "Steel", temperature: 20.0);
+        double hotDropBar = MechanicalCalculations.CalculatePressureDrop(
+            length: 10.0, diameter: 25.0, flowRate: 1.5, material: "Steel", temperature: 60.0);
+
+        Assert.True(coldDropBar > 0, "20°C basınç kaybı sıfır olmamalı.");
+        Assert.True(hotDropBar > 0, "60°C basınç kaybı sıfır olmamalı.");
+
+        // 60°C'de kinematik viskozite (~0.475e-6 m²/s) 20°C'ye (~1.004e-6 m²/s) göre çok daha
+        // düşüktür -> aynı debi/çap için Reynolds sayısı artar, sürtünme faktörü düşer ->
+        // basınç kaybı azalır. Sıcak su hattı soğuk su hattından belirgin şekilde daha az
+        // basınç kaybı vermeli (gerçek fiziksel etki, sadece kayan yuvarlama farkı değil).
+        Assert.True(hotDropBar < coldDropBar * 0.95,
+            $"60°C basınç kaybı ({hotDropBar:F6} bar) 20°C basınç kaybından ({coldDropBar:F6} bar) " +
+            "belirgin şekilde düşük olmalıydı — sıcaklık etkisi hesaba katılmıyor olabilir.");
+    }
+
+    [Fact]
+    public void Solve_HotWaterNetwork_ProducesLowerHeadLossThanColdWaterNetwork()
+    {
+        var (coldNetwork, _, _, _, _) = BuildSquareLoop();
+        var (hotNetwork, _, _, _, _) = BuildSquareLoop();
+        hotNetwork.WaterTemperatureC = 60.0; // coldNetwork varsayılan 20°C'de kalır
+
+        new HardyCrossSolver().Solve(coldNetwork);
+        new HardyCrossSolver().Solve(hotNetwork);
+
+        double coldTotalHeadLoss = coldNetwork.Pipes.Sum(p => p.HeadLoss);
+        double hotTotalHeadLoss = hotNetwork.Pipes.Sum(p => p.HeadLoss);
+
+        Assert.True(coldTotalHeadLoss > 0);
+        Assert.True(hotTotalHeadLoss > 0);
+        Assert.True(hotTotalHeadLoss < coldTotalHeadLoss,
+            $"60°C ağın toplam yük kaybı ({hotTotalHeadLoss:F4} mSS), 20°C ağın toplam yük " +
+            $"kaybından ({coldTotalHeadLoss:F4} mSS) düşük olmalıydı.");
+    }
 }

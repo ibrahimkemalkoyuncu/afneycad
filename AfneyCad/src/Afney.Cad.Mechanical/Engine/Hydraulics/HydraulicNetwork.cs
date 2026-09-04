@@ -91,6 +91,11 @@ public class HydraulicNetwork
     public List<NetworkNode> Nodes { get; } = new();
     public List<NetworkPipe> Pipes { get; } = new();
 
+    // Tasarım suyu sıcaklığı (°C) — HardyCrossSolver'ın basınç kaybı hesabında (WaterPropertiesService
+    // üzerinden yoğunluk/viskozite) kullanır. Varsayılan 20°C (MechanicalSystemConfig.DesignTemperature
+    // ile aynı varsayılan), böylece sıcaklık ayarlanmazsa mevcut davranış korunur.
+    public double WaterTemperatureC { get; set; } = 20.0;
+
     public void AddPipe(NetworkNode start, NetworkNode end, double diameter, string material = "Steel")
     {
         if (!Nodes.Contains(start)) Nodes.Add(start);

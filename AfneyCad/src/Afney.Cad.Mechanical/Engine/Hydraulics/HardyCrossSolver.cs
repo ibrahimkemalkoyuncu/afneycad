@@ -73,7 +73,7 @@ public class HardyCrossSolver
                             edge.Pipe.InnerDiameter,
                             qAbs,
                             edge.Pipe.Material ?? "Steel",
-                            20.0
+                            network.WaterTemperatureC
                         );
 
                         double headLoss = pressureDropBar * 10.197; // 1 bar ≈ 10.197 mSS
@@ -270,7 +270,7 @@ public class HardyCrossSolver
         {
             double qAbs = Math.Abs(pipe.FlowRate);
             double pBar = MechanicalCalculations.CalculatePressureDrop(
-                pipe.Length, pipe.InnerDiameter, qAbs, pipe.Material, 20.0);
+                pipe.Length, pipe.InnerDiameter, qAbs, pipe.Material, network.WaterTemperatureC);
 
             pipe.HeadLoss = pBar * 10.197;
         }

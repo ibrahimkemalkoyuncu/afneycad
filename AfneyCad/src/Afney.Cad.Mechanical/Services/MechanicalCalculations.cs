@@ -68,9 +68,13 @@ public class MechanicalCalculations
         double area = Math.PI * Math.Pow(diameterM / 2, 2);
         double velocity = flowRateM3S / area;
 
-        // Su yoğunluğu ve viskozite (sıcaklığa göre)
-        double density = 998.0;  // kg/m³ (20°C için basitleştirme)
-        double viscosity = 0.001; // Pa·s (20°C için)
+        // Su yoğunluğu ve viskozite — sıcaklığa GERÇEKTEN bağımlı (IAPWS-IF97, WaterPropertiesService).
+        // NOT: Önceden burada sabit 20°C değerleri (998.0 kg/m³, 0.001 Pa·s) kullanılıyordu ve
+        // `temperature` parametresi hesaba hiç katılmıyordu (bkz. denetim raporu). WaterPropertiesService
+        // 20°C'de bu sabitlere çok yakın (~997.6 kg/m³, ~0.0010 Pa·s) sonuç verdiği için mevcut testler
+        // (20°C varsayımıyla yazılmış) regresyon vermeden geçmeye devam eder.
+        double density = WaterPropertiesService.GetDensity(temperature);
+        double viscosity = WaterPropertiesService.GetDynamicViscosity(temperature);
 
         // Reynolds sayısı
         double reynolds = (density * velocity * diameterM) / viscosity;
