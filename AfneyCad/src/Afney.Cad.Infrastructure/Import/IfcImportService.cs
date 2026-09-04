@@ -8,6 +8,7 @@ using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
+using Afney.Cad.Mechanical.Enums;
 
 namespace Afney.Cad.Infrastructure.Import;
 
@@ -25,6 +26,8 @@ namespace Afney.Cad.Infrastructure.Import;
    - IfcSpace                       → Layer "ARCH-SPACE" metin etiketi
    - IfcPipeSegment / IfcFlowSegment → PipeEntity (Layer "MEP-IMPORT")
    - IfcDuctSegment                  → DuctEntity (dairesel veya dikdörtgen kesit, Layer "MEP-IMPORT")
+   - IfcFlowFitting / IfcPipeFitting / IfcDuctFitting → ElbowEntity/TeeEntity (bu oturumda eklendi)
+   - IfcValve                         → ValveEntity (bu oturumda eklendi)
 
    3D EXTRUSION (bu oturumda eklendi):
    - IFCEXTRUDEDAREASOLID'in Depth (yükseklik) argümanı ARTIK gerçekten kullanılıyor.
@@ -68,6 +71,27 @@ namespace Afney.Cad.Infrastructure.Import;
      Trim parametreleri sadece SAYISAL (IfcParameterValue / çıplak sayı) biçimde
      destekleniyor — IfcCartesianPoint tabanlı trim (nokta ile kırpma) desteklenmiyor.
 
+   MEP BAĞLANTI ELEMANLARI — DİRSEK/T-PARÇASI/VANA (bu oturumda eklendi):
+   - IFCFLOWFITTING / IFCPIPEFITTING / IFCDUCTFITTING artık PredefinedType'ına göre
+     ElbowEntity (.ELBOW./.BEND./boş) veya TeeEntity (.TEE.) olarak içeri aktarılıyor.
+     IFCVALVE, PredefinedType → ValveType eşlemesiyle (IFC4 IfcValveTypeEnum literalleri:
+     CHECK/DOUBLECHECK, ISOLATING/GASCOCK/GASTAP/STOPCOCK/CHANGEOVER, PRESSUREREDUCING,
+     PRESSURERELIEF/SAFETYCUTOFF/STEAMTRAP) ValveEntity olarak içeri aktarılıyor.
+     `IfcImportOptions.ImportMep` bu elemanları da kontrol eder, `result.FittingCount` ile sayılır.
+   - Konum/yön: AfneyCAD'in kendi IfcExportService'i (ExportElbow/ExportTee) ObjectPlacement'ı
+     standart IFCLOCALPLACEMENT sarmalayıcısı OLMADAN doğrudan bir IFCAXIS2PLACEMENT3D'ye
+     referans verdiğinden, ParseProducts artık bu durumu da (placements sözlüğünde bulunamazsa
+     doğrudan axis referansı fallback'i ile) ele alıyor — aksi halde her fitting/vana (0,0,0)'da
+     0° rotasyonla içeri aktarılırdı.
+   - DÜRÜST KAPSAM SINIRI: Dirsek/T-parçasının GERÇEK ikinci (çıkış/dal) yönü, gerçek IFC
+     dosyalarında genelde yalnızca bağlı portların (IFCDISTRIBUTIONPORT + IFCRELCONNECTSPORTS)
+     yön verisinden çıkarılabilir — port topolojisi bu ayrıştırıcıda İZLENMİYOR (kapsam dışı,
+     regex/sözlük tabanlı STEP ayrıştırıcısı için yatırım/getiri oranı düşük). Bunun yerine
+     ObjectPlacement'ın RefDirection'ından gelen TEK birincil yön kullanılır, ikincil yön bu
+     yönü +90° döndürerek YAKLAŞIKLANIR (çoğu dirsek/T-parçası zaten 90°'dir). CROSS/REDUCER/
+     JUNCTION gibi çok-portlu/çok-çaplı PredefinedType'lar ve IFCPUMP HÂLÂ desteklenmiyor
+     (AfneyCAD'de karşılık gelen bir PumpEntity de yok) — bilinçli olarak kapsam dışı.
+
    SINIRLAMALAR (kalan, kasıtlı kapsam dışı):
    - Koordinat dönüşümü: IFCLOCALPLACEMENT yalnızca X/Y öteleme + Z-ekseni rotasyonu
      destekler (3D eğik/devrik yerleşim değil — MEP altlığı için yeterli).
@@ -77,9 +101,9 @@ namespace Afney.Cad.Infrastructure.Import;
      IFCTRIMMEDCURVE(IFCCIRCLE) parçası destekleniyor. Bu, regex/sözlük tabanlı bir STEP
      ayrıştırıcısı için gerçek NURBS/spline tessellation matematiği gerektirir ve MEP
      altlığı amacı için yatırım/getiri oranı düşük görüldü. Bilinçli olarak kapsam dışı.
-   - MEP tarafında sadece düz (tek eksenli) segmentler destekleniyor — IfcFlowFitting
-     (dirsek/te/redüksiyon), vana, pompa gibi MEP bağlantı elemanları HÂLÂ içeri
-     aktarılmıyor (sadece düz boru/kanal gövdeleri).
+   - Fitting/vana geometrisinden sadece ÇAP (veya kutu kenarından yaklaşık çap) okunur —
+     gerçek B-Rep/süpürülmüş dirsek gövdeleri veya birden fazla farklı çaplı uç (redüksiyon)
+     desteklenmiyor.
    - Gerçek B-Rep/solid-mesh render desteği yok (yukarıdaki mimari elemanlar gibi MEP
      elemanları da tel-kafes/kenar çizgileriyle temsil ediliyor).
 */
@@ -144,6 +168,10 @@ public class IfcImportService
                     case "IFCPIPESEGMENT":
                     case "IFCDUCTSEGMENT":
                     case "IFCFLOWSEGMENT":      if (options.ImportMep)     result.MepCount++;    break;
+                    case "IFCFLOWFITTING":
+                    case "IFCPIPEFITTING":
+                    case "IFCDUCTFITTING":
+                    case "IFCVALVE":            if (options.ImportMep)     result.FittingCount++; break;
                 }
             }
 
@@ -202,6 +230,7 @@ public class IfcImportService
                     "IFCDOOR"                          => !options.ImportDoors,
                     "IFCSPACE"                         => !options.ImportSpaces,
                     "IFCPIPESEGMENT" or "IFCDUCTSEGMENT" or "IFCFLOWSEGMENT" => !options.ImportMep,
+                    "IFCFLOWFITTING" or "IFCPIPEFITTING" or "IFCDUCTFITTING" or "IFCVALVE" => !options.ImportMep,
                     _                                  => true
                 };
 
@@ -221,6 +250,10 @@ public class IfcImportService
                     case "IFCPIPESEGMENT":
                     case "IFCDUCTSEGMENT":
                     case "IFCFLOWSEGMENT":      result.MepCount++;    break;
+                    case "IFCFLOWFITTING":
+                    case "IFCPIPEFITTING":
+                    case "IFCDUCTFITTING":
+                    case "IFCVALVE":            result.FittingCount++; break;
                 }
             }
 
@@ -315,45 +348,93 @@ public class IfcImportService
             // IFCLOCALPLACEMENT(#parentId, #axisPlacementId)
             if (e.Args.Count >= 2 && TryParseRef(e.Args[1], out int axisId) &&
                 entities.TryGetValue(axisId, out var axis) &&
-                (axis.Type == "IFCAXIS2PLACEMENT3D" || axis.Type == "IFCAXIS2PLACEMENT2D"))
+                TryComputeAxisPlacementInfo(axis, entities, out var info))
             {
-                Vector3D position = default;
-
-                // IFCAXIS2PLACEMENT3D(Location, Axis, RefDirection)
-                if (axis.Args.Count >= 1 && TryParseRef(axis.Args[0], out int locId) &&
-                    entities.TryGetValue(locId, out var loc) &&
-                    loc.Type == "IFCCARTESIANPOINT")
-                {
-                    position = ParseCartesianPoint(loc);
-                }
-
-                // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN HATA: RefDirection (arg[2]) hiç
-                // okunmuyordu. IFC'de yerel X ekseninin dünya koordinatındaki yönünü
-                // RefDirection verir; Z etrafındaki rotasyon açısı atan2(RefDir.Y, RefDir.X)'tir.
-                double rotation = 0;
-                if (axis.Type == "IFCAXIS2PLACEMENT3D" && axis.Args.Count >= 3 &&
-                    TryParseRef(axis.Args[2], out int refDirId) &&
-                    entities.TryGetValue(refDirId, out var refDir) &&
-                    refDir.Type == "IFCDIRECTION" && refDir.Args.Count >= 2)
-                {
-                    if (double.TryParse(refDir.Args[0], NumberStyles.Any, CultureInfo.InvariantCulture, out double dx) &&
-                        double.TryParse(refDir.Args[1], NumberStyles.Any, CultureInfo.InvariantCulture, out double dy) &&
-                        (Math.Abs(dx) > 1e-9 || Math.Abs(dy) > 1e-9))
-                    {
-                        rotation = Math.Atan2(dy, dx);
-                    }
-                }
-
-                result[e.Id] = new IfcPlacementInfo { Position = position, RotationRad = rotation };
+                result[e.Id] = info;
             }
         }
         return result;
     }
 
+    /*
+       NE: Eksen Yerleşimi Hesapla (TryComputeAxisPlacementInfo)
+       NEDEN: ParsePlacements'ın IFCAXIS2PLACEMENT3D/2D → (Position, RotationRad) çıkarım
+              mantığını, hem IFCLOCALPLACEMENT üzerinden (normal yol) hem de DOĞRUDAN bir
+              IFCAXIS2PLACEMENT3D referansı üzerinden (bkz. ParseProducts'taki fallback —
+              IfcExportService'in ExportElbow/ExportTee'si ObjectPlacement'ı standart
+              IFCLOCALPLACEMENT sarmalayıcısı OLMADAN doğrudan bir axis'e referans veriyor)
+              kullanılabilir hale getirmek için tek bir yere çıkarıldı.
+    */
+    private static bool TryComputeAxisPlacementInfo(IfcRawEntity axis, Dictionary<int, IfcRawEntity> entities, out IfcPlacementInfo info)
+    {
+        info = default;
+        if (axis.Type != "IFCAXIS2PLACEMENT3D" && axis.Type != "IFCAXIS2PLACEMENT2D") return false;
+
+        Vector3D position = default;
+
+        // IFCAXIS2PLACEMENT3D(Location, Axis, RefDirection)
+        if (axis.Args.Count >= 1 && TryParseRef(axis.Args[0], out int locId) &&
+            entities.TryGetValue(locId, out var loc) &&
+            loc.Type == "IFCCARTESIANPOINT")
+        {
+            position = ParseCartesianPoint(loc);
+        }
+
+        // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN HATA: RefDirection (arg[2]) hiç
+        // okunmuyordu. IFC'de yerel X ekseninin dünya koordinatındaki yönünü
+        // RefDirection verir; Z etrafındaki rotasyon açısı atan2(RefDir.Y, RefDir.X)'tir.
+        double rotation = 0;
+        if (axis.Type == "IFCAXIS2PLACEMENT3D" && axis.Args.Count >= 3 &&
+            TryParseRef(axis.Args[2], out int refDirId) &&
+            entities.TryGetValue(refDirId, out var refDir) &&
+            refDir.Type == "IFCDIRECTION")
+        {
+            var dirCoords = UnwrapCoordList(refDir.Args);
+            if (dirCoords.Count >= 2 &&
+                double.TryParse(dirCoords[0], NumberStyles.Any, CultureInfo.InvariantCulture, out double dx) &&
+                double.TryParse(dirCoords[1], NumberStyles.Any, CultureInfo.InvariantCulture, out double dy) &&
+                (Math.Abs(dx) > 1e-9 || Math.Abs(dy) > 1e-9))
+            {
+                rotation = Math.Atan2(dy, dx);
+            }
+        }
+
+        info = new IfcPlacementInfo { Position = position, RotationRad = rotation };
+        return true;
+    }
+
+    /*
+       NE: Koordinat/Yön Listesi Sarmalayıcısını Aç (UnwrapCoordList)
+       NEDEN — GERÇEK, ÖNCEDEN VAR OLAN HATA: IFC spesifikasyonuna göre `IFCCARTESIANPOINT`
+              ve `IFCDIRECTION`'ın TEK argümanı bir LİSTEDİR — spec-uyumlu biçim
+              `IFCCARTESIANPOINT((x,y,z))` (dış parantez entity çağrısı, iç parantez liste).
+              `SplitArgs` iç içe parantezleri TEK bir argüman olarak bıraktığından (derinlik>0
+              içindeki virgülleri bölmüyor), bu biçimde `Args.Count==1` olur ve tek eleman
+              "(x,y,z)" metnini TAŞIR — `double.TryParse` bunu ayrıştıramaz, sessizce 0 kalırdı.
+              `IfcExportService.CreateCartesianPoint`/`CreateDirection` TAM OLARAK bu spec-uyumlu
+              çift-parantezli biçimi üretiyor — yani AfneyCAD'in KENDİ export ettiği bir IFC
+              dosyasını tekrar import etmek (round-trip) konum/rotasyonu sessizce (0,0,0)/0°
+              olarak okuyordu. Test dosyalarındaki elle yazılmış STEP parçaları ise (spec-dışı)
+              DÜZ biçim `IFCCARTESIANPOINT(x,y,z)` kullandığından bu hata daha önce hiç
+              yakalanmamıştı. Bu yardımcı HER İKİ biçimi de kabul eder: tek-eleman + parantezli
+              ise içini virgülle yeniden böler, aksi halde (düz biçim) argümanları OLDUĞU GİBİ
+              döner — geriye dönük uyumlu.
+    */
+    private static List<string> UnwrapCoordList(List<string> args)
+    {
+        if (args.Count == 1)
+        {
+            string inner = args[0].Trim();
+            if (inner.Length >= 2 && inner[0] == '(' && inner[^1] == ')')
+                return SplitArgs(inner[1..^1]);
+        }
+        return args;
+    }
+
     private static Vector3D ParseCartesianPoint(IfcRawEntity pointEntity)
     {
         double x = 0, y = 0, z = 0;
-        var coords = pointEntity.Args;
+        var coords = UnwrapCoordList(pointEntity.Args);
         if (coords.Count >= 1) double.TryParse(coords[0], NumberStyles.Any, CultureInfo.InvariantCulture, out x);
         if (coords.Count >= 2) double.TryParse(coords[1], NumberStyles.Any, CultureInfo.InvariantCulture, out y);
         if (coords.Count >= 3) double.TryParse(coords[2], NumberStyles.Any, CultureInfo.InvariantCulture, out z);
@@ -370,7 +451,11 @@ public class IfcImportService
         {
             "IFCWALL", "IFCWALLSTANDARDCASE", "IFCSLAB",
             "IFCWINDOW", "IFCDOOR", "IFCSPACE",
-            "IFCPIPESEGMENT", "IFCDUCTSEGMENT", "IFCFLOWSEGMENT"
+            "IFCPIPESEGMENT", "IFCDUCTSEGMENT", "IFCFLOWSEGMENT",
+            // NE/NEDEN — bu oturumda eklendi: IfcFlowFitting alt tipleri (dirsek/T-parçası)
+            // ve IfcValve. Önceden IFC import'ta HİÇ ele alınmıyordu (sadece düz boru/kanal
+            // gövdeleri aktarılıyordu) — bkz. dosya başı MEP İÇERİ AKTARIMI notu.
+            "IFCFLOWFITTING", "IFCPIPEFITTING", "IFCDUCTFITTING", "IFCVALVE"
         };
 
         foreach (var e in entities.Values)
@@ -383,13 +468,38 @@ public class IfcImportService
             if (e.Args.Count >= 3)
                 product.Name = e.Args[2].Trim('\'');
 
-            // ObjectPlacement → konum + rotasyon
-            if (e.Args.Count >= 6 && TryParseRef(e.Args[5], out int placId) &&
-                placements.TryGetValue(placId, out var placementInfo))
+            bool isFittingOrValve = product.IfcType is "IFCFLOWFITTING" or "IFCPIPEFITTING" or "IFCDUCTFITTING" or "IFCVALVE";
+
+            // NE/NEDEN: IFCPIPEFITTING/IFCDUCTFITTING/IFCFLOWFITTING/IFCVALVE'nin son argümanı
+            // PredefinedType enum'udur (örn. .ELBOW., .TEE., .BEND., .CHECK.) — fitting/vana
+            // ALT TİPİNİ (dirsek mi T-parçası mı, hangi vana tipi) belirler.
+            if (isFittingOrValve && e.Args.Count >= 9)
             {
-                var pos = placementInfo.Position;
-                product.Origin = new Vector3D(pos.X * scale, pos.Y * scale, pos.Z * scale);
-                product.RotationRad = placementInfo.RotationRad;
+                product.FittingPredefinedType = e.Args[8].Trim().Trim('.').ToUpperInvariant();
+            }
+
+            // ObjectPlacement → konum + rotasyon
+            if (e.Args.Count >= 6 && TryParseRef(e.Args[5], out int placId))
+            {
+                if (placements.TryGetValue(placId, out var placementInfo))
+                {
+                    var pos = placementInfo.Position;
+                    product.Origin = new Vector3D(pos.X * scale, pos.Y * scale, pos.Z * scale);
+                    product.RotationRad = placementInfo.RotationRad;
+                }
+                else if (entities.TryGetValue(placId, out var directAxis) &&
+                         TryComputeAxisPlacementInfo(directAxis, entities, out var directInfo))
+                {
+                    // NE/NEDEN: AfneyCAD'in kendi IfcExportService'i (ExportElbow/ExportTee),
+                    // ObjectPlacement'ı standart IFCLOCALPLACEMENT sarmalayıcısı OLMADAN
+                    // doğrudan bir IFCAXIS2PLACEMENT3D'ye referans verir (teknik olarak
+                    // standart-dışı ama kendi round-trip'imiz — export edip tekrar import
+                    // etmek — için gerekli). Bu fallback olmadan dirsek/T-parçası/vana hep
+                    // (0,0,0)'da, 0° rotasyonla içeri aktarılırdı.
+                    var pos = directInfo.Position;
+                    product.Origin = new Vector3D(pos.X * scale, pos.Y * scale, pos.Z * scale);
+                    product.RotationRad = directInfo.RotationRad;
+                }
             }
 
             // Representation → boyut (BoundingBox fallback)
@@ -399,6 +509,10 @@ public class IfcImportService
                 if (product.IfcType is "IFCPIPESEGMENT" or "IFCDUCTSEGMENT" or "IFCFLOWSEGMENT")
                 {
                     ExtractMepGeometry(rep, entities, scale, product);
+                }
+                else if (isFittingOrValve)
+                {
+                    ExtractFittingGeometry(rep, entities, scale, product);
                 }
                 else
                 {
@@ -574,6 +688,59 @@ public class IfcImportService
                     }
                 }
                 return; // İlk (tek) extrusion segmenti yeterli — MEP gövdeleri düz/tekil.
+            }
+        }
+    }
+
+    /*
+       NE: Bağlantı Elemanı (Fitting/Vana) Geometrisi (ExtractFittingGeometry)
+       NEDEN: IFCFLOWFITTING/IFCPIPEFITTING/IFCDUCTFITTING/IFCVALVE için sadece ÇAP (veya
+              kutu boyutundan yaklaşık çap) çıkarılır — ExtractMepGeometry'nin AKSİNE
+              Position/Axis burada KULLANILMIYOR, çünkü konum/yön zaten ObjectPlacement'tan
+              (product.Origin/RotationRad) geliyor; fitting geometrisi (IfcExportService'in
+              ExportElbow/ExportTee'sinde olduğu gibi) genelde yerel orijinde duran basit bir
+              kutu/silindir gövdesidir, kendi başına ek konum bilgisi taşımaz.
+       KAPSAM: Yalnızca İLK IFCEXTRUDEDAREASOLID'in profili okunur (IFCCIRCLEPROFILEDEF veya
+              IFCRECTANGLEPROFILEDEF). Gerçek B-Rep/süpürülmüş (revolved) dirsek gövdeleri veya
+              birden fazla farklı çaplı uç (redüksiyon) HÂLÂ desteklenmiyor — bkz. dosya başı
+              SINIRLAMALAR notu.
+    */
+    private static void ExtractFittingGeometry(IfcRawEntity rep,
+        Dictionary<int, IfcRawEntity> entities, double scale, IfcProduct product)
+    {
+        if (rep.Type != "IFCPRODUCTDEFINITIONSHAPE" || rep.Args.Count < 3) return;
+
+        foreach (int shapeRepId in ParseRefList(rep.Args[2]))
+        {
+            if (!entities.TryGetValue(shapeRepId, out var shapeRep)) continue;
+            if (shapeRep.Type != "IFCSHAPEREPRESENTATION" || shapeRep.Args.Count < 4) continue;
+
+            foreach (int itemId in ParseRefList(shapeRep.Args[3]))
+            {
+                if (!entities.TryGetValue(itemId, out var item)) continue;
+                if (item.Type != "IFCEXTRUDEDAREASOLID" || item.Args.Count < 1) continue;
+
+                if (!TryParseRef(item.Args[0], out int profileId) || !entities.TryGetValue(profileId, out var profile))
+                    continue;
+
+                if (profile.Type == "IFCCIRCLEPROFILEDEF" && profile.Args.Count >= 4)
+                {
+                    if (double.TryParse(profile.Args[3], NumberStyles.Any, CultureInfo.InvariantCulture, out double radius))
+                        product.FittingDiameter = radius * 2 * scale;
+                }
+                else if (profile.Type == "IFCRECTANGLEPROFILEDEF" && profile.Args.Count >= 5)
+                {
+                    if (double.TryParse(profile.Args[3], NumberStyles.Any, CultureInfo.InvariantCulture, out double xDim) &&
+                        double.TryParse(profile.Args[4], NumberStyles.Any, CultureInfo.InvariantCulture, out double yDim))
+                    {
+                        // NE/NEDEN: AfneyCAD'in kendi export'u (ExportElbow/ExportTee) dirsek/
+                        // T-parçasını kare bir kutu (XDim==YDim==Depth, kenar=çap×2 veya çap×3)
+                        // olarak yazar. Kesin çap geri kazanılamaz (kutu boyutu yaklaşık), bu
+                        // yüzden kenar/2 makul bir yaklaşık değer olarak kullanılıyor.
+                        product.FittingDiameter = Math.Max(xDim, yDim) / 2.0 * scale;
+                    }
+                }
+                return; // İlk extrusion yeterli.
             }
         }
     }
@@ -839,8 +1006,108 @@ public class IfcImportService
                 yield return duct;
                 break;
             }
+            case "IFCFLOWFITTING":
+            case "IFCPIPEFITTING":
+            case "IFCDUCTFITTING":
+            {
+                var fitting = BuildFittingEntity(p);
+                if (fitting != null) yield return fitting;
+                break;
+            }
+            case "IFCVALVE":
+            {
+                yield return BuildValveEntity(p);
+                break;
+            }
         }
     }
+
+    /*
+       NE: Dirsek/T-Parçası Üretimi (BuildFittingEntity)
+       NEDEN: IFCPIPEFITTING/IFCDUCTFITTING/IFCFLOWFITTING'in PredefinedType'ına göre
+              ElbowEntity veya TeeEntity üretir.
+       KAPSAM/SINIRLAMA — DÜRÜST NOT: Bu fitting'in gerçek giriş/çıkış (dirsek) veya
+              ana/dal (T-parçası) yönleri, gerçek IFC dosyalarında genelde YALNIZCA bağlı
+              portların (IFCDISTRIBUTIONPORT + IFCRELCONNECTSPORTS) yön verisinden veya
+              tam B-Rep/süpürülmüş katı geometriden çıkarılabilir — bu, regex/sözlük tabanlı
+              STEP ayrıştırıcımız için KAPSAM DIŞI bırakıldı (port topolojisi izlenmiyor).
+              Bunun yerine, ObjectPlacement'ın RefDirection'ından gelen TEK birincil yön
+              (primary) kullanılır; ikincil yön (çıkış/dal) bu birincil yönü Z ekseni
+              etrafında +90° döndürerek YAKLAŞIKLANIR — dirsek/T-parçalarının büyük
+              çoğunluğu zaten 90°'dir, bu yüzden makul (ama KESİN OLMAYAN) bir varsayılan.
+              CROSS/REDUCER/JUNCTION gibi diğer PredefinedType'lar (birden fazla çap/port
+              kombinasyonu gerektirdiği için) desteklenmiyor — null döner (SkippedCount'a
+              değil, sessizce atlanır; result sayaçları yalnızca üst seviye IfcType'a göre
+              sayar, bu bilinçli bir basitleştirme).
+    */
+    private static Afney.Cad.Domain.Abstractions.CadEntity? BuildFittingEntity(IfcProduct p)
+    {
+        var origin = p.Origin;
+        double rotation = p.RotationRad;
+        double diameter = p.FittingDiameter > 0 ? p.FittingDiameter : 100; // Varsayılan DN100
+
+        var primary = new Vector3D(Math.Cos(rotation), Math.Sin(rotation), 0);
+        var secondary = new Vector3D(-primary.Y, primary.X, 0); // +90° döndürülmüş yaklaşık ikincil yön
+
+        string type = p.FittingPredefinedType;
+        bool isTee = type == "TEE";
+        bool isBendLike = type is "ELBOW" or "BEND" or "" or "NOTDEFINED" or "USERDEFINED";
+
+        if (isTee)
+        {
+            return new TeeEntity(origin, diameter, diameter, primary, secondary)
+            {
+                Layer = LayerMep,
+                Color = ColorMep
+            };
+        }
+
+        if (isBendLike)
+        {
+            // Bilinmeyen/boş PredefinedType da dirsek olarak kabul edilir (en yaygın, tek
+            // parametreli fitting tipi — MEP altlığı amacı için makul bir varsayılan).
+            return new ElbowEntity(origin, diameter, primary * -1, secondary)
+            {
+                Layer = LayerMep,
+                Color = ColorMep
+            };
+        }
+
+        // CROSS / REDUCER / JUNCTION / TRANSITIONFITTING / OFFSET vb. — kapsam dışı.
+        return null;
+    }
+
+    /*
+       NE: Vana Üretimi (BuildValveEntity)
+       NEDEN: IFCVALVE'nin PredefinedType'ını (IFC4 IfcValveTypeEnum literalleri) AfneyCAD'in
+              kendi ValveType enum'una eşler. Eşlenemeyen/egzotik değerler (CONTROL, MIXING,
+              FAUCET, ANTIVACUUM, vb.) ValveType.Unknown'a düşer — sembol yine de çizilir,
+              sadece tip-özel piktogram (bkz. ValveEntity.Draw switch) uygulanmaz.
+    */
+    private static ValveEntity BuildValveEntity(IfcProduct p)
+    {
+        double diameter = p.FittingDiameter > 0 ? p.FittingDiameter : 100; // Varsayılan DN100
+        var valveType = MapIfcValveType(p.FittingPredefinedType);
+
+        return new ValveEntity(p.Origin, valveType, diameter)
+        {
+            Rotation = p.RotationRad,
+            Layer = LayerMep,
+            Color = ColorMep
+        };
+    }
+
+    private static ValveType MapIfcValveType(string ifcPredefinedType) => ifcPredefinedType switch
+    {
+        // IFC4/IFC2x3 IfcValveTypeEnum literalleri (resmi isimler)
+        "CHECK" or "DOUBLECHECK"                    => ValveType.CheckValve,
+        "ISOLATING" or "GASCOCK" or "GASTAP"
+            or "STOPCOCK" or "CHANGEOVER"            => ValveType.GateValve,
+        "PRESSUREREDUCING"                           => ValveType.PRV,
+        "PRESSURERELIEF" or "SAFETYCUTOFF"
+            or "STEAMTRAP"                            => ValveType.SafetyValve,
+        _                                             => ValveType.Unknown
+    };
 
     /*
        NE: Yerel Koordinatı Döndür ve Öteleme (RotateAndTranslate)
@@ -1026,6 +1293,12 @@ public class IfcImportService
         public double MepWidth { get; set; }
         public double MepHeightDim { get; set; }
         public bool MepCircular { get; set; } = true;
+
+        // NE: Fitting/vana (IfcFlowFitting/IfcPipeFitting/IfcDuctFitting/IfcValve) verileri.
+        // NEDEN: ExtractFittingGeometry (çap) ve ParseProducts'taki PredefinedType okuması
+        //        (dirsek/T-parçası/vana alt tipi) tarafından doldurulur.
+        public string FittingPredefinedType { get; set; } = "";
+        public double FittingDiameter { get; set; }
     }
 }
 
@@ -1054,16 +1327,19 @@ public class IfcImportResult
     public int SpaceCount   { get; set; }
     public int SkippedCount { get; set; }
     public int MepCount { get; set; }
+    // NE: Dirsek/T-parçası/vana (IfcFlowFitting/IfcPipeFitting/IfcDuctFitting/IfcValve) sayısı.
+    // NEDEN: Önceden bu elemanlar hiç içeri aktarılmıyordu, sayaç da yoktu — bu oturumda eklendi.
+    public int FittingCount { get; set; }
     public int TotalEntities { get; set; }
     public List<string> Warnings { get; set; } = [];
     public List<string> Errors   { get; set; } = [];
     public List<string> Layers   { get; set; } = [];
 
-    public int ImportedCount => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount + MepCount;
+    public int ImportedCount => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount + MepCount + FittingCount;
     public int TotalCount    => ImportedCount;
 
     public override string ToString() =>
         $"IFC Import: {ImportedCount} eleman " +
-        $"(Duvar={WallCount}, Döşeme={SlabCount}, Pencere={WindowCount}, Kapı={DoorCount}, MEP={MepCount}) " +
+        $"(Duvar={WallCount}, Döşeme={SlabCount}, Pencere={WindowCount}, Kapı={DoorCount}, MEP={MepCount}, Fitting={FittingCount}) " +
         $"— {(Success ? "BAŞARILI" : "HATA")}";
 }
