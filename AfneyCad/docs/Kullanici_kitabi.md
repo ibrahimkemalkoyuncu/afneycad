@@ -3078,4 +3078,25 @@ Kullanıcı "code review yap" dedi, sonra "4M FineSANI ile karşılaştır, eksi
 
 ---
 
-*Son guncelleme: 2026-09-04 | AfneyCAD v4.0.0 — Session #71*
+### 53. Denetim Raporunun TÜM P0 + P1 Maddeleri Kapatıldı
+Kullanıcı "alt özellikleri tamamla ve raporu güncelle" dedi — madde 52'nin bıraktığı kalan P0 maddesi (4 HVAC servisi) ve tüm P1 maddeleri sırayla/paralel tamamlandı.
+
+**P0 kalanı — HVAC 6/6 servis (`commit a8e4720`):** `EnergyRecoveryService` (ERV/HRV EN308), `AcousticAnalysisService` (VDI 2081), `EnergySimulationService` (EN15603/TS825 Bin Method — `TS825InsulationDialog`'un FARKLI bir servise, `TS825InsulationService`'e bağlı olduğu doğrulandı, bu gerçekten ayrı bir eksiklikti), `AdvancedCoolingService` (ASHRAE Ch.18) — 4 yeni dialog, hiçbiri ertelenmedi. Yan bulgu: Türkçe "İ".ToLowerInvariant()'ın birleşik-işaret formu (i̇) üretmesi combo eşleşmesini sessizce kırıyordu, düzeltildi.
+
+**P1-1 — IfcFlowFitting/IfcValve import + ÖNEMLİ ek keşif (`commit b4043dd`):** Dirsek/T-parçası/vana artık içeri aktarılıyor. Test yazarken kendi araştırmamla **daha büyük, önceden var olan bir hata** bulundu: IFC spesifikasyonuna göre `IFCCARTESIANPOINT`/`IFCDIRECTION`'ın tek argümanı bir LİSTEDİR (spec-uyumlu biçim çift parantezli) — parser bunu hiç desteklemiyordu, sadece testlerdeki düz (spec-dışı) format destekleniyordu. AfneyCAD'in KENDİ `IfcExportService`'i tam olarak spec-uyumlu biçimi ürettiğinden, **kendi dışa aktardığı HERHANGİ bir IFC dosyasını geri okumak konum/rotasyonu sessizce sıfırlıyordu** — bu, önceki hiçbir oturumda (round-trip pozisyon kontrolü yapan ilk test bu oturumda yazıldığı için) yakalanmamıştı. `UnwrapCoordList` ile düzeltildi.
+
+**P1-2 — Sıcaklık entegrasyonu (`commit 7ca426c`):** `WaterPropertiesService` (IAPWS-IF97) artık `HardyCrossSolver`'ın ana çözücüsüne bağlı — `HydraulicNetwork.WaterTemperatureC` (varsayılan 20°C, mevcut davranış korunuyor) eklendi.
+
+**P1-3 — EN12845/NFPA13 enum çakışması (`commit 85fe6a1`):** İki standart kavramsal olarak eşdeğer olmadığından (NFPA13 Extra Hazard'ı ikiye bölüyor + ESFR ekliyor) BİRLEŞTİRME yapılmadı, isimler ayrıştırıldı (`EN12845HazardClass`/`NFPA13HazardClass`). Yan bulgu: `FireFightingService.DesignSprinklerSystem` yanlışlıkla "TS EN 12845 / NFPA 13" karışık standart etiketi veriyordu, düzeltildi.
+
+**P1-4 — FILLET/CHAMFER (`commit 2210a35`):** AutoCAD'in en temel iki komutu sıfırdan yazıldı — `FilletChamferMath.cs` (teğet uzunluğu + açı-ortay üzerinden yay merkezi), `FilletCommand`/`ChamferCommand` (mevcut `TrimCommand` deseni, undo'lu). Sadece `LineEntity`-`LineEntity` çiftleri destekleniyor (polyline segmentleri, boru/kanal kapsam dışı — dürüstçe belirtildi). Matematik elle hesaplanmış dik-açı örneğiyle kilitlendi.
+
+**Rapor güncellendi:** [AfneyCAD × FineSANI](https://claude.ai/code/artifact/8c7279b7-fd1b-427a-b64c-781b86f42e43) — tüm P0/P1 maddeleri "çözüldü" olarak işaretlendi, kategori puanları yeniden hesaplandı.
+
+**Kalan öncelikler (P2/P3, rapora işlendi):** P2 — DIMSTYLE yönetimi, Polar/Object tracking gerçek implementasyonu, otomatik pafta numaralandırma. P3 — Sheet Set Manager, çoklu-kullanıcı işbirliği, mobil görüntüleme, mahal 3D veri modeli, CSG Solid'in DXF/IFC export'a bağlanması.
+
+**Tam suite: 531/531** (515 → 531, +16 yeni test), tam çözüm derlemesi 0 hata, her commit ayrı ayrı doğrulandı, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-09-04 | AfneyCAD v4.0.0 — Session #72*
