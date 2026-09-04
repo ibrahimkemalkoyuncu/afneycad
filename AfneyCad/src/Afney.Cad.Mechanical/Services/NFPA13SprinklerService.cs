@@ -6,17 +6,22 @@ namespace Afney.Cad.Mechanical.Services;
 /*
    NE: Sprinkler Hesap Servisi (NFPA13SprinklerService)
    NEDEN: NFPA 13 (Amerikan) sprinkler sistemi tasarımı — yoğunluk/alan tablosu imperial
-          NFPA 13 kaynağından metriğe çevrilmiştir (bkz. `HazardClass` altındaki değerler).
+          NFPA 13 kaynağından metriğe çevrilmiştir (bkz. `NFPA13HazardClass` altındaki değerler).
           FINE MEP yalnızca boru çizimi yapar; yoğunluk/alan metodu yoktur.
           Yangın departmanı onayı için hesap raporu zorunlu.
 
    ⚠ NOT — İKİ AYRI STANDART, İKİ AYRI SERVİS: `FireFightingService.cs` da benzer bir
-   sprinkler tasarım hesabı içerir ama farklı bir standardı (EN 12845 — Avrupa) uygular;
-   iki servisin `HazardClass` enum'ları AYNI İSİMLERİ (LightHazard/OrdinaryHazard...)
-   taşısa da FARKLI sayısal değerler üretir (biri NFPA13, diğeri EN12845 kaynaklı). Bu
-   kasıtlı bir tasarım değil, iki ayrı oturumda bağımsız eklenmiş servislerin isim
-   çakışmasıdır (bir web araştırma ajanı tarafından tespit edildi). Hangi projede hangi
-   standardın geçerli olduğuna göre DOĞRU servisi seçin — ikisini karıştırmayın.
+   sprinkler tasarım hesabı içerir ama farklı bir standardı (EN 12845 — Avrupa) uygular.
+   Enum'lar önceden ikisi de `HazardClass` adını taşıyordu ve AYNI İSİM
+   (LightHazard/OrdinaryHazard...) FARKLI sayısal değerler üretiyordu — kasıtlı bir
+   tasarım değil, iki ayrı oturumda bağımsız eklenmiş servislerin isim çakışmasıydı (bir
+   web araştırma ajanı tarafından tespit edildi). Çözüm: bu servisteki enum
+   `NFPA13HazardClass`, diğerindeki `EN12845HazardClass` olarak yeniden adlandırıldı
+   (çakışma ortadan kalktı, sayısal değerler/davranış değişmedi). Ortak bir enuma
+   BİRLEŞTİRİLMEDİ çünkü kavramsal olarak eşdeğer değiller: NFPA 13 Extra Hazard'ı 1/2
+   alt gruplarına ayırır ve ESFR sınıfı ekler (6 sınıf), EN 12845 ise 4 sınıfla sınırlı —
+   birleştirme yanlış eşleme riski taşırdı. Hangi projede hangi standardın geçerli
+   olduğuna göre DOĞRU servisi seçin — ikisini karıştırmayın.
 
    HESAP YÖNTEMİ:
    - Tehlike Sınıfı → Tasarım Yoğunluğu + Tasarım Alanı
@@ -28,7 +33,7 @@ public class NFPA13SprinklerService
 {
     // ── Tehlike Sınıfları ─────────────────────────────────────────────────────────
 
-    public enum HazardClass
+    public enum NFPA13HazardClass
     {
         LightHazard,          // Hafif tehlike — ofis, konut, otel odaları
         OrdinaryHazard1,      // Orta tehlike 1 — depolar, otoparklar
@@ -53,7 +58,7 @@ public class NFPA13SprinklerService
 
     public class SprinklerInput
     {
-        public HazardClass  Hazard          { get; set; } = HazardClass.OrdinaryHazard1;
+        public NFPA13HazardClass  Hazard          { get; set; } = NFPA13HazardClass.OrdinaryHazard1;
         public SprinklerType Type           { get; set; } = SprinklerType.Pendent;
         public double       AreaM2          { get; set; }   // Korunan alan (m²)
         public double       KFactor         { get; set; } = 80;    // K-faktörü (L/dak/bar^0.5) — standart: 80
@@ -85,14 +90,14 @@ public class NFPA13SprinklerService
 
     // ── NFPA 13 Tasarım Parametreleri ────────────────────────────────────────────
 
-    private static (double densityLpmdpm2, double areaM2) GetDesignParams(HazardClass h) => h switch
+    private static (double densityLpmdpm2, double areaM2) GetDesignParams(NFPA13HazardClass h) => h switch
     {
-        HazardClass.LightHazard       => (4.1,  139),
-        HazardClass.OrdinaryHazard1   => (6.1,  139),
-        HazardClass.OrdinaryHazard2   => (8.2,  139),
-        HazardClass.ExtraHazard1      => (12.2, 232),
-        HazardClass.ExtraHazard2      => (16.3, 186),
-        HazardClass.EarlySuppressionFastResponse => (20.4, 92),
+        NFPA13HazardClass.LightHazard       => (4.1,  139),
+        NFPA13HazardClass.OrdinaryHazard1   => (6.1,  139),
+        NFPA13HazardClass.OrdinaryHazard2   => (8.2,  139),
+        NFPA13HazardClass.ExtraHazard1      => (12.2, 232),
+        NFPA13HazardClass.ExtraHazard2      => (16.3, 186),
+        NFPA13HazardClass.EarlySuppressionFastResponse => (20.4, 92),
         _ => (6.1, 139)
     };
 
@@ -145,13 +150,13 @@ public class NFPA13SprinklerService
         return result;
     }
 
-    private static double MaxCoverageForHazard(HazardClass h) => h switch
+    private static double MaxCoverageForHazard(NFPA13HazardClass h) => h switch
     {
-        HazardClass.LightHazard     => 18.6,
-        HazardClass.OrdinaryHazard1 => 12.1,
-        HazardClass.OrdinaryHazard2 => 12.1,
-        HazardClass.ExtraHazard1    => 9.3,
-        HazardClass.ExtraHazard2    => 9.3,
+        NFPA13HazardClass.LightHazard     => 18.6,
+        NFPA13HazardClass.OrdinaryHazard1 => 12.1,
+        NFPA13HazardClass.OrdinaryHazard2 => 12.1,
+        NFPA13HazardClass.ExtraHazard1    => 9.3,
+        NFPA13HazardClass.ExtraHazard2    => 9.3,
         _                           => 9.3
     };
 
@@ -170,14 +175,14 @@ public class NFPA13SprinklerService
 
     // ── Tehlike Sınıfı Açıklamaları ──────────────────────────────────────────────
 
-    public static string HazardDescription(HazardClass h) => h switch
+    public static string HazardDescription(NFPA13HazardClass h) => h switch
     {
-        HazardClass.LightHazard       => "Hafif — Ofis, konut, otel odası, kilise, okul sınıfı",
-        HazardClass.OrdinaryHazard1   => "Orta-1 — Otopark, kantin, laundry, fırıncılık",
-        HazardClass.OrdinaryHazard2   => "Orta-2 — Kuru temizleme, kütüphane, imalat",
-        HazardClass.ExtraHazard1      => "Yüksek-1 — Mobilya üretimi, kauçuk işleme",
-        HazardClass.ExtraHazard2      => "Yüksek-2 — Yağ bazlı boya üretimi, lak",
-        HazardClass.EarlySuppressionFastResponse => "ESFR — Yüksek raf depolama (>7.5m palet)",
+        NFPA13HazardClass.LightHazard       => "Hafif — Ofis, konut, otel odası, kilise, okul sınıfı",
+        NFPA13HazardClass.OrdinaryHazard1   => "Orta-1 — Otopark, kantin, laundry, fırıncılık",
+        NFPA13HazardClass.OrdinaryHazard2   => "Orta-2 — Kuru temizleme, kütüphane, imalat",
+        NFPA13HazardClass.ExtraHazard1      => "Yüksek-1 — Mobilya üretimi, kauçuk işleme",
+        NFPA13HazardClass.ExtraHazard2      => "Yüksek-2 — Yağ bazlı boya üretimi, lak",
+        NFPA13HazardClass.EarlySuppressionFastResponse => "ESFR — Yüksek raf depolama (>7.5m palet)",
         _ => ""
     };
 }

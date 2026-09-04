@@ -12,18 +12,23 @@ public partial class SprinklerDesignDialog
 
     private void UpdateHazardDesc()
     {
+        // NOT: Bu dialog SADECE NFPA13SprinklerService kullanır (Amerikan NFPA 13
+        // standardı). Pencere başlığı hem "NFPA 13" hem "TS EN 12845" içerdiğinden
+        // (bu dialog EN 12845'i uygulamaz — o servis FireFightingDialog'dadır),
+        // kullanıcının yanlış standart seçtiğini düşünmemesi için tehlike sınıfı
+        // açıklamasının başına açıkça "[NFPA 13]" etiketi eklenir.
         var h = GetHazard();
-        TxtHazardDesc.Text = NFPA13SprinklerService.HazardDescription(h);
+        TxtHazardDesc.Text = "[NFPA 13] " + NFPA13SprinklerService.HazardDescription(h);
     }
 
-    private NFPA13SprinklerService.HazardClass GetHazard() => CboHazard.SelectedIndex switch
+    private NFPA13SprinklerService.NFPA13HazardClass GetHazard() => CboHazard.SelectedIndex switch
     {
-        0 => NFPA13SprinklerService.HazardClass.LightHazard,
-        2 => NFPA13SprinklerService.HazardClass.OrdinaryHazard2,
-        3 => NFPA13SprinklerService.HazardClass.ExtraHazard1,
-        4 => NFPA13SprinklerService.HazardClass.ExtraHazard2,
-        5 => NFPA13SprinklerService.HazardClass.EarlySuppressionFastResponse,
-        _ => NFPA13SprinklerService.HazardClass.OrdinaryHazard1
+        0 => NFPA13SprinklerService.NFPA13HazardClass.LightHazard,
+        2 => NFPA13SprinklerService.NFPA13HazardClass.OrdinaryHazard2,
+        3 => NFPA13SprinklerService.NFPA13HazardClass.ExtraHazard1,
+        4 => NFPA13SprinklerService.NFPA13HazardClass.ExtraHazard2,
+        5 => NFPA13SprinklerService.NFPA13HazardClass.EarlySuppressionFastResponse,
+        _ => NFPA13SprinklerService.NFPA13HazardClass.OrdinaryHazard1
     };
 
     private void Calculate_Click(object sender, RoutedEventArgs e)

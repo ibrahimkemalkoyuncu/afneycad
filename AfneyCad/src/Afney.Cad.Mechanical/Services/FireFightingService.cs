@@ -9,13 +9,18 @@ namespace Afney.Cad.Mechanical.Services;
    NE: Yangın Söndürme Tesisatı Servisi (FireFightingService)
    NEDEN: FINE SANI, sprinkler hesabı ve yerleşimini destekler.
           Bu servis EN 12845 (Avrupa) standardına göre sprinkler tasarımı yapar
-          (yoğunluk/alan tablosu EN 12845 kaynaklıdır — bkz. aşağıdaki `HazardClass` notu).
+          (yoğunluk/alan tablosu EN 12845 kaynaklıdır — bkz. aşağıdaki `EN12845HazardClass` notu).
 
    ⚠ NOT — İKİ AYRI STANDART, İKİ AYRI SERVİS: `NFPA13SprinklerService.cs` da benzer bir
-   sprinkler tasarım hesabı içerir ama Amerikan NFPA 13 standardını uygular; iki servisin
-   `HazardClass` enum'ları AYNI İSİMLERİ taşısa da (isim çakışması, kasıtlı değil — bir web
-   araştırma ajanı tespit etti) FARKLI sayısal değerler üretir. Hangi projede hangi
-   standardın geçerli olduğuna göre DOĞRU servisi seçin.
+   sprinkler tasarım hesabı içerir ama Amerikan NFPA 13 standardını uygular. Enum'lar
+   önceden ikisi de `HazardClass` adını taşıyor ve AYNI İSİM farklı sayısal değerler
+   üretiyordu (isim çakışması, kasıtlı değil — bir web araştırma ajanı tespit etti); bu
+   servisteki enum artık `EN12845HazardClass`, diğerindeki `NFPA13HazardClass` olarak
+   yeniden adlandırıldı (çakışma çözüldü, sayısal değerler/davranış değişmedi — EN 12845
+   ve NFPA 13 tehlike sınıflandırmaları kavramsal olarak farklı standartlardır, NFPA 13
+   Extra Hazard'ı 1/2 alt gruplarına ayırır ve ESFR sınıfı ekler; EN 12845 ayırmaz —
+   bu yüzden ortak bir enuma birleştirilmedi). Hangi projede hangi standardın geçerli
+   olduğuna göre DOĞRU servisi seçin.
 
    MÜHENDİSLİK DETAYI:
    - Tehlike sınıfı belirleme (Hafif, Orta, Yüksek)
@@ -25,7 +30,7 @@ namespace Afney.Cad.Mechanical.Services;
 */
 public class FireFightingService
 {
-    public enum HazardClass
+    public enum EN12845HazardClass
     {
         LightHazard,       // Hafif tehlike (Ofis, Konut)
         OrdinaryHazard_1,  // Orta tehlike Grup 1 (Otopark, Fabrika)
@@ -36,7 +41,7 @@ public class FireFightingService
     public class SprinklerDesignInput
     {
         public double ProtectedAreaM2 { get; set; } = 500;
-        public HazardClass Hazard { get; set; } = HazardClass.LightHazard;
+        public EN12845HazardClass Hazard { get; set; } = EN12845HazardClass.LightHazard;
         public double CeilingHeightM { get; set; } = 3.0;
         public bool IsWetSystem { get; set; } = true;
         public double FloorToSystemPressure { get; set; } = 0; // mSS (dış basınç)
@@ -89,19 +94,19 @@ public class FireFightingService
 
         switch (input.Hazard)
         {
-            case HazardClass.LightHazard:
+            case EN12845HazardClass.LightHazard:
                 density_mm_min = 2.25;
                 designArea_m2 = 84;
                 maxSpacing_m = 4.6;
                 coveragePerHead_m2 = 21;
                 break;
-            case HazardClass.OrdinaryHazard_1:
+            case EN12845HazardClass.OrdinaryHazard_1:
                 density_mm_min = 5.0;
                 designArea_m2 = 72;
                 maxSpacing_m = 4.0;
                 coveragePerHead_m2 = 12;
                 break;
-            case HazardClass.OrdinaryHazard_2:
+            case EN12845HazardClass.OrdinaryHazard_2:
                 // NE/NEDEN — GERÇEK, ÖNCEDEN VAR OLAN BİR HATA: designArea_m2 = 216 idi —
                 // bu değer EN 12845'te OH2'nin DEĞİL, OH3'ün tasarım alanıdır (kopyala-yapıştır
                 // hatası, bir web araştırma ajanı tarafından standart karşılaştırmasıyla
@@ -115,7 +120,7 @@ public class FireFightingService
                 maxSpacing_m = 4.0;
                 coveragePerHead_m2 = 12;
                 break;
-            case HazardClass.ExtraHazard:
+            case EN12845HazardClass.ExtraHazard:
                 density_mm_min = 10.0;
                 designArea_m2 = 260;
                 maxSpacing_m = 3.7;
@@ -166,7 +171,13 @@ public class FireFightingService
         // Su deposu (30 dakika operasyon + %10 yedek)
         result.WaterTankVolumeM3 = (result.RequiredFlowLpm * 30 / 1000.0) * 1.1;
 
-        result.Standard = "TS EN 12845 / NFPA 13";
+        // NE/NEDEN: Önceden "TS EN 12845 / NFPA 13" idi — YANLIŞ. Bu metodun
+        // yoğunluk/alan tablosu ve tehlike sınıfları (4 sınıf: Light/OH1/OH2/Extra)
+        // sadece TS EN 12845 kaynaklıdır; NFPA 13 hesabı ayrı bir serviste
+        // (NFPA13SprinklerService, 6 sınıf: Light/OH1/OH2/Extra1/Extra2/ESFR) yapılır.
+        // Kullanıcıyı yanlış standarda göre onaylanmış bir rapor üretildiğine
+        // inandırma riskini önlemek için sadece gerçekte uygulanan standart yazılır.
+        result.Standard = "TS EN 12845";
 
         result.Notes.Add($"Tehlike sınıfı: {input.Hazard}");
         result.Notes.Add($"Sistem tipi: {(input.IsWetSystem ? "Islak (Wet)" : "Kuru (Dry)")}");
@@ -204,7 +215,7 @@ public class FireFightingService
         public double BuildingAreaM2     { get; set; } = 1000;
         public int    NumberOfFloors     { get; set; } = 5;
         public double FloorHeightM       { get; set; } = 3.5;
-        public HazardClass Hazard        { get; set; } = HazardClass.OrdinaryHazard_1;
+        public EN12845HazardClass Hazard        { get; set; } = EN12845HazardClass.OrdinaryHazard_1;
         public HydrantType HydrantType   { get; set; } = HydrantType.Indoor;
         public double AvailablePressureBar { get; set; } = 3.5;
     }

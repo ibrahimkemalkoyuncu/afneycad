@@ -22,7 +22,7 @@ public class FireFightingServiceTests
         var input = new FireFightingService.SprinklerDesignInput
         {
             ProtectedAreaM2 = 500,
-            Hazard = FireFightingService.HazardClass.LightHazard,
+            Hazard = FireFightingService.EN12845HazardClass.LightHazard,
             CeilingHeightM = 3.0,
             MainPipeLengthM = 50,
             HazenWilliamsC = 120
@@ -47,11 +47,11 @@ public class FireFightingServiceTests
 
         var light = service.DesignSprinklerSystem(new FireFightingService.SprinklerDesignInput
         {
-            ProtectedAreaM2 = 500, Hazard = FireFightingService.HazardClass.LightHazard, CeilingHeightM = 3.0
+            ProtectedAreaM2 = 500, Hazard = FireFightingService.EN12845HazardClass.LightHazard, CeilingHeightM = 3.0
         });
         var extra = service.DesignSprinklerSystem(new FireFightingService.SprinklerDesignInput
         {
-            ProtectedAreaM2 = 500, Hazard = FireFightingService.HazardClass.ExtraHazard, CeilingHeightM = 3.0
+            ProtectedAreaM2 = 500, Hazard = FireFightingService.EN12845HazardClass.ExtraHazard, CeilingHeightM = 3.0
         });
 
         Assert.True(extra.RequiredFlowLpm > light.RequiredFlowLpm);
@@ -72,8 +72,8 @@ public class FireFightingServiceTests
     {
         var service = new FireFightingService();
 
-        var oh1 = service.DesignSprinklerSystem(new FireFightingService.SprinklerDesignInput { Hazard = FireFightingService.HazardClass.OrdinaryHazard_1 });
-        var oh2 = service.DesignSprinklerSystem(new FireFightingService.SprinklerDesignInput { Hazard = FireFightingService.HazardClass.OrdinaryHazard_2 });
+        var oh1 = service.DesignSprinklerSystem(new FireFightingService.SprinklerDesignInput { Hazard = FireFightingService.EN12845HazardClass.OrdinaryHazard_1 });
+        var oh2 = service.DesignSprinklerSystem(new FireFightingService.SprinklerDesignInput { Hazard = FireFightingService.EN12845HazardClass.OrdinaryHazard_2 });
 
         Assert.Equal(144.0, oh2.DesignAreaM2, precision: 6);
         Assert.Equal(72.0, oh1.DesignAreaM2, precision: 6);

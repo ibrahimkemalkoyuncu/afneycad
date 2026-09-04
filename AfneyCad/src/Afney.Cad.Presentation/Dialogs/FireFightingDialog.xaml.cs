@@ -29,10 +29,10 @@ namespace Afney.Cad.Presentation.Dialogs
                     IsWetSystem           = WetSystemCheck.IsChecked == true,
                     Hazard = HazardCombo.SelectedIndex switch
                     {
-                        1 => FireFightingService.HazardClass.OrdinaryHazard_1,
-                        2 => FireFightingService.HazardClass.OrdinaryHazard_2,
-                        3 => FireFightingService.HazardClass.ExtraHazard,
-                        _ => FireFightingService.HazardClass.LightHazard
+                        1 => FireFightingService.EN12845HazardClass.OrdinaryHazard_1,
+                        2 => FireFightingService.EN12845HazardClass.OrdinaryHazard_2,
+                        3 => FireFightingService.EN12845HazardClass.ExtraHazard,
+                        _ => FireFightingService.EN12845HazardClass.LightHazard
                     }
                 };
 
@@ -86,10 +86,10 @@ namespace Afney.Cad.Presentation.Dialogs
                         : FireFightingService.HydrantType.Outdoor,
                     Hazard = HydHazardCombo.SelectedIndex switch
                     {
-                        1 => FireFightingService.HazardClass.OrdinaryHazard_1,
-                        2 => FireFightingService.HazardClass.OrdinaryHazard_2,
-                        3 => FireFightingService.HazardClass.ExtraHazard,
-                        _ => FireFightingService.HazardClass.LightHazard
+                        1 => FireFightingService.EN12845HazardClass.OrdinaryHazard_1,
+                        2 => FireFightingService.EN12845HazardClass.OrdinaryHazard_2,
+                        3 => FireFightingService.EN12845HazardClass.ExtraHazard,
+                        _ => FireFightingService.EN12845HazardClass.LightHazard
                     }
                 };
 
