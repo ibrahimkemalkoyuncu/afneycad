@@ -3052,4 +3052,30 @@ Kullanıcı önce bir sonraki oturum önceliklerini sordu, sonra "tüm maddeleri
 
 ---
 
-*Son guncelleme: 2026-08-15 | AfneyCAD v4.0.0 — Session #69*
+### 52. 4M FineSANI Bağımsız Denetimi + "Hayalet Özellik" P0 Maddelerinin Kapatılması
+Kullanıcı "code review yap" dedi, sonra "4M FineSANI ile karşılaştır, eksikleri incele, rapor sun" dedi. `karsilastirma.md`/`Eksiklikler.md` (Session #38, 2026-06-28) dosyalarının iddialarına GÜVENİLMEDEN ([[feedback_quality_first]] deseni), 4 paralel araştırma ajanı (Hidrolik, HVAC, CAD/3D/BIM, Mahal/Mimari/Raporlama) gerçek koda karşı doğrulama yaptı. Bulgular bir Artifact raporu ("AfneyCAD × FineSANI") olarak yayınlandı.
+
+**En kritik bulgu — "hayalet özellikler":** Kod tam, test tam, ama kullanıcı arayüzünden HİÇ erişilemiyor:
+1. **CSG Boolean motoru** (`GeneralSolidUnion`/`Subtractor`/`Intersector`, altı oturumluk geliştirme, 506 test) — `Presentation` katmanında sıfır referans.
+2. **6 HVAC servisi** (Isıtma yükü EN12831, Psikrometri, ERV, Gürültü VDI2081, Enerji simülasyonu TS825, Gelişmiş soğutma) — hiçbiri menü/butona bağlı değil.
+3. **Kanal ekipman kütüphanesi** (AirTerminalEntity, DamperEntity, SilencerSelectionService) — çizime yerleştirilemiyor, BOM'a girmiyor.
+
+**Kategori bazlı gerçekçi puanlar (eski dosyaların iddialarına karşı):** Tesisat hidrolik 100/100 iddia → **86/100** doğrulandı (Colebrook-White "Newton-Raphson" yanlış tanımlanmış, sıcaklık/viskozite servisi Hardy-Cross'a entegre değil). HVAC %100 iddia → **%37 (30/80)** doğrulandı — en büyük fark. CAD/3D/BIM: FILLET/CHAMFER tamamen yok, IfcFlowFitting hâlâ import edilmiyor, Sheet Set Manager yok; buna karşın XRef beklenmedik güçlü. Mahal/Mimari/Raporlama: son ~1,5 aydır dokunulmamış (mesai CSG'ye gitmiş).
+
+**Kullanıcı "eksikleri tamamlayalım" dedi — 3 P0 maddesi (en yüksek getiri/en düşük risk) sırayla kapatıldı:**
+
+1. **CSG Boolean → UI (`commit 7c45f94`):** Araştırma, B-Rep `Solid` tipi için çizim veritabanında (`CadDatabase`) HİÇBİR temsilin (entity/render/persistence) olmadığını ortaya çıkardı — `Topology.Solid` sadece 3D viewer için anlık/ephemeral üretiliyordu, hiç saklanmıyordu. Eksik köprü inşa edildi: `SolidEntity` (yeni `CadEntity` alt sınıfı — 2D wireframe çizim, bounding box, Move/Transform, Clone), `Solid.Clone()` (yapısal derin kopya), `SolidBoxCommand` (test için "BOX" komutu — önceden çizimde hiç Solid yoktu), `SolidUnionCommand`/`SubtractCommand`/`IntersectCommand` (iki Solid seç → kernel çağır → `CompositeOperation` ile tek atomik Undo/Redo adımı). Komut satırına bağlandı: `BOX`/`UNION`/`SUBTRACT`/`INTERSECT` (+ Türkçe takma adlar). Bilinçli kapsam dışı (dokümante edildi): ribbon butonu yok (sadece komut satırı), `SolidEntity` DXF/DWG/IFC export'a girmiyor (kaydet/yükle ile solid'ler kayboluyor), gerçek gölgeli 3D render/seçim yok, grip-nokta düzenleme yok (manifold geçerliliğini bozma riski, bilinçli). **511/511** (+5 test).
+
+2. **6 HVAC servisinden 2'si → UI (`commit 1d463d3`):** En sık kullanılan ikisi (Isıtma yükü EN12831, Psikrometri ASHRAE) tam dialoglarla bağlandı (`HeatLoadCalculationDialog`, `PsychrometricDialog`), yeni bir partial dosyada (`MainWindow.Engineering.HvacExtra.cs` — mevcut büyük dosyaları büyütmemek için). Kalan 4'ü (ERV, Gürültü, Enerji simülasyonu, Gelişmiş soğutma) Ana Yasa gereği bilinçli ertelendi — az sayıda tam özellik, çok sayıda yarım değil. **511/511**.
+
+3. **Kanal ekipman kütüphanesi → çizim akışı (`commit 85f080a`):** Araştırma, render'ın aslında HİÇ eksik olmadığını gösterdi — `CadViewport` zaten polimorfik `entity.Draw()` çağırıyordu, `AirTerminalEntity`/`DamperEntity`'nin kendi `Draw()` override'ları zaten vardı. Gerçek eksikler: (a) yerleştirme komutu yoktu, (b) BOM filtresi sadece eski `Valve` sınıfını yakalıyordu, yeni entity tiplerini değil. `PlaceAirTerminalCommand`/`PlaceDamperCommand` (mevcut `ValveLibraryDialog`'un kanal-bölme desenini izleyerek) + `BillOfMaterialsService`'e 3 entity tipi için gerçek poz no eşleştirmesi (25.410.x/430.x/440.x) eklendi. `SilencerSelectionDialog` (basit seçim/hesap, entity değil). **515/515** (+4 BOM testi).
+
+**Ders:** Bu oturumda izole worktree oluşturma tutarlı biçimde başarısız oldu — üç görev sıralı (paralel değil) çalıştırıldı, aynı paylaşılan dosyalara (`MainWindow.xaml`, `MainWindow.Commands.Mechanical.cs`) çakışma riskini önlemek için. Her ajan kendi araştırmasında rapor'un iddia ettiğinden daha derin/farklı kök nedenler buldu (Solid entity altyapısının TAMAMEN yok olması, render'ın aslında hiç eksik olmaması) — bu, "kod yok" ile "kod var ama bağlı değil" arasındaki farkın her zaman ilk bakışta göründüğü gibi olmadığını gösteriyor.
+
+**Kalan P0 sonrası öncelikler (rapora işlendi):** P1 — FILLET/CHAMFER, IfcFlowFitting import, sıcaklık-bağımlı özelliklerin Hardy-Cross'a entegrasyonu, EN12845/NFPA13 enum çakışması. P2 — DIMSTYLE, Polar/Object tracking, otomatik pafta numaralandırma. P3 — Sheet Set Manager, çoklu-kullanıcı işbirliği, mobil görüntüleme, mahal 3D veri modeli.
+
+**Tam suite: 515/515** (503 → 515, +12 yeni test), tam çözüm derlemesi 0 hata, her commit ayrı ayrı doğrulandı, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-09-04 | AfneyCAD v4.0.0 — Session #71*
