@@ -37,6 +37,50 @@ namespace Afney.Cad.Presentation
             Viewport.SetActiveCommand(cmd);
         }
 
+        // NE: Katı Cisim (Solid/CSG) Komutları — BOX/UNION/SUBTRACT/INTERSECT
+        // NEDEN: Denetim raporu bulgusu — CSG Boolean kernel'i (GeneralSolidUnion/Subtractor/
+        //        Intersector) arayüze hiç bağlı değildi. BOX, kullanıcının denemesi için test
+        //        edilecek bir SolidEntity üretir; UNION/SUBTRACT/INTERSECT ise seçilen iki
+        //        SolidEntity üzerinde kernel'i çalıştırıp sonucu (Undo'lu, tek işlemde) veritabanına yazar.
+        private void OnSolidBoxCommand(object sender, RoutedEventArgs e)
+        {
+            _lastRepeatableCommand = () => OnSolidBoxCommand(this, new RoutedEventArgs());
+            var cmd = new SolidBoxCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+        }
+
+        private void OnSolidUnionCommand(object sender, RoutedEventArgs e)
+        {
+            _lastRepeatableCommand = () => OnSolidUnionCommand(this, new RoutedEventArgs());
+            var cmd = new SolidUnionCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnSolidSubtractCommand(object sender, RoutedEventArgs e)
+        {
+            _lastRepeatableCommand = () => OnSolidSubtractCommand(this, new RoutedEventArgs());
+            var cmd = new SolidSubtractCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnSolidIntersectCommand(object sender, RoutedEventArgs e)
+        {
+            _lastRepeatableCommand = () => OnSolidIntersectCommand(this, new RoutedEventArgs());
+            var cmd = new SolidIntersectCommand(_database, _history.TransactionManager);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnTrimCommand(object sender, RoutedEventArgs e)
         {
             _lastRepeatableCommand = () => OnTrimCommand(this, new RoutedEventArgs());

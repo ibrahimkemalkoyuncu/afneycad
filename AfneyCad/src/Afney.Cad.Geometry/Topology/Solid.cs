@@ -292,4 +292,81 @@ public class Solid
         
         return (new Vector3D(minX, minY, minZ), new Vector3D(maxX, maxY, maxZ));
     }
+
+    /*
+    METOD ADI:
+    Clone
+
+    AMACI:
+    Bu Solid'in TAM (derin) bir kopyasını üretmek — CadEntity.Clone() (ör. COPY komutu)
+    gibi domain-katmanı işlemlerin, kaynak Solid'in Vertex/TopologyEdge/Face grafiğini
+    PAYLAŞMADAN bağımsız bir kopya üzerinde çalışabilmesi için (bkz. SolidEntity.Clone —
+    Afney.Cad.Domain).
+
+    NEDEN (kimlik-korumalı graf kopyası gerekir, basit "yeniden tessellate" YETERSİZ):
+    Winged-Edge yapısında bir TopologyEdge/Vertex BİRDEN FAZLA Face/Loop tarafından
+    PAYLAŞILIR (ör. bir kutunun bir kenarı tam 2 face'e ait). Kopyalama sırasında bu
+    paylaşımın korunması gerekir — aksi halde klon, artık "aynı kenarı iki farklı Face
+    kendi kopyasıyla" tutan, manifold OLMAYAN (Solid.IsValid()==false) bozuk bir graf
+    olurdu. Bu yüzden Vertex/TopologyEdge/Face eşlemesi bir sözlük (identity map) ile
+    TEK SEFER kopyalanır, sonraki her referans aynı klonu geri döner.
+    */
+    public Solid Clone(string? newName = null)
+    {
+        var vertexMap = new Dictionary<Vertex, Vertex>();
+        var edgeMap = new Dictionary<TopologyEdge, TopologyEdge>();
+        var faceMap = new Dictionary<Face, Face>();
+
+        Vertex CloneVertex(Vertex v)
+        {
+            if (!vertexMap.TryGetValue(v, out var nv))
+            {
+                nv = new Vertex(v.Position);
+                vertexMap[v] = nv;
+            }
+            return nv;
+        }
+
+        TopologyEdge CloneEdge(TopologyEdge e)
+        {
+            if (!edgeMap.TryGetValue(e, out var ne))
+            {
+                ne = new TopologyEdge(CloneVertex(e.StartVertex), CloneVertex(e.EndVertex));
+                edgeMap[e] = ne;
+            }
+            return ne;
+        }
+
+        // 1. Geçiş: Face kabukları (Loop/Edge içeriğiyle) kur.
+        foreach (var face in Faces)
+        {
+            var nf = new Face { Normal = face.Normal };
+            faceMap[face] = nf;
+
+            foreach (var loop in face.Loops)
+            {
+                var nl = new Loop(loop.IsOuter);
+                foreach (var edge in loop.Edges)
+                    nl.Edges.Add(CloneEdge(edge));
+                nf.Loops.Add(nl);
+            }
+        }
+
+        // 2. Geçiş: Winged-Edge komşuluk (Left/Right Face, Next/Prev) bağlantılarını kur.
+        foreach (var (oldEdge, newEdge) in edgeMap)
+        {
+            newEdge.LeftFace = oldEdge.LeftFace != null && faceMap.TryGetValue(oldEdge.LeftFace, out var lf) ? lf : null;
+            newEdge.RightFace = oldEdge.RightFace != null && faceMap.TryGetValue(oldEdge.RightFace, out var rf) ? rf : null;
+            newEdge.NextLeftEdge = oldEdge.NextLeftEdge != null ? CloneEdge(oldEdge.NextLeftEdge) : null;
+            newEdge.PrevLeftEdge = oldEdge.PrevLeftEdge != null ? CloneEdge(oldEdge.PrevLeftEdge) : null;
+            newEdge.NextRightEdge = oldEdge.NextRightEdge != null ? CloneEdge(oldEdge.NextRightEdge) : null;
+            newEdge.PrevRightEdge = oldEdge.PrevRightEdge != null ? CloneEdge(oldEdge.PrevRightEdge) : null;
+        }
+
+        var result = new Solid(newName ?? Name);
+        foreach (var face in Faces)
+            result.Faces.Add(faceMap[face]);
+
+        return result;
+    }
 }

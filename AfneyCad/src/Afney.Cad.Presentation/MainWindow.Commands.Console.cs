@@ -348,6 +348,10 @@ namespace Afney.Cad.Presentation
                     case "autoroute": case "route": case "ar": OnAutoRouteCommand(this, new RoutedEventArgs()); break;
                     case "sartname": case "spec": case "techspec": OnTechnicalSpecCommand(this, new RoutedEventArgs()); break;
                     case "d3dtest": case "d3d11": OnD3D11EngineTest(this, new RoutedEventArgs()); break;
+                    case "box": case "kutu": OnSolidBoxCommand(this, new RoutedEventArgs()); break;
+                    case "union": case "birlestir": OnSolidUnionCommand(this, new RoutedEventArgs()); break;
+                    case "subtract": case "cikar": OnSolidSubtractCommand(this, new RoutedEventArgs()); break;
+                    case "intersect": case "kesistir": OnSolidIntersectCommand(this, new RoutedEventArgs()); break;
                     case "help": case "?": case "yardim": new CommandHelpDialog { Owner = this }.ShowDialog(); break;
                     default: StatusText.Text = $"Bilinmeyen komut: {cmdText} (komut listesi için HELP veya ? yazın)"; break;
                 }
