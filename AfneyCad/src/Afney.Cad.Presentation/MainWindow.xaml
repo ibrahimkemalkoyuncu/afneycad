@@ -1468,6 +1468,34 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Button Click="OnEnergyRecoveryCommand" Style="{StaticResource RbnBtn}" ToolTip="ERV/HRV — ısı geri kazanım verimi ve yıllık tasarruf (EN 308 / ASHRAE 84)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Isı Geri Kazanım" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnAcousticAnalysisCommand" Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="Fan/kanal/susturucu gürültü analizi — NR/dB (VDI 2081 / ASHRAE Ch.48)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.VolumeHigh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Gürültü Analizi" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Button Click="OnEnergySimulationCommand" Style="{StaticResource RbnBtn}" ToolTip="Aylık Bin Method yıllık enerji simülasyonu (EN 15603 / TS 825)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.ChartLineUp}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Enerji Simülasyonu" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnAdvancedCoolingCommand" Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="İnfiltrasyon · CLTD · ekipman kazancı · gölgeleme (ASHRAE Ch.18)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.ChartBar}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Gelişmiş Soğutma" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
                                             <TextBlock Text="Enerji &amp; Yangın &amp; HVAC" Foreground="#2ECC71" FontSize="9"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>

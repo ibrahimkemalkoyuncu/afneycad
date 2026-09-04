@@ -1,0 +1,158 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.AdvancedCoolingDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="❄ Gelişmiş Soğutma Analizi — ASHRAE Ch.18 (CLTD)" Height="700" Width="900"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#01579B"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#01313E" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource Ico.ChartBar}" Fill="#4FC3F7" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Gelişmiş Soğutma Yük Analizi" FontSize="15" FontWeight="Bold" Foreground="#4FC3F7"/>
+                <TextBlock Text="  İnfiltrasyon · CLTD · Ekipman Kazancı · Gölgeleme (ASHRAE Handbook Fundamentals Ch.18)" FontSize="10" Foreground="#29B6F6" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Click="Calculate_Click" Background="#01579B" Width="100" Margin="0,0,8,0" Content="Hesapla"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+
+            <!-- İnfiltrasyon -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="İNFİLTRASYON YÜKÜ (Crack Method)" FontSize="10" Foreground="#4FC3F7" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Oda Hacmi (m³):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtRoomVolume" Text="50" Width="50"/>
+                        <TextBlock Text="  Hava Değişim (ACH):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtACH" Text="0.5" Width="40"/>
+                        <TextBlock Text="  Dış T/RH(%):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtOutdoorT" Text="34" Width="40"/>
+                        <TextBlock Text="/" Margin="2,0,2,0"/>
+                        <TextBox x:Name="TxtOutdoorRH" Text="50" Width="40"/>
+                        <TextBlock Text="  İç T/RH(%):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtIndoorT" Text="24" Width="40"/>
+                        <TextBlock Text="/" Margin="2,0,2,0"/>
+                        <TextBox x:Name="TxtIndoorRH" Text="50" Width="40"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- CLTD -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="CLTD PİK DEĞERİ (Cephe / Saat)" FontSize="10" Foreground="#4FC3F7" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Cephe Yönü:" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="CboOrientation" Width="130">
+                            <ComboBoxItem Content="Kuzey"/>
+                            <ComboBoxItem Content="Dogu"/>
+                            <ComboBoxItem Content="Guney" IsSelected="True"/>
+                            <ComboBoxItem Content="Bati"/>
+                            <ComboBoxItem Content="Cati"/>
+                        </ComboBox>
+                        <TextBlock Text="  Saat (8-20):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtHour" Text="14" Width="40"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Ekipman + Gölgeleme -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="EKİPMAN İÇ KAZANCI VE GÜNEŞ KORUMA" FontSize="10" Foreground="#4FC3F7" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Ekipman Tipi:" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="CboEquipment" Width="150">
+                            <ComboBoxItem Content="Bilgisayar" IsSelected="True"/>
+                            <ComboBoxItem Content="Monitör"/>
+                            <ComboBoxItem Content="Yazıcı"/>
+                            <ComboBoxItem Content="Fotokopi"/>
+                            <ComboBoxItem Content="Sunucu"/>
+                            <ComboBoxItem Content="Buzdolabı"/>
+                            <ComboBoxItem Content="Fırın"/>
+                            <ComboBoxItem Content="Ocak"/>
+                            <ComboBoxItem Content="Kahve Makinesi"/>
+                            <ComboBoxItem Content="Projeksiyon"/>
+                        </ComboBox>
+                        <TextBlock Text="  Adet:" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtEquipCount" Text="4" Width="40"/>
+                        <TextBlock Text="  Gölgeleme Tipi:" Margin="16,0,8,0"/>
+                        <ComboBox x:Name="CboShading" Width="150">
+                            <ComboBoxItem Content="Yok" Tag="yok" IsSelected="True"/>
+                            <ComboBoxItem Content="İç Perde" Tag="iç perde"/>
+                            <ComboBoxItem Content="Dış Perde" Tag="dış perde"/>
+                            <ComboBoxItem Content="Dış Jaluzi" Tag="dış jaluzi"/>
+                            <ComboBoxItem Content="İç Stor" Tag="iç stor"/>
+                            <ComboBoxItem Content="Markiz" Tag="markiz"/>
+                            <ComboBoxItem Content="Film" Tag="film"/>
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Sonuç -->
+            <Border Background="#01313E" CornerRadius="4" Padding="12">
+                <StackPanel>
+                    <TextBlock x:Name="SummaryText" Text="Henüz hesap yapılmadı." Foreground="#4FC3F7" TextWrapping="Wrap" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="İNFİLTRASYON (Duyulur/Gizli)" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResInfiltration" Text="—" FontSize="13" FontWeight="Bold" Foreground="#81D4FA"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="CLTD PİK" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResCltd" Text="—" FontSize="13" FontWeight="Bold" Foreground="#81D4FA"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="EKİPMAN KAZANCI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResEquipment" Text="—" FontSize="13" FontWeight="Bold" Foreground="#81D4FA"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="TOPLAM İNFİLTRASYON YÜKÜ" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResTotalInf" Text="—" FontSize="16" FontWeight="Bold" Foreground="#FFD740"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="GÖLGELEME DÜZELTME FAKTÖRÜ" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResShading" Text="—" FontSize="16" FontWeight="Bold" Foreground="#FFD740"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

@@ -1,0 +1,158 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.EnergySimulationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📈 Yıllık Enerji Simülasyonu — EN 15603 / TS 825 (Bin Method)" Height="720" Width="1000"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#0D47A1"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="CanUserAddRows" Value="False"/><Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="RowBackground" Value="#252535"/><Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0D2A5C"/><Setter Property="Foreground" Value="#90CAF9"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#0D2A5C" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource Ico.ChartLineUp}" Fill="#90CAF9" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Yıllık Enerji Simülasyonu" FontSize="15" FontWeight="Bold" Foreground="#90CAF9"/>
+                <TextBlock Text="  Aylık Bin Method — Isıtma/Soğutma/Sıcak Su/Aydınlatma/Fan (EN 15603 / TS 825)" FontSize="10" Foreground="#64B5F6" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Click="Calculate_Click" Background="#0D47A1" Width="100" Margin="0,0,8,0" Content="Hesapla"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#1B2B3B" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Şehir:" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="CboCity" Width="110">
+                            <ComboBoxItem Content="İstanbul" IsSelected="True"/>
+                            <ComboBoxItem Content="Ankara"/>
+                            <ComboBoxItem Content="İzmir"/>
+                            <ComboBoxItem Content="Antalya"/>
+                            <ComboBoxItem Content="Erzurum"/>
+                            <ComboBoxItem Content="Trabzon"/>
+                            <ComboBoxItem Content="Diyarbakır"/>
+                        </ComboBox>
+                        <TextBlock Text="  Taban Alanı (m²):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtFloorArea" Text="200" Width="55"/>
+                        <TextBlock Text="  Bina UA (W/K):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtUAValue" Text="400" Width="55"/>
+                        <TextBlock Text="  Isıtma/Soğutma Setpoint (°C):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtHeatSetpoint" Text="20" Width="40"/>
+                        <TextBlock Text="/" Margin="4,0,4,0"/>
+                        <TextBox x:Name="TxtCoolSetpoint" Text="26" Width="40"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="COP Isıtma/Soğutma/Sıcak Su:" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtHeatCOP" Text="3.5" Width="40"/>
+                        <TextBlock Text="/" Margin="2,0,2,0"/>
+                        <TextBox x:Name="TxtCoolCOP" Text="3.0" Width="40"/>
+                        <TextBlock Text="/" Margin="2,0,2,0"/>
+                        <TextBox x:Name="TxtDhwCOP" Text="2.5" Width="40"/>
+                        <TextBlock Text="  Sıcak Su (L/gün, °C):" Margin="16,0,8,0"/>
+                        <TextBox x:Name="TxtDhwDemand" Text="200" Width="45"/>
+                        <TextBlock Text="/" Margin="4,0,4,0"/>
+                        <TextBox x:Name="TxtDhwTemp" Text="60" Width="35"/>
+                        <TextBlock Text="  Pencere Alanı (m²) / SHGC:" Margin="16,0,8,0"/>
+                        <TextBox x:Name="TxtWindowArea" Text="30" Width="40"/>
+                        <TextBlock Text="/" Margin="4,0,4,0"/>
+                        <TextBox x:Name="TxtSHGC" Text="0.4" Width="40"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="İç Kazanç/Aydınlatma (W/m²):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtInternalGain" Text="20" Width="40"/>
+                        <TextBlock Text="/" Margin="2,0,2,0"/>
+                        <TextBox x:Name="TxtLighting" Text="10" Width="40"/>
+                        <TextBlock Text="  Fan/Pompa (kW) / Günlük Kullanım (saat):" Margin="16,0,8,0"/>
+                        <TextBox x:Name="TxtFanPower" Text="1.5" Width="40"/>
+                        <TextBlock Text="/" Margin="4,0,4,0"/>
+                        <TextBox x:Name="TxtOccupiedHours" Text="12" Width="40"/>
+                        <TextBlock Text="  Elektrik Fiyatı (TL/kWh):" Margin="16,0,8,0"/>
+                        <TextBox x:Name="TxtElecPrice" Text="4.5" Width="45"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="1" Background="#0D2A5C" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock x:Name="SummaryText" Text="Henüz hesap yapılmadı." Foreground="#90CAF9" TextWrapping="Wrap" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="TOPLAM ENERJİ" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResTotalKWh" Text="—" FontSize="13" FontWeight="Bold" Foreground="#90CAF9"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="BİRİNCİL ENERJİ" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResPrimaryKWh" Text="—" FontSize="13" FontWeight="Bold" Foreground="#90CAF9"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="ÖZGÜL ENERJİ" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResSpecificKWhM2" Text="—" FontSize="13" FontWeight="Bold" Foreground="#90CAF9"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="CO2 / MALİYET" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResCO2Cost" Text="—" FontSize="13" FontWeight="Bold" Foreground="#90CAF9"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="ENERJİ SINIFI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResEnergyClass" Text="—" FontSize="18" FontWeight="Bold" Foreground="#FFD740"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <DataGrid Grid.Row="2" x:Name="MonthlyGrid" AutoGenerateColumns="False" Margin="0,0,0,8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Ay"        Binding="{Binding MonthName}"          Width="90"/>
+                    <DataGridTextColumn Header="Dış T (°C)" Binding="{Binding OutdoorTempC, StringFormat=F1}" Width="80"/>
+                    <DataGridTextColumn Header="Isıtma (kWh)"  Binding="{Binding HeatingKWh, StringFormat=F0}" Width="100"/>
+                    <DataGridTextColumn Header="Soğutma (kWh)" Binding="{Binding CoolingKWh, StringFormat=F0}" Width="100"/>
+                    <DataGridTextColumn Header="Sıcak Su (kWh)" Binding="{Binding DHWKWh, StringFormat=F0}" Width="100"/>
+                    <DataGridTextColumn Header="Aydınlatma (kWh)" Binding="{Binding LightingKWh, StringFormat=F0}" Width="110"/>
+                    <DataGridTextColumn Header="Fan/Pompa (kWh)" Binding="{Binding FanPumpKWh, StringFormat=F0}" Width="110"/>
+                    <DataGridTextColumn Header="Toplam (kWh)" Binding="{Binding TotalKWh, StringFormat=F0}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DockPanel>
+</Window>
