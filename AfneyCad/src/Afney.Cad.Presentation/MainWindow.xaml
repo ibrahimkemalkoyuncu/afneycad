@@ -2268,6 +2268,39 @@
                         </Style>
                     </ToggleButton.Style>
                 </ToggleButton>
+                <ToggleButton x:Name="BtnOTrackMode"
+                              Content="OTRACK" FontSize="11" FontFamily="Consolas"
+                              Padding="8,4" Margin="3,0"
+                              Background="#12141A" Foreground="#6B6F88"
+                              BorderBrush="#2E3148" BorderThickness="1"
+                              ToolTip="Object Snap Tracking (F11)" Click="OnOTrackModeToggle">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="Background"  Value="#0A1F38"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0A84FF"/>
+                                                <Setter Property="Foreground"                   Value="#00DDFF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#1A1C24"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
             </StackPanel>
 
             <!-- Zoom -->

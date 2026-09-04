@@ -8,14 +8,27 @@ namespace Afney.Cad.Application.Services;
 public class PolarTrackingService
 {
     public bool IsEnabled { get; set; } = false;
-    public double IncrementAngle { get; set; } = 15.0;
+    // AutoCAD varsayılanı 90° — kullanıcı 45/30/15 vb. seçebilir (bkz. UserSettings.PolarAngleIncrement).
+    public double IncrementAngle { get; set; } = 90.0;
+    // Fareyi açıya "mıknatıslama" toleransı — artık increment'e ORANTILI değil, sabit ±3° (istenen davranış).
+    public double AngleTolerance { get; set; } = 3.0;
     public double TrackingDistance { get; set; } = 50000;
 
     public static readonly double[] StandardIncrements = { 5, 10, 15, 22.5, 30, 45, 90 };
 
-    public Vector3D? Snap(Vector3D basePoint, Vector3D cursor)
+    public Vector3D? Snap(Vector3D basePoint, Vector3D cursor) => SnapDetailed(basePoint, cursor)?.Point;
+
+    /*
+       NE: Açı + Nokta Hesabı (SnapDetailed)
+       NEDEN: Sadece hizalanmış noktayı değil, hangi standart açıya (0/45/90 vb.) yakalandığını da
+              döndürür — CadViewport bu açıyı hizalama çizgisinin yanına etiket olarak basar.
+       NASIL: Fare açısı en yakın IncrementAngle katına yuvarlanır; sapma AngleTolerance içindeyse
+              (varsayılan ±3°) o açıya kilitlenilir. 359°/0° sınırında da doğru sonuç vermesi için
+              fark dairesel (circular) olarak hesaplanır.
+    */
+    public (Vector3D Point, double Angle)? SnapDetailed(Vector3D basePoint, Vector3D cursor)
     {
-        if (!IsEnabled) return null;
+        if (!IsEnabled || IncrementAngle <= 0) return null;
 
         double dx = cursor.X - basePoint.X;
         double dy = cursor.Y - basePoint.Y;
@@ -26,14 +39,20 @@ public class PolarTrackingService
         if (angle < 0) angle += 360.0;
 
         double snappedAngle = Math.Round(angle / IncrementAngle) * IncrementAngle;
-        double rad = snappedAngle * Math.PI / 180.0;
+        double diff = Math.Abs(angle - snappedAngle);
+        if (diff > 180.0) diff = 360.0 - diff; // 359°↔0° sınırı gibi dairesel sapmaları doğru ölç
 
-        if (Math.Abs(angle - snappedAngle) > IncrementAngle * 0.3) return null;
+        if (diff > AngleTolerance) return null;
 
-        return new Vector3D(
+        double normalizedAngle = ((snappedAngle % 360.0) + 360.0) % 360.0;
+        double rad = normalizedAngle * Math.PI / 180.0;
+
+        var point = new Vector3D(
             basePoint.X + dist * Math.Cos(rad),
             basePoint.Y + dist * Math.Sin(rad),
             cursor.Z);
+
+        return (point, normalizedAngle);
     }
 
     public List<(Vector3D Start, Vector3D End, double Angle)> GetTrackingLines(Vector3D basePoint)

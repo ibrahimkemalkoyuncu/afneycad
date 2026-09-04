@@ -152,6 +152,19 @@ namespace Afney.Cad.Presentation
                         : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#AAAAAA"));
                 });
             };
+            viewport.PolarTrackingToggled += (isOn) =>
+            {
+                Dispatcher.Invoke(() => { if (BtnPolarMode != null) BtnPolarMode.IsChecked = isOn; });
+            };
+            viewport.ObjectSnapTrackingToggled += (isOn) =>
+            {
+                Dispatcher.Invoke(() => { if (BtnOTrackMode != null) BtnOTrackMode.IsChecked = isOn; });
+            };
+
+            // Kaydedilmiş kullanıcı ayarlarını yeni sekmenin viewport'una uygula (bkz. UserSettingsService).
+            viewport.PolarAngleIncrement = _userSettings.Settings.PolarAngleIncrement;
+            viewport.IsPolarTrackingEnabled = _userSettings.Settings.PolarTracking;
+            viewport.IsObjectSnapTrackingEnabled = _userSettings.Settings.ObjectSnapTracking;
 
             ctx.Viewport = viewport;
 
@@ -373,11 +386,26 @@ namespace Afney.Cad.Presentation
             }
             else if (e.Key == System.Windows.Input.Key.F10 || e.SystemKey == System.Windows.Input.Key.F10)
             {
-                if (BtnPolarMode != null)
+                if (_activeContext?.Viewport != null)
                 {
-                    BtnPolarMode.IsChecked = !(BtnPolarMode.IsChecked == true);
-                    bool isOn = BtnPolarMode.IsChecked == true;
-                    StatusText.Text = isOn ? "POLAR: AÇIK (F10)" : "POLAR: KAPALI (F10)";
+                    _activeContext.Viewport.PolarAngleIncrement = _userSettings.Settings.PolarAngleIncrement;
+                    _activeContext.Viewport.TogglePolarTracking();
+                    bool isOn = _activeContext.Viewport.IsPolarTrackingEnabled;
+                    if (BtnPolarMode != null) BtnPolarMode.IsChecked = isOn;
+                    _userSettings.Settings.PolarTracking = isOn;
+                    _userSettings.Save();
+                }
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.F11 || e.SystemKey == System.Windows.Input.Key.F11)
+            {
+                if (_activeContext?.Viewport != null)
+                {
+                    _activeContext.Viewport.ToggleObjectSnapTracking();
+                    bool isOn = _activeContext.Viewport.IsObjectSnapTrackingEnabled;
+                    if (BtnOTrackMode != null) BtnOTrackMode.IsChecked = isOn;
+                    _userSettings.Settings.ObjectSnapTracking = isOn;
+                    _userSettings.Save();
                 }
                 e.Handled = true;
             }

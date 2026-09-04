@@ -90,6 +90,7 @@ DİĞER
   F3                  OSNAP aç/kapat
   F8                  ORTHO aç/kapat
   F10                 Polar tracking aç/kapat
+  F11                 Object Snap tracking aç/kapat
   Space               (komut yokken) Son komutu tekrarla
   Space / Enter       (komut aktifken) Onayla / Bitir
   Delete              Seçili nesneleri sil

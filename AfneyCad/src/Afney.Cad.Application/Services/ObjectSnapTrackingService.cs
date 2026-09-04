@@ -37,18 +37,24 @@ public class ObjectSnapTrackingService
         return null;
     }
 
-    public List<(Vector3D From, Vector3D To)> GetTrackingLines(Vector3D cursor, double extent = 10000)
+    /*
+       NE: Hizalama Çizgilerini Getir (GetTrackingLines)
+       NEDEN: Ekrana çizilecek kesikli hizalama çizgilerini üretir — SADECE fare, daha önce
+              yakalanmış bir OSNAP noktasının yatay/dikey hizası üzerindeyken (FindAlignment
+              ile aynı `tolerance` kullanılarak) bir çizgi döner; aksi halde boş liste.
+    */
+    public List<(Vector3D From, Vector3D To)> GetTrackingLines(Vector3D cursor, double tolerance, double extent = 10000)
     {
         var lines = new List<(Vector3D, Vector3D)>();
         if (!Enabled) return lines;
 
         foreach (var pt in _acquiredPoints)
         {
-            if (Math.Abs(cursor.X - pt.X) < extent * 0.01)
+            if (Math.Abs(cursor.X - pt.X) < tolerance)
             {
                 lines.Add((new Vector3D(pt.X, pt.Y - extent, 0), new Vector3D(pt.X, pt.Y + extent, 0)));
             }
-            if (Math.Abs(cursor.Y - pt.Y) < extent * 0.01)
+            if (Math.Abs(cursor.Y - pt.Y) < tolerance)
             {
                 lines.Add((new Vector3D(pt.X - extent, pt.Y, 0), new Vector3D(pt.X + extent, pt.Y, 0)));
             }

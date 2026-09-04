@@ -40,6 +40,40 @@ namespace Afney.Cad.Presentation.Views;
         private Vector3D? _lastMouseWorldPos;
         public Vector3D? LastMouseWorldPos => _lastMouseWorldPos;
 
+        // ── Polar Tracking + Object Snap Tracking (bkz. CadViewport.Input.cs / CadViewport.Rendering.cs) ──
+        private readonly PolarTrackingService _polarTracking = new();
+        private readonly ObjectSnapTrackingService _objectSnapTracking = new();
+
+        // Render için: aktif hizalama çizgisi/etiketi (MouseMove'da doldurulur, OnPaintSurface'de çizilir)
+        private (Vector3D From, Vector3D To, double Angle)? _activePolarTrack;
+        private System.Collections.Generic.List<(Vector3D From, Vector3D To)>? _activeOTrackLines;
+
+        public bool IsPolarTrackingEnabled
+        {
+            get => _polarTracking.IsEnabled;
+            set { _polarTracking.IsEnabled = value; InvalidateViewport(); }
+        }
+
+        public double PolarAngleIncrement
+        {
+            get => _polarTracking.IncrementAngle;
+            set { _polarTracking.IncrementAngle = value > 0 ? value : 90.0; }
+        }
+
+        public bool IsObjectSnapTrackingEnabled
+        {
+            get => _objectSnapTracking.Enabled;
+            set
+            {
+                _objectSnapTracking.Enabled = value;
+                if (!value) _objectSnapTracking.ClearAcquired();
+                InvalidateViewport();
+            }
+        }
+
+        public event Action<bool>? PolarTrackingToggled;
+        public event Action<bool>? ObjectSnapTrackingToggled;
+
         /*
            NE: Mekanik Kernel Referansı (MechanicalKernel)
            NEDEN: Boru grip sürükleme (Stretch) sırasında bağlı Dirsek/T-Parçası topolojisine
@@ -139,6 +173,12 @@ namespace Afney.Cad.Presentation.Views;
         private readonly System.Collections.Generic.Dictionary<SnapPointType, SKPaint> _snapGlowPaints = new();
         private readonly System.Collections.Generic.Dictionary<SnapPointType, SKPaint> _snapTextPaints = new();
 
+        // ── Polar Tracking / Object Snap Tracking çizim paint'leri ───────────────────────
+        private readonly SKPaint _polarTrackLinePaint = new() { Color = new SKColor(255, 190, 0, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.2f, IsAntialias = true, PathEffect = SKPathEffect.CreateDash(new float[] { 6, 4 }, 0) };
+        private readonly SKPaint _polarTrackTextPaint = new() { Color = new SKColor(255, 190, 0), TextSize = 12, IsAntialias = true, FakeBoldText = true };
+        private readonly SKPaint _otrackLinePaint = new() { Color = new SKColor(0, 255, 140, 190), Style = SKPaintStyle.Stroke, StrokeWidth = 1.2f, IsAntialias = true, PathEffect = SKPathEffect.CreateDash(new float[] { 4, 4 }, 0) };
+        private readonly SKPaint _otrackMarkerPaint = new() { Color = new SKColor(0, 255, 140, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
+
         // ── Seçim kutusu paint'leri (window/crossing × fill/stroke — sürükleme sırasında sık çağrılır) ─
         private readonly SKPaint _selBoxWindowFill = new() { Color = new SKColor(52, 152, 219, 80), Style = SKPaintStyle.Fill };
         private readonly SKPaint _selBoxWindowStroke = new() { Color = new SKColor(52, 152, 219), Style = SKPaintStyle.Stroke, StrokeWidth = 1 };
@@ -190,6 +230,10 @@ namespace Afney.Cad.Presentation.Views;
             foreach (var p in _snapStrokePaints.Values) p?.Dispose();
             foreach (var p in _snapGlowPaints.Values) p?.Dispose();
             foreach (var p in _snapTextPaints.Values) p?.Dispose();
+            _polarTrackLinePaint?.Dispose();
+            _polarTrackTextPaint?.Dispose();
+            _otrackLinePaint?.Dispose();
+            _otrackMarkerPaint?.Dispose();
             _selBoxWindowFill?.Dispose();
             _selBoxWindowStroke?.Dispose();
             _selBoxCrossingFill?.Dispose();
@@ -224,6 +268,10 @@ namespace Afney.Cad.Presentation.Views;
         public void SetActiveCommand(ICadCommand? command)
         {
             _activeCommand = command;
+            // Yeni komut başladığında/bittiğinde önceki tracking zincirini sıfırla (AutoCAD davranışı).
+            _objectSnapTracking.ClearAcquired();
+            _activePolarTrack = null;
+            _activeOTrackLines = null;
             InvalidateViewport();
         }
 

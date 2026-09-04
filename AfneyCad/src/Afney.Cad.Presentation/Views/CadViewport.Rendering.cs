@@ -114,6 +114,8 @@ namespace Afney.Cad.Presentation.Views;
             });
             
             if (_lastMouseWorldPos.HasValue) DrawFullScreenCrosshair(canvas, e.Info.Width, e.Info.Height);
+            if (_activeOTrackLines != null && _activeOTrackLines.Count > 0) DrawObjectSnapTrackingLines(canvas, _activeOTrackLines);
+            if (_activePolarTrack.HasValue) DrawPolarTrackingLine(canvas, _activePolarTrack.Value);
             if (_activeSnap.HasValue) DrawSnapMarker(canvas, _activeSnap.Value);
             _activeCommand?.Draw(renderContext);
 
@@ -386,6 +388,46 @@ namespace Afney.Cad.Presentation.Views;
                 _ => "SNAP"
             };
             canvas.DrawText(label, p.X + size + 2, p.Y + 4, textPaint);
+        }
+
+        /*
+           NE: Polar Tracking Hizalama Çizgisi (DrawPolarTrackingLine)
+           NEDEN: Fare, aktif komutun son referans noktasından itibaren ayarlanabilir açı artışlarından
+                  (varsayılan 90°) birine ±3° tolerans içinde yaklaştığında, o açı boyunca ince kesikli
+                  bir kılavuz çizgi ve açı etiketi (ör. "90°") göstermek için — AutoCAD'in polar tracking
+                  deneyimiyle tutarlı, çizim hızını artıran görsel geri bildirim.
+        */
+        private void DrawPolarTrackingLine(SKCanvas canvas, (Vector3D From, Vector3D To, double Angle) track)
+        {
+            // Çizgiyi ekran dışına taşacak kadar uzat — sadece iki nokta arası değil, tam kılavuz hissi.
+            var dir = track.To - track.From;
+            double len = dir.Length();
+            if (len < 1e-6) return;
+
+            var extended = track.From + dir * (10000.0 / len);
+            var p1 = WorldToScreen(track.From);
+            var p2 = WorldToScreen(extended);
+
+            canvas.DrawLine((float)p1.X, (float)p1.Y, (float)p2.X, (float)p2.Y, _polarTrackLinePaint);
+
+            var markerPos = WorldToScreen(track.To);
+            canvas.DrawCircle((float)markerPos.X, (float)markerPos.Y, 3.5f, _polarTrackTextPaint);
+            canvas.DrawText($"{track.Angle:F0}°", (float)markerPos.X + 10, (float)markerPos.Y - 10, _polarTrackTextPaint);
+        }
+
+        /*
+           NE: Object Snap Tracking Hizalama Çizgileri (DrawObjectSnapTrackingLines)
+           NEDEN: Daha önce yakalanmış (acquire edilmiş) bir OSNAP noktasından geçen yatay/dikey hayali
+                  hizalama çizgisini fare o çizgiye yaklaştığında ince kesikli olarak göstermek için.
+        */
+        private void DrawObjectSnapTrackingLines(SKCanvas canvas, System.Collections.Generic.List<(Vector3D From, Vector3D To)> lines)
+        {
+            foreach (var (from, to) in lines)
+            {
+                var p1 = WorldToScreen(from);
+                var p2 = WorldToScreen(to);
+                canvas.DrawLine((float)p1.X, (float)p1.Y, (float)p2.X, (float)p2.Y, _otrackLinePaint);
+            }
         }
 
         /*

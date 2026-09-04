@@ -9,6 +9,8 @@ public class UserSettings
     public bool OrthoMode          { get; set; } = false;
     public bool OsnapEnabled       { get; set; } = true;
     public bool PolarTracking      { get; set; } = false;
+    public double PolarAngleIncrement { get; set; } = 90.0;
+    public bool ObjectSnapTracking { get; set; } = false;
     public bool DynamicInput       { get; set; } = true;
     public bool LeftPanelVisible   { get; set; } = false;
     public bool RightPanelVisible  { get; set; } = false;

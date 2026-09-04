@@ -153,8 +153,87 @@ namespace Afney.Cad.Presentation.Views;
             if (_snapEngine != null)
                 _activeSnap = _snapEngine.FindSnapPoint(worldPos, _zoom, _activeCommand?.ActivePoint);
 
+            // Her karede tracking overlay'lerini sıfırla — sadece aşağıda gerçekten tetiklenirse yeniden dolar.
+            _activePolarTrack = null;
+            _activeOTrackLines = null;
+
             if (_activeSnap.HasValue)
+            {
                 _lastMouseWorldPos = _activeSnap.Value.Position;
+
+                /*
+                   NE: Object Snap Tracking — Nokta Yakalama (AcquirePoint)
+                   NEDEN: AutoCAD'de fare bir OSNAP noktasının (End/Mid/Center vb.) üzerine geldiğinde
+                          o nokta "acquire" edilir; kullanıcı imleci uzaklaştırdığında bile o noktadan
+                          geçen yatay/dikey hizalama çizgileri aranmaya devam eder.
+                */
+                if (_objectSnapTracking.Enabled)
+                    _objectSnapTracking.AcquirePoint(_activeSnap.Value.Position);
+            }
+            else if (_activeCommand != null && _activeCommand.ActivePoint.HasValue)
+            {
+                bool tracked = false;
+
+                /*
+                   NE: Object Snap Tracking — Hizalama (FindAlignment)
+                   NEDEN: Daha önce yakalanmış bir OSNAP noktasından geçen yatay/dikey hayali çizgiye
+                          fare yaklaştığında imleci o çizgiye kilitler (AutoCAD OTRACK'in dar kapsamlı
+                          bir alt kümesi — iki referans noktası kesişimi DEĞİL, tek nokta hizası).
+                */
+                if (_objectSnapTracking.Enabled)
+                {
+                    double otrackTolerance = 8.0 / Math.Max(0.001, _zoom);
+                    var otrackPoint = _objectSnapTracking.FindAlignment(worldPos, otrackTolerance);
+                    if (otrackPoint.HasValue)
+                    {
+                        _lastMouseWorldPos = otrackPoint.Value;
+                        _activeOTrackLines = _objectSnapTracking.GetTrackingLines(worldPos, otrackTolerance);
+                        tracked = true;
+                    }
+                }
+
+                /*
+                   NE: Polar Tracking — Açısal Hizalama
+                   NEDEN: Object Snap Tracking bir hizalama bulamadıysa, aktif komutun son referans
+                          noktasından itibaren fare açısı ayarlanabilir artışlara (varsayılan 90°,
+                          bkz. PolarAngleIncrement) ±3° tolerans içindeyse o açıya mıknatıslanır.
+                */
+                if (!tracked && IsPolarTrackingEnabled)
+                {
+                    var basePoint = _activeCommand.ActivePoint.Value;
+                    var polar = _polarTracking.SnapDetailed(basePoint, worldPos);
+                    if (polar.HasValue)
+                    {
+                        _lastMouseWorldPos = polar.Value.Point;
+                        _activePolarTrack = (basePoint, polar.Value.Point, polar.Value.Angle);
+                        tracked = true;
+                    }
+                }
+
+                /*
+                   MÜHENDİSLİK: AutoCAD standartlarına göre OSNAP/Tracking yoksa ve ORTHO açıksa,
+                   koordinatları yatay/dikey kısıtla. Tracking bir sonuç ürettiyse ORTHO'ya hiç girilmez.
+                */
+                if (!tracked && IsOrthoEnabled)
+                {
+                    var basePoint = _activeCommand.ActivePoint.Value;
+                    var current = _lastMouseWorldPos.Value;
+
+                    double dx = Math.Abs(current.X - basePoint.X);
+                    double dy = Math.Abs(current.Y - basePoint.Y);
+
+                    if (dx > dy)
+                    {
+                        // Yatay kilit
+                        _lastMouseWorldPos = new Vector3D(current.X, basePoint.Y, current.Z);
+                    }
+                    else
+                    {
+                        // Dikey kilit
+                        _lastMouseWorldPos = new Vector3D(basePoint.X, current.Y, current.Z);
+                    }
+                }
+            }
 
             if (_isPanning)
             {
@@ -239,27 +318,6 @@ namespace Afney.Cad.Presentation.Views;
                             }
                         }
                     }
-                }
-            }
-
-            if (!_activeSnap.HasValue && IsOrthoEnabled && _activeCommand != null && _activeCommand.ActivePoint.HasValue)
-            {
-                // MÜHENDİSLİK: AutoCAD standartlarına göre OSNAP yoksa ve ORTHO açıksa, koordinatları kısıtla
-                var basePoint = _activeCommand.ActivePoint.Value;
-                var current = _lastMouseWorldPos.Value;
-                
-                double dx = Math.Abs(current.X - basePoint.X);
-                double dy = Math.Abs(current.Y - basePoint.Y);
-
-                if (dx > dy)
-                {
-                    // Yatay kilit
-                    _lastMouseWorldPos = new Vector3D(current.X, basePoint.Y, current.Z);
-                }
-                else
-                {
-                    // Dikey kilit
-                    _lastMouseWorldPos = new Vector3D(basePoint.X, current.Y, current.Z);
                 }
             }
 
@@ -710,6 +768,41 @@ namespace Afney.Cad.Presentation.Views;
             Serilog.Log.Information("📐 Ortho Mode Set to: {Status}", IsOrthoEnabled);
             OrthoToggled?.Invoke(IsOrthoEnabled);
             OnFeedback?.Invoke(IsOrthoEnabled ? "Ortho Mode: AÇIK" : "Ortho Mode: KAPALI");
+            InvalidateViewport();
+        }
+
+        /*
+           NE: Polar Tracking Aç/Kapa (F10)
+           NEDEN: AutoCAD'de olduğu gibi çizim sırasında 0/45/90° (veya kullanıcı ayarlı artış) hizalama
+                  kılavuzunu açıp kapatmak için. Önceden bu sadece bir UI checkbox'ıydı — artık gerçekten
+                  CadViewport_MouseMove akışını etkiliyor (bkz. yukarısı).
+        */
+        public void TogglePolarTracking() => TogglePolarTrackingMode(!IsPolarTrackingEnabled);
+
+        public void TogglePolarTrackingMode(bool isEnabled)
+        {
+            if (IsPolarTrackingEnabled == isEnabled) return;
+            IsPolarTrackingEnabled = isEnabled;
+            Serilog.Log.Information("📐 Polar Tracking Set to: {Status}", isEnabled);
+            PolarTrackingToggled?.Invoke(isEnabled);
+            OnFeedback?.Invoke(isEnabled ? "Polar Tracking: AÇIK (F10)" : "Polar Tracking: KAPALI (F10)");
+            InvalidateViewport();
+        }
+
+        /*
+           NE: Object Snap Tracking Aç/Kapa (F11)
+           NEDEN: Daha önce yakalanmış bir OSNAP noktasından geçen yatay/dikey hizalama çizgisini
+                  açıp kapatmak için (AutoCAD OTRACK'in dar kapsamlı alt kümesi).
+        */
+        public void ToggleObjectSnapTracking() => ToggleObjectSnapTrackingMode(!IsObjectSnapTrackingEnabled);
+
+        public void ToggleObjectSnapTrackingMode(bool isEnabled)
+        {
+            if (IsObjectSnapTrackingEnabled == isEnabled) return;
+            IsObjectSnapTrackingEnabled = isEnabled;
+            Serilog.Log.Information("📐 Object Snap Tracking Set to: {Status}", isEnabled);
+            ObjectSnapTrackingToggled?.Invoke(isEnabled);
+            OnFeedback?.Invoke(isEnabled ? "Object Snap Tracking: AÇIK (F11)" : "Object Snap Tracking: KAPALI (F11)");
             InvalidateViewport();
         }
 

@@ -80,9 +80,25 @@ namespace Afney.Cad.Presentation
 
         private void OnPolarModeToggle(object sender, RoutedEventArgs e)
         {
-            if (BtnPolarMode == null) return;
+            if (_activeContext?.Viewport == null || BtnPolarMode == null) return;
+
             bool isOn = BtnPolarMode.IsChecked == true;
-            StatusText.Text = isOn ? "POLAR: AÇIK (F10)" : "POLAR: KAPALI (F10)";
+            _activeContext.Viewport.PolarAngleIncrement = _userSettings.Settings.PolarAngleIncrement;
+            _activeContext.Viewport.TogglePolarTrackingMode(isOn);
+
+            _userSettings.Settings.PolarTracking = isOn;
+            _userSettings.Save();
+        }
+
+        private void OnOTrackModeToggle(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext?.Viewport == null || BtnOTrackMode == null) return;
+
+            bool isOn = BtnOTrackMode.IsChecked == true;
+            _activeContext.Viewport.ToggleObjectSnapTrackingMode(isOn);
+
+            _userSettings.Settings.ObjectSnapTracking = isOn;
+            _userSettings.Save();
         }
 
         private void OnOsnapMasterToggle(object sender, RoutedEventArgs e)
