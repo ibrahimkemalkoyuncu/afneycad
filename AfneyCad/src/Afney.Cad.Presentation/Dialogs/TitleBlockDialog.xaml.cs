@@ -19,7 +19,14 @@ public partial class TitleBlockDialog : Window
         InitializeComponent();
         _database  = database;
         TxtTarih.Text = DateTime.Now.ToString("dd.MM.yyyy");
+
+        // Pafta No — bu oturumda üretilen paftalara göre seri artan öneri (SheetIndexService).
+        // Kullanıcı dilerse bu öneriyi elle değiştirebilir.
+        _suggestedPaftaNo = SheetIndexService.Instance.PeekNextNumber();
+        TxtPaftaNo.Text = _suggestedPaftaNo;
     }
+
+    private readonly string _suggestedPaftaNo;
 
     private void Insert_Click(object sender, RoutedEventArgs e)
     {
@@ -41,6 +48,15 @@ public partial class TitleBlockDialog : Window
             var entities = _svc.Generate(cfg, origin);
             foreach (var ent in entities)
                 _database.AddEntity(ent);
+
+            // Pafta İndeksi'ne kaydet: öneri aynen kabul edildiyse otomatik seri numara olarak,
+            // kullanıcı elle değiştirdiyse girdiği numara olarak kaydedilir; sayaç her iki
+            // durumda da bir sonraki öneri için ilerletilir.
+            bool usedSuggestion = cfg.PaftaNo == _suggestedPaftaNo;
+            SheetIndexService.Instance.RegisterSheet(
+                usedSuggestion ? null : cfg.PaftaNo,
+                cfg.CizimAdi,
+                cfg.ProjeAdi);
 
             MessageBox.Show(
                 $"Antet eklendi ({entities.Count} nesne).\n" +

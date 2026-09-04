@@ -957,6 +957,25 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"Antet hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        private void OnSheetIndex(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string projectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
+                string html = SheetIndexService.Instance.BuildIndexHtml(projectName);
+
+                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                    $"AfneyCAD_PaftaIndeksi_{DateTime.Now:yyyyMMdd_HHmmss}.html");
+                System.IO.File.WriteAllText(tempPath, html, System.Text.Encoding.UTF8);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = tempPath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex) { MessageBox.Show($"Pafta İndeksi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
         /*
            NE: Halkalı Şebeke Analizi (OnHardyCrossAnalysis)
            NEDEN: HardyCrossSolver/HydraulicNetwork yazılmıştı ama hiçbir komut onları

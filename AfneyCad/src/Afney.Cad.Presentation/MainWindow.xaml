@@ -1528,6 +1528,12 @@
                                                     <TextBlock Text="Antet" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Click="OnSheetIndex"       Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Bu oturumda eklenen tüm paftaların numara/isim indeksi (HTML)">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Pafta İndeksi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <Button Click="OnSyncSystemLayers" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Path Data="{StaticResource Ico.Refresh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
