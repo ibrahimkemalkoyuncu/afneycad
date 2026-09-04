@@ -3093,7 +3093,7 @@ Kullanıcı "alt özellikleri tamamla ve raporu güncelle" dedi — madde 52'nin
 
 **Rapor güncellendi:** [AfneyCAD × FineSANI](https://claude.ai/code/artifact/8c7279b7-fd1b-427a-b64c-781b86f42e43) — tüm P0/P1 maddeleri "çözüldü" olarak işaretlendi, kategori puanları yeniden hesaplandı.
 
-**Kalan öncelikler (P2/P3, rapora işlendi):** P2 — DIMSTYLE yönetimi, Polar/Object tracking gerçek implementasyonu, otomatik pafta numaralandırma. P3 — Sheet Set Manager, çoklu-kullanıcı işbirliği, mobil görüntüleme, mahal 3D veri modeli, CSG Solid'in DXF/IFC export'a bağlanması.
+**Kalan öncelikler (P2/P3, rapora işlendi):** P2 — DIMSTYLE yönetimi (~~sonradan yanlış çıktı~~, bkz. madde 54 — zaten Session #37'de tam yapılmış), Polar/Object tracking gerçek implementasyonu, otomatik pafta numaralandırma. P3 — Sheet Set Manager, çoklu-kullanıcı işbirliği, mobil görüntüleme, mahal 3D veri modeli, CSG Solid'in DXF/IFC export'a bağlanması.
 
 **Tam suite: 531/531** (515 → 531, +16 yeni test), tam çözüm derlemesi 0 hata, her commit ayrı ayrı doğrulandı, regresyon yok.
 
