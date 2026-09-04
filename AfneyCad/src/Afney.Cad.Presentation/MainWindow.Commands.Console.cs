@@ -324,6 +324,8 @@ namespace Afney.Cad.Presentation
                     case "hardycross": case "halka": case "ringanaliz": OnHardyCrossAnalysis(this, new RoutedEventArgs()); break;
                     case "tr": case "trim": OnTrimCommand(this, new RoutedEventArgs()); break;
                     case "ex": case "extend": OnExtendCommand(this, new RoutedEventArgs()); break;
+                    case "f": case "fillet": OnFilletCommand(this, new RoutedEventArgs()); break;
+                    case "cha": case "chamfer": OnChamferCommand(this, new RoutedEventArgs()); break;
                     case "mi": case "mirror": OnMirrorCommand(this, new RoutedEventArgs()); break;
                     case "co": case "copy": OnCopyCommand(this, new RoutedEventArgs()); break;
                     case "m": case "move": OnMoveCommand(this, new RoutedEventArgs()); break;

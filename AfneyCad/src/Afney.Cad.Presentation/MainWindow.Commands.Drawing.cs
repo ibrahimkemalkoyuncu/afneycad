@@ -101,6 +101,60 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnFilletCommand(object sender, RoutedEventArgs e)
+        {
+            _lastRepeatableCommand = () => OnFilletCommand(this, new RoutedEventArgs());
+
+            var dlg = new InputDialog("FILLET (Kavisli Birleştirme)", "Yarıçap (R):", "10") { Owner = this };
+            if (dlg.ShowDialog() != true) return;
+
+            if (!double.TryParse(dlg.InputText.Trim().Replace(',', '.'),
+                    System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double radius) || radius <= 0)
+            {
+                StatusText.Text = "FILLET: Geçersiz yarıçap değeri.";
+                return;
+            }
+
+            var cmd = new FilletCommand(_database, _history.TransactionManager, 1.0, radius);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
+        private void OnChamferCommand(object sender, RoutedEventArgs e)
+        {
+            _lastRepeatableCommand = () => OnChamferCommand(this, new RoutedEventArgs());
+
+            var dlg = new InputDialog("CHAMFER (Pah Kırma)", "Mesafeler (D1,D2):", "10,10") { Owner = this };
+            if (dlg.ShowDialog() != true) return;
+
+            var parts = dlg.InputText.Split(',', ';');
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            double d1 = 0;
+            bool valid = parts.Length >= 1
+                && double.TryParse(parts[0].Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, culture, out d1)
+                && d1 > 0;
+
+            double d2 = d1;
+            if (valid && parts.Length >= 2)
+            {
+                valid = double.TryParse(parts[1].Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, culture, out d2) && d2 > 0;
+            }
+
+            if (!valid)
+            {
+                StatusText.Text = "CHAMFER: Geçersiz mesafe değeri.";
+                return;
+            }
+
+            var cmd = new ChamferCommand(_database, _history.TransactionManager, 1.0, d1, d2);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnMirrorCommand(object sender, RoutedEventArgs e)
         {
             _lastRepeatableCommand = () => OnMirrorCommand(this, new RoutedEventArgs());
