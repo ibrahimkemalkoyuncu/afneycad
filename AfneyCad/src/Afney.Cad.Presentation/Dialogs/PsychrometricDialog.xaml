@@ -1,0 +1,135 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.PsychrometricDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="💧 Psikrometrik Hesap — ASHRAE Fundamentals" Height="640" Width="900"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#0D47A1"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#0D2A3E" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource Ico.Snowflake}" Fill="#80DEEA" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Psikrometrik Hesap" FontSize="15" FontWeight="Bold" Foreground="#80DEEA"/>
+                <TextBlock Text="  Durum Noktası · Karışım · Isıtma/Soğutma Prosesi (ASHRAE Fundamentals)" FontSize="10" Foreground="#4DB6AC" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+
+            <!-- Durum Noktası -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="DURUM NOKTASI HESABI" FontSize="10" Foreground="#80DEEA" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Kuru Termometre (°C):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtState1T" Text="24" Width="55"/>
+                        <TextBlock Text="  Bağıl Nem (%):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtState1RH" Text="50" Width="55"/>
+                        <Button Content="Hesapla" Width="90" Click="CalcState_Click" Margin="16,0,0,0"/>
+                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="NEM ORANI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResHumidityRatio" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80DEEA"/>
+                            <TextBlock Text="g/kg" FontSize="9" Foreground="#888"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="ENTALPİ" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResEnthalpy" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80DEEA"/>
+                            <TextBlock Text="kJ/kg" FontSize="9" Foreground="#888"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="YAŞ TERMOMETRE" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResWetBulb" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80DEEA"/>
+                            <TextBlock Text="°C" FontSize="9" Foreground="#888"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="ÇİĞ NOKTASI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResDewPoint" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80DEEA"/>
+                            <TextBlock Text="°C" FontSize="9" Foreground="#888"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="ÖZGÜL HACİM" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResSpecVolume" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80DEEA"/>
+                            <TextBlock Text="m³/kg" FontSize="9" Foreground="#888"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="5">
+                            <TextBlock Text="YOĞUNLUK" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResDensity" Text="—" FontSize="13" FontWeight="Bold" Foreground="#80DEEA"/>
+                            <TextBlock Text="kg/m³" FontSize="9" Foreground="#888"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Isıtma / Soğutma Prosesi -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="ISITMA / SOĞUTMA PROSESİ (Duyulur, RH sabit nem oranı ile yeniden hesaplanır)" FontSize="10" Foreground="#80DEEA" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Hedef Sıcaklık (°C):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtTargetTemp" Text="18" Width="55"/>
+                        <Button Content="Hesapla" Width="90" Click="CalcProcess_Click" Margin="16,0,0,0"/>
+                        <TextBlock Text="  (önce yukarıdaki Durum Noktasını hesaplayın)" FontSize="10" Foreground="#888" Margin="12,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ResProcess" Text="—" FontSize="12" Foreground="#A5D6A7" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Karışım -->
+            <Border Background="#1B2B3B" CornerRadius="4" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="İKİ HAVA AKIMI KARIŞIMI" FontSize="10" Foreground="#80DEEA" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="Akım 1 — T(°C):" Margin="0,0,8,0"/>
+                            <TextBox x:Name="TxtMix1T" Text="24" Width="45"/>
+                            <TextBlock Text=" RH(%):" Margin="8,0,8,0"/>
+                            <TextBox x:Name="TxtMix1RH" Text="50" Width="45"/>
+                            <TextBlock Text=" Debi(kg/s):" Margin="8,0,8,0"/>
+                            <TextBox x:Name="TxtMix1Flow" Text="1.0" Width="45"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBlock Text="Akım 2 — T(°C):" Margin="0,0,8,0"/>
+                            <TextBox x:Name="TxtMix2T" Text="-3" Width="45"/>
+                            <TextBlock Text=" RH(%):" Margin="8,0,8,0"/>
+                            <TextBox x:Name="TxtMix2RH" Text="80" Width="45"/>
+                            <TextBlock Text=" Debi(kg/s):" Margin="8,0,8,0"/>
+                            <TextBox x:Name="TxtMix2Flow" Text="0.3" Width="45"/>
+                        </StackPanel>
+                    </Grid>
+                    <Button Content="Karışımı Hesapla" Width="140" Click="CalcMix_Click" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="ResMix" Text="—" FontSize="12" Foreground="#A5D6A7" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

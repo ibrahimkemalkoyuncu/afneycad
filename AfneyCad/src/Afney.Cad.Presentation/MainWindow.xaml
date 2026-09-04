@@ -1436,6 +1436,20 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Button Click="OnHeatLoadCalculation" Style="{StaticResource RbnBtn}" ToolTip="EN 12831-1 — iletim · havalandırma · yeniden ısıtma yükü">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Thermometer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Isıtma Yükü" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Click="OnPsychrometricAnalysis" Style="{StaticResource RbnBtn}" Margin="2,0,0,0" ToolTip="ASHRAE Psikrometri — durum noktası · karışım · proses">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.Snowflake}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Psikrometri" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
                                             <TextBlock Text="Enerji &amp; Yangın &amp; HVAC" Foreground="#2ECC71" FontSize="9"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>

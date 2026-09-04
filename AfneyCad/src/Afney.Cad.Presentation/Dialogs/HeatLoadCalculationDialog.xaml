@@ -1,0 +1,145 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.HeatLoadCalculationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🔥 Isıtma Yükü Hesabı — EN 12831-1" Height="700" Width="980"
+        WindowStartupLocation="CenterOwner" Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Height" Value="26"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="28"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="CanUserAddRows" Value="False"/><Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#2A2A3E"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#5D1A1A"/><Setter Property="Foreground" Value="#FFAB91"/>
+            <Setter Property="Padding" Value="6,4"/><Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="10">
+        <Border DockPanel.Dock="Top" Background="#3E1A1A" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Path Data="{StaticResource Ico.Thermometer}" Fill="#FFAB91" Width="15" Height="15" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Bina Isıtma Yükü Hesabı" FontSize="15" FontWeight="Bold" Foreground="#FFAB91"/>
+                <TextBlock Text="  İletim + Havalandırma + Yeniden Isıtma (EN 12831-1 / TS 825)" FontSize="10" Foreground="#D7A0A0" VerticalAlignment="Bottom" Margin="8,0,0,1"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Grid.Column="1" Click="Calculate_Click" Background="#5D1A1A" Width="100" Margin="0,0,8,0" Content="Hesapla"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Oda parametreleri -->
+            <Border Grid.Row="0" Background="#1B2B3B" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="İl:" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtCity" Text="İstanbul" Width="90"/>
+                        <TextBlock Text="  İç Sıcaklık (°C):" Margin="16,0,8,0"/>
+                        <TextBox x:Name="TxtIndoorTemp" Text="22" Width="45"/>
+                        <TextBlock Text="  Oda Tipi:" Margin="16,0,8,0"/>
+                        <ComboBox x:Name="CboRoomType" Width="130">
+                            <ComboBoxItem Content="oturma odası" IsSelected="True"/>
+                            <ComboBoxItem Content="yatak odası"/>
+                            <ComboBoxItem Content="mutfak"/>
+                            <ComboBoxItem Content="banyo"/>
+                            <ComboBoxItem Content="wc"/>
+                            <ComboBoxItem Content="ofis"/>
+                            <ComboBoxItem Content="koridor"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="Oda Hacmi (m³):" Margin="0,0,8,0"/>
+                        <TextBox x:Name="TxtVolume" Text="45" Width="55"/>
+                        <TextBlock Text="  Taban Alanı (m²):" Margin="12,0,8,0"/>
+                        <TextBox x:Name="TxtFloorArea" Text="15" Width="55"/>
+                        <TextBlock Text="  Bina Kütlesi:" Margin="12,0,8,0"/>
+                        <ComboBox x:Name="CboBuildingMass" Width="90">
+                            <ComboBoxItem Content="Hafif"/>
+                            <ComboBoxItem Content="Orta" IsSelected="True"/>
+                            <ComboBoxItem Content="Ağır"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Yüzey ekleme -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Content="+ Yüzey Ekle" Width="100" Click="AddSurface_Click" Background="#5D1A1A" Margin="0,0,4,0"/>
+                <Button Content="Sil" Width="60" Click="DeleteSurface_Click" Background="#8B3A3A" Margin="0,0,8,0"/>
+                <TextBlock Text="Varsayılan U:" Margin="8,0,8,0"/>
+                <ComboBox x:Name="CboDefaultU" Width="220"/>
+            </StackPanel>
+
+            <!-- Yüzey listesi -->
+            <DataGrid Grid.Row="2" x:Name="SurfaceGrid" AutoGenerateColumns="False" IsReadOnly="False" Height="220" Margin="0,0,0,8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Yüzey Adı"         Binding="{Binding Name}"               Width="150"/>
+                    <DataGridTextColumn Header="Alan (m²)"         Binding="{Binding Area}"               Width="80"/>
+                    <DataGridTextColumn Header="U (W/m²K)"         Binding="{Binding UValue}"             Width="90"/>
+                    <DataGridTextColumn Header="Isı Köprüsü ψ (W/mK)" Binding="{Binding LinearThermalBridge}" Width="120"/>
+                    <DataGridTextColumn Header="Köprü Uzunluğu (m)" Binding="{Binding BridgeLength}"       Width="110"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Sonuç -->
+            <Border Grid.Row="3" Background="#3E1A1A" CornerRadius="4" Padding="10">
+                <StackPanel>
+                    <TextBlock x:Name="SummaryText" Text="Henüz hesap yapılmadı." Foreground="#FFAB91" TextWrapping="Wrap" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="İLETİM KAYBI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResTrans" Text="—" FontSize="13" FontWeight="Bold" Foreground="#EF9A9A"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="HAVALANDIRMA KAYBI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResVent" Text="—" FontSize="13" FontWeight="Bold" Foreground="#EF9A9A"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="YENİDEN ISITMA EK PAYI" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResReheat" Text="—" FontSize="13" FontWeight="Bold" Foreground="#EF9A9A"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="TOPLAM YÜK" FontSize="9" Foreground="#888"/>
+                            <TextBlock x:Name="ResTotal" Text="—" FontSize="16" FontWeight="Bold" Foreground="#FFD740"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
