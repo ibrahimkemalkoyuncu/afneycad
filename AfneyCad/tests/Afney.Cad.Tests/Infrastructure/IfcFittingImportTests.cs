@@ -262,9 +262,21 @@ public class IfcFittingImportTests
             Assert.Equal(2000, importedElbows[0].Center.Y, precision: 0);
             Assert.Equal(100, importedElbows[0].InnerDiameter, precision: 1);
 
+            // NE/NEDEN — Session #75 mimari denetiminde bulunan test kapsamı boşluğu: bu test
+            // önceden yalnızca Center/InnerDiameter'ı doğruluyordu — IncomingVector'ün 180°
+            // ters (negatiflenmiş) dönmesine yol açan gerçek bir hata (BuildFittingEntity'de
+            // `primary * -1`) bu yüzden fark edilmeden geçmişti. Artık yön vektörü de kilitli:
+            // orijinal elbow.IncomingVector=(1,0,0) idi, negatiflenmiş (-1,0,0) DEĞİL.
+            Assert.Equal(1.0, importedElbows[0].IncomingVector.X, precision: 3);
+            Assert.Equal(0.0, importedElbows[0].IncomingVector.Y, precision: 3);
+
             Assert.Equal(3000, importedTees[0].Center.X, precision: 0);
             Assert.Equal(4000, importedTees[0].Center.Y, precision: 0);
             Assert.True(importedTees[0].MainDiameter > 0);
+
+            // Tee için de aynı round-trip yön doğrulaması: orijinal tee.MainDirection=(1,0,0).
+            Assert.Equal(1.0, importedTees[0].MainDirection.X, precision: 3);
+            Assert.Equal(0.0, importedTees[0].MainDirection.Y, precision: 3);
         }
         finally
         {

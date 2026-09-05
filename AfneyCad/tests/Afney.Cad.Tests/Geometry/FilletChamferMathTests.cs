@@ -125,6 +125,69 @@ public class FilletChamferMathTests
         Assert.NotNull(error);
     }
 
+    /*
+       NE/NEDEN — Session #75 mimari denetiminde bulunan test kapsamı boşluğu: FILLET/CHAMFER'ın
+       "teğet/pah noktası çizgi dışına taşıyor" reddi (distKeepA/distKeepB doğrulaması) daha önce
+       hiç test edilmiyordu — tam da bu sınıftaki bir regresyonun (Session #75'te bulunan gerçek
+       hatanın) fark edilmeden geri gelebileceği kör nokta.
+       Ortak kurgu (AStart/AEnd/BStart/BEnd): 90° köşe, distKeepA = distKeepB = 10 (P'den
+       (10,0)/(0,10) korunan uçlara mesafe). 90° için tangentLength = R / tan(45°) = R,
+       yani R > 10 olduğunda teğet noktası kesinlikle segmentin dışına taşar.
+    */
+    [Fact]
+    public void TryComputeFillet_RadiusLargerThanAvailableSegment_FailsWithError()
+    {
+        // R=15 > distKeepA=distKeepB=10 -> tangentLength=15 > 10, her iki koldan da taşar.
+        bool ok = FilletChamferMath.TryComputeFillet(AStart, AEnd, BStart, BEnd, radius: 15.0, PickA, PickB, out _, out var error);
+
+        Assert.False(ok);
+        Assert.NotNull(error);
+        Assert.Contains("çok büyük", error);
+    }
+
+    [Fact]
+    public void TryComputeFillet_RadiusJustUnderAvailableSegment_Succeeds()
+    {
+        // R=9.9 < distKeepA=distKeepB=10 -> tangentLength=9.9, guard'ın off-by-one reddetmediğini kanıtlar.
+        bool ok = FilletChamferMath.TryComputeFillet(AStart, AEnd, BStart, BEnd, radius: 9.9, PickA, PickB, out var result, out var error);
+
+        Assert.True(ok, error);
+        AssertVectorEqual(new Vector3D(9.9, 0, 0), result.TrimmedAStart);
+        AssertVectorEqual(new Vector3D(0, 9.9, 0), result.TrimmedBStart);
+    }
+
+    [Fact]
+    public void TryComputeChamfer_Dist1LargerThanAvailableSegment_FailsWithError()
+    {
+        // dist1=15 > distKeepA=10 (A kolunda taşma) -> reddedilmeli.
+        bool ok = FilletChamferMath.TryComputeChamfer(AStart, AEnd, BStart, BEnd, dist1: 15.0, dist2: 3.0, PickA, PickB, out _, out var error);
+
+        Assert.False(ok);
+        Assert.NotNull(error);
+        Assert.Contains("çok büyük", error);
+    }
+
+    [Fact]
+    public void TryComputeChamfer_Dist2LargerThanAvailableSegment_FailsWithError()
+    {
+        // dist2=15 > distKeepB=10 (B kolunda taşma) -> reddedilmeli.
+        bool ok = FilletChamferMath.TryComputeChamfer(AStart, AEnd, BStart, BEnd, dist1: 3.0, dist2: 15.0, PickA, PickB, out _, out var error);
+
+        Assert.False(ok);
+        Assert.NotNull(error);
+        Assert.Contains("çok büyük", error);
+    }
+
+    [Fact]
+    public void TryComputeChamfer_DistancesJustUnderAvailableSegment_Succeeds()
+    {
+        bool ok = FilletChamferMath.TryComputeChamfer(AStart, AEnd, BStart, BEnd, dist1: 9.9, dist2: 9.9, PickA, PickB, out var result, out var error);
+
+        Assert.True(ok, error);
+        AssertVectorEqual(new Vector3D(9.9, 0, 0), result.ChamferStart);
+        AssertVectorEqual(new Vector3D(0, 9.9, 0), result.ChamferEnd);
+    }
+
     private static void AssertVectorEqual(Vector3D expected, Vector3D actual)
     {
         Assert.Equal(expected.X, actual.X, precision: 6);
