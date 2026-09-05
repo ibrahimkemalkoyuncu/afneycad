@@ -3116,4 +3116,24 @@ Kullanıcı "eksikleri tamamlamaya devam edelim, amacımız 4M FineSANI'ye rakip
 
 ---
 
-*Son guncelleme: 2026-09-04 | AfneyCAD v4.0.0 — Session #73*
+### 55. Denetim Raporunun "Şimdi Devam Edilebilir" TÜM P3 Maddeleri Kapatıldı
+Kullanıcı "eksikleri tamamlamaya devam edelim, amacımız 4M FineSANI'ye rakip ve daha iyisini yapmak" dedi — madde 54'ün ayırdığı 3 P3 maddesi (büyük altyapı gerektirmeyenler) sırayla tamamlandı.
+
+**1. Mahal veri modeline gerçek yükseklik/3D alanı — bulgu YİNE YANLIŞ çıktı (kod yazılmadı):** Üçüncü kez aynı desen (DIMSTYLE'den sonra) — araştırma "450mm sabit placeholder" iddiasının aslında `MahalEntity`/oda değil, `FixtureBRepService`'teki SIHHİ TESİSAT CİHAZI (WC/lavabo) yüksekliği olduğunu, bu ikisinin denetim ajanı tarafından karıştırıldığını ortaya çıkardı. `RoomBRepService`'in kendi kod içi yorumu zaten dürüstçe "mahal'in kat yüksekliği verisi yok, bu yüzden sadece ince zemin döşemesi (50mm) render ediliyor" diyordu — oda 3D yüksekliği zaten çevredeki `WallEntity.HeightMm` (gerçek alan) üzerinden geliyor. Mahal'e AYRICA bir yükseklik alanı eklemek veri tekrarı/tutarsızlık riski yaratırdı — mevcut tasarım zaten sağlam.
+
+**2. Sheet Set Manager — kalıcı pafta yönetimi (`commit 369067d`):** Önceki oturumun `SheetIndexService`'i (bilinçli olarak sadece oturum-ömürlü) kalıcı hale getirildi. Araştırma, proje dosyasının (`.dwg`/`.dxf` — ACadSharp/DxfWriterService, endüstri standardı interop formatı) içine keyfi JSON gömülemeyeceğini gösterdi — mevcut `.layerstate` mekanizmasıyla AYNI "sidecar dosya" deseni (`<proje>.sheetset.json`) seçildi. **Yan bulgu:** `RevisionTrackingService` her "Revizyon Takibi" menü tıklamasında `new RevisionTrackingService()` ile SIFIRLANIYORDU — girilen revizyonlar dialog kapanınca kayboluyordu (SheetIndexService'ten de kötü bir kalıcılık hatası). `CadDocumentContext`'e taşınıp her MDI sekmesinin kendi kalıcı örneği olacak şekilde düzeltildi.
+
+**3. CSG Solid → DXF/IFC export + gerçek gölgeli 3D render (`commit d2dfa36`) — ÜÇÜ DE tamamlandı, hiçbiri ertelenmedi:**
+- **3D gölgeli render:** `Direct3DViewportControl.RebuildMeshesFromDatabase` zaten `BRepTessellator.Tessellate(solid)`→`MeshBuffer` pipeline'ını Wall/Duct/Fixture/Room için kullanıyordu — `SolidEntity` aynı pipeline'a tek satırlık bir `foreach` ile bağlandı.
+- **DXF export/import:** Her `SolidEntity` ayrı `3DFACE`'ler olarak yazılıyor. İçe aktarımda 2 gerçek engel bulundu (ACadSharp POLYFACE MESH okuyamıyor, XDATA/APPID gruplaması güvenilmez) — aynı (Layer,Color) paylaşan 3DFACE'ler yeni `BRepBuilder.FromTriangleSoup` yardımcısıyla tek Solid'e kaynaştırılıyor (bilinçli sınır: aynı katman+renkte 2 solid birleşir).
+- **IFC export/import:** `IFCCARTESIANPOINTLIST3D`+`IFCPOLYGONALFACESET` ile `IFCBUILDINGELEMENTPROXY` — DXF'in aksine gruplama belirsizliği yok, tam 1:1 round-trip.
+
+**Ders (bu oturuma özgü):** DIMSTYLE'den sonra İKİNCİ kez bir denetim bulgusunun yanlış çıkması (mahal yüksekliği), aynı zamanda İKİ gerçek gizli hatanın daha bulunması (RevisionTrackingService sıfırlanması, DXF POLYFACE MESH sınırlaması) — bu, hem "rapor da doğrulanmalı" hem "kod tabanında hâlâ keşfedilecek gerçek hatalar var" derslerinin BİRLİKTE geçerli olduğunu gösteriyor.
+
+**Kalan tek kategori:** Çoklu-kullanıcı bulut işbirliği ve mobil/tablet canlı görüntüleme — gerçek sunucu altyapısı/barındırma kararı gerektiriyor, kullanıcıyla ayrıca planlanmalı.
+
+**Tam suite: 571/571** (558 → 571, +13 yeni test), tam çözüm derlemesi 0 hata, her commit ayrı ayrı doğrulandı, regresyon yok.
+
+---
+
+*Son guncelleme: 2026-09-05 | AfneyCAD v4.0.0 — Session #74*
