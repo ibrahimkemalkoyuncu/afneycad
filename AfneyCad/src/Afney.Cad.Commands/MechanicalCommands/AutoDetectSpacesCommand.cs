@@ -1,5 +1,7 @@
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -18,17 +20,20 @@ namespace Afney.Cad.Commands.MechanicalCommands
     public class AutoDetectSpacesCommand : ICadCommand
     {
         private readonly CadDatabase _database;
+        private readonly TransactionManager _transactionManager;
         private readonly SpaceDetectionEngine _detectionEngine;
-        
+        private CompositeOperation? _pendingComposite;
+
         public string CommandName => "OTO_MAHAL_TANIMLA";
         public Vector3D? ActivePoint => null;
 
         public event Action<string>? OnFeedback;
         public event Action? OnCompleted;
 
-        public AutoDetectSpacesCommand(CadDatabase database)
+        public AutoDetectSpacesCommand(CadDatabase database, TransactionManager transactionManager)
         {
             _database = database;
+            _transactionManager = transactionManager;
             _detectionEngine = new SpaceDetectionEngine(database);
         }
 
@@ -46,18 +51,24 @@ namespace Afney.Cad.Commands.MechanicalCommands
                     return;
                 }
 
+                var composite = new CompositeOperation("Otonom Mahal Algılama");
+                _pendingComposite = composite;
+
                 int createdRooms = 0;
                 for (int i = 0; i < spaces.Count; i++)
                 {
                     var points = spaces[i];
                     var room = new RoomEntity(points, $"Oda_{i + 1}");
-                    
+
                     // Vitrifiye Analizi
                     AnalyzeAndAddFixtures(room);
-                    
-                    _database.AddEntity(room);
+
+                    composite.Add(new AddEntityOperation(_database, room));
                     createdRooms++;
                 }
+
+                _pendingComposite = null;
+                _transactionManager.Submit(composite);
 
                 OnFeedback?.Invoke($"OTO MAHAL: {createdRooms} adet oda otomatik bulundu ve eklendi.");
                 Serilog.Log.Information("OTO MAHAL: {Count} alan bulundu.", createdRooms);
@@ -113,7 +124,7 @@ namespace Afney.Cad.Commands.MechanicalCommands
 
             foreach(var fix in newFixtures)
             {
-                _database.AddEntity(fix);
+                _pendingComposite!.Add(new AddEntityOperation(_database, fix));
                 mahal.Fixtures.Add(fix);
                 mahal.TotalLoadUnits += fix.LoadUnits;
             }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -17,6 +19,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class MahalInspectCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private readonly MechanicalKernel _kernel;
     private readonly Action<MahalEntity, List<SanitaryFixtureEntity>> _onSelected;
 
@@ -27,10 +30,11 @@ public class MahalInspectCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public MahalInspectCommand(CadDatabase database, MechanicalKernel kernel, Action<MahalEntity, List<SanitaryFixtureEntity>> onSelected)
+    public MahalInspectCommand(CadDatabase database, MechanicalKernel kernel, TransactionManager transactionManager, Action<MahalEntity, List<SanitaryFixtureEntity>> onSelected)
     {
         _database = database;
         _kernel = kernel;
+        _transactionManager = transactionManager;
         _onSelected = onSelected;
     }
 
@@ -74,8 +78,13 @@ public class MahalInspectCommand : ICadCommand
                 var scheduleService = new Afney.Cad.Mechanical.Services.MahalScheduleService();
                 var tableEntities = scheduleService.GenerateRoomTable(mahal, fixtures, point + new Vector3D(1000, 1000, 0)); // Tıklanan yerin yanına
 
-                foreach (var ent in tableEntities)
-                    _database.AddEntity(ent);
+                if (tableEntities.Count > 0)
+                {
+                    var composite = new CompositeOperation("Mahal Tablosu Ekle");
+                    foreach (var ent in tableEntities)
+                        composite.Add(new AddEntityOperation(_database, ent));
+                    _transactionManager.Submit(composite);
+                }
 
                 _onSelected?.Invoke(mahal, fixtures);
                 OnCompleted?.Invoke();

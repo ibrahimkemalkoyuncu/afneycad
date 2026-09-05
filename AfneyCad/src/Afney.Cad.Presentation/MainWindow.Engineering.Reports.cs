@@ -30,7 +30,7 @@ namespace Afney.Cad.Presentation
 
                 if (res == MessageBoxResult.Yes)
                 {
-                    var cmd = new InsertBOMTableCommand(_database);
+                    var cmd = new InsertBOMTableCommand(_database, _history.TransactionManager);
                     Viewport.SetActiveCommand(cmd);
                     cmd.Start();
                     StatusText.Text = "Tablo yerleşimi için bir noktaya tıklayın...";

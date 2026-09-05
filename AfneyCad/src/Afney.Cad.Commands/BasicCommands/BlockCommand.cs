@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Blocks;
 using Afney.Cad.Domain.Entities.Basic;
@@ -17,9 +19,10 @@ namespace Afney.Cad.Commands.BasicCommands;
 public class BlockCommand : ICadCommand
 {
     private readonly CadDatabase _database;
-    
+    private readonly TransactionManager _transactionManager;
+
     // Command layer UI bilmez, o yüzden callback veya interface ile tetikleriz.
-    private readonly Func<BlockCommand, bool?> _onOpenBMakeDialog; 
+    private readonly Func<BlockCommand, bool?> _onOpenBMakeDialog;
     
     // Durum
     private int _step = 0;
@@ -41,9 +44,10 @@ public class BlockCommand : ICadCommand
     public event Action? OnCompleted;
 
     // Presentation katmanı (MainWindow) Command'ı üretirken BMakeDialog açıcı Factory fonksiyonu geçmeli
-    public BlockCommand(CadDatabase database, Func<BlockCommand, bool?> onOpenBMakeDialog)
+    public BlockCommand(CadDatabase database, TransactionManager transactionManager, Func<BlockCommand, bool?> onOpenBMakeDialog)
     {
         _database = database;
+        _transactionManager = transactionManager;
         _onOpenBMakeDialog = onOpenBMakeDialog;
     }
 
@@ -211,18 +215,26 @@ public class BlockCommand : ICadCommand
             return;
         }
 
+        // NE/NEDEN — GERÇEK HATA (Session #75 mimari denetiminde bulundu): behavior 1/2'de
+        // seçili nesnelerin silinmesi ve (behavior 1'de) yeni INSERT'in eklenmesi doğrudan
+        // _database üzerinden yapılıyordu — Ctrl+Z bu adımı geri alamıyordu (blok tanımı
+        // kalıcı olsa da, orijinal geometrinin silinmesi/INSERT'in eklenmesi undone olmuyordu).
+        // Artık tek bir CompositeOperation'da toplanıp TransactionManager'a submit ediliyor.
         if (behavior == 1 || behavior == 2)
         {
+            var composite = new CompositeOperation("Bloğa Dönüştür");
             foreach (var ent in _selectedEntities)
             {
-                _database.RemoveEntity(ent.Id);
+                composite.Add(new RemoveEntityOperation(_database, ent));
             }
-        }
 
-        if (behavior == 1)
-        {
-            var insert = new BlockReferenceEntity(name, basePnt);
-            _database.AddEntity(insert);
+            if (behavior == 1)
+            {
+                var insert = new BlockReferenceEntity(name, basePnt);
+                composite.Add(new AddEntityOperation(_database, insert));
+            }
+
+            _transactionManager.Submit(composite);
         }
 
         _database.ClearSelection();

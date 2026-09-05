@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -27,6 +29,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class PlaceAirTerminalCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private AirTerminalType _terminalType = AirTerminalType.SupplyDiffuser;
     private double _airFlowM3h = 100.0;
     private double _neckDiameter = 200.0;
@@ -40,9 +43,10 @@ public class PlaceAirTerminalCommand : ICadCommand
     public event Action? OnCompleted;
     public event Action<CadEntity>? OnEntityPlaced;
 
-    public PlaceAirTerminalCommand(CadDatabase database)
+    public PlaceAirTerminalCommand(CadDatabase database, TransactionManager transactionManager)
     {
         _database = database;
+        _transactionManager = transactionManager;
     }
 
     public void SetTerminalType(AirTerminalType type, double airFlowM3h, double neckDiameter = 200.0)
@@ -101,7 +105,7 @@ public class PlaceAirTerminalCommand : ICadCommand
             OnFeedback?.Invoke($"{_terminalType} serbest konuma yerleştirildi (yakın kanal ucu bulunamadı).");
         }
 
-        _database.AddEntity(terminal);
+        _transactionManager.Submit(new AddEntityOperation(_database, terminal));
         OnEntityPlaced?.Invoke(terminal);
         OnCompleted?.Invoke();
     }

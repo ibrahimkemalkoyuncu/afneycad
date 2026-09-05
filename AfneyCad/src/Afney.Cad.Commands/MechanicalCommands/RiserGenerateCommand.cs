@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical;
@@ -15,6 +17,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class RiserGenerateCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private readonly MechanicalKernel _kernel;
 
     public string CommandName => "KOLON_SEMA";
@@ -23,16 +26,18 @@ public class RiserGenerateCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public RiserGenerateCommand(CadDatabase database)
+    public RiserGenerateCommand(CadDatabase database, TransactionManager transactionManager)
     {
         _database = database;
+        _transactionManager = transactionManager;
         _kernel = new MechanicalKernel();
     }
 
-    public RiserGenerateCommand(CadDatabase database, MechanicalKernel kernel)
+    public RiserGenerateCommand(CadDatabase database, MechanicalKernel kernel, TransactionManager transactionManager)
     {
         _database = database;
         _kernel = kernel;
+        _transactionManager = transactionManager;
     }
 
     public void Start()
@@ -64,10 +69,12 @@ public class RiserGenerateCommand : ICadCommand
                 return;
             }
 
+            var composite = new CompositeOperation("Kolon Şeması Oluştur");
             foreach (var ent in schemaEntities)
             {
-                _database.AddEntity(ent);
+                composite.Add(new AddEntityOperation(_database, ent));
             }
+            _transactionManager.Submit(composite);
 
             OnFeedback?.Invoke($"BAŞARILI: Kolon şeması oluşturuldu ({schemaEntities.Count} nesne).");
         }

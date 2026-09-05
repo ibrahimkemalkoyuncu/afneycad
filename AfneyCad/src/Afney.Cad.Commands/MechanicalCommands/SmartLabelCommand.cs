@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -21,6 +23,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class SmartLabelCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
 
     public string CommandName => "ETİKETLE";
     public Vector3D? ActivePoint => null;
@@ -29,9 +32,10 @@ public class SmartLabelCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public SmartLabelCommand(CadDatabase database)
+    public SmartLabelCommand(CadDatabase database, TransactionManager transactionManager)
     {
         _database = database;
+        _transactionManager = transactionManager;
     }
 
     /*
@@ -42,7 +46,8 @@ public class SmartLabelCommand : ICadCommand
     {
         int count = 0;
         var pipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
-        
+        var composite = new CompositeOperation("Akıllı Etiketleme");
+
         foreach (var pipe in pipes)
         {
             // Eğer bu borunun zaten bir etiketi yoksa (basit kontrol)
@@ -56,10 +61,13 @@ public class SmartLabelCommand : ICadCommand
                 {
                     Layer = "BORU_ETIKETLERI"
                 };
-                _database.AddEntity(label);
+                composite.Add(new AddEntityOperation(_database, label));
                 count++;
             }
         }
+
+        if (count > 0)
+            _transactionManager.Submit(composite);
 
         OnFeedback?.Invoke($"{count} adet akıllı etiket eklendi.");
         OnCompleted?.Invoke();

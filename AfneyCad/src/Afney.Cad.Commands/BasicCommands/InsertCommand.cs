@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
@@ -15,12 +17,13 @@ namespace Afney.Cad.Commands.BasicCommands;
 public class InsertCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private readonly Action<InsertCommand> _onRequestBlock;
-    
+
     private int _step = 0;
     private string _blockName = string.Empty;
     private Vector3D _position;
-    
+
     // Geçici görselleştirme için
     private BlockReferenceEntity? _ghostEntity;
 
@@ -31,9 +34,10 @@ public class InsertCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public InsertCommand(CadDatabase database, Action<InsertCommand> onRequestBlock)
+    public InsertCommand(CadDatabase database, TransactionManager transactionManager, Action<InsertCommand> onRequestBlock)
     {
         _database = database;
+        _transactionManager = transactionManager;
         _onRequestBlock = onRequestBlock;
     }
 
@@ -104,9 +108,9 @@ public class InsertCommand : ICadCommand
             // Normalde bu işlem AddEntity sırasında veya Load sırasında otomatik yapılmalı.
             // Ama şimdilik manual bağlıyoruz.
             entity.Definition = _database.GetBlock(_blockName);
-            
-            _database.AddEntity(entity);
-            
+
+            _transactionManager.Submit(new AddEntityOperation(_database, entity));
+
             OnFeedback?.Invoke($"Blok yerleştirildi: {_blockName}");
             OnCompleted?.Invoke();
         }

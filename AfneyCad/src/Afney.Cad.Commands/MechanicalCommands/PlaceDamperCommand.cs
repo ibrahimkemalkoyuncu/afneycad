@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -29,6 +31,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class PlaceDamperCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private DamperType _damperType = DamperType.Volume;
     private double _diameter = 250.0;
 
@@ -41,9 +44,10 @@ public class PlaceDamperCommand : ICadCommand
     public event Action? OnCompleted;
     public event Action<CadEntity>? OnEntityPlaced;
 
-    public PlaceDamperCommand(CadDatabase database)
+    public PlaceDamperCommand(CadDatabase database, TransactionManager transactionManager)
     {
         _database = database;
+        _transactionManager = transactionManager;
     }
 
     public void SetDamperType(DamperType type, double diameter = 250.0)
@@ -75,6 +79,15 @@ public class PlaceDamperCommand : ICadCommand
             if (d < minDist && d <= SnapTol) { minDist = d; nearest = duct; }
         }
 
+        // NE/NEDEN — GERÇEK HATA (Session #75 mimari denetiminde bulundu): Bu komut
+        // _database.AddEntity/RemoveEntity'yi TransactionManager'dan geçirmeden doğrudan
+        // çağırıyordu — Ctrl+Z bu komut için sessizce hiçbir şey yapmıyordu (en fazla
+        // 3 entity'lik bir işlem: hat bölünürse 2 yeni parça + damper eklenir, eski hat
+        // silinir). Artık LineCommand/FilletCommand ile aynı desen: tüm mutasyonlar bir
+        // CompositeOperation'da toplanıp tek seferde Submit ediliyor (tek Ctrl+Z = tüm
+        // yerleştirme işlemini geri alır).
+        var composite = new CompositeOperation($"{_damperType} Damper Yerleştir");
+
         if (nearest != null)
         {
             var dir = nearest.EndPoint - nearest.StartPoint;
@@ -95,12 +108,12 @@ public class PlaceDamperCommand : ICadCommand
                 double tOut = Math.Clamp(t + half / ductLen, 0.0, 1.0);
 
                 if (tIn > 0.001)
-                    _database.AddEntity(CloneDuct(nearest, nearest.StartPoint, nearest.StartPoint + dir * tIn));
+                    composite.Add(new AddEntityOperation(_database, CloneDuct(nearest, nearest.StartPoint, nearest.StartPoint + dir * tIn)));
 
                 if (tOut < 0.999)
-                    _database.AddEntity(CloneDuct(nearest, nearest.StartPoint + dir * tOut, nearest.EndPoint));
+                    composite.Add(new AddEntityOperation(_database, CloneDuct(nearest, nearest.StartPoint + dir * tOut, nearest.EndPoint)));
 
-                _database.RemoveEntity(nearest.Id);
+                composite.Add(new RemoveEntityOperation(_database, nearest));
                 OnFeedback?.Invoke($"{_damperType} damper kanal hattına yerleştirildi — hat bölündü.");
             }
             else
@@ -113,7 +126,9 @@ public class PlaceDamperCommand : ICadCommand
             OnFeedback?.Invoke($"{_damperType} damper serbest konuma yerleştirildi (yakın kanal bulunamadı).");
         }
 
-        _database.AddEntity(damper);
+        composite.Add(new AddEntityOperation(_database, damper));
+        _transactionManager.Submit(composite);
+
         OnEntityPlaced?.Invoke(damper);
         OnCompleted?.Invoke();
     }

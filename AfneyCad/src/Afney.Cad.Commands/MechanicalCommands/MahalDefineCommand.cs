@@ -1,5 +1,7 @@
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -17,9 +19,23 @@ namespace Afney.Cad.Commands.MechanicalCommands
     public class MahalDefineCommand : ICadCommand
     {
         private readonly CadDatabase _database;
+        private readonly TransactionManager _transactionManager;
         private readonly SmartBoundaryService _boundaryService;
         private readonly Action<RoomEntity> _onCompleted;
         private RoomEntity? _lastCreatedMahal;
+        // NE/NEDEN — GERÇEK HATA (Session #75 mimari denetiminde bulundu): AnalyzeAndAddFixtures
+        // önceden tespit edilen cihazları OnPointerPressed sırasında DOĞRUDAN veritabanına
+        // ekliyordu — kullanıcı FinalizeMahal'e gelmeden (ör. dialog'u iptal ederek) vazgeçerse
+        // bu cihazlar kalıcı ve Undo edilemez şekilde çizimde kalıyordu. Artık bulunan cihazlar
+        // sadece bekleyen bir listede tutuluyor, gerçek veritabanı eklemesi FinalizeMahal'de
+        // (oda ile birlikte tek bir CompositeOperation olarak) yapılıyor.
+        private List<SanitaryFixtureEntity> _pendingFixtures = new();
+
+        // NE: OnPointerPressed'te tespit edilen ama henüz veritabanına eklenmemiş cihazlar.
+        // NEDEN: Gerçek çağıran (MainWindow.Engineering.Rooms.cs → OnSelectRoom) _onCompleted
+        // callback'i içinde mahal'i kendi TransactionManager.Submit çağrısıyla ekliyor —
+        // bu liste, o çağıranın aynı composite'e cihazları da katabilmesi için dışarı açılıyor.
+        public IReadOnlyList<SanitaryFixtureEntity> PendingFixtures => _pendingFixtures;
 
         public string CommandName => "MAHAL_TANIMLA";
         public Vector3D? ActivePoint => null;
@@ -27,9 +43,10 @@ namespace Afney.Cad.Commands.MechanicalCommands
         public event Action<string>? OnFeedback;
         public event Action? OnCompleted;
 
-        public MahalDefineCommand(CadDatabase database, Action<RoomEntity> onCompleted)
+        public MahalDefineCommand(CadDatabase database, TransactionManager transactionManager, Action<RoomEntity> onCompleted)
         {
             _database = database;
+            _transactionManager = transactionManager;
             _boundaryService = new SmartBoundaryService(database);
             _onCompleted = onCompleted;
         }
@@ -84,16 +101,22 @@ namespace Afney.Cad.Commands.MechanicalCommands
             if (_lastCreatedMahal != null)
             {
                 _lastCreatedMahal.RoomName = name;
-                
+
                 // RoomType Enum Dönüşümü
                 if (Enum.TryParse<Afney.Cad.Mechanical.Enums.RoomType>(type, true, out var rType))
                     _lastCreatedMahal.Type = rType;
                 else
                     _lastCreatedMahal.Type = Afney.Cad.Mechanical.Enums.RoomType.StandardRoom;
 
-                _database.AddEntity(_lastCreatedMahal);
+                var composite = new CompositeOperation("Mahal Tanımla");
+                foreach (var fixture in _pendingFixtures)
+                    composite.Add(new AddEntityOperation(_database, fixture));
+                composite.Add(new AddEntityOperation(_database, _lastCreatedMahal));
+                _transactionManager.Submit(composite);
+
                 OnFeedback?.Invoke($"BAŞARILI: {_lastCreatedMahal.RoomName} tanımlandı. ΣLU: {_lastCreatedMahal.TotalLoadUnits:F2}");
             }
+            _pendingFixtures = new();
             OnCompleted?.Invoke();
         }
 
@@ -151,7 +174,7 @@ namespace Afney.Cad.Commands.MechanicalCommands
                 if (fixtureId == null) continue;
 
                 var fixtureEntity = lib.CreateEntity(fixtureId, ent.GetBoundingBox().Center);
-                _database.AddEntity(fixtureEntity);
+                _pendingFixtures.Add(fixtureEntity);
                 mahal.Fixtures.Add(fixtureEntity);
                 mahal.TotalLoadUnits += fixtureEntity.LoadUnits;
             }

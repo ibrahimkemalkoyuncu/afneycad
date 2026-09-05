@@ -151,7 +151,7 @@ namespace Afney.Cad.Presentation
                 return;
             }
 
-            var cmd = new PlaceFixtureOnWallCommand(_database, _mechanicalKernel);
+            var cmd = new PlaceFixtureOnWallCommand(_database, _mechanicalKernel, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
             Viewport.SetActiveCommand(cmd);
@@ -160,9 +160,7 @@ namespace Afney.Cad.Presentation
 
         private void OnPlaceAirTerminalCommand(object sender, RoutedEventArgs e)
         {
-            // NE: PlaceAirTerminalCommand kendi içinde _database.AddEntity çağırır (ValveLibraryDialog
-            // ile aynı desen) — burada tekrar TransactionManager'a submit edilmez (çift ekleme olur).
-            var cmd = new PlaceAirTerminalCommand(_database);
+            var cmd = new PlaceAirTerminalCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnEntityPlaced += entity => Viewport.InvalidateViewport();
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
@@ -172,9 +170,7 @@ namespace Afney.Cad.Presentation
 
         private void OnPlaceDamperCommand(object sender, RoutedEventArgs e)
         {
-            // NE: PlaceDamperCommand kendi içinde _database.AddEntity/RemoveEntity çağırır (kanal
-            // bölme dahil) — burada tekrar TransactionManager'a submit edilmez (çift ekleme olur).
-            var cmd = new PlaceDamperCommand(_database);
+            var cmd = new PlaceDamperCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnEntityPlaced += entity => Viewport.InvalidateViewport();
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
@@ -362,7 +358,7 @@ namespace Afney.Cad.Presentation
 
         private void OnBlockCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new BlockCommand(_database, (bc) =>
+            var cmd = new BlockCommand(_database, _history.TransactionManager, (bc) =>
             {
                 var dialog = new BMakeDialog(bc, _database);
                 dialog.Owner = this;
@@ -379,7 +375,7 @@ namespace Afney.Cad.Presentation
 
         private void OnInsertCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new InsertCommand(_database, (ic) =>
+            var cmd = new InsertCommand(_database, _history.TransactionManager, (ic) =>
             {
                 var dialog = new BlockSelectionDialog(_database.GetBlocks());
                 dialog.Owner = this;
@@ -406,7 +402,7 @@ namespace Afney.Cad.Presentation
 
         private void OnInspectMahalCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new MahalInspectCommand(_database, _mechanicalKernel, (mahal, fixtures) =>
+            var cmd = new MahalInspectCommand(_database, _mechanicalKernel, _history.TransactionManager, (mahal, fixtures) =>
             {
                 var dialog = new MahalDetailsDialog(mahal);
                 dialog.Owner = this;
@@ -467,7 +463,7 @@ namespace Afney.Cad.Presentation
                 _mechanicalKernel.LevelManager.AddLevel(new Afney.Cad.Mechanical.Models.MepLevel("1. Kat", 3000, 3000));
             }
 
-            var cmd = new RiserGenerateCommand(_database, _mechanicalKernel);
+            var cmd = new RiserGenerateCommand(_database, _mechanicalKernel, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); };
             Viewport.SetActiveCommand(cmd);
@@ -476,7 +472,7 @@ namespace Afney.Cad.Presentation
 
         private void OnSmartLabelCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new SmartLabelCommand(_database);
+            var cmd = new SmartLabelCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); };
             Viewport.SetActiveCommand(cmd);
@@ -503,7 +499,7 @@ namespace Afney.Cad.Presentation
 
         private void OnLegendCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new LegendGenerateCommand(_database);
+            var cmd = new LegendGenerateCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); };
             Viewport.SetActiveCommand(cmd);

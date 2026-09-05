@@ -1,5 +1,7 @@
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
@@ -14,6 +16,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class InsertBOMTableCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private readonly BillOfMaterialsService _bomService;
     private TableEntity? _ghostTable;
 
@@ -23,9 +26,10 @@ public class InsertBOMTableCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public InsertBOMTableCommand(CadDatabase database)
+    public InsertBOMTableCommand(CadDatabase database, TransactionManager transactionManager)
     {
         _database = database;
+        _transactionManager = transactionManager;
         _bomService = new BillOfMaterialsService(database);
     }
 
@@ -37,8 +41,8 @@ public class InsertBOMTableCommand : ICadCommand
     public void OnPointerPressed(Vector3D point)
     {
         var table = _bomService.GenerateTable(point);
-        _database.AddEntity(table);
-        
+        _transactionManager.Submit(new AddEntityOperation(_database, table));
+
         OnFeedback?.Invoke("Metraj tablosu başarıyla eklendi.");
         OnCompleted?.Invoke();
     }

@@ -19,11 +19,14 @@ namespace Afney.Cad.Commands.MechanicalCommands;
    - Kullanıcıdan bir yerleşim noktası (Point) bekler.
    - Yerleştirilen nesneyi 'SanitaryFixtureEntity' olarak modellere ekler.
    - Nesnenin tipine göre (WC vs Lavabo) varsayılan FU ve çap bilgisini atar.
-   - İşlemi geri alınabilir (Undoable) bir veritabanı operasyonu olarak kaydeder.
+   - İşlemi geri alınabilir (Undoable) bir veritabanı operasyonu olarak kaydeder (TransactionManager
+     üzerinden — Session #75 mimari denetiminde bu yorumun aslında YANLIŞ olduğu, kodun doğrudan
+     _database.AddEntity çağırdığı bulundu; artık yorum kodla eşleşiyor).
 */
 public class PlaceFixtureCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private string _fixtureType = "Washbasin";
     private double _fu = 0.5;
 
@@ -34,9 +37,10 @@ public class PlaceFixtureCommand : ICadCommand
     public event Action? OnCompleted;
     public event Action<CadEntity>? OnEntityPlaced;
 
-    public PlaceFixtureCommand(CadDatabase database)
+    public PlaceFixtureCommand(CadDatabase database, TransactionManager transactionManager)
     {
         _database = database;
+        _transactionManager = transactionManager;
     }
 
     public void SetFixtureType(string type, double fu)
@@ -58,9 +62,9 @@ public class PlaceFixtureCommand : ICadCommand
             SystemType = MechanicalSystemType.WasteWater
         };
 
-        // Veritabanına nesneyi ekle
-        _database.AddEntity(fixture);
-        
+        // Veritabanına nesneyi TransactionManager üzerinden ekle (Undo/Redo destekli)
+        _transactionManager.Submit(new AddEntityOperation(_database, fixture));
+
         // Geri alma listesi (History) için üst katmana bildir
         OnEntityPlaced?.Invoke(fixture);
 

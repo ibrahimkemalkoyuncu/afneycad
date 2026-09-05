@@ -23,7 +23,7 @@ namespace Afney.Cad.Presentation
 
         private void OnAutoDetectSpacesCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new AutoDetectSpacesCommand(_database);
+            var cmd = new AutoDetectSpacesCommand(_database, _history.TransactionManager);
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnCompleted += () =>
             {
@@ -36,7 +36,8 @@ namespace Afney.Cad.Presentation
 
         private void OnSelectRoom(object sender, RoutedEventArgs e)
         {
-            var cmd = new MahalDefineCommand(_database, (Afney.Cad.Mechanical.Entities.RoomEntity mahal) =>
+            MahalDefineCommand cmd = null!;
+            cmd = new MahalDefineCommand(_database, _history.TransactionManager, (Afney.Cad.Mechanical.Entities.RoomEntity mahal) =>
             {
                 try
                 {
@@ -51,7 +52,17 @@ namespace Afney.Cad.Presentation
 
                     if (dialogResult == true)
                     {
-                        _database.TransactionManager.Submit(new AddEntityOperation(_database, mahal));
+                        // NE/NEDEN — GERÇEK HATA (Session #75 mimari denetiminde bulundu):
+                        // MahalDefineCommand.AnalyzeAndAddFixtures'ın tespit ettiği cihazlar
+                        // önceden doğrudan _database.AddEntity ile ekleniyordu — kullanıcı bu
+                        // dialogu iptal etse (dialogResult == false) bile o cihazlar kalıcı ve
+                        // Undo edilemez kalıyordu. Artık cmd.PendingFixtures üzerinden buraya
+                        // taşınıyor, mahal ile TEK bir CompositeOperation'da ekleniyor.
+                        var mahalComposite = new CompositeOperation("Mahal Tanımla");
+                        foreach (var pendingFixture in cmd.PendingFixtures)
+                            mahalComposite.Add(new AddEntityOperation(_database, pendingFixture));
+                        mahalComposite.Add(new AddEntityOperation(_database, mahal));
+                        _database.TransactionManager.Submit(mahalComposite);
 
                         if (_mechanicalKernel != null)
                             _mechanicalKernel.TopologyGraph.AddRoom(mahal);

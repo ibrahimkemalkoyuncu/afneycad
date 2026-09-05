@@ -1,6 +1,7 @@
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical;
 using Afney.Cad.Mechanical.Entities;
@@ -19,6 +20,7 @@ namespace Afney.Cad.Commands.MechanicalCommands;
 public class PlaceFixtureOnWallCommand : ICadCommand
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager _transactionManager;
     private readonly MechanicalKernel _kernel;
     private int _step = 0;
     private ArchitecturalObstacle? _selectedWall;
@@ -29,10 +31,11 @@ public class PlaceFixtureOnWallCommand : ICadCommand
     public event Action<string>? OnFeedback;
     public event Action? OnCompleted;
 
-    public PlaceFixtureOnWallCommand(CadDatabase database, MechanicalKernel kernel)
+    public PlaceFixtureOnWallCommand(CadDatabase database, MechanicalKernel kernel, TransactionManager transactionManager)
     {
         _database = database;
         _kernel = kernel;
+        _transactionManager = transactionManager;
     }
 
     /*
@@ -124,7 +127,7 @@ public class PlaceFixtureOnWallCommand : ICadCommand
         var normal = new Vector3D(-wallDir.Y, wallDir.X, 0);
         fixture.Rotation = Math.Atan2(normal.Y, normal.X);
 
-        _database.AddEntity(fixture);
+        _transactionManager.Submit(new AddEntityOperation(_database, fixture));
     }
 
     private bool IsPointNearObstacle(Vector3D p, ArchitecturalObstacle obs)
