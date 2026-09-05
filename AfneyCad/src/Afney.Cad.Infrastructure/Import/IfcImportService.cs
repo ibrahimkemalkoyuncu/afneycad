@@ -1177,7 +1177,15 @@ public class IfcImportService
         {
             // Bilinmeyen/boş PredefinedType da dirsek olarak kabul edilir (en yaygın, tek
             // parametreli fitting tipi — MEP altlığı amacı için makul bir varsayılan).
-            return new ElbowEntity(origin, diameter, primary * -1, secondary)
+            //
+            // NE/NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu): Burada `primary * -1`
+            // kullanılıyordu. IfcExportService.ComputeFittingOrientation, RefDirection'ı
+            // TAM OLARAK `elbow.IncomingVector.Normalize()` olarak yazıyor (negatiflemeden) —
+            // `primary` de RefDirection'ın açısından TAM OLARAK aynı vektörü geri çıkarıyor.
+            // `primary * -1` kullanmak IncomingVector'ü 180° ters çeviriyordu, yani her
+            // AfneyCAD→IFC→AfneyCAD dirsek round-trip'inde akış-giriş yönü sessizce
+            // bozuluyordu. Doğrusu `primary`'nin KENDİSİ.
+            return new ElbowEntity(origin, diameter, primary, secondary)
             {
                 Layer = LayerMep,
                 Color = ColorMep

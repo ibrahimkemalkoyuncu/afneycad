@@ -126,10 +126,15 @@ namespace Afney.Cad.Presentation
         {
             _lastRepeatableCommand = () => OnChamferCommand(this, new RoutedEventArgs());
 
-            var dlg = new InputDialog("CHAMFER (Pah Kırma)", "Mesafeler (D1,D2):", "10,10") { Owner = this };
+            // NE/NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu): D1/D2 ayracı olarak
+            // virgül kullanılıyordu ama ondalık ayracı da virgül (Türkçe yerel) — "10,5;20,5"
+            // (D1=10.5, D2=20.5 niyetiyle) Split(',',';') ile ["10","5","20","5"] oluyor, kod
+            // sessizce D1=10/D2=5 alıyordu. Artık TEK ayraç noktalı virgül (;) — ondalık virgülle
+            // çakışmıyor.
+            var dlg = new InputDialog("CHAMFER (Pah Kırma)", "Mesafeler (D1;D2):", "10;10") { Owner = this };
             if (dlg.ShowDialog() != true) return;
 
-            var parts = dlg.InputText.Split(',', ';');
+            var parts = dlg.InputText.Split(';');
             var culture = System.Globalization.CultureInfo.InvariantCulture;
             double d1 = 0;
             bool valid = parts.Length >= 1

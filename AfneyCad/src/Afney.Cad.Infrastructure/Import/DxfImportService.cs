@@ -271,11 +271,19 @@ public class DxfImportService
                 groups[key] = g;
             }
 
+            // NE/NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu): unitScale önceden
+            // BRepBuilder.FromTriangleSoup'un weld (kaynaşma) toleransından (weldTolerance,
+            // varsayılan 0.01, mm birimi varsayar) SONRA, Transform() ile uygulanıyordu.
+            // Metre biriminde ($INSUNITS=6, unitScale=1000) bir DXF'te, gerçekte 8mm uzaklıktaki
+            // iki köşe ham (metre) koordinatlarda sadece 0.008 birim ayrık oluyor — 0.01
+            // toleransının İÇİNDE kalıp YANLIŞLIKLA tek vertex'e kaynaşıyordu. Düzeltme:
+            // unitScale'i köşe koordinatlarına EN BAŞTA (weld'den önce) uygula, böylece
+            // weldTolerance her zaman gerçek mm mesafesine karşı çalışır.
             int baseIdx = g.Verts.Count;
-            var p1 = new Vector3D(f.FirstCorner.X, f.FirstCorner.Y, f.FirstCorner.Z);
-            var p2 = new Vector3D(f.SecondCorner.X, f.SecondCorner.Y, f.SecondCorner.Z);
-            var p3 = new Vector3D(f.ThirdCorner.X, f.ThirdCorner.Y, f.ThirdCorner.Z);
-            var p4 = new Vector3D(f.FourthCorner.X, f.FourthCorner.Y, f.FourthCorner.Z);
+            var p1 = new Vector3D(f.FirstCorner.X * unitScale, f.FirstCorner.Y * unitScale, f.FirstCorner.Z * unitScale);
+            var p2 = new Vector3D(f.SecondCorner.X * unitScale, f.SecondCorner.Y * unitScale, f.SecondCorner.Z * unitScale);
+            var p3 = new Vector3D(f.ThirdCorner.X * unitScale, f.ThirdCorner.Y * unitScale, f.ThirdCorner.Z * unitScale);
+            var p4 = new Vector3D(f.FourthCorner.X * unitScale, f.FourthCorner.Y * unitScale, f.FourthCorner.Z * unitScale);
 
             g.Verts.Add(p1);
             g.Verts.Add(p2);
@@ -295,10 +303,10 @@ public class DxfImportService
         var result = new List<SolidEntity>(groups.Count);
         foreach (var kv in groups)
         {
+            // unitScale zaten yukarıda p1..p4'e (weld'den ÖNCE) uygulandı — burada ayrıca
+            // Transform etmek unitScale'i İKİ KEZ uygulardı.
             var solid = BRepBuilder.FromTriangleSoup(kv.Value.Verts, kv.Value.Tris, "ImportedSolid");
             var entity = new SolidEntity(solid) { Layer = kv.Key.Layer, Color = kv.Key.Color };
-            if (Math.Abs(unitScale - 1.0) > 0.001)
-                entity.Transform(Matrix4x4.CreateScale(unitScale, unitScale, unitScale));
             result.Add(entity);
         }
         return result;

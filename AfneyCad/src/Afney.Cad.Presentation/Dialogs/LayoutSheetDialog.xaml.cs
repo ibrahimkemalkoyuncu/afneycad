@@ -26,14 +26,27 @@ public partial class LayoutSheetDialog : Window
     }
 
     private readonly CadDatabase _database;
+    private readonly SheetIndexService? _sheetIndex;
     private readonly FloorSnapshotService _svc = new();
     private List<FloorSnapshotService.SnapshotInfo> _snapshots = [];
     private List<PlacedBlockRow> _placed = [];
 
-    public LayoutSheetDialog(CadDatabase database)
+    /*
+       NE: sheetIndex parametresi (opsiyonel, geriye-uyumlu)
+       NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu): Bu dialogun kendi
+              "Antet Ekle" butonu `new TitleBlockDialog(_database)` çağırıyordu —
+              yeni sheetIndex parametresi verilmediğinden `TitleBlockDialog` sessizce
+              paylaşılan statik `SheetIndexService.Instance`'a düşüyordu. Bu, Session
+              #74'ün "paftalar birbirine karışıyor" hatasını çözmek için per-document
+              yaptığı `CadDocumentContext.SheetIndex`'i BU çağrı yolunda atlıyordu —
+              buradan eklenen bir pafta hem yanlış sayaçtan numara alıyor hem de
+              `.sheetset.json`'a hiç kaydedilmiyordu (kaydet/yükle ile kayboluyordu).
+    */
+    public LayoutSheetDialog(CadDatabase database, SheetIndexService? sheetIndex = null)
     {
         InitializeComponent();
         _database = database;
+        _sheetIndex = sheetIndex;
         Refresh();
     }
 
@@ -182,7 +195,7 @@ public partial class LayoutSheetDialog : Window
 
     private void TitleBlock_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new TitleBlockDialog(_database) { Owner = this };
+        var dialog = new TitleBlockDialog(_database, _sheetIndex) { Owner = this };
         dialog.ShowDialog();
         Refresh();
     }

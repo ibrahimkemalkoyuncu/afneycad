@@ -53,9 +53,11 @@ public static class FilletChamferMath
         Vector3D aStart, Vector3D aEnd, Vector3D bStart, Vector3D bEnd,
         Vector3D pickA, Vector3D pickB,
         out Vector3D p, out Vector3D keepA, out Vector3D keepB,
-        out Vector3D dirA, out Vector3D dirB, out string? error)
+        out Vector3D dirA, out Vector3D dirB, out double distKeepA, out double distKeepB,
+        out string? error)
     {
         keepA = default; keepB = default; dirA = default; dirB = default;
+        distKeepA = 0; distKeepB = 0;
 
         if (!GeomUtils.GetIntersectionLineLine(aStart, aEnd, bStart, bEnd, out p))
         {
@@ -66,8 +68,8 @@ public static class FilletChamferMath
         keepA = pickA.DistanceTo(aStart) <= pickA.DistanceTo(aEnd) ? aStart : aEnd;
         keepB = pickB.DistanceTo(bStart) <= pickB.DistanceTo(bEnd) ? bStart : bEnd;
 
-        double distKeepA = p.DistanceTo(keepA);
-        double distKeepB = p.DistanceTo(keepB);
+        distKeepA = p.DistanceTo(keepA);
+        distKeepB = p.DistanceTo(keepB);
         if (distKeepA < Epsilon || distKeepB < Epsilon)
         {
             error = "Seçilen nokta kesişim noktasıyla çakışıyor — FILLET/CHAMFER uygulanamaz.";
@@ -94,7 +96,7 @@ public static class FilletChamferMath
             return false;
         }
 
-        if (!TryPrepare(aStart, aEnd, bStart, bEnd, pickA, pickB, out var p, out var keepA, out var keepB, out var dirA, out var dirB, out error))
+        if (!TryPrepare(aStart, aEnd, bStart, bEnd, pickA, pickB, out var p, out var keepA, out var keepB, out var dirA, out var dirB, out var distKeepA, out var distKeepB, out error))
             return false;
 
         double dot = System.Math.Clamp(dirA.Dot(dirB), -1.0, 1.0);
@@ -107,6 +109,18 @@ public static class FilletChamferMath
         }
 
         double tangentLength = radius / System.Math.Tan(alpha / 2.0);
+
+        // NE/NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu): Teğet uzunluğu
+        // hiç korunan-uca-olan-gerçek-mesafeyle (distKeepA/distKeepB) karşılaştırılmıyordu.
+        // Kısa bir çizgi ucunda büyük bir R ile FILLET çalıştırılırsa teğet noktası
+        // orijinal segmentin ÖTESİNE (keepA'nın arkasına) düşüyor, sessizce ters yönde
+        // uzayan yanlış bir geometri üretiyordu — kullanıcıya hiçbir uyarı verilmeden.
+        if (tangentLength > distKeepA - Epsilon || tangentLength > distKeepB - Epsilon)
+        {
+            error = "FILLET yarıçapı bu doğrular için çok büyük — teğet noktası çizgi dışına taşıyor.";
+            return false;
+        }
+
         var tangentA = p + dirA * tangentLength;
         var tangentB = p + dirB * tangentLength;
 
@@ -159,8 +173,16 @@ public static class FilletChamferMath
             return false;
         }
 
-        if (!TryPrepare(aStart, aEnd, bStart, bEnd, pickA, pickB, out var p, out var keepA, out var keepB, out var dirA, out var dirB, out error))
+        if (!TryPrepare(aStart, aEnd, bStart, bEnd, pickA, pickB, out var p, out var keepA, out var keepB, out var dirA, out var dirB, out var distKeepA, out var distKeepB, out error))
             return false;
+
+        // NE/NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu, FILLET ile aynı sınıf
+        // hata): dist1/dist2 hiç korunan-uca-olan-gerçek-mesafeyle karşılaştırılmıyordu.
+        if (dist1 > distKeepA - Epsilon || dist2 > distKeepB - Epsilon)
+        {
+            error = "CHAMFER mesafesi bu doğrular için çok büyük — pah noktası çizgi dışına taşıyor.";
+            return false;
+        }
 
         var chamferA = p + dirA * dist1;
         var chamferB = p + dirB * dist2;

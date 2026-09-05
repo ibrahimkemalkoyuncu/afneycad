@@ -3149,3 +3149,24 @@ Rapor ([AfneyCAD × FineSANI](https://claude.ai/code/artifact/8c7279b7-fd1b-427a
 **Dört oturumluk (Session #71-74) denetim serüveninin genel bilançosu:** ~20 madde ele alındı, ~17'si gerçek kod değişikliğiyle kapatıldı, 2'si denetimin kendi yanlış bulgusu çıktı, 1 kategori kullanıcı kararıyla ertelendi. Yol boyunca 5-6 gerçek gizli hata daha bulunup düzeltildi (IFC koordinat parse hatası, RevisionTrackingService sıfırlanması, DXF POLYFACE MESH sınırlaması, Türkçe locale hatası, EN12845/NFPA13 karışık etiket hatası). Test suite 503'ten 571'e çıktı, hiçbir regresyon olmadı.
 
 **Kullanıcının bir sonraki isteği:** "Mevcut uygulamayı geliştirme yönünde ilerlemek istiyorum" — spesifik bir yön belirtilmedi, sohbette netleştirilecek (yeni özellik modülü mü, derinlemesine kalite/mimari denetimi mi, yoksa başka bir öncelik mi).
+
+---
+
+### 57. Kendi Kodumuzun Code Review'ü — 5 Gerçek Doğruluk Hatası Bulundu ve Düzeltildi
+Madde 56'daki punch-list kapanışının ardından kullanıcı "kaldığın yerden geliştirmeye devam et" dedi, sonra "sonrasında derinlemesine bir kalite/mimari denetimi" yapılmasını istedi — önce bu oturumun kendi commit'lerini (`1310ceb..HEAD`) `/code-review` ile denetledik. 8 paralel bulgu ajanı (satır-satır, kaldırılmış-davranış, çapraz-dosya, tekrar-kullanım, sadeleştirme, verimlilik, üst-bakış, konvansiyon) çalıştırıldı; 11 bulgudan 5'i CONFIRMED gerçek doğruluk hatası çıktı, hepsi düzeltildi:
+
+**1. `LayoutSheetDialog.xaml.cs` — statik singleton sızıntısı:** "Antet Ekle" butonu `TitleBlockDialog`'u `sheetIndex` parametresi vermeden çağırıyordu, bu da Session #74'ün per-document `CadDocumentContext.SheetIndex` çözümünü atlayıp eski paylaşılan `SheetIndexService.Instance`'a düşüyordu — "paftalar birbirine karışıyor" hatası bu yoldan geri sızıyordu. Dialog artık `sheetIndex` parametresi alıyor, `MainWindow.Engineering.Reports.cs`'teki çağıran güncellendi.
+
+**2. `FilletChamferMath.cs` — mesafe doğrulaması eksikliği:** FILLET teğet uzunluğu ve CHAMFER pah mesafeleri hiç korunan-uca-olan-gerçek-mesafeyle (`distKeepA`/`distKeepB`) karşılaştırılmıyordu — kısa bir çizgide büyük R/mesafe ile komut çalıştırılırsa teğet/pah noktası segmentin ötesine taşıp sessizce yanlış geometri üretiyordu. `TryPrepare` artık bu mesafeleri de döndürüyor, her iki hesap fonksiyonu da sınırı aşan girdilerde açıkça hata veriyor.
+
+**3. `IfcImportService.cs` — dirsek yön vektörü 180° ters:** `BuildFittingEntity`, `primary * -1` kullanarak elbow yönünü ters çeviriyordu; oysa `IfcExportService` `RefDirection`'ı negatiflemeden yazıyor, dolayısıyla `primary` zaten orijinal `IncomingVector`'ün ta kendisiydi. Her AfneyCAD→IFC→AfneyCAD dirsek round-trip'inde akış yönü 180° ters dönüyordu, mevcut testler sadece merkez/çap kontrol ettiği için yakalanmamıştı.
+
+**4. `MainWindow.Commands.Drawing.cs` — CHAMFER virgül/ondalık ayracı çakışması:** D1/D2 mesafe çifti virgülle ayrılıyordu ama Türkçe ondalık ayracı da virgül olduğundan "10,5;20,5" (D1=10.5, D2=20.5 niyetiyle) sessizce D1=10, D2=5 olarak parse ediliyordu. Ayraç noktalı virgüle çevrildi, varsayılan/etiket güncellendi.
+
+**5. `DxfImportService.cs` — unitScale/weld-tolerance sırası hatası:** `BuildSolidsFromFace3D`'de `unitScale`, `BRepBuilder.FromTriangleSoup`'un varsayılan (mm varsayan) weld toleransından SONRA uygulanıyordu — metre gibi mm-olmayan birimli DXF dosyalarında (`$INSUNITS=6`) gerçekte 8mm ayrı iki köşe, ham dosya biriminde tolerans içine düşüp yanlışlıkla kaynaşıyordu. Ölçekleme artık köşe noktaları oluşturulurken (weld'den ÖNCE) uygulanıyor.
+
+**Doğrulama:** `dotnet build -c Release` → 0 hata (34 önceden var olan ilgisiz uyarı). `dotnet test -c Release --no-build` → **571/571 başarılı**, regresyon yok — henüz yeni regresyon testi eklenmedi (düşük öncelikli, gelecekte eklenebilir).
+
+**Ertelenen düşük-öncelik bulgular (CONFIRMED/PLAUSIBLE ama doğruluk hatası değil):** `CLAUDE.md` dosya haritasının güncel olmayan kısımları, `FilletCommand`/`ChamferCommand`'ın `SolidBooleanCommandBase` deseniyle birleştirilebilecek tekrarı, yeni pick komutlarının R-Tree'ye bağlanmaması, `IfcImportDialog.Preview_Click`'in arka planda çalışmaması, `SolidEntity.cs`'teki eski başlık yorumu.
+
+**Sıradaki adım:** Kullanıcının istediği derinlemesine kalite/mimari denetimi (Session #62 tarzı — undo/redo mimarisi, test kapsamı, güvenlik/kararlılık, performans/ölü kod — tüm kod tabanı genelinde).

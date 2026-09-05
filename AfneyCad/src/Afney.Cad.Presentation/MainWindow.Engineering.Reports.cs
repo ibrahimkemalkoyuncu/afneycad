@@ -952,7 +952,7 @@ namespace Afney.Cad.Presentation
 
         private void OnLayoutSheet(object sender, RoutedEventArgs e)
         {
-            try { new LayoutSheetDialog(_database) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
+            try { new LayoutSheetDialog(_database, _activeContext?.SheetIndex) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
             catch (Exception ex) { MessageBox.Show($"Pafta Düzeni hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
