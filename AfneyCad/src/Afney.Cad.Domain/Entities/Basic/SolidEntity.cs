@@ -18,18 +18,19 @@ namespace Afney.Cad.Domain.Entities.Basic;
 
    KAPSAM (v1 — bilinçli sınırlamalar, bkz. rapor):
    - Draw(): Solid'in kenarlarını (wireframe, üstten/plan görünüm) 2D Skia viewport'unda
-     çizer — gerçek gölgelendirilmiş/dolu 3D render için ayrı bir Direct3D entegrasyonu
-     gerekir (kapsam dışı, mevcut Direct3DViewportControl zaten CadDatabase'den ayrı bir
-     yoldan Solid tessellate ediyor).
+     çizer. Gerçek gölgelendirilmiş/dolu 3D render Direct3DViewportControl.RebuildMeshesFromDatabase
+     üzerinden yapılır — SolidEntity, BRepTessellator.Tessellate(solid) ile diğer tüm entity
+     tipleriyle (Wall/Duct/Fixture/Room) AYNI önbelleklenmiş mesh pipeline'ına bağlıdır
+     (bkz. Session #75 denetimi — tek satırlık foreach ile eklendi).
    - GetGripPoints() BİLİNÇLİ OLARAK override edilmedi (taban sınıfın boş varsayılanı
      kullanılıyor): tekil vertex'leri sürükleyerek serbestçe deforme etmek Euler/manifold
      geçerliliğini (Solid.IsValid()) bozabilir — CSG kernel'i sadece topolojik olarak
      geçerli Solid'lerle çalışır. Taşıma (Move) tüm vertex'leri birlikte kaydırdığı için
      topolojiyi bozmaz, bu yüzden güvenlidir.
-   - DXF/DWG/IFC export'a henüz bağlanmadı (Infrastructure katmanındaki writer'lar bu
-     tipi tanımıyor) — kaydedilen bir çizim SolidEntity'leri İÇERMEZ (sessizce atlanır,
-     mevcut export'lar bu yeni tip yüzünden BOZULMAZ, ama solid'ler dosyaya yazılmaz).
-     Sonraki adım olarak dokümante edildi.
+   - DXF/IFC export/import'a BAĞLANDI (Session #75 denetiminde doğrulandı): DxfWriterService
+     her SolidEntity'yi ayrı 3DFACE'ler olarak yazar, DxfImportService (Layer,Color) paylaşan
+     3DFACE'leri BRepBuilder.FromTriangleSoup ile tek Solid'e kaynaştırır; IfcExportService/
+     IfcImportService IFCCARTESIANPOINTLIST3D+IFCPOLYGONALFACESET ile tam 1:1 round-trip yapar.
 */
 public class SolidEntity : CadEntity
 {

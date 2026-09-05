@@ -39,7 +39,7 @@ namespace Afney.Cad.Presentation.Dialogs
             }
         }
 
-        private void Preview_Click(object sender, RoutedEventArgs e)
+        private async void Preview_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_filePath) || !File.Exists(_filePath))
             {
@@ -49,9 +49,20 @@ namespace Afney.Cad.Presentation.Dialogs
 
             try
             {
+                BtnImport.IsEnabled = false;
+                BtnBrowse.IsEnabled = false;
+                BtnPreview.IsEnabled = false;
+                PreviewLog.Text = "Analiz ediliyor... Lütfen bekleyin.";
+                PreviewLog.Foreground = System.Windows.Media.Brushes.LightCyan;
+
                 var options = BuildOptions(previewOnly: true);
                 var svc     = new IfcImportService(_database);
-                var result  = svc.AnalyzeFile(_filePath, options);
+
+                // NE/NEDEN — GERÇEK HATA (Session #75 denetiminde bulundu): Preview_Click,
+                // Import_Click'in aksine ağır AnalyzeFile çağrısını UI thread'inde senkron
+                // çalıştırıyordu — büyük/karmaşık bir IFC dosyasında önizleme sırasında
+                // arayüz donuyordu. Import_Click'teki aynı Task.Run deseni uygulandı.
+                var result  = await System.Threading.Tasks.Task.Run(() => svc.AnalyzeFile(_filePath, options));
 
                 var sb = new StringBuilder();
                 sb.AppendLine($"📁 Dosya: {Path.GetFileName(_filePath)}");
@@ -91,6 +102,11 @@ namespace Afney.Cad.Presentation.Dialogs
             {
                 PreviewLog.Text = $"Önizleme hatası: {ex.Message}";
                 PreviewLog.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            }
+            finally
+            {
+                BtnBrowse.IsEnabled = true;
+                BtnPreview.IsEnabled = true;
             }
         }
 
