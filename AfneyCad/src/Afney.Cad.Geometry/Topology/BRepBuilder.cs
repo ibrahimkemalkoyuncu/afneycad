@@ -156,6 +156,101 @@ public static class BRepBuilder
         face.Loops.Add(loop);
     }
 
+    /*
+       NE: Üçgen Çorbasından Katı İnşa Et (FromTriangleSoup)
+       NEDEN: DXF (3DFACE listesi) veya IFC (IFCPOLYGONALFACESET tessellation) içeri
+              aktarımından gelen ham üçgen listesi (bağımsız vertex pozisyonları + üçgen
+              indeksleri, PAYLAŞILAN kenar/vertex KİMLİĞİ TAŞIMAZ) — bunu gerçek, topolojik
+              olarak geçerli (mümkünse) bir winged-edge Solid'e geri çevirmek için tek yer.
+              Bu, SolidEntity'nin DXF/IFC round-trip'ini (export→import→tekrar Solid) mümkün
+              kılan köprüdür — BRepTessellator'ın TERSİ.
+       NASIL: Konum bazlı "kaynaştırma" (weld) — birbirine `weldTolerance` içinde yakın
+              noktalar AYNI Vertex nesnesine eşlenir (üçgenler arası paylaşılan köşeleri
+              yeniden kurmak için, çünkü tessellate edilmiş çıktı/DXF/IFC formatı vertex
+              kimliğini KORUMAZ, sadece ham koordinat tekrarları taşır). Her üçgen kenarı,
+              daha önce ZIT yönde görülmüşse AYNI TopologyEdge nesnesi üzerinde LeftFace/
+              RightFace olarak paylaştırılır (ExtrudePolygon'daki ile AYNI winged-edge kuralı,
+              AttachFace yeniden kullanılır) — bu sayede iç kenarlar manifold (2-face) olur.
+       KAPSAM DIŞI (bilinçli): Kaynak üçgenleme TUTARSIZ sarım yönlü (bazı üçgenler ters
+              yönde) ise veya GERÇEKTEN non-manifold (bir kenarı 3+ üçgen paylaşıyor) ise,
+              o kenarın FAZLADAN üçgenleri sessizce atlanır (LeftFace/RightFace zaten doluysa
+              tekrar ATANMAZ) — kaynak KENDİ B-Rep motorumuzdan (BRepTessellator) geldiği için
+              bu pratikte oluşmaz, ama üçüncü parti (ör. başka bir CAD'den gelen) keyfi 3DFACE
+              yığınları için IsValid() sonradan false dönebilir (yine de Draw/Move/Transform
+              çalışır — sadece CSG Boolean'a uygun olmayabilir).
+    */
+    public static Solid FromTriangleSoup(
+        IReadOnlyList<Vector3D> vertices,
+        IReadOnlyList<(int A, int B, int C)> triangles,
+        string name = "ImportedSolid",
+        double weldTolerance = 0.01)
+    {
+        var weldMap = new Dictionary<(long, long, long), Vertex>();
+
+        Vertex GetWelded(int index)
+        {
+            var p = vertices[index];
+            var key = (Quantize(p.X, weldTolerance), Quantize(p.Y, weldTolerance), Quantize(p.Z, weldTolerance));
+            if (!weldMap.TryGetValue(key, out var v))
+            {
+                v = new Vertex(p);
+                weldMap[key] = v;
+            }
+            return v;
+        }
+
+        var solid = new Solid(name);
+        // Yönsüz (undirected) vertex-çifti anahtarına göre kenar arama — bir kenarın İKİ
+        // üçgen tarafından (genelde ZIT yönde) paylaşılıp paylaşılmadığını bulmak için.
+        var edgeLookup = new Dictionary<(Guid, Guid), TopologyEdge>();
+
+        foreach (var (ia, ib, ic) in triangles)
+        {
+            var va = GetWelded(ia);
+            var vb = GetWelded(ib);
+            var vc = GetWelded(ic);
+            if (ReferenceEquals(va, vb) || ReferenceEquals(vb, vc) || ReferenceEquals(va, vc))
+                continue; // Kaynaşma sonrası dejenere (sıfır alanlı) üçgen — atla.
+
+            var corners = new[] { va, vb, vc };
+            var directed = new List<(TopologyEdge Edge, bool Forward)>(3);
+            bool skipFace = false;
+
+            for (int i = 0; i < 3; i++)
+            {
+                var start = corners[i];
+                var end = corners[(i + 1) % 3];
+                var key = start.Id.CompareTo(end.Id) <= 0 ? (start.Id, end.Id) : (end.Id, start.Id);
+
+                if (!edgeLookup.TryGetValue(key, out var edge))
+                {
+                    edge = new TopologyEdge(start, end);
+                    edgeLookup[key] = edge;
+                    directed.Add((edge, true)); // İlk görülüş: bu üçgen LeftFace (forward) olsun.
+                }
+                else
+                {
+                    bool sameDirection = ReferenceEquals(edge.StartVertex, start) && ReferenceEquals(edge.EndVertex, end);
+                    bool slotFree = sameDirection ? edge.LeftFace == null : edge.RightFace == null;
+                    if (!slotFree) { skipFace = true; break; } // Non-manifold fazlalık — bilinçli atla (yukarıki not).
+                    directed.Add((edge, sameDirection));
+                }
+            }
+
+            if (skipFace) continue;
+
+            var face = new Face { Normal = (vb.Position - va.Position).Cross(vc.Position - va.Position) };
+            var normLen = face.Normal.Length();
+            if (normLen > 1e-12) face.Normal = face.Normal / normLen;
+            AttachFace(face, directed);
+            solid.Faces.Add(face);
+        }
+
+        return solid;
+    }
+
+    private static long Quantize(double v, double tolerance) => (long)Math.Round(v / tolerance);
+
     private static Vector3D ComputeNewellNormal(IReadOnlyList<Vector3D> pts)
     {
         var sum = new Vector3D(0, 0, 0);

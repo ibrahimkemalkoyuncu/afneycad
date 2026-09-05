@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
 
@@ -117,6 +118,7 @@ public class IfcImportService
     private const string LayerDoor   = "ARCH-DOOR";
     private const string LayerSpace  = "ARCH-SPACE";
     private const string LayerMep    = "MEP-IMPORT";
+    private const string LayerSolid  = "SOLID-IMPORT";
 
     // Renk sabitleri (ARGB)
     private const uint ColorWall   = 0xFF808080; // Gri
@@ -125,6 +127,7 @@ public class IfcImportService
     private const uint ColorDoor   = 0xFFDEB887; // Bej
     private const uint ColorSpace  = 0xFF404040; // Soluk gri
     private const uint ColorMep    = 0xFFE67E22; // Turuncu — MEP-IMPORT içeri aktarılan borular/kanallar
+    private const uint ColorSolid  = 0xFFD4A017; // Amber — içeri aktarılan genel katı cisimler (SolidEntity)
 
     public IfcImportService(CadDatabase database)
     {
@@ -172,6 +175,7 @@ public class IfcImportService
                     case "IFCPIPEFITTING":
                     case "IFCDUCTFITTING":
                     case "IFCVALVE":            if (options.ImportMep)     result.FittingCount++; break;
+                    case "IFCBUILDINGELEMENTPROXY": if (options.ImportSolids) result.SolidCount++; break;
                 }
             }
 
@@ -181,6 +185,7 @@ public class IfcImportService
             if (options.ImportDoors)   result.Layers.Add(LayerDoor);
             if (options.ImportSpaces)  result.Layers.Add(LayerSpace);
             if (options.ImportMep)     result.Layers.Add(LayerMep);
+            if (options.ImportSolids) result.Layers.Add(LayerSolid);
 
             result.Success = true;
             result.Warnings.Add($"Birim ölçek: ×{unitScale} (mm cinsinden)");
@@ -231,6 +236,7 @@ public class IfcImportService
                     "IFCSPACE"                         => !options.ImportSpaces,
                     "IFCPIPESEGMENT" or "IFCDUCTSEGMENT" or "IFCFLOWSEGMENT" => !options.ImportMep,
                     "IFCFLOWFITTING" or "IFCPIPEFITTING" or "IFCDUCTFITTING" or "IFCVALVE" => !options.ImportMep,
+                    "IFCBUILDINGELEMENTPROXY"          => !options.ImportSolids,
                     _                                  => true
                 };
 
@@ -254,6 +260,7 @@ public class IfcImportService
                     case "IFCPIPEFITTING":
                     case "IFCDUCTFITTING":
                     case "IFCVALVE":            result.FittingCount++; break;
+                    case "IFCBUILDINGELEMENTPROXY": result.SolidCount++; break;
                 }
             }
 
@@ -455,7 +462,12 @@ public class IfcImportService
             // NE/NEDEN — bu oturumda eklendi: IfcFlowFitting alt tipleri (dirsek/T-parçası)
             // ve IfcValve. Önceden IFC import'ta HİÇ ele alınmıyordu (sadece düz boru/kanal
             // gövdeleri aktarılıyordu) — bkz. dosya başı MEP İÇERİ AKTARIMI notu.
-            "IFCFLOWFITTING", "IFCPIPEFITTING", "IFCDUCTFITTING", "IFCVALVE"
+            "IFCFLOWFITTING", "IFCPIPEFITTING", "IFCDUCTFITTING", "IFCVALVE",
+            // NE/NEDEN — bu oturumda eklendi: SolidEntity'nin (CSG Boolean UNION/SUBTRACT/
+            // INTERSECT sonuçları) IFC round-trip'i. AfneyCAD'in kendi IfcExportService'i
+            // (ExportSolid) genel katı cisimleri IFCBUILDINGELEMENTPROXY olarak yazar — IFC
+            // şemasının "sınıflandırılmamış eleman" catch-all tipi.
+            "IFCBUILDINGELEMENTPROXY"
         };
 
         foreach (var e in entities.Values)
@@ -513,6 +525,10 @@ public class IfcImportService
                 else if (isFittingOrValve)
                 {
                     ExtractFittingGeometry(rep, entities, scale, product);
+                }
+                else if (product.IfcType == "IFCBUILDINGELEMENTPROXY")
+                {
+                    ExtractTessellationGeometry(rep, entities, scale, product);
                 }
                 else
                 {
@@ -743,6 +759,87 @@ public class IfcImportService
                 return; // İlk extrusion yeterli.
             }
         }
+    }
+
+    /*
+       NE: Tessellation (Üçgen Ağı) Geometrisi Çıkar (ExtractTessellationGeometry)
+       NEDEN: SolidEntity'nin IFC round-trip'i — bkz. IfcExportService.ExportSolid üzerindeki
+              not. IFC4 tessellation temsili IFCPOLYGONALFACESET(#PointList, .T./.F.,
+              (#face1,#face2,...), $) + IFCCARTESIANPOINTLIST3D(((x,y,z),...)) +
+              IFCINDEXEDPOLYGONALFACE((i,j,k)) şeklindedir — ExportWall/ExportSolid'in
+              ürettiği AYNI format. Diğer ExtractXxx metotlarından FARKLI: IFCEXTRUDEDAREASOLID
+              değil, doğrudan IFCPOLYGONALFACESET arar.
+       NOT: Yalnızca ÜÇGEN face'ler (3 indeks) destekleniyor — AfneyCAD'in KENDİ export'u
+            (BRepTessellator) HER ZAMAN üçgen üretir; keyfi N-gon IFCINDEXEDPOLYGONALFACE
+            (üçgenlemeyen 3. parti yazıcılar) bilinçli olarak kapsam dışı (fan-triangulation
+            eklenmedi — round-trip amacı kendi export'umuzu doğrulamak).
+    */
+    private static void ExtractTessellationGeometry(IfcRawEntity rep,
+        Dictionary<int, IfcRawEntity> entities, double scale, IfcProduct product)
+    {
+        if (rep.Type != "IFCPRODUCTDEFINITIONSHAPE" || rep.Args.Count < 3) return;
+
+        foreach (int shapeRepId in ParseRefList(rep.Args[2]))
+        {
+            if (!entities.TryGetValue(shapeRepId, out var shapeRep)) continue;
+            if (shapeRep.Type != "IFCSHAPEREPRESENTATION" || shapeRep.Args.Count < 4) continue;
+
+            foreach (int itemId in ParseRefList(shapeRep.Args[3]))
+            {
+                if (!entities.TryGetValue(itemId, out var item)) continue;
+                if (item.Type != "IFCPOLYGONALFACESET" || item.Args.Count < 3) continue;
+
+                // IFCPOLYGONALFACESET(Coordinates, ClosedFlag, Faces, PnIndex)
+                if (!TryParseRef(item.Args[0], out int pointListId) ||
+                    !entities.TryGetValue(pointListId, out var pointList) ||
+                    pointList.Type != "IFCCARTESIANPOINTLIST3D" || pointList.Args.Count < 1)
+                    continue;
+
+                var verts = new List<Vector3D>();
+                foreach (var coordArg in SplitArgs(UnwrapOuterList(pointList.Args[0])))
+                {
+                    var comps = SplitArgs(UnwrapOuterList(coordArg));
+                    if (comps.Count >= 3 &&
+                        double.TryParse(comps[0], NumberStyles.Any, CultureInfo.InvariantCulture, out double vx) &&
+                        double.TryParse(comps[1], NumberStyles.Any, CultureInfo.InvariantCulture, out double vy) &&
+                        double.TryParse(comps[2], NumberStyles.Any, CultureInfo.InvariantCulture, out double vz))
+                    {
+                        verts.Add(new Vector3D(vx * scale, vy * scale, vz * scale));
+                    }
+                }
+                if (verts.Count < 3) continue;
+
+                var faces = new List<(int, int, int)>();
+                foreach (int faceId in ParseRefList(item.Args[2]))
+                {
+                    if (!entities.TryGetValue(faceId, out var faceEnt) || faceEnt.Type != "IFCINDEXEDPOLYGONALFACE" || faceEnt.Args.Count < 1)
+                        continue;
+
+                    var idxStrs = SplitArgs(UnwrapOuterList(faceEnt.Args[0]));
+                    var idx = new List<int>();
+                    foreach (var s in idxStrs)
+                        if (int.TryParse(s.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out int ival))
+                            idx.Add(ival);
+
+                    if (idx.Count == 3)
+                        faces.Add((idx[0] - 1, idx[1] - 1, idx[2] - 1)); // IFC 1-tabanlı indeks
+                }
+                if (faces.Count == 0) continue;
+
+                product.TessellationVerts = verts;
+                product.TessellationFaces = faces;
+                return; // İlk (tek) face set yeterli — SolidEntity export'u zaten TEK item yazıyor.
+            }
+        }
+    }
+
+    /// <summary>"((...),(...))" biçimindeki bir dış listeyi soyup iç içeriği döner (yoksa OLDUĞU GİBİ).</summary>
+    private static string UnwrapOuterList(string arg)
+    {
+        arg = arg.Trim();
+        if (arg.Length >= 2 && arg[0] == '(' && arg[^1] == ')')
+            return arg[1..^1];
+        return arg;
     }
 
     private static Vector3D ParseDirection(IfcRawEntity dirEntity, Vector3D fallback)
@@ -1019,6 +1116,20 @@ public class IfcImportService
                 yield return BuildValveEntity(p);
                 break;
             }
+            case "IFCBUILDINGELEMENTPROXY":
+            {
+                // NE/NEDEN: SolidEntity round-trip (bkz. IfcExportService.ExportSolid).
+                // ExtractTessellationGeometry vertex/face verisini bulamadıysa (ör. bu
+                // IFCBUILDINGELEMENTPROXY başka bir yazılımdan geldi ve tessellation değil
+                // extrusion kullanıyor) sessizce atlanır — sadece AfneyCAD'in KENDİ
+                // export'unun round-trip'i garanti edilir (bilinçli kapsam sınırı).
+                if (p.TessellationVerts is { Count: > 0 } verts && p.TessellationFaces is { Count: > 0 } faces)
+                {
+                    var solid = BRepBuilder.FromTriangleSoup(verts, faces, p.Name);
+                    yield return new SolidEntity(solid) { Layer = LayerSolid, Color = ColorSolid };
+                }
+                break;
+            }
         }
     }
 
@@ -1237,6 +1348,7 @@ public class IfcImportService
         EnsureLayer(LayerDoor,   ColorDoor,   "Kapılar");
         EnsureLayer(LayerSpace,  ColorSpace,  "Mekanlar");
         EnsureLayer(LayerMep,    ColorMep,    "İçeri Aktarılan MEP (Boru/Kanal)");
+        EnsureLayer(LayerSolid,  ColorSolid,  "İçeri Aktarılan Katı Cisimler (SolidEntity)");
     }
 
     private void EnsureLayer(string name, uint color, string description)
@@ -1299,6 +1411,13 @@ public class IfcImportService
         //        (dirsek/T-parçası/vana alt tipi) tarafından doldurulur.
         public string FittingPredefinedType { get; set; } = "";
         public double FittingDiameter { get; set; }
+
+        // NE: Genel katı cisim (SolidEntity/IFCBUILDINGELEMENTPROXY) tessellation verisi.
+        // NEDEN: ExtractTessellationGeometry'den doldurulur — dünya koordinatlarında (zaten
+        //        ölçeklenmiş) vertex listesi + üçgen indeksleri (BRepBuilder.FromTriangleSoup'a
+        //        doğrudan verilir).
+        public List<Vector3D>? TessellationVerts { get; set; }
+        public List<(int A, int B, int C)>? TessellationFaces { get; set; }
     }
 }
 
@@ -1312,6 +1431,8 @@ public class IfcImportOptions
     public bool ImportDoors   { get; set; } = true;
     public bool ImportSpaces  { get; set; } = false;
     public bool ImportMep     { get; set; } = true;   // IfcPipeSegment/IfcDuctSegment/IfcFlowSegment
+    // NE: IfcBuildingElementProxy (SolidEntity round-trip — bkz. IfcExportService.ExportSolid).
+    public bool ImportSolids  { get; set; } = true;
     public double ScaleFactor { get; set; } = 0;      // 0 = otomatik tespit
     public bool PreviewOnly   { get; set; } = false;
 }
@@ -1330,16 +1451,18 @@ public class IfcImportResult
     // NE: Dirsek/T-parçası/vana (IfcFlowFitting/IfcPipeFitting/IfcDuctFitting/IfcValve) sayısı.
     // NEDEN: Önceden bu elemanlar hiç içeri aktarılmıyordu, sayaç da yoktu — bu oturumda eklendi.
     public int FittingCount { get; set; }
+    // NE: IfcBuildingElementProxy → SolidEntity (CSG Boolean sonuçları) sayısı.
+    public int SolidCount { get; set; }
     public int TotalEntities { get; set; }
     public List<string> Warnings { get; set; } = [];
     public List<string> Errors   { get; set; } = [];
     public List<string> Layers   { get; set; } = [];
 
-    public int ImportedCount => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount + MepCount + FittingCount;
+    public int ImportedCount => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount + MepCount + FittingCount + SolidCount;
     public int TotalCount    => ImportedCount;
 
     public override string ToString() =>
         $"IFC Import: {ImportedCount} eleman " +
-        $"(Duvar={WallCount}, Döşeme={SlabCount}, Pencere={WindowCount}, Kapı={DoorCount}, MEP={MepCount}, Fitting={FittingCount}) " +
+        $"(Duvar={WallCount}, Döşeme={SlabCount}, Pencere={WindowCount}, Kapı={DoorCount}, MEP={MepCount}, Fitting={FittingCount}, Solid={SolidCount}) " +
         $"— {(Success ? "BAŞARILI" : "HATA")}";
 }

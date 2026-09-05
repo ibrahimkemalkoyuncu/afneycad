@@ -126,4 +126,54 @@ public class BRepKernelTests
         // Yan yüzler: 6 kenar x 2 üçgen = 12. Toplam = 4+4+12 = 20.
         Assert.Equal(20, faces.Count);
     }
+
+    /*
+       NE/NEDEN: BRepBuilder.FromTriangleSoup — DXF (3DFACE listesi) / IFC (IFCPOLYGONALFACESET
+       tessellation) içeri aktarımından SolidEntity'yi yeniden kurmanın tek yolu. Bu test,
+       BRepTessellator'ın (İLERİ yön: Solid→üçgen) ÇIKTISINI FromTriangleSoup'a (GERİ yön:
+       üçgen→Solid) VERİP, sonucun hâlâ topolojik olarak geçerli (Euler) VE hacim/vertex/edge
+       sayısının orijinal kutuyla eşleştiğini kanıtlar — round-trip'in matematiksel temeli.
+    */
+    [Fact]
+    public void FromTriangleSoup_RoundTripsTessellatedBox_ProducesValidSolidWithMatchingVolume()
+    {
+        double lenU = 2000, lenV = 200, lenW = 3000;
+        var original = BRepBuilder.ExtrudeBox(new Vector3D(0, 0, 0), Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, lenU, lenV, lenW);
+        var (verts, faces) = BRepTessellator.Tessellate(original);
+
+        var rebuilt = BRepBuilder.FromTriangleSoup(verts, faces, "RoundTripBox");
+
+        Assert.True(rebuilt.IsValid(), "Üçgen çorbasından yeniden kurulan Solid Euler açısından geçersiz.");
+        Assert.Equal(8, rebuilt.GetVertices().Count());   // Kaynaşma (weld) sonrası 24 değil, 8 benzersiz köşe.
+        Assert.Equal(18, rebuilt.GetEdges().Count());     // 6 kenarın her biri 2 üçgene bölündüğünden 6 orijinal + 12 köşegen = 18.
+        Assert.Equal(12, rebuilt.Faces.Count);             // 6 yüz x 2 üçgen = 12 üçgen face.
+
+        double expectedVolume = lenU * lenV * lenW;
+        Assert.Equal(expectedVolume, rebuilt.GetVolume(), precision: 0);
+
+        var (origMin, origMax) = original.GetBoundingBox();
+        var (newMin, newMax) = rebuilt.GetBoundingBox();
+        Assert.Equal(origMin.X, newMin.X, precision: 3);
+        Assert.Equal(origMax.Z, newMax.Z, precision: 3);
+    }
+
+    [Fact]
+    public void FromTriangleSoup_ConcaveLShape_RoundTripsWithMatchingVolume()
+    {
+        var profile = new List<Vector3D>
+        {
+            new(0, 0, 0), new(4000, 0, 0), new(4000, 2000, 0),
+            new(2000, 2000, 0), new(2000, 4000, 0), new(0, 4000, 0),
+        };
+        double heightMm = 3000;
+        var original = BRepBuilder.ExtrudePolygon(profile, new Vector3D(0, 0, heightMm), "LShapeRoundTrip");
+        var (verts, faces) = BRepTessellator.Tessellate(original);
+
+        var rebuilt = BRepBuilder.FromTriangleSoup(verts, faces, "LShapeRebuilt");
+
+        Assert.True(rebuilt.IsValid());
+        double expectedVolume = 12_000_000 * heightMm;
+        double relativeError = Math.Abs(rebuilt.GetVolume() - expectedVolume) / expectedVolume;
+        Assert.True(relativeError < 1e-6, $"Relative error too high: {relativeError}");
+    }
 }

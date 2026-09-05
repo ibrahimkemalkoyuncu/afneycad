@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Mechanical.Services;
@@ -178,6 +179,17 @@ public partial class Direct3DViewportControl : UserControl, IDisposable
         // Mahal zemin döşemeleri
         foreach (var solid in new RoomBRepService(database).GenerateAllSolids())
             AddSolid(solid, new Vector4(0.55f, 0.45f, 0.85f, 0.35f)); // yarı saydam mor — sadece sınır göstergesi
+
+        // NE/NEDEN: Genel katı cisimler (SolidEntity — CSG Boolean UNION/SUBTRACT/INTERSECT
+        // sonuçları, bkz. Afney.Cad.Domain.Entities.Basic.SolidEntity). Önceden bu entity
+        // tipi burada HİÇ ele alınmıyordu — CadDatabase'e eklenen bir Solid, 2D wireframe
+        // (SolidEntity.Draw) DIŞINDA hiçbir yerde görünmüyordu, 3D görünümde tamamen
+        // GÖRÜNMEZDİ. Diğer tüm Wall/Duct/Door/Fixture/Room satırlarıyla AYNI mevcut
+        // BRepTessellator→MeshBuffer pipeline'ı (AddSolid) doğrudan kullanılabiliyor, çünkü
+        // SolidEntity zaten kendi Topology.Solid'ini taşıyor — ayrı bir üretim servisi
+        // (WallBRepService vb.) gerekmiyor.
+        foreach (var solidEntity in database.GetAllEntities().OfType<SolidEntity>())
+            AddSolid(solidEntity.Solid, new Vector4(0.85f, 0.65f, 0.13f, 1f)); // amber/altın — CSG solid'leri ayırt edici renk
 
         FrameCameraToBounds(min, max);
     }

@@ -117,6 +117,11 @@ public class IfcExportService
                 int wallId = ExportWall(wall, wallBRep, doors, windows);
                 if (wallId > 0) productIds.Add(wallId);
             }
+            else if (entity is Afney.Cad.Domain.Entities.Basic.SolidEntity solidEntity)
+            {
+                int solidId = ExportSolid(solidEntity);
+                if (solidId > 0) productIds.Add(solidId);
+            }
         }
 
         // 6. Ürünleri Kata Bağla (RelContainedInSpatialStructure)
@@ -362,6 +367,62 @@ public class IfcExportService
         _sb.AppendLine($"#{wallId}= IFCWALL('{ToIfcGuid(wall.Id)}',#{_ownerHistoryId},'{name}',$,$,#{_axis2Placement3DId_Default},#{productDefShapeId},$,$);");
 
         return wallId;
+    }
+
+    /*
+        NE: Genel Katı Cisim Dışa Aktarımı (ExportSolid) — B-Rep KAYNAKLI
+        NEDEN: SolidEntity (CSG Boolean UNION/SUBTRACT/INTERSECT sonuçları — bkz.
+               Afney.Cad.Domain.Entities.Basic.SolidEntity) önceden IFC dışa aktarımında HİÇ
+               ele alınmıyordu. ExportWall'daki AYNI B-Rep→tessellation→IFC4 tessellation
+               (IFCCARTESIANPOINTLIST3D + IFCINDEXEDPOLYGONALFACE + IFCPOLYGONALFACESET)
+               yaklaşımı kullanılır — SolidEntity zaten kendi Topology.Solid'ini taşıdığı için
+               (WallBRepService gibi ayrı bir üretim servisine gerek yok) doğrudan
+               BRepTessellator'a verilir.
+        NEDEN IFCBUILDINGELEMENTPROXY: IFC4'te "sınıflandırılmamış genel yapı elemanı" için
+               standart, IFC şemasının KENDİSİNİN öngördüğü catch-all tip budur (Revit/ArchiCAD
+               da sınıflandırılamayan geometriler için bunu kullanır) — CSG Boolean sonucu bir
+               katı cismin (ör. özel bir mesnet/support parçası) hangi IFC alt tipine (duvar,
+               boru, vb.) ait olduğu bilinemez.
+        ROUND-TRIP: IfcImportService bu ürünü, 'Body'/'Tessellation' temsilindeki
+               IFCPOLYGONALFACESET'i BRepBuilder.FromTriangleSoup ile geri bir Solid'e
+               kaynaştırarak okur (bkz. IfcImportService.ExtractTessellationGeometry) — DXF'in
+               AKSİNE burada HER SolidEntity kendi AYRI IFC ürünüdür (çapraz-entity gruplama
+               belirsizliği YOK, DXF'teki Layer/Color heuristiğine gerek kalmadan tam 1:1
+               round-trip mümkün).
+    */
+    private int ExportSolid(Afney.Cad.Domain.Entities.Basic.SolidEntity solidEntity)
+    {
+        var (verts, faces) = BRepTessellator.Tessellate(solidEntity.Solid);
+        if (verts.Count == 0 || faces.Count == 0) return 0;
+
+        int pointListId = NextId();
+        string coordsStr = string.Join(",", verts.Select(v =>
+            $"({v.X.ToString("F4", CultureInfo.InvariantCulture)},{v.Y.ToString("F4", CultureInfo.InvariantCulture)},{v.Z.ToString("F4", CultureInfo.InvariantCulture)})"));
+        _sb.AppendLine($"#{pointListId}= IFCCARTESIANPOINTLIST3D(({coordsStr}));");
+
+        var faceIds = new List<int>();
+        foreach (var (a, b, c) in faces)
+        {
+            int faceId = NextId();
+            _sb.AppendLine($"#{faceId}= IFCINDEXEDPOLYGONALFACE(({a + 1},{b + 1},{c + 1}));");
+            faceIds.Add(faceId);
+        }
+
+        int faceSetId = NextId();
+        string facesStr = string.Join(",", faceIds.Select(id => $"#{id}"));
+        _sb.AppendLine($"#{faceSetId}= IFCPOLYGONALFACESET(#{pointListId},.T.,({facesStr}),$);");
+
+        int shapeRepId = NextId();
+        _sb.AppendLine($"#{shapeRepId}= IFCSHAPEREPRESENTATION(#{GetServiceId("IfcGeometricRepresentationContext")},'Body','Tessellation',(#{faceSetId}));");
+
+        int productDefShapeId = NextId();
+        _sb.AppendLine($"#{productDefShapeId}= IFCPRODUCTDEFINITIONSHAPE($,$,(#{shapeRepId}));");
+
+        int solidId = NextId();
+        string name = string.IsNullOrWhiteSpace(solidEntity.Solid.Name) ? "Solid" : solidEntity.Solid.Name;
+        _sb.AppendLine($"#{solidId}= IFCBUILDINGELEMENTPROXY('{ToIfcGuid(solidEntity.Id)}',#{_ownerHistoryId},'{name}',$,$,#{_axis2Placement3DId_Default},#{productDefShapeId},$,$);");
+
+        return solidId;
     }
 
     private int ExportElbow(ElbowEntity elbow)

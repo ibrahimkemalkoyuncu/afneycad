@@ -8,6 +8,7 @@ using ACadSharp.Entities;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Geometry.Topology;
 
 namespace Afney.Cad.Infrastructure.Import;
 
@@ -71,6 +72,20 @@ public class DxfImportService
             });
 
             entities.AddRange(concurrentEntities);
+
+            // NE/NEDEN: 3DFACE entity'leri (ACadSharp.Entities.Face3D) ConvertEntityFull'un
+            // genel switch'inde HİÇ ele alınmıyor (SolidEntity'nin DXF export'u — bkz.
+            // DxfWriterService.WriteSolid — Solid'i üçgen üçgen 3DFACE listesine yazıyor).
+            // Bu üçgenler burada, aynı (Layer, Color) ikilisini paylaşanlar TEK bir
+            // SolidEntity'ye kaynaştırılarak (BRepBuilder.FromTriangleSoup) geri toplanıyor —
+            // bkz. DxfWriterService.WriteSolid üzerindeki round-trip kapsam notu.
+            var face3dList = cadDoc.Entities.OfType<ACadSharp.Entities.Face3D>().ToList();
+            if (face3dList.Count > 0)
+            {
+                var solids = BuildSolidsFromFace3D(face3dList, layerColors, unitScale);
+                entities.AddRange(solids);
+                Serilog.Log.Information("[DXF] {Count} adet 3DFACE, {SolidCount} SolidEntity'ye kaynaştırıldı.", face3dList.Count, solids.Count);
+            }
 
             if (errorCount > 0)
                 Serilog.Log.Warning("[DXF] {Count} entity atlandı (partial recovery).", errorCount);
@@ -226,6 +241,76 @@ public class DxfImportService
                 result.Transform(Matrix4x4.CreateScale(unitScale, unitScale, unitScale));
             yield return result;
         }
+    }
+
+    /*
+       NE: 3DFACE Listesinden SolidEntity İnşa Et (BuildSolidsFromFace3D)
+       NEDEN: bkz. DxfWriterService.WriteSolid üzerindeki round-trip kapsam notu — DXF R12'de
+              3DFACE'lerin hangi Solid'e ait olduğunu taşıyan bir standart mekanizma yok
+              (POLYFACE MESH R12'de ACadSharp tarafından okunamıyor, XDATA/APPID tabanlı
+              gruplama bu okuyucuda güvenilir değil — ikisi de elle doğrulandı). Bu yüzden
+              aynı (Layer, Color) ikilisini paylaşan TÜM 3DFACE'ler TEK bir üçgen çorbasına
+              toplanıp BRepBuilder.FromTriangleSoup ile TEK bir Solid'e kaynaştırılır.
+    */
+    private static List<SolidEntity> BuildSolidsFromFace3D(
+        List<ACadSharp.Entities.Face3D> faces,
+        Dictionary<string, uint> layerColors,
+        double unitScale)
+    {
+        var groups = new Dictionary<(string Layer, uint Color), (List<Vector3D> Verts, List<(int A, int B, int C)> Tris)>();
+
+        foreach (var f in faces)
+        {
+            string layer = f.Layer?.Name ?? "0";
+            uint color = ResolveFaceColor(f, layer, layerColors);
+            var key = (layer, color);
+
+            if (!groups.TryGetValue(key, out var g))
+            {
+                g = (new List<Vector3D>(), new List<(int, int, int)>());
+                groups[key] = g;
+            }
+
+            int baseIdx = g.Verts.Count;
+            var p1 = new Vector3D(f.FirstCorner.X, f.FirstCorner.Y, f.FirstCorner.Z);
+            var p2 = new Vector3D(f.SecondCorner.X, f.SecondCorner.Y, f.SecondCorner.Z);
+            var p3 = new Vector3D(f.ThirdCorner.X, f.ThirdCorner.Y, f.ThirdCorner.Z);
+            var p4 = new Vector3D(f.FourthCorner.X, f.FourthCorner.Y, f.FourthCorner.Z);
+
+            g.Verts.Add(p1);
+            g.Verts.Add(p2);
+            g.Verts.Add(p3);
+            g.Tris.Add((baseIdx, baseIdx + 1, baseIdx + 2));
+
+            // WriteDxfFace, üçgenler için 4. köşeyi 3.'nün AYNISI olarak yazar — eşitse
+            // (küçük tolerans, ondalık yuvarlamayı tolere eder) ikinci bir üçgen EKLENMEZ.
+            bool isQuad = (p4 - p3).Length() > 1e-6;
+            if (isQuad)
+            {
+                g.Verts.Add(p4);
+                g.Tris.Add((baseIdx, baseIdx + 2, baseIdx + 3));
+            }
+        }
+
+        var result = new List<SolidEntity>(groups.Count);
+        foreach (var kv in groups)
+        {
+            var solid = BRepBuilder.FromTriangleSoup(kv.Value.Verts, kv.Value.Tris, "ImportedSolid");
+            var entity = new SolidEntity(solid) { Layer = kv.Key.Layer, Color = kv.Key.Color };
+            if (Math.Abs(unitScale - 1.0) > 0.001)
+                entity.Transform(Matrix4x4.CreateScale(unitScale, unitScale, unitScale));
+            result.Add(entity);
+        }
+        return result;
+    }
+
+    private static uint ResolveFaceColor(ACadSharp.Entities.Face3D f, string layerName, Dictionary<string, uint> layerColors)
+    {
+        if (f.Color.IsTrueColor)
+            return (uint)((0xFF << 24) | (f.Color.R << 16) | (f.Color.G << 8) | f.Color.B);
+        if (f.Color.IsByLayer && layerColors.TryGetValue(layerName, out var lc))
+            return lc;
+        return DwgImportService.MapColor(f.Color);
     }
 
     private CadEntity MapArc(Arc a)

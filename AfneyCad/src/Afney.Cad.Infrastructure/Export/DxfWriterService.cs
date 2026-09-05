@@ -10,6 +10,7 @@ using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Domain.Tables;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Mechanical.Entities;
 
 namespace Afney.Cad.Infrastructure.Export;
@@ -330,6 +331,9 @@ public class DxfWriterService
                 case PipeEntity pipe:
                     WritePipe(sb, pipe);
                     break;
+                case SolidEntity solid:
+                    WriteSolid(sb, solid);
+                    break;
             }
         }
 
@@ -524,6 +528,48 @@ public class DxfWriterService
         sb.AppendLine(v.Y.ToString("F4", CultureInfo.InvariantCulture));
         sb.AppendLine($"{gz,3}");
         sb.AppendLine(v.Z.ToString("F4", CultureInfo.InvariantCulture));
+    }
+
+    /*
+       NE: SolidEntity'yi 3DFACE Listesi Olarak Yaz (WriteSolid)
+       NEDEN: DXF R12, bir B-Rep katı cismi (Topology.Solid — keyfi çok kenarlı Face/Loop/
+              TopologyEdge grafiği) DOĞRUDAN temsil edemez; R12'nin tek düz-yüzey ilkeli
+              3DFACE'tir (4 köşe, üçgen için 4. köşe 3.'nün tekrarı). Bu yüzden BRepTessellator
+              (zaten Direct3DViewportControl/IfcExportService.ExportWall'da kullanılan AYNI
+              üçgenleme yolu) ile Solid üçgenlere bölünüp HER üçgen ayrı bir 3DFACE olarak
+              yazılır.
+       ROUND-TRIP KAPSAM SINIRI (bilinçli, dokümante): DXF'te ayrı 3DFACE'leri TEK bir Solid'e
+              geri gruplamanın standart bir yolu yok (POLYFACE MESH, R12 modunda ACadSharp
+              tarafından okunamıyor — doğrulandı; XDATA/APPID tabanlı gruplama da bu okuyucuda
+              güvenilir değil — doğrulandı). Bu yüzden DxfImportService, aynı (Layer, Color)
+              ikilisini paylaşan TÜM 3DFACE'leri TEK bir SolidEntity'ye kaynaştırır
+              (BRepBuilder.FromTriangleSoup) — aynı dosyada FARKLI katman/renkte birden fazla
+              Solid varsa doğru ayrışır; AYNI katman+renkte birden fazla Solid varsa içeri
+              aktarımda BİRLEŞİR (nadir, kabul edilebilir bir sınır — kullanıcı farklı
+              solid'leri farklı katman/renkte tutarak bunu önleyebilir).
+    */
+    private static void WriteSolid(StringBuilder sb, SolidEntity solid)
+    {
+        var (verts, faces) = BRepTessellator.Tessellate(solid.Solid);
+        if (verts.Count < 3 || faces.Count == 0) return;
+
+        string layer = solid.Layer ?? "0";
+        int aci = ArgbToAci(solid.Color);
+
+        foreach (var (a, b, c) in faces)
+            WriteDxfFace(sb, layer, aci, verts[a], verts[b], verts[c]);
+    }
+
+    private static void WriteDxfFace(StringBuilder sb, string layer, int aci, Vector3D p1, Vector3D p2, Vector3D p3)
+    {
+        sb.AppendLine("  0");
+        sb.AppendLine("3DFACE");
+        Group(sb, 8, layer);
+        Group(sb, 62, aci.ToString());
+        GroupXYZ(sb, 10, 20, 30, p1);
+        GroupXYZ(sb, 11, 21, 31, p2);
+        GroupXYZ(sb, 12, 22, 32, p3);
+        GroupXYZ(sb, 13, 23, 33, p3); // Üçgen: 4. köşe 3.'nün tekrarı (DXF 3DFACE dejenere-quad kuralı).
     }
 
     // R12 DXF'te PipeEntity → merkez çizgisi (LINE) olarak yazılır.
