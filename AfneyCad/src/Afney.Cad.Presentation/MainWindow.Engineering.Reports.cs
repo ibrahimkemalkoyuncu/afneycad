@@ -919,8 +919,13 @@ namespace Afney.Cad.Presentation
         {
             try
             {
-                var svc = new RevisionTrackingService();
-                svc.TitleBlock.ProjectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
+                // Session #74: artık sekme/proje bazlı kalıcı örnek (CadDocumentContext.Revisions)
+                // kullanılıyor — önceden burada her tıklamada "new RevisionTrackingService()" ile
+                // sıfır bir örnek oluşturuluyordu ve girilen revizyonlar diyalog kapanınca kayboluyordu.
+                if (_activeContext == null) return;
+                var svc = _activeContext.Revisions;
+                if (string.IsNullOrWhiteSpace(svc.TitleBlock.ProjectName))
+                    svc.TitleBlock.ProjectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
                 new RevisionTrackingDialog(svc) { Owner = this }.ShowDialog();
             }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
@@ -953,8 +958,19 @@ namespace Afney.Cad.Presentation
 
         private void OnTitleBlock(object sender, RoutedEventArgs e)
         {
-            try { new TitleBlockDialog(_database) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
+            try { new TitleBlockDialog(_database, _activeContext?.SheetIndex) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
             catch (Exception ex) { MessageBox.Show($"Antet hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void OnSheetSetManager(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                string projectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
+                new SheetSetManagerDialog(_activeContext.SheetIndex, projectName) { Owner = this }.ShowDialog();
+            }
+            catch (Exception ex) { MessageBox.Show($"Pafta Seti Yöneticisi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void OnSheetIndex(object sender, RoutedEventArgs e)
@@ -962,7 +978,8 @@ namespace Afney.Cad.Presentation
             try
             {
                 string projectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
-                string html = SheetIndexService.Instance.BuildIndexHtml(projectName);
+                var sheetIndex = _activeContext?.SheetIndex ?? SheetIndexService.Instance;
+                string html = sheetIndex.BuildIndexHtml(projectName);
 
                 string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
                     $"AfneyCAD_PaftaIndeksi_{DateTime.Now:yyyyMMdd_HHmmss}.html");

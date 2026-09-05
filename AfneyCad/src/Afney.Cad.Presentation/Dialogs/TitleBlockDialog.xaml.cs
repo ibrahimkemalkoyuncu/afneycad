@@ -13,16 +13,23 @@ public partial class TitleBlockDialog : Window
 {
     private readonly CadDatabase _database;
     private readonly TitleBlockService _svc = new();
+    private readonly SheetIndexService _sheetIndex;
 
-    public TitleBlockDialog(CadDatabase database)
+    /// <param name="sheetIndex">
+    /// Doküman/proje bazlı pafta indeksi (bkz. CadDocumentContext.SheetIndex). Verilmezse
+    /// (ör. eski çağıran kod) geriye dönük uyumluluk için statik SheetIndexService.Instance
+    /// kullanılır — ancak bu durumda numaralandırma sekmeler arasında paylaşılır.
+    /// </param>
+    public TitleBlockDialog(CadDatabase database, SheetIndexService? sheetIndex = null)
     {
         InitializeComponent();
         _database  = database;
+        _sheetIndex = sheetIndex ?? SheetIndexService.Instance;
         TxtTarih.Text = DateTime.Now.ToString("dd.MM.yyyy");
 
-        // Pafta No — bu oturumda üretilen paftalara göre seri artan öneri (SheetIndexService).
+        // Pafta No — proje bazlı üretilen paftalara göre seri artan öneri (SheetIndexService).
         // Kullanıcı dilerse bu öneriyi elle değiştirebilir.
-        _suggestedPaftaNo = SheetIndexService.Instance.PeekNextNumber();
+        _suggestedPaftaNo = _sheetIndex.PeekNextNumber();
         TxtPaftaNo.Text = _suggestedPaftaNo;
     }
 
@@ -53,7 +60,7 @@ public partial class TitleBlockDialog : Window
             // kullanıcı elle değiştirdiyse girdiği numara olarak kaydedilir; sayaç her iki
             // durumda da bir sonraki öneri için ilerletilir.
             bool usedSuggestion = cfg.PaftaNo == _suggestedPaftaNo;
-            SheetIndexService.Instance.RegisterSheet(
+            _sheetIndex.RegisterSheet(
                 usedSuggestion ? null : cfg.PaftaNo,
                 cfg.CizimAdi,
                 cfg.ProjeAdi);

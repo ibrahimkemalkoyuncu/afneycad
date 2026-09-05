@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Afney.Cad.Mechanical.Services;
 
@@ -10,24 +12,29 @@ namespace Afney.Cad.Mechanical.Services;
           bir alandı; kullanıcı her antet için elle bir numara yazıyordu. Birden fazla pafta
           (kat/sistem/rapor bazlı) üretilen projelerde bu, çakışan/tutarsız numaralara yol açar.
 
-   NASIL: Oturum (session) ömürlü, disipline göre seri artan numara üreten basit bir sayaç +
-          üretilen paftaların (numara/isim/açıklama) bir listesi. Kalıcı proje dosyasında
-          "pafta" kavramı birinci sınıf bir varlık olarak saklanmadığından (her antet çağrısı
-          bağımsız bir TitleBlockDialog örneği kullanıyor, MDI sekmeleri kalıcı değil), bu
-          servis KASITLI olarak sadece çalışma oturumu boyunca geçerlidir — uygulama yeniden
-          başlatıldığında sayaç sıfırlanır. Bu, mimariyi büyük ölçüde değiştirmeden güvenle
-          uygulanabilecek dar kapsamlı bir çözümdür.
+   NASIL (Session #74 güncellemesi): Artık KALICI. Disipline göre seri artan numara üreten
+          bir sayaç + üretilen paftaların (numara/isim/açıklama/tarih) bir listesi tutar ve
+          bu veriyi JSON'a serileştirebilir (bkz. ToJson/LoadFromJson). MainWindow.FileOps.cs,
+          proje dosyası (.dwg/.dxf/.afney) kaydedilirken/yüklenirken bu JSON'u proje dosyasının
+          YANINA bir "<dosya>.sheetset.json" yardımcı dosyası olarak yazar/okur — tıpkı halihazırda
+          var olan ".layerstate" mekanizmasında olduğu gibi (bkz. SaveLayerState/LoadLayerState).
+          Gerçek DWG (ACadSharp ile R2004+ binary) ve DXF R12 formatları endüstri standardı
+          interop formatlarıdır; bunlara AfneyCAD'e özel keyfi bir JSON bölümü gömmek (DWG'nin
+          XRecord/Named Object Dictionary mekanizması dışında) format bütünlüğünü riske atar —
+          bu yüzden bilinçli olarak sidecar dosya yaklaşımı seçildi (bkz. SheetSetPersistenceService).
 
    KULLANIM: TitleBlockDialog açıldığında PeekNextNumber() ile varsayılan bir numara önerilir;
              kullanıcı dilerse elle değiştirebilir. "Antet Ekle" tıklandığında gerçekte kullanılan
              PaftaNo (öneri ya da elle girilen) RegisterSheet() ile indekse kaydedilir ve sayaç
-             ilerletilir.
+             ilerletilir. MainWindow, her doküman sekmesi (CadDocumentContext) için kendi
+             SheetIndexService örneğini tutar (bkz. CadDocumentContext.SheetIndex) — böylece
+             farklı projeler birbirinin pafta numaralarını karıştırmaz.
 */
 public class SheetIndexService
 {
     /// <summary>
-    /// Uygulama genelinde tek bir oturum boyunca paylaşılan pafta indeksi.
-    /// (Kalıcı depolama yok — bkz. sınıf açıklaması.)
+    /// Geriye dönük uyumluluk için: uygulama genelinde paylaşılan varsayılan örnek.
+    /// Yeni kod, doküman bazlı kalıcılık için CadDocumentContext.SheetIndex kullanmalıdır.
     /// </summary>
     public static SheetIndexService Instance { get; } = new();
 
@@ -41,6 +48,9 @@ public class SheetIndexService
         public string    Name        { get; set; } = "";        // Çizim adı
         public string    Description { get; set; } = "";        // Proje adı / açıklama
         public DateTime  Registered  { get; set; } = DateTime.Now;
+
+        /// <summary>Sheet Set Manager'da gösterilen durum (ör. "Taslak", "Yayınlandı"). Serbest metin.</summary>
+        public string    Status      { get; set; } = "Taslak";
     }
 
     private readonly Dictionary<string, int> _counters = new(StringComparer.OrdinalIgnoreCase);
@@ -97,6 +107,95 @@ public class SheetIndexService
         _sheets.Clear();
     }
 
+    // ── Sheet Set Manager desteği (Session #74) ─────────────────────────────────
+
+    /// <summary>
+    /// Kullanıcının Sheet Set Manager'dan elle eklediği bir pafta kaydı — RegisterSheet'ten
+    /// farkı, sayaç/otomatik numaralandırmayı hiç etkilememesidir (numara olduğu gibi kaydedilir).
+    /// </summary>
+    public SheetEntry AddManualEntry(string number, string name, string description, string discipline = "", string status = "Taslak")
+    {
+        var entry = new SheetEntry
+        {
+            Number      = number ?? "",
+            Discipline  = string.IsNullOrWhiteSpace(discipline) ? DefaultDiscipline : discipline.Trim(),
+            Name        = name ?? "",
+            Description = description ?? "",
+            Status      = string.IsNullOrWhiteSpace(status) ? "Taslak" : status,
+            Registered  = DateTime.Now
+        };
+        _sheets.Add(entry);
+        return entry;
+    }
+
+    /// <summary>Bir pafta kaydını listeden kaldırır (numaralandırma sayacını etkilemez).</summary>
+    public bool RemoveSheet(SheetEntry entry) => _sheets.Remove(entry);
+
+    /// <summary>Bir paftayı listede bir üst sıraya taşır (Sheet Set Manager'da yeniden sıralama için).</summary>
+    public bool MoveUp(SheetEntry entry)
+    {
+        int i = _sheets.IndexOf(entry);
+        if (i <= 0) return false;
+        (_sheets[i - 1], _sheets[i]) = (_sheets[i], _sheets[i - 1]);
+        return true;
+    }
+
+    /// <summary>Bir paftayı listede bir alt sıraya taşır (Sheet Set Manager'da yeniden sıralama için).</summary>
+    public bool MoveDown(SheetEntry entry)
+    {
+        int i = _sheets.IndexOf(entry);
+        if (i < 0 || i >= _sheets.Count - 1) return false;
+        (_sheets[i + 1], _sheets[i]) = (_sheets[i], _sheets[i + 1]);
+        return true;
+    }
+
+    // ── JSON Serialize / Deserialize (kalıcılık için — Session #74) ─────────────
+
+    private class PersistedState
+    {
+        public string DefaultDiscipline { get; set; } = "M";
+        public Dictionary<string, int> Counters { get; set; } = new();
+        public List<SheetEntry> Sheets { get; set; } = [];
+    }
+
+    /// <summary>
+    /// Servisin tüm durumunu (sayaçlar + pafta listesi) JSON'a dönüştürür.
+    /// Proje dosyasıyla birlikte (sidecar dosya olarak) kaydedilmek üzere tasarlanmıştır.
+    /// </summary>
+    public string ToJson()
+    {
+        var state = new PersistedState
+        {
+            DefaultDiscipline = DefaultDiscipline,
+            Counters = new Dictionary<string, int>(_counters, StringComparer.OrdinalIgnoreCase),
+            Sheets = _sheets
+        };
+        return JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
+    /// Daha önce ToJson() ile üretilmiş bir durumu geri yükler. Bozuk/eksik JSON durumunda
+    /// mevcut boş duruma sessizce geri döner (proje dosyasının açılmasını engellemez).
+    /// </summary>
+    public void LoadFromJson(string json)
+    {
+        try
+        {
+            var state = JsonSerializer.Deserialize<PersistedState>(json);
+            if (state == null) return;
+
+            _counters.Clear();
+            foreach (var kv in state.Counters) _counters[kv.Key] = kv.Value;
+
+            _sheets.Clear();
+            _sheets.AddRange(state.Sheets);
+
+            if (!string.IsNullOrWhiteSpace(state.DefaultDiscipline))
+                DefaultDiscipline = state.DefaultDiscipline;
+        }
+        catch { /* Bozuk JSON — mevcut (boş) durumla devam et */ }
+    }
+
     // ── Pafta İndeksi (HTML) ─────────────────────────────────────────────────────
     public string BuildIndexHtml(string projectName = "AfneyCAD Projesi")
     {
@@ -116,7 +215,7 @@ public class SheetIndexService
         if (_sheets.Count == 0)
         {
             sb.Append("<tr><td colspan='4' style='padding:10px;text-align:center;color:#888'>" +
-                      "Bu oturumda henüz antet eklenmedi.</td></tr>");
+                      "Bu projede henüz antet eklenmedi.</td></tr>");
         }
 
         foreach (var s in _sheets.OrderBy(s => s.Discipline).ThenBy(s => s.Number))

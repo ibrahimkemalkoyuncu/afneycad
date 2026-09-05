@@ -205,6 +205,27 @@ public class RevisionTrackingService
                     if (rev != null) _revisions.Add(rev);
                 }
             }
+
+            // NEDEN (Session #74 düzeltmesi): ToJson() TitleBlock'u da yazıyordu ama
+            // LoadFromJson bunu hiç okumuyordu — proje başlık bilgisi (proje adı, işveren,
+            // pafta no vb.) her yüklemede sessizce kayboluyordu. Artık geri yükleniyor.
+            if (doc.RootElement.TryGetProperty("TitleBlock", out var tbEl))
+            {
+                var tb = JsonSerializer.Deserialize<ProjectTitleBlock>(tbEl.GetRawText());
+                if (tb != null)
+                {
+                    TitleBlock.ProjectName    = tb.ProjectName;
+                    TitleBlock.ProjectNumber  = tb.ProjectNumber;
+                    TitleBlock.Client         = tb.Client;
+                    TitleBlock.DrawingTitle   = tb.DrawingTitle;
+                    TitleBlock.DrawingNumber  = tb.DrawingNumber;
+                    TitleBlock.Scale          = tb.Scale;
+                    TitleBlock.Phase          = tb.Phase;
+                    TitleBlock.ResponsibleEng = tb.ResponsibleEng;
+                    TitleBlock.CompanyName    = tb.CompanyName;
+                    TitleBlock.IssueDate      = tb.IssueDate;
+                }
+            }
         }
         catch { /* Corrupt JSON — start fresh */ }
     }

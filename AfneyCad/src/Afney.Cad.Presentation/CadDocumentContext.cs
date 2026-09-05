@@ -25,6 +25,18 @@ namespace Afney.Cad.Presentation
         public bool IsModified { get; set; }
 
         /*
+           NE: Pafta Seti Yönetimi (Session #74)
+           NEDEN: Her sekme/proje kendi pafta numaralandırmasına ve revizyon geçmişine sahip
+                  olmalı — önceden statik (uygulama genelinde paylaşılan) SheetIndexService.Instance
+                  ve her diyalog açılışında "new RevisionTrackingService()" ile sıfırlanan geçici
+                  bir örnek kullanılıyordu. Artık bu iki servis doküman bazlı burada tutulur ve
+                  proje dosyasıyla birlikte (sidecar JSON, bkz. SheetSetPersistenceService) kalıcı
+                  olarak kaydedilip yüklenir.
+        */
+        public Afney.Cad.Mechanical.Services.SheetIndexService SheetIndex { get; set; } = new();
+        public Afney.Cad.Mechanical.Services.RevisionTrackingService Revisions { get; set; } = new();
+
+        /*
            NE: CadDocumentContext Yapıcı Metodu
            NEDEN: Sekme bazlı doküman verilerini tutan sınıfı başlatır.
         */

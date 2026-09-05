@@ -1528,10 +1528,16 @@
                                                     <TextBlock Text="Antet" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <Button Click="OnSheetIndex"       Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Bu oturumda eklenen tüm paftaların numara/isim indeksi (HTML)">
+                                            <Button Click="OnSheetIndex"       Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Bu projede eklenen tüm paftaların numara/isim indeksi (HTML)">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
                                                     <TextBlock Text="Pafta İndeksi" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Click="OnSheetSetManager"  Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Pafta Seti Yöneticisi — tüm paftaları listele, elle ekle/sil/sırala. Kalıcı olarak proje dosyasıyla birlikte kaydedilir.">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Pafta Seti Yöneticisi" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Click="OnSyncSystemLayers" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">

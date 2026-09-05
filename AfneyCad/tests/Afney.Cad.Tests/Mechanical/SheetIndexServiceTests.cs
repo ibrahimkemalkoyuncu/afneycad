@@ -120,4 +120,40 @@ public class SheetIndexServiceTests
     {
         Assert.Same(SheetIndexService.Instance, SheetIndexService.Instance);
     }
+
+    // ── Kalıcılık (Session #74: ToJson/LoadFromJson) ────────────────────────────
+
+    [Fact]
+    public void ToJson_ThenLoadFromJson_RestoresSheetsAndCounters()
+    {
+        var svc = new SheetIndexService();
+        svc.RegisterSheet(null, "Zemin Kat Tesisat", "Proje A");
+        svc.RegisterSheet(null, "1. Kat Tesisat", "Proje A", "E");
+
+        string json = svc.ToJson();
+
+        var restored = new SheetIndexService();
+        restored.LoadFromJson(json);
+
+        Assert.Equal(2, restored.Sheets.Count);
+        Assert.Equal("M-01", restored.Sheets[0].Number);
+        Assert.Equal("E-01", restored.Sheets[1].Number);
+
+        // Sayaçlar da geri gelmeli — bir sonraki M paftası M-02 olmalı, E paftası E-02 olmalı.
+        Assert.Equal("M-02", restored.PeekNextNumber("M"));
+        Assert.Equal("E-02", restored.PeekNextNumber("E"));
+    }
+
+    [Fact]
+    public void LoadFromJson_CorruptJson_LeavesStateUnchanged()
+    {
+        var svc = new SheetIndexService();
+        svc.RegisterSheet(null, "Mevcut Pafta", "Proje A");
+
+        svc.LoadFromJson("{ bozuk json ");
+
+        // Bozuk JSON durumu bozmamalı — mevcut kayıt korunmalı.
+        Assert.Single(svc.Sheets);
+        Assert.Equal("Mevcut Pafta", svc.Sheets[0].Name);
+    }
 }

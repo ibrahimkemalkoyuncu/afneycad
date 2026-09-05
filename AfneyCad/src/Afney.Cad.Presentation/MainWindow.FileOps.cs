@@ -206,6 +206,7 @@ namespace Afney.Cad.Presentation
                 Viewport.ZoomExtents();
 
                 LoadLayerState(filePath);
+                LoadSheetSetState(filePath);
 
                 Dispatcher.Invoke(() =>
                 {
@@ -350,6 +351,42 @@ namespace Afney.Cad.Presentation
             }
 
             SaveLayerState(filePath);
+            SaveSheetSetState(filePath);
+        }
+
+        /*
+           NE: Pafta Seti Durumunu Kaydet (SaveSheetSetState)
+           NEDEN (Session #74): Pafta indeksi (SheetIndexService) ve revizyon geçmişi
+                  (RevisionTrackingService) artık oturum ömürlü değil — proje dosyasının yanına
+                  "<dosya>.sheetset.json" sidecar dosyası olarak kalıcı kaydedilir. Gerçek
+                  DWG/DXF formatına dokunulmaz (bkz. SheetSetPersistenceService açıklaması).
+        */
+        private void SaveSheetSetState(string filePath)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                Afney.Cad.Mechanical.Services.SheetSetPersistenceService.Save(
+                    filePath, _activeContext.SheetIndex, _activeContext.Revisions);
+            }
+            catch (Exception ex) { Log.Debug("[Pafta Seti] Kaydedilemedi: {Error}", ex.Message); }
+        }
+
+        /*
+           NE: Pafta Seti Durumunu Yükle (LoadSheetSetState)
+           NEDEN (Session #74): Dosya açılırken, varsa yanındaki sidecar'dan pafta indeksini ve
+                  revizyon geçmişini geri yükler. Sidecar yoksa (eski proje dosyası) sessizce
+                  boş bir durumla devam eder — dosya açmayı ASLA engellemez.
+        */
+        private void LoadSheetSetState(string filePath)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                Afney.Cad.Mechanical.Services.SheetSetPersistenceService.Load(
+                    filePath, _activeContext.SheetIndex, _activeContext.Revisions);
+            }
+            catch (Exception ex) { Log.Debug("[Pafta Seti] Yüklenemedi: {Error}", ex.Message); }
         }
 
         private void SaveLayerState(string filePath)
