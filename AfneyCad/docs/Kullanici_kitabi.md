@@ -3204,3 +3204,20 @@ Kullanıcı "sonrasında derinlemesine bir kalite/mimari denetimi" istedi — ma
 **Ertelenen (bilinçli, kullanıcı kararı gerektiriyor):** `PathfindingService` iki ayrı denetimde de "hiç çağrılmıyor" (ölü kod) bulundu, ama kendine özgü, QuadTree optimizasyonunu doğrulayan gerçek testleri (`PathfindingServiceTests.cs`) ve BenchmarkDotNet ölçümleri (`PathfindingBenchmarks.cs`) var — silmek doğrulanmış çalışmayı kaybetmek anlamına gelir, tutmak sıfır çalışma-zamanı riski taşır (hiç çalışmıyor). Tek taraflı silinmedi, kullanıcı kararına bırakıldı. Ayrıca `HvacBomService`/`SelectionBomService`/`ArchitecturalBomService` (BomService'in kardeşleri) hâlâ testsiz — bir sonraki tur için aday.
 
 **Doğrulama:** Her adımda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **600/600 test başarılı**, regresyon yok.
+
+---
+
+### 60. Raporun Satır Satır Geliştirilmesi — Hidrolik, HVAC, Çizim/3D/BIM
+Kullanıcı güncellenmiş raporu (madde 59) satır satır geçip her düşük puanlı maddeyi "bunu geliştir" diyerek işaretledi — kapsamı netleştirmek için önce çoklu-kullanıcı/mobilin (P3, bilinçli ertelenmiş) hariç tutulduğu ve rapor sırasıyla ilerleneceği teyit edildi.
+
+**1. Colebrook-White'ın ÜÇ AYRI implementasyonu TEK'e indirildi (`commit 6341ec4`, `c4f03d4`):** Rapor "belgede Newton-Raphson/10 iterasyon yanlış tanımlanmış" diyordu — araştırma bunun aslında iki (sonra üç bulunan) ayrı Colebrook-White çözücüsü olduğunu ortaya çıkardı: `MechanicalCalculations.CalculatePressureDrop` ve `GasCalcSheetService.ColebrookFrictionFactor` kendi basit fixed-point (Picard) iterasyonlarını taşıyordu (doğrusal yakınsama), `AdvancedHydraulicsService.ColebrookWhiteFriction` ise GERÇEK Newton-Raphson'du (ikinci dereceden yakınsama, türevli düzeltme). `HardyCrossSolver` (ana hidrolik ağ çözücü) ve `GasCalcSheetService` (doğalgaz) artık İKİSİ DE aynı doğrulanmış Newton-Raphson çözücüyü kullanıyor — kod tabanında üç yerine tek implementasyon.
+
+**2. EnergyRecoveryService + AdvancedCoolingService için 27 test (`commit 69328dc`):** Rapor bu iki servisi "test kapsamı hâlâ yok" diye işaretlemişti. ERV/HRV sensible+latent geri kazanım formülleri, ASHRAE CLTD saatlik tablo bakışları, infiltrasyon (Crack method), ekipman iç kazanç, kanal K-toplamı ve fan sistem eğrisi/çalışma noktası kesişim algoritması kilitlendi. **600→642 test.**
+
+**3. Layer State Manager — isimlendirilmiş çoklu-state yönetimi eklendi (`commit 0c08186`):** Rapor bunu "4/10, isimlendirilmiş çoklu-state yönetimi yok" diye puanlamıştı. Yeni `LayerStateManagerService` + `LayerStatePersistenceService` (SheetIndexService ile aynı per-doküman + sidecar-JSON deseni, `<dosya>.layerstates.json`) + `LayerStateManagerDialog` (yeni ribbon butonu: Katman > Katman Durumu) ile kullanıcı artık görünürlük+dondurma+kilit durumunu bir isim altında kaydedip tek tıkla geri çağırabiliyor — AutoCAD'in Layer States Manager'ına karşılık gelen özellik. Eski isimsiz oturum-sürekliliği mekanizması (`.layerstate`) değiştirilmedi, ikisi bağımsız çalışıyor. **642→651 test.**
+
+**4. Riser konumlandırma bulgusu — ARAŞTIRMADA GÜNCEL KOD BULGUYU DOĞRULAMADI:** Rapor "riser konumlandırma yarı-manuel (öneri veriyor, uygulamıyor)" diyordu. Kod incelemesi hem `OnRiserConnection` (manuel 2-tık akışı, ama tıklama sonrası bağlantıyı GERÇEKTEN TransactionManager üzerinden uyguluyor) hem `MultiStoryEnhancementService.AutoConnectInterFloorRisers` (kat arası riser bağlantısını otomatik OLUŞTURUYOR, sadece öneri vermiyor) için bu iddiayı doğrulamadı — DIMSTYLE ve mahal-yüksekliği bulgularıyla AYNI desen (Ana Yasa: denetim raporunun kendisi de kanıtla doğrulanmalı). Kod değişikliği yapılmadı; bu madde raporda güncellendi.
+
+**Kalan (bir sonraki tur adayı):** Mimari algılamada kavisli duvar belirsizliği (gerçek geometrik iyileştirme gerektirir, kapsamlı bir iş), `HvacBomService`/`SelectionBomService`/`ArchitecturalBomService` test kapsamı, `PathfindingService` silme kararı (kullanıcıya bırakıldı).
+
+**Doğrulama:** Her adımda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. Final durum: **651/651 test başarılı**, regresyon yok.
