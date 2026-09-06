@@ -1,10 +1,6 @@
-using System;
-using System.Linq;
-using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Database.Transactions;
 using Afney.Cad.Database.Transactions.Operations;
-using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Geometry.Algorithms;
@@ -18,131 +14,63 @@ namespace Afney.Cad.Commands.BasicCommands;
           korunacak şekilde teğet noktasına kadar kısaltılır ve aralarına R yarıçaplı, her ikisine
           teğet bir yay (ArcEntity) eklenir.
    KAPSAM: SADECE iki ayrı LineEntity. LwPolyline segmentleri arası fillet, Pipe/Duct, Circle/Arc
-           ile fillet KAPSAM DIŞI (bu oturumda bilinçli olarak ertelendi — bkz. FilletChamferMath).
+          ile fillet KAPSAM DIŞI (bu oturumda bilinçli olarak ertelendi — bkz. FilletChamferMath).
+   NOT: İki-doğru seçim/tıklama iskeleti TwoLineEditCommandBase'de (ChamferCommand ile ortak,
+        Session #75 mimari denetiminde birleştirildi) — burada sadece FILLET'e özgü kısım var.
 */
-public class FilletCommand : ICadCommand
+public class FilletCommand : TwoLineEditCommandBase
 {
-    private readonly CadDatabase _database;
-    private readonly TransactionManager _transactionManager;
     private readonly double _radius;
-    private readonly double _hitTolerance;
 
-    private LineEntity? _firstLine;
-    private Vector3D _firstPick;
-
-    public string CommandName => "FILLET";
-    public Vector3D? ActivePoint => null;
-
-    public event Action<string>? OnFeedback;
-    public event Action? OnCompleted;
+    public override string CommandName => "FILLET";
 
     public FilletCommand(CadDatabase database, TransactionManager transactionManager, double currentZoom, double radius)
+        : base(database, transactionManager, currentZoom)
     {
-        _database = database;
-        _transactionManager = transactionManager;
         _radius = radius;
-        _hitTolerance = 10.0 / Math.Max(0.001, currentZoom);
     }
 
-    public void Start()
+    protected override bool ValidateParameters(out string? error)
     {
         if (_radius <= 0)
         {
-            OnFeedback?.Invoke("FILLET: Yarıçap pozitif olmalı. Komut iptal.");
-            OnCompleted?.Invoke();
-            return;
+            error = "Yarıçap pozitif olmalı.";
+            return false;
         }
-        OnFeedback?.Invoke($"FILLET (R={_radius:F2}): Birinci doğruyu seçin.");
+        error = null;
+        return true;
     }
 
-    public void OnPointerPressed(Vector3D point)
-    {
-        var line = FindNearestLine(point);
-        if (line == null)
-        {
-            OnFeedback?.Invoke("FILLET: Bu noktada bir doğru (Line) bulunamadı.");
-            return;
-        }
+    protected override string StartupPrompt() => $"FILLET (R={_radius:F2})";
 
-        if (_firstLine == null)
-        {
-            _firstLine = line;
-            _firstPick = point;
-            OnFeedback?.Invoke("FILLET: İkinci doğruyu seçin.");
-            return;
-        }
+    protected override string SuccessMessage() => "FILLET: İki doğru kavisle birleştirildi.";
 
-        if (line == _firstLine)
-        {
-            OnFeedback?.Invoke("FILLET: Lütfen BİRİNCİDEN FARKLI bir doğru seçin.");
-            return;
-        }
-
-        ApplyFillet(_firstLine, _firstPick, line, point);
-    }
-
-    private void ApplyFillet(LineEntity a, Vector3D pickA, LineEntity b, Vector3D pickB)
+    protected override bool TryBuildOperation(
+        LineEntity a, Vector3D pickA, LineEntity b, Vector3D pickB,
+        out CompositeOperation composite, out string? error)
     {
         bool ok = FilletChamferMath.TryComputeFillet(
             a.StartPoint, a.EndPoint, b.StartPoint, b.EndPoint,
-            _radius, pickA, pickB, out var result, out var error);
+            _radius, pickA, pickB, out var result, out error);
 
         if (!ok)
         {
-            OnFeedback?.Invoke($"FILLET: {error} Tekrar deneyin (ESC ile iptal).");
-            _firstLine = null;
-            return;
+            composite = null!;
+            return false;
         }
 
-        var composite = new CompositeOperation("Fillet Entities");
-        composite.Add(new RemoveEntityOperation(_database, a));
-        composite.Add(new RemoveEntityOperation(_database, b));
+        composite = new CompositeOperation("Fillet Entities");
+        composite.Add(new RemoveEntityOperation(Database, a));
+        composite.Add(new RemoveEntityOperation(Database, b));
 
         var newA = new LineEntity(result.TrimmedAStart, result.TrimmedAEnd) { Color = a.Color, Layer = a.Layer, Linetype = a.Linetype };
         var newB = new LineEntity(result.TrimmedBStart, result.TrimmedBEnd) { Color = b.Color, Layer = b.Layer, Linetype = b.Linetype };
         var arc = new ArcEntity(result.ArcCenter, result.ArcRadius, result.ArcStartAngle, result.ArcEndAngle) { Color = a.Color, Layer = a.Layer };
 
-        composite.Add(new AddEntityOperation(_database, newA));
-        composite.Add(new AddEntityOperation(_database, newB));
-        composite.Add(new AddEntityOperation(_database, arc));
+        composite.Add(new AddEntityOperation(Database, newA));
+        composite.Add(new AddEntityOperation(Database, newB));
+        composite.Add(new AddEntityOperation(Database, arc));
 
-        _transactionManager.Submit(composite);
-        OnFeedback?.Invoke("FILLET: İki doğru kavisle birleştirildi.");
-        _firstLine = null;
-        OnCompleted?.Invoke();
+        return true;
     }
-
-    private LineEntity? FindNearestLine(Vector3D point)
-    {
-        LineEntity? target = null;
-        double minDst = _hitTolerance;
-
-        var lines = _database.GetAllEntities().OfType<LineEntity>().ToList();
-        for (int i = lines.Count - 1; i >= 0; i--)
-        {
-            double d = lines[i].DistanceTo(point);
-            if (d < minDst)
-            {
-                minDst = d;
-                target = lines[i];
-            }
-        }
-        return target;
-    }
-
-    public void OnPointerMoved(Vector3D point) { }
-
-    public void OnKeyDown(InputKey key)
-    {
-        if (key == InputKey.Escape || key == InputKey.Enter)
-            Cancel();
-    }
-
-    public void Cancel()
-    {
-        _firstLine = null;
-        OnCompleted?.Invoke();
-    }
-
-    public void Draw(IRenderContext context) { }
 }
