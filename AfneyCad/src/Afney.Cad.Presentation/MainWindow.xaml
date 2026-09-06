@@ -1546,6 +1546,12 @@
                                                     <TextBlock Text="Kat Senkron" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Click="OnLayerStateManager" Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Katman Durumu Yöneticisi — görünürlük/dondurma/kilit durumunu isimlendirip kaydedin, tek tıkla geri çağırın.">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Katman Durumu" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBlock Text="Pafta &amp; Çıktı" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>

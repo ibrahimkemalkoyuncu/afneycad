@@ -1,0 +1,78 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.LayerStateManagerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Katman Durumu Yöneticisi — AfneyCAD"
+        Height="480" Width="560" WindowStartupLocation="CenterOwner"
+        Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1565C0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252535"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#444"/>
+            <Setter Property="RowBackground" Value="#252535"/>
+            <Setter Property="AlternatingRowBackground" Value="#1E1E2E"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#333"/>
+            <Setter Property="ColumnHeaderHeight" Value="28"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık -->
+        <Border Grid.Row="0" Background="#0D47A1" Padding="14,10">
+            <StackPanel>
+                <TextBlock Text="KATMAN DURUMU YÖNETİCİSİ" FontSize="14" FontWeight="Bold"/>
+                <TextBlock Text="Görünürlük/Dondurma/Kilit durumunu isimlendirip kaydedin, sonra tek tıkla geri çağırın" FontSize="10" Foreground="#90CAF9"/>
+            </StackPanel>
+        </Border>
+
+        <!-- DataGrid -->
+        <DataGrid Grid.Row="1" x:Name="StateGrid" Margin="12,10,12,4"
+                  SelectionChanged="StateGrid_SelectionChanged">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Durum Adı"     Binding="{Binding Name}"          Width="220"/>
+                <DataGridTextColumn Header="Katman Sayısı" Binding="{Binding LayerCount}"     Width="110"/>
+                <DataGridTextColumn Header="Kaydedildi"    Binding="{Binding SavedAtDisplay}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Eylem Butonları -->
+        <Border Grid.Row="2" Background="#252535" Padding="12,6">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Mevcut Durumu Kaydet..." Click="SaveCurrent_Click" Background="#2E7D32"/>
+                <Button x:Name="BtnApply" Content="Uygula" Click="Apply_Click" IsEnabled="False"/>
+                <Button x:Name="BtnDelete" Content="Sil" Click="Delete_Click" Background="#B71C1C" IsEnabled="False"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Kapat -->
+        <Border Grid.Row="3" Background="#1B1B2E" Padding="10,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock x:Name="TxtInfo" VerticalAlignment="Center" Foreground="#90CAF9" FontSize="10" Margin="0,0,20,0"
+                           Text="Bir durum seçip 'Uygula'ya basın veya yeni bir durum kaydedin."/>
+                <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80" Margin="0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

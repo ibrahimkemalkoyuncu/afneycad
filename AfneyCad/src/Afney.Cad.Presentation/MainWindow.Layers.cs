@@ -1,3 +1,4 @@
+using Afney.Cad.Presentation.Dialogs;
 using Afney.Cad.Presentation.ViewModels;
 using System.Linq;
 using System.Windows;
@@ -189,6 +190,29 @@ namespace Afney.Cad.Presentation
             {
                 MessageBox.Show($"Katman senkron hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /*
+           NE: Katman Durumu Yöneticisi Diyaloğunu Aç (OnLayerStateManager)
+           NEDEN (Session #75): Denetim raporundaki "Layer State Manager: isimlendirilmiş
+                  çoklu-state yönetimi yok" bulgusunu kapatan LayerStateManagerService'in
+                  arayüz girişi.
+        */
+        private void OnLayerStateManager(object sender, RoutedEventArgs e)
+        {
+            if (_activeContext == null) return;
+
+            var dlg = new LayerStateManagerDialog(
+                _activeContext.Database, _activeContext.LayerStates, _activeContext.Viewport.HiddenLayers,
+                onApplied: () =>
+                {
+                    RefreshActiveLayerCombo(_activeContext.Database);
+                    LayerPanel.RefreshLayers(_activeContext.Database);
+                    LayerPanel.SyncHiddenLayers(_activeContext.Viewport.HiddenLayers);
+                    Viewport.InvalidateVisual();
+                })
+            { Owner = this };
+            dlg.ShowDialog();
         }
 
         private void OnToggleColdWater(object sender, RoutedEventArgs e)  => ToggleSystemLayer("MEP_TEMIZ_SU",     BtnToggleColdWater);

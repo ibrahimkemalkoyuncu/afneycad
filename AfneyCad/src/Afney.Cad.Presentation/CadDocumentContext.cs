@@ -37,6 +37,15 @@ namespace Afney.Cad.Presentation
         public Afney.Cad.Mechanical.Services.RevisionTrackingService Revisions { get; set; } = new();
 
         /*
+           NE: Katman Durumu Yöneticisi (Session #75)
+           NEDEN: Denetim raporunda "Layer State Manager: isimlendirilmiş çoklu-state yönetimi
+                  yok" olarak işaretlenmişti. SheetIndex/Revisions ile aynı desende — her doküman
+                  kendi adlandırılmış katman state listesine sahip, proje dosyasıyla birlikte
+                  (sidecar JSON, bkz. LayerStatePersistenceService) kalıcı kaydedilir/yüklenir.
+        */
+        public Afney.Cad.Mechanical.Services.LayerStateManagerService LayerStates { get; set; } = new();
+
+        /*
            NE: CadDocumentContext Yapıcı Metodu
            NEDEN: Sekme bazlı doküman verilerini tutan sınıfı başlatır.
         */

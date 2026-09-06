@@ -207,6 +207,7 @@ namespace Afney.Cad.Presentation
 
                 LoadLayerState(filePath);
                 LoadSheetSetState(filePath);
+                LoadLayerStatesManager(filePath);
 
                 Dispatcher.Invoke(() =>
                 {
@@ -352,6 +353,7 @@ namespace Afney.Cad.Presentation
 
             SaveLayerState(filePath);
             SaveSheetSetState(filePath);
+            SaveLayerStatesManager(filePath);
         }
 
         /*
@@ -387,6 +389,32 @@ namespace Afney.Cad.Presentation
                     filePath, _activeContext.SheetIndex, _activeContext.Revisions);
             }
             catch (Exception ex) { Log.Debug("[Pafta Seti] Yüklenemedi: {Error}", ex.Message); }
+        }
+
+        /*
+           NE: Katman Durumu Yöneticisi Kalıcılığı (Save/LoadLayerStatesManager)
+           NEDEN (Session #75): İsimlendirilmiş katman state'lerini (bkz. LayerStateManagerService)
+                  SheetSetPersistenceService ile aynı sidecar deseniyle kalıcı kılar. Eski, isimsiz
+                  SaveLayerState/LoadLayerState mekanizmasından (aşağıda) AYRI ve BAĞIMSIZ çalışır.
+        */
+        private void SaveLayerStatesManager(string filePath)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                Afney.Cad.Mechanical.Services.LayerStatePersistenceService.Save(filePath, _activeContext.LayerStates);
+            }
+            catch (Exception ex) { Log.Debug("[Katman State Yöneticisi] Kaydedilemedi: {Error}", ex.Message); }
+        }
+
+        private void LoadLayerStatesManager(string filePath)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                Afney.Cad.Mechanical.Services.LayerStatePersistenceService.Load(filePath, _activeContext.LayerStates);
+            }
+            catch (Exception ex) { Log.Debug("[Katman State Yöneticisi] Yüklenemedi: {Error}", ex.Message); }
         }
 
         private void SaveLayerState(string filePath)
