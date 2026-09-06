@@ -189,44 +189,23 @@ public class GasCalcSheetService
     private static double CalcPressureDropMbar(double v, double d, double lEkvM, CalcOptions opts)
     {
         // Basınç düşümü: ΔP (Pa) = λ·(L/D)·(ρ·v²/2) — Darcy-Weisbach
-        double reynolds     = ReynoldsNumber(v, d, opts.GasKinematicViscosityM2s);
-        double relRoughness = (opts.RoughnessKMm / 1000.0) / d;
-        double lambda        = ColebrookFrictionFactor(reynolds, relRoughness);
+        //
+        // NE/NEDEN — GERÇEK KOD TEKRARI (denetim raporunda Colebrook-White satırı geliştirilirken
+        // bulundu): Bu metod, MechanicalCalculations.CalculatePressureDrop'un az önce silinen
+        // fixed-point (Picard) iterasyonuyla NEREDEYSE BİREBİR AYNI, ÜÇÜNCÜ bir Colebrook-White
+        // implementasyonunu (kendi ColebrookFrictionFactor'ü) barındırıyordu. Artık
+        // AdvancedHydraulicsService.ColebrookWhiteFriction (gerçek Newton-Raphson, tüm hidrolik
+        // hesaplarda kullanılan TEK doğrulanmış çözücü) çağrılıyor — tek kod tabanında üç sürtünme
+        // faktörü implementasyonu yerine bir tane.
+        double reynolds = ReynoldsNumber(v, d, opts.GasKinematicViscosityM2s);
+        if (reynolds <= 0) return 0; // Sıfır debi/hız -> sıfır basınç düşümü (AdvancedHydraulicsService.ColebrookWhiteFriction Re<=0 için tanımsız).
+        double lambda = AdvancedHydraulicsService.ColebrookWhiteFriction(reynolds, opts.RoughnessKMm, d * 1000.0);
         double dpPa = lambda * (lEkvM / d) * (opts.GasDensity * v * v / 2.0);
         return dpPa / 100.0; // Pa → mbar (1 mbar = 100 Pa)
     }
 
     private static double ReynoldsNumber(double velocityMs, double diameterM, double kinematicViscosityM2s)
         => kinematicViscosityM2s > 0 ? velocityMs * diameterM / kinematicViscosityM2s : 0;
-
-    /*
-       NE: Colebrook-White Sürtünme Faktörü (İteratif)
-       NEDEN: Önceden λ, çaptan türetilen kaba bir sabit yaklaşımdı (Reynolds sayısı hiç
-              hesaplanmıyordu, akışın laminer mi türbülanslı mı olduğuna bakılmıyordu).
-              Gerçek TS EN 1775 / Darcy-Weisbach uygulaması Colebrook-White denklemini
-              gerektirir: 1/√λ = -2·log10(k/(3.7D) + 2.51/(Re·√λ)) — kapalı formu olmadığı
-              için Swamee-Jain başlangıç tahmininden başlayarak sabit nokta iterasyonu
-              yapılır. Laminer rejimde (Re < 2300) basit λ = 64/Re formülü kullanılır.
-    */
-    private static double ColebrookFrictionFactor(double reynolds, double relativeRoughness)
-    {
-        if (reynolds <= 0) return 0.02;
-        if (reynolds < 2300) return 64.0 / reynolds; // Laminer akış
-
-        // Swamee-Jain başlangıç tahmini (1/√λ cinsinden)
-        double x = -2.0 * Math.Log10(relativeRoughness / 3.7 + 5.74 / Math.Pow(reynolds, 0.9));
-
-        const int maxIter = 30;
-        const double tol = 1e-8;
-        for (int i = 0; i < maxIter; i++)
-        {
-            double xNew = -2.0 * Math.Log10(relativeRoughness / 3.7 + 2.51 / (reynolds * x));
-            if (Math.Abs(xNew - x) < tol) { x = xNew; break; }
-            x = xNew;
-        }
-
-        return 1.0 / (x * x);
-    }
 
     // ── Veritabanından otomatik hesap (PipeEntity.SystemType == Gas) ──────────
     public CalcSheetResult CalculateFromDatabase(CadDatabase database, CalcOptions opts)
