@@ -47,6 +47,8 @@ Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt d
 | `MainWindow.Engineering.Reports.cs` | 950 | Raporlama, etiketleme, özel hesaplar (pis su/yağmur/gaz/septik/yangın/ısıtma/HVAC), araçlar |
 | `MainWindow.Engineering.Library.cs` | 446 | Kütüphane/katalog (fixture/valve/mimari/üretici/standart) |
 
+Session #52'de eklenen `MainWindow.Engineering.HvacExtra.cs` (56 satır) ayrı bir dosya: EN 12831 Isıtma Yükü, ASHRAE Psikrometri, ERV/HRV Isı Geri Kazanım, VDI 2081 Akustik, TS 825 Enerji Simülasyonu ve Gelişmiş Soğutma dialoglarını (kod tabanında zaten tam olan ama arayüze bağlı olmayan servisler için) açar.
+
 `Views/CadViewport.xaml.cs` (1861 satıra büyümüştü) da aynı oturumda bölündü:
 
 | Dosya | Satır | Sorumluluk |
@@ -71,6 +73,11 @@ Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt d
 - `OnLineCommand`, `OnCircleCommand`, `OnPolylineCommand`, `OnRectangleCommand`
 - `OnTrimCommand`, `OnExtendCommand`, `OnMirrorCommand`, `OnExplodeCommand`
 - `OnMoveCommand`, `OnCopyCommand`, `OnOffsetCommand`, `OnHatchCommand`
+- `OnFilletCommand`, `OnChamferCommand` — kavisli/pah köşe birleştirme (Line-Line, Session #74)
+
+**CSG Boolean (Session #52+, `MainWindow.Commands.Drawing.cs` içinde):**
+- `OnSolidBoxCommand` — SolidEntity kutu ilkeli oluşturma
+- `OnSolidUnionCommand`, `OnSolidSubtractCommand`, `OnSolidIntersectCommand` — B-Rep kernel UNION/SUBTRACT/INTERSECT
 
 **Boyutlandırma:**
 - `OnLinearDimCommand`, `OnAlignedDimCommand`, `OnRadiusDimCommand`, `OnAngularDimCommand`
@@ -167,6 +174,11 @@ Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt d
 - `OnHeatingDesign()`, `OnHvacDesign()`, `OnCoolingDesign()`
 - `OnHotWaterCirculation()`, `OnPressureZoneDesign()`, `OnPipeCostAnalysis()`
 - `OnAutoSizing()` — Otomatik boyutlandırma
+
+**HVAC Ek Hesaplar (`MainWindow.Engineering.HvacExtra.cs`, bkz. yukarıdaki not):**
+- `OnHeatLoadCalculation()`, `OnPsychrometricAnalysis()`
+- `OnEnergyRecoveryCommand()`, `OnAcousticAnalysisCommand()`
+- `OnEnergySimulationCommand()`, `OnAdvancedCoolingCommand()`
 
 **Araçlar:**
 - `OnPipe3DView()`, `OnMultiStoryManager()`, `OnWallParallelRoute()`
