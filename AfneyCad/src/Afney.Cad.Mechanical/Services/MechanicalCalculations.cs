@@ -79,56 +79,21 @@ public class MechanicalCalculations
         // Reynolds sayısı
         double reynolds = (density * velocity * diameterM) / viscosity;
 
-        // Sürtünme faktörü (Colebrook-White - basitleştirilmiş)
-        double roughness = RoughnessCoefficients.GetValueOrDefault(material, 0.045) / 1000.0; // mm -> m
-        double relativeRoughness = roughness / diameterM;
-        
-        double frictionFactor;
+        // Sürtünme faktörü (Colebrook-White)
+        //
+        // NE/NEDEN — GERÇEK KOD TEKRARI (denetim raporunda "belgede Newton-Raphson/10 iterasyon
+        // yanlış tanımlanmış" olarak işaretlenmişti — araştırma bunun aslında İKİ AYRI Colebrook-White
+        // implementasyonu olduğunu ortaya çıkardı): Bu metod kendi basit fixed-point (Picard) iterasyonunu
+        // (doğrusal yakınsama, 50 adıma kadar) kullanıyordu; `AdvancedHydraulicsService.ColebrookWhiteFriction`
+        // ise (PressureDropService'in kullandığı) GERÇEK Newton-Raphson'du (ikinci dereceden yakınsama,
+        // türevli düzeltme, 10 iterasyonda 1e-8 hassasiyete ulaşıyor). Aynı fiziği iki farklı kalitede
+        // çözen iki kod parçası tutmak yerine, HardyCrossSolver'ın da (bu metodun tek çağıranı) aynı
+        // doğrulanmış Newton-Raphson çözücüsünü kullanması sağlandı — sonuç aynı denklemi çözdüğü için
+        // pratikte aynı sayısal değeri üretir (ikisi de aynı toleransta yakınsıyor), ama artık TEK bir
+        // doğrulanmış implementasyon var.
+        double roughnessMm = RoughnessCoefficients.GetValueOrDefault(material, 0.045);
 
-        // 1. LAMINAR AKIŞ (Re < 2300)
-        // Hagen-Poiseuille Yasası: f = 64/Re (Analitik ve kesindir)
-        if (reynolds < 2300)
-        {
-            frictionFactor = 64.0 / reynolds;
-        }
-        // 2. GEÇİŞ BÖLGESİ (2300 <= Re <= 4000)
-        // Kritik Bölge: Akış kararsızdır. Mühendislik güvenlik payı için Churchill denklemi veya enterpolasyon kullanılır.
-        else if (reynolds <= 4000)
-        {
-            // Basit lineer enterpolasyon yerine, güvenli tarafta kalmak için türbülanslı başlangıç değerine yakınsaması sağlanır.
-            // Bu aralıkta kesin bir formül yoktur, ancak tasarımda risk almamak için yüksek katsayı tercih edilir.
-            double fLaminar = 64.0 / 2300.0;
-            // Re=4000 için Colebrook-White tahmini (~0.04)
-            double fTurbulent = 0.04; 
-            double t = (reynolds - 2300) / (4000 - 2300);
-            frictionFactor = fLaminar + t * (fTurbulent - fLaminar);
-        }
-        // 3. TÜRBÜLANSLI AKIŞ (Re > 4000)
-        // Colebrook-White Denklemi (İteratif Çözüm)
-        // 1 / sqrt(f) = -2 * log10( (ε/D)/3.7 + 2.51 / (Re * sqrt(f)) )
-        else
-        {
-            // Başlangıç tahmini (Swamee-Jain ile iyi bir başlangıç noktası seçelim)
-            double fInitial = 0.25 / Math.Pow(Math.Log10(relativeRoughness / 3.7 + 5.74 / Math.Pow(reynolds, 0.9)), 2);
-            
-            frictionFactor = fInitial;
-            double tolerance = 1e-6;
-            int maxIter = 50;
-
-            for (int i = 0; i < maxIter; i++)
-            {
-                // Colebrook: 1/√f = -2 * log((ε/D)/3.7 + 2.51/(Re * √f))
-                double term = -2.0 * Math.Log10((relativeRoughness / 3.7) + (2.51 / (reynolds * Math.Sqrt(frictionFactor))));
-                double fNew = 1.0 / (term * term); // f = 1 / term^2
-                
-                if (Math.Abs(fNew - frictionFactor) < tolerance)
-                {
-                    frictionFactor = fNew;
-                    break;
-                }
-                frictionFactor = fNew;
-            }
-        }
+        double frictionFactor = AdvancedHydraulicsService.ColebrookWhiteFriction(reynolds, roughnessMm, diameter);
 
         // Darcy-Weisbach: ΔP = f * (L/D) * (ρ*v²/2)
         double pressureLossPa = frictionFactor * (length / diameterM) * (density * velocity * velocity / 2.0);
