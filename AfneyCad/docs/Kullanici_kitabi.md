@@ -3187,3 +3187,20 @@ Kullanıcı "sonrasında derinlemesine bir kalite/mimari denetimi" istedi — ma
 **Doğrulama:** Her adımda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. Final durum: **576/576 test başarılı**, regresyon yok. (Not: bu turda ilk denemede 2 arka plan ajanı — TransactionManager kablolaması ve test ekleme — oturum rate limit'ine takılıp hiç ilerlemeden düştü; disk durumu `git status` ile doğrulanıp iş doğrudan ana oturumda tamamlandı.)
 
 **Kalan öncelik listesi (kullanıcı/gelecek oturum kararına bırakıldı):** NFPA13SprinklerService + BOM/cost servisleri için testler (yangın güvenliği ve maliyet doğruluğu riski), `CLAUDE.md` dosya haritası güncellemesi, FilletCommand/ChamferCommand ortak taban sınıfı, `PathfindingService`'in silinip silinmeyeceği kararı.
+
+---
+
+### 59. Madde 58'in Bıraktığı Öncelik Listesi Sırayla Kapatıldı
+"Kaldığımız yerden devam edelim" ile madde 58'in kalan öncelik listesi tek tek ele alındı.
+
+**1. `CLAUDE.md` dosya haritası güncellendi (`commit d535f2e`):** `MainWindow.Engineering.HvacExtra.cs` (Session #52'de eklenen, EN 12831/ASHRAE/ERV-HRV/VDI 2081/TS 825/Gelişmiş Soğutma dialoglarını açan 56 satırlık dosya) ve `MainWindow.Commands.Drawing.cs`'teki CSG Boolean (`OnSolidBoxCommand`/`OnSolidUnionCommand`/`OnSolidSubtractCommand`/`OnSolidIntersectCommand`) + FILLET/CHAMFER komutları haritada hiç görünmüyordu — eklendi.
+
+**2. NFPA13SprinklerService için 17 test (`commit 8695572`):** Yangın söndürme tasarımı yapan bu servis (FireFightingService'in EN 12845 kardeşi, NFPA 13 uygulayan) hiç test edilmiyordu. Elle hesaplanmış NFPA 13 formülleri (q=K×√P, toplam debi, Hazen-Williams boru çapı) ve uyumluluk/uyarı mantığı (kapsama limiti aşımı, kuru sistem, düşük artık basınç → pompa gerekli) kilitlendi. **576→593 test.**
+
+**3. BomService için 7 test (`commit a9bb625`):** Metraj/maliyet çıktısının temelini oluşturan gruplama-toplama mantığı (boru çap+malzeme gruplama ve uzunluk toplamı, dirsek/T-parça çap gruplama, sağlık gereci tip gruplama, ilgisiz entity tiplerinin yoksayılması) daha önce hiç test edilmiyordu. **593→600 test.**
+
+**4. FilletCommand/ChamferCommand ortak `TwoLineEditCommandBase`'e taşındı (`commit 48ef744`):** İki komut da neredeyse birebir aynı iskeleti (en yakın doğruyu bul, birinci/ikinci tıklama akışı, hata mesajı formatı, ESC/Enter iptal) kopyala-yapıştır ile taşıyordu — `SolidBooleanCommandBase`'in Union/Subtract/Intersect için zaten kullandığı template-method deseni burada da uygulandı. Davranış/mesaj metni değişmedi (mevcut `FilletChamferCommandTests` hiçbir değişiklik gerekmeden geçti).
+
+**Ertelenen (bilinçli, kullanıcı kararı gerektiriyor):** `PathfindingService` iki ayrı denetimde de "hiç çağrılmıyor" (ölü kod) bulundu, ama kendine özgü, QuadTree optimizasyonunu doğrulayan gerçek testleri (`PathfindingServiceTests.cs`) ve BenchmarkDotNet ölçümleri (`PathfindingBenchmarks.cs`) var — silmek doğrulanmış çalışmayı kaybetmek anlamına gelir, tutmak sıfır çalışma-zamanı riski taşır (hiç çalışmıyor). Tek taraflı silinmedi, kullanıcı kararına bırakıldı. Ayrıca `HvacBomService`/`SelectionBomService`/`ArchitecturalBomService` (BomService'in kardeşleri) hâlâ testsiz — bir sonraki tur için aday.
+
+**Doğrulama:** Her adımda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **600/600 test başarılı**, regresyon yok.
