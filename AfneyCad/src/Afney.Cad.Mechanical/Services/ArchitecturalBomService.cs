@@ -84,11 +84,19 @@ public class ArchitecturalBomService
         }
         r.WindowCount = windows.Count;
 
+        // NE/NEDEN — GERÇEK HATA (Session #75'te test yazarken bulundu): RoomEntity.Area,
+        // RoomEntity.CalculateArea() içinde ZATEN mm²→m² dönüşümüyle (/1_000_000.0) hesaplanıp
+        // saklanıyor (bkz. RoomEntity.cs:76, ve MainWindow.Engineering.Rooms.cs:277'de
+        // `room.Area` doğrudan "m²" etiketiyle basılıyor) — burada AYRICA bir kez daha
+        // 1.000.000'a bölünüyordu. Sonuç: mimari metraj raporundaki her RoomEntity tabanlı
+        // mahalin alanı gerçek değerinin ~milyonda biri kadar (pratikte sıfıra yakın)
+        // görünüyordu. MahalEntity (aşağıda) bu hatadan etkilenmiyordu çünkü zaten dönüşümsüz
+        // kullanılıyordu.
         var rooms = entities.OfType<RoomEntity>().ToList();
         foreach (var room in rooms)
         {
-            r.Items.Add(new ArchBomItem { Category = "Mahal", Description = room.Name ?? "Oda", Size = "", Quantity = 1, Unit = "adet", Area = room.Area / 1_000_000.0 });
-            r.TotalRoomAreaM2 += room.Area / 1_000_000.0;
+            r.Items.Add(new ArchBomItem { Category = "Mahal", Description = room.Name ?? "Oda", Size = "", Quantity = 1, Unit = "adet", Area = room.Area });
+            r.TotalRoomAreaM2 += room.Area;
         }
         var mahals = entities.OfType<MahalEntity>().ToList();
         foreach (var m in mahals)
