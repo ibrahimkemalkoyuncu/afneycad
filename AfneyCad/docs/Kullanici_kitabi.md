@@ -3221,3 +3221,19 @@ Kullanıcı güncellenmiş raporu (madde 59) satır satır geçip her düşük p
 **Kalan (bir sonraki tur adayı):** Mimari algılamada kavisli duvar belirsizliği (gerçek geometrik iyileştirme gerektirir, kapsamlı bir iş), `HvacBomService`/`SelectionBomService`/`ArchitecturalBomService` test kapsamı, `PathfindingService` silme kararı (kullanıcıya bırakıldı).
 
 **Doğrulama:** Her adımda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. Final durum: **651/651 test başarılı**, regresyon yok.
+
+---
+
+### 61. BomService'in 3 Kardeşi Test Altına Alındı — Gerçek Bir Çift-Dönüşüm Hatası Bulundu
+Kullanıcı "bir sonraki tura geç" dedi — madde 60'ın bıraktığı son öncelik ele alındı: `HvacBomService`/`SelectionBomService`/`ArchitecturalBomService` (BomService'in kardeşleri, hiçbiri test edilmemişti).
+
+**Testler yazılırken gerçek, önceden hiç bulunmamış bir hata ortaya çıktı:** `RoomEntity.Area`, `RoomEntity.CalculateArea()` içinde ZATEN mm²→m² dönüşümüyle hesaplanıp saklanıyordu (ve `MainWindow.Engineering.Rooms.cs:277`'de doğrudan "m²" etiketiyle basılıyordu) — ama `ArchitecturalBomService.Generate()` bunu AYRICA bir kez daha 1.000.000'a bölüyordu. Sonuç: mimari metraj raporundaki her `RoomEntity` tabanlı mahalin alanı gerçek değerinin ~milyonda biri kadar (pratikte sıfıra yakın) görünüyordu — `MahalEntity` bu hatadan etkilenmiyordu çünkü zaten dönüşümsüz kullanılıyordu. Düzeltildi (`commit 607e0c0`).
+
+**Eklenen testler (27 test, 651→678):**
+- `HvacBomServiceTests` — kanal gruplama (Shape+Type+Boyut), fitting tahmini (dirsek=grup sayısı-1, T-parçası=dirsek/3), izolasyon alanı koşulu (InsulationMm>0), menfez/damper minimum-1 tahmini.
+- `SelectionBomServiceTests` — tip bazlı sayım/uzunluk toplaması, boru maliyetinin `RealTimeCostService` ile bağımsızca çapraz doğrulanması, kanal/cihaz sabit oranları.
+- `ArchitecturalBomServiceTests` — duvar/kolon/kiriş/kapı/pencere gruplama, RoomEntity/MahalEntity alan hesabının (düzeltilmiş haliyle) doğru kilitlenmesi.
+
+**Kalan:** Mimari algılamada kavisli duvar belirsizliği (gerçek geometrik iyileştirme gerektirir, ayrı ve kapsamlı bir iş — bir sonraki tur için aday). `PathfindingService` silme kararı hâlâ kullanıcıya bırakıldı.
+
+**Doğrulama:** `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **678/678 test başarılı**, regresyon yok.
