@@ -89,7 +89,11 @@ namespace Afney.Cad.Presentation
                 {
                     Viewport.InvalidateViewport();
                     StatusText.Text = $"Mimari Algilama: {result.WallsCreated} duvar, {result.ColumnsCreated} kolon, {result.DoorsCreated} kapi, {result.WindowsCreated} pencere, {result.BeamsCreated} kiris";
-                    MessageBox.Show($"Mimari element algilama tamamlandi:\n\nDuvar: {result.WallsCreated}\nKolon: {result.ColumnsCreated}\nKapi: {result.DoorsCreated}\nPencere: {result.WindowsCreated}\nKiris: {result.BeamsCreated}\n\nToplam: {result.Total} element", "Mimari Algilama", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    string curvedNote = result.CurvedWallsApproximated > 0
+                        ? $"\n\n({result.CurvedWallsApproximated} kavisli duvar, duz segmentlere yaklasiklanarak duvar sayisina dahil edildi.)"
+                        : "";
+                    MessageBox.Show($"Mimari element algilama tamamlandi:\n\nDuvar: {result.WallsCreated}\nKolon: {result.ColumnsCreated}\nKapi: {result.DoorsCreated}\nPencere: {result.WindowsCreated}\nKiris: {result.BeamsCreated}\n\nToplam: {result.Total} element{curvedNote}", "Mimari Algilama", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)

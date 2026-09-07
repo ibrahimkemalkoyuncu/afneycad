@@ -10,13 +10,29 @@ namespace Afney.Cad.Mechanical.Services;
     NE: Akıllı Yol Bulma Servisi (PathfindingService)
     NEDEN: Boru rotalaması sırasında duvar, kapı ve diğer mimari engellerden (Obstacles) kaçınan en kısa
            ve mühendislik açısından uygun yolu hesaplamak için.
-    
+
     NASIL (Mühendislik Modu — Segment-Segment Intersection + Recursive Bypassing):
     1. Kaynak ve hedef arasında doğrudan bir yol test edilir.
     2. Engel varsa, engelin 4 köşesine (Clearance eklenmiş) bypass noktaları hesaplanır.
     3. En düşük toplam mesafeyi veren bypass rotası seçilir.
     4. Rekürsif olarak yeni segmentlerdeki engeller de kontrol edilir.
     5. Tüm çarpışma testleri gerçek Segment-Segment kesişim algoritmasıyla yapılır (SAT/Parametrik).
+
+    ⚠ DURUM — BİLİNÇLİ OLARAK TUTULAN ÖLÜ KOD (Session #43 ve Session #75 mimari
+    denetimlerinde iki ayrı kez "hiçbir yerden çağrılmıyor" olarak doğrulandı — grep
+    sonucu bu sınıfın kendi dosyası ve testleri/benchmark'ı dışında sıfır referans):
+    Çizim akışında fiili boru rotalaması `PipingPathfinderService`/`RoutePipeCommand`
+    üzerinden yapılıyor; bu sınıf o akışa hiç bağlanmadı. Silinmedi çünkü:
+      - `PathfindingServiceTests.cs` recursive bypass mantığını gerçek test senaryolarıyla
+        doğruluyor, `PathfindingBenchmarks.cs` (BenchmarkDotNet) broad-phase performansını
+        ölçüyor — ikisi de doğrulanmış, çalışan iş; silmek bu çalışmayı kaybetmek demek.
+      - Çalışma zamanında hiç yürütülmediği için (hiçbir kod yolu tarafından çağrılmadığı
+        için) tutmanın performans/güvenlik riski SIFIR.
+      - Kullanıcı kararı (2026-09-07, Session #75): silinmesin, sadece bu not eklensin —
+        ileride `RoutePipeCommand`'ın recursive-bypass moduna geçmesi istenirse hazır kod
+        olarak kalsın.
+    Yeni geliştirme yaparken bu sınıfa GÜVENMEYİN — gerçek rotalama mantığı için
+    `PipingPathfinderService`'e bakın.
 */
 public class PathfindingService
 {

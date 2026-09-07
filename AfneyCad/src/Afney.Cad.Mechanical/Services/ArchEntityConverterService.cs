@@ -14,6 +14,19 @@ public class ArchEntityConvertResult
     public int DoorsCreated   { get; set; }
     public int WindowsCreated { get; set; }
     public int BeamsCreated   { get; set; }
+
+    /*
+       NE: Kavisli Duvar Sayacı (CurvedWallsApproximated)
+       NEDEN — GERÇEK BOŞLUK (denetim raporunda "kavisli duvar belirsiz" olarak işaretlenmişti):
+              Önceden duvar dönüşümü SADECE `entity is LineEntity` kontrolü yapıyordu — bir
+              duvar katmanındaki ArcEntity (DWG'de yaygın: yuvarlak cephe/köşe duvarları) hiçbir
+              koşulla eşleşmediği için sessizce atlanıyordu (ne duvar oluşuyordu ne uyarı
+              veriliyordu). Artık ArcEntity'ler N düz WallEntity kirişine (chord'a) yaklaşıklanıp
+              gerçek duvar olarak ekleniyor — bu sayaç, kaç KAYNAK YAY'ın kaç segmente
+              bölündüğünü (yaklaşıklandığını) kullanıcıya bildirmek için tutuluyor.
+    */
+    public int CurvedWallsApproximated { get; set; }
+
     public int Total => WallsCreated + ColumnsCreated + DoorsCreated + WindowsCreated + BeamsCreated;
 }
 
@@ -52,6 +65,34 @@ public class ArchEntityConverterService
                 };
                 _database.AddEntity(wall);
                 result.WallsCreated++;
+            }
+            else if (IsWallLayer(layer) && entity is ArcEntity wallArc)
+            {
+                // NE/NEDEN: bkz. ArchEntityConvertResult.CurvedWallsApproximated başlığı — kavisli
+                // duvar kalınlığı, düz duvarlardaki gibi komşu paralel çizgi analiziyle DEĞİL
+                // (bir yayın "paraleli" tanımsız), sabit varsayılan (200mm) ile atanıyor. Bu
+                // bilinçli bir basitleştirme — tam çözüm (yay kalınlığını komşu iç/dış yay
+                // çiftinden çıkarmak) ayrı bir iş.
+                var material = layer.Contains("BETON") || layer.Contains("CONC")
+                    ? WallMaterial.Concrete
+                    : layer.Contains("GAZBETON") ? WallMaterial.AeratedConcrete
+                    : WallMaterial.Brick;
+
+                int segmentsCreated = 0;
+                foreach (var (segStart, segEnd) in TessellateArcToChords(wallArc))
+                {
+                    var wall = new WallEntity(segStart, segEnd, 200)
+                    {
+                        Color = 0xFFAAAAAA,
+                        Material = material
+                    };
+                    _database.AddEntity(wall);
+                    result.WallsCreated++;
+                    segmentsCreated++;
+                }
+
+                if (segmentsCreated > 0)
+                    result.CurvedWallsApproximated++;
             }
             else if (IsColumnLayer(layer))
             {
@@ -129,6 +170,39 @@ public class ArchEntityConverterService
 
     private static bool IsBeamLayer(string layer) =>
         layer.Contains("KIRIS") || layer.Contains("BEAM") || layer.Contains("HATIL");
+
+    /*
+       NE: Yayı Düz Kirişlere (Chord) Böl (TessellateArcToChords)
+       NEDEN: WallEntity sadece düz (Start/End) bir doğru temsil eder — kod tabanında kavisli
+              duvar için ayrı bir varlık tipi yok (bkz. denetim raporu). Bir yayı N düz segmente
+              yaklaşıklamak, hiç duvar oluşturmamaktan (önceki davranış) her zaman daha doğru.
+              Segment sayısı 10°'lik adımlarla ölçeklenir (4-32 arası clamp) — tipik bir mimari
+              cephe yayı (örn. 90° dönüş) için 9 segment üretir, tam çember için 32'de kalır.
+    */
+    private static IEnumerable<(Vector3D start, Vector3D end)> TessellateArcToChords(ArcEntity arc)
+    {
+        double sweep = arc.EndAngle > arc.StartAngle
+            ? arc.EndAngle - arc.StartAngle
+            : (2 * Math.PI - arc.StartAngle) + arc.EndAngle;
+
+        if (sweep < 1e-6) yield break;
+
+        int segments = Math.Clamp((int)Math.Ceiling(sweep / (10.0 * Math.PI / 180.0)), 4, 32);
+        double step = sweep / segments;
+
+        Vector3D PointAt(double angle) => new(
+            arc.Center.X + Math.Cos(angle) * arc.Radius,
+            arc.Center.Y + Math.Sin(angle) * arc.Radius,
+            arc.Center.Z);
+
+        Vector3D prev = PointAt(arc.StartAngle);
+        for (int i = 1; i <= segments; i++)
+        {
+            Vector3D curr = PointAt(arc.StartAngle + i * step);
+            yield return (prev, curr);
+            prev = curr;
+        }
+    }
 
     private double EstimateWallThickness(LineEntity wall, List<CadEntity> allEntities)
     {
