@@ -3237,3 +3237,16 @@ Kullanıcı "bir sonraki tura geç" dedi — madde 60'ın bıraktığı son önc
 **Kalan:** Mimari algılamada kavisli duvar belirsizliği (gerçek geometrik iyileştirme gerektirir, ayrı ve kapsamlı bir iş — bir sonraki tur için aday). `PathfindingService` silme kararı hâlâ kullanıcıya bırakıldı.
 
 **Doğrulama:** `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **678/678 test başarılı**, regresyon yok.
+
+---
+
+### 62. Kalan Son İki Madde de Kapatıldı — Punch List Tamamen Sıfırlandı
+Kullanıcı "kalan bu 2 maddeyi de tamamla" dedi — madde 61'in bıraktığı son iki açık madde ele alındı.
+
+**1. PathfindingService kararı — `AskUserQuestion` ile netleştirildi:** Kullanıcı "sil" yerine "tut, sadece belgelendir" seçti. Kod değişikliği yapılmadı, dosya başına neden bilinçli olarak tutulduğunu (doğrulanmış testleri/benchmark'ı var, sıfır çalışma-zamanı riski, gerçek rotalama `PipingPathfinderService` üzerinden yapılıyor) açıklayan bir not eklendi (`commit c889422`).
+
+**2. "Kavisli duvar belirsiz" bulgusu somutlaştırıldı ve düzeltildi:** Araştırma, `ArchEntityConverterService.ConvertFromLayers`'ın duvar katmanındaki bir `ArcEntity`'yi hiçbir koşulla eşleştirmediğini (sadece `is LineEntity` kontrolü vardı) bulup — bir DWG'deki yuvarlak cephe/köşe duvarı sessizce atlanıyordu, ne duvar oluşuyordu ne kullanıcıya uyarı veriliyordu. Düzeltme: `ArcEntity` artık 10°'lik adımlarla (4-32 segment, clamp) düz `WallEntity` kirişlerine (chord) yaklaşıklanıp gerçek duvar olarak ekleniyor; sonuç mesajı kaç kavisli duvarın yaklaşıklandığını bildiriyor. Kalınlık için düz duvarlardaki komşu-çizgi analizi yerine sabit 200mm varsayılan kullanılıyor — bir yayın "paraleli" tanımsız olduğundan bilinçli bir basitleştirme, kod içinde belgelendi. 5 yeni test (`ArchEntityConverterServiceTests`) hem eski düz-duvar davranışını kilitliyor hem yeni kavisli-duvar davranışını (sürekli zincir, yarıçap toleransı, katman filtresi) doğruluyor.
+
+**Sonuç:** Session #71'de başlayan "AfneyCAD × FineSANI" denetim serüveninin TÜM somut, kod-çözülebilir maddeleri artık kapalı. Kalan tek kategori (çoklu-kullanıcı/mobil) kullanıcının kendi kararıyla, altyapı gerektirdiği için bilinçli ertelenmiş durumda.
+
+**Doğrulama:** `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **683/683 test başarılı**, regresyon yok.
