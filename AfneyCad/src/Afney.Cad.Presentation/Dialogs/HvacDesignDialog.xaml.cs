@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
@@ -12,6 +13,30 @@ public partial class HvacDesignDialog
 {
     private readonly ObservableCollection<DuctSizingService.Zone> _zones = [];
     private DuctSizingService.HvacResult? _lastResult;
+
+    /*
+       NE: Seçili Segmenti Çizime Başlat (DrawSegmentRequested)
+       NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 02 P0):
+              RouteDuctCommand bu hesabın sonucunu hiçbir zaman okumuyordu — kullanıcı
+              manuel giriş penceresine hesaplanan sayıyı elle yazmak zorundaydı. Artık
+              seçili segmentin GERÇEK hesaplanmış (yuvarlanmamış) boyutu doğrudan komuta
+              aktarılıyor.
+    */
+    public event Action<DuctShape, double, double, double>? DrawSegmentRequested;
+
+    private void DrawSegment_Click(object sender, RoutedEventArgs e)
+    {
+        if (ResultGrid.SelectedItem is not SegmentRow row)
+        {
+            StatusText.Text = "⚠ Önce tabloda bir segment seçin.";
+            return;
+        }
+
+        bool isRect = row.S.WidthMm != row.S.DiameterMm;
+        DrawSegmentRequested?.Invoke(
+            isRect ? DuctShape.Rectangular : DuctShape.Circular,
+            row.S.WidthMm, row.S.HeightMm, row.S.DiameterMm);
+    }
 
     // View-model için ek property
     private class SegmentRow

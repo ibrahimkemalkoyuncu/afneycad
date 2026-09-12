@@ -203,6 +203,14 @@
                             <DataGridTextColumn Header="Not"          Binding="{Binding Note}"                  Width="*"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <!-- NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu):
+                         RouteDuctCommand bu hesabın sonucunu hiç okumuyordu, kullanıcı elle
+                         boyut girmek zorundaydı. Artık seçili segmentin GERÇEK hesaplanmış
+                         boyutu (yuvarlama/varsayılan yok) doğrudan çizime aktarılabiliyor. -->
+                    <Button Content="Seçili Segmenti Çizime Başlat →" Click="DrawSegment_Click"
+                            HorizontalAlignment="Left" Margin="0,8,0,0" Padding="8,4"
+                            Background="#00838F" Foreground="White" BorderThickness="0"
+                            ToolTip="Yukarıdaki tablodan bir satır seçin — o segmentin gerçek hesaplanmış boyutuyla kanal çizim komutu başlar"/>
                 </StackPanel>
             </Border>
         </Grid>

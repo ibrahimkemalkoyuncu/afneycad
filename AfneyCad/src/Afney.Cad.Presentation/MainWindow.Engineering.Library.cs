@@ -375,7 +375,20 @@ namespace Afney.Cad.Presentation
 
         private void OnHvacDesign(object sender, RoutedEventArgs e)
         {
-            try { new HvacDesignDialog() { Owner = this }.ShowDialog(); }
+            try
+            {
+                var dlg = new HvacDesignDialog() { Owner = this };
+                dlg.DrawSegmentRequested += (shape, width, height, diameter) =>
+                {
+                    dlg.Close();
+                    var cmd = new RouteDuctCommand(_database, _history.TransactionManager, shape, DuctType.Supply, width, height, diameter);
+                    cmd.OnFeedback += msg => StatusText.Text = msg;
+                    cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
+                    Viewport.SetActiveCommand(cmd);
+                    cmd.Start();
+                };
+                dlg.ShowDialog();
+            }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
