@@ -179,7 +179,12 @@ public class ArchEntityConverterService
               Segment sayısı 10°'lik adımlarla ölçeklenir (4-32 arası clamp) — tipik bir mimari
               cephe yayı (örn. 90° dönüş) için 9 segment üretir, tam çember için 32'de kalır.
     */
-    private static IEnumerable<(Vector3D start, Vector3D end)> TessellateArcToChords(ArcEntity arc)
+    /*
+       NE: internal (private değil) — ArchitecturalRecognitionService de aynı yay-tessellation
+           mantığını kullanıyor (Session #75 iş akışı denetiminde bulunan boşluk: DWG-import
+           yolunda yay düzeltilmişti ama tanıma/çakışma yolunda hâlâ kaba bbox kullanılıyordu).
+    */
+    internal static IEnumerable<(Vector3D start, Vector3D end)> TessellateArcToChords(ArcEntity arc)
     {
         double sweep = arc.EndAngle > arc.StartAngle
             ? arc.EndAngle - arc.StartAngle

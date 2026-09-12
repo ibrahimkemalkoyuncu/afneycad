@@ -102,6 +102,21 @@ public class ArchitecturalRecognitionService
                 {
                     obs.Boundary.AddRange(poly.Vertices);
                 }
+                else if (entity is ArcEntity arc)
+                {
+                    // NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu):
+                    // Bu dal önceden yoktu — bir yay, alttaki genel `else` koluna düşüp
+                    // sadece köşegen bounding box köşeleriyle (kaba bir dikdörtgen) temsil
+                    // ediliyordu. Kavisli duvar/engelin gerçek çakışma/mahal-sınırı testleri
+                    // bu yüzden yanlış (gerçekte olduğundan çok daha büyük bir dikdörtgen)
+                    // bir alan kullanıyordu. Artık ArchEntityConverterService'in DWG-import
+                    // yolunda da kullandığı AYNI chord-tessellation ile yaklaşıklanıyor.
+                    var chords = ArchEntityConverterService.TessellateArcToChords(arc).ToList();
+                    foreach (var chord in chords)
+                        obs.Boundary.Add(chord.start);
+                    if (chords.Count > 0)
+                        obs.Boundary.Add(chords[^1].end);
+                }
                 else
                 {
                     // Diğer nesneler için bounding box köşeleri

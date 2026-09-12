@@ -102,6 +102,61 @@ public class BomService
             });
         }
 
+        /*
+           NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, HVAC modülü):
+           Bu metod önceden sadece Pipe/Elbow/Tee/SanitaryFixture sayıyordu — PlaceAirTerminalCommand/
+           PlaceDamperCommand ile çizime yerleştirilebilen kanal/difüzör/damper hiç sayılmıyordu.
+           Bir kullanıcı HVAC ekipmanı yerleştirse bile bu metraj raporunda hiç görünmüyordu.
+        */
+        // 5. Kanallar (Ducts) - Şekil+Tip+Boyuta göre grupla, uzunlukları topla
+        var ducts = entities.OfType<DuctEntity>().ToList();
+        var ductGroups = ducts.GroupBy(d => new { d.Shape, d.Type, Size = d.GetSizeText() });
+
+        foreach (var group in ductGroups)
+        {
+            double totalLength = group.Sum(d => d.GetLength()) / 1000.0; // mm -> m
+            bomList.Add(new BomItem
+            {
+                Category = "Kanal",
+                Description = $"{group.First().GetTypeText()} Kanal {group.Key.Size}",
+                Material = group.Key.Shape.ToString(),
+                Quantity = Math.Round(totalLength, 2),
+                Unit = "m"
+            });
+        }
+
+        // 6. Hava Terminalleri (Difüzör/Menfez)
+        var terminals = entities.OfType<AirTerminalEntity>().ToList();
+        var terminalGroups = terminals.GroupBy(t => new { t.TerminalType });
+
+        foreach (var group in terminalGroups)
+        {
+            bomList.Add(new BomItem
+            {
+                Category = "Hava Terminali",
+                Description = group.Key.TerminalType.ToString(),
+                Material = "-",
+                Quantity = group.Count(),
+                Unit = "Adet"
+            });
+        }
+
+        // 7. Damperler
+        var dampers = entities.OfType<DamperEntity>().ToList();
+        var damperGroups = dampers.GroupBy(d => new { d.DamperType });
+
+        foreach (var group in damperGroups)
+        {
+            bomList.Add(new BomItem
+            {
+                Category = "Damper",
+                Description = group.Key.DamperType.ToString(),
+                Material = "-",
+                Quantity = group.Count(),
+                Unit = "Adet"
+            });
+        }
+
         return bomList.OrderBy(b => b.Category).ThenBy(b => b.Description).ToList();
     }
 }

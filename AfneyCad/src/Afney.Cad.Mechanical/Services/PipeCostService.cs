@@ -169,8 +169,10 @@ public class PipeCostService
                unutulmuştu. Sonuç: PricePerMeterTl (TL/METRE) doğrudan mm cinsinden bir uzunlukla
                çarpılıyordu — her maliyet 1000 KAT şişik çıkıyordu (ve Description'daki
                "{pipe.Length:F1} m" de 12.5m'lik bir boruyu "12500.0 m" olarak gösteriyordu).
-               Bu, gerçekten UI'a bağlı (BOMDialog.xaml.cs → CalculateFromDatabase) canlı bir
-               "sessizce yanlış sonuç" hatasıydı, dead code değil.
+               Bu, gerçekten UI'a bağlı (PipeCostDialog.xaml.cs) canlı bir "sessizce yanlış
+               sonuç" hatasıydı, dead code değil. (Not: yorum önceden yanlışlıkla "BOMDialog"
+               diyordu — o ekran hiç UI'a bağlı değildi, Session #75 iş akışı denetiminde
+               hayalet olarak bulunup silindi; gerçek çağıran her zaman PipeCostDialog'du.)
             */
             double lengthM = pipe.Length / 1000.0;
 

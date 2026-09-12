@@ -114,6 +114,54 @@ public class BomServiceTests
     }
 
     [Fact]
+    public void GenerateBom_Ducts_AreGroupedByShapeTypeSizeAndLengthSummed()
+    {
+        // NE/NEDEN — Session #75 iş akışı denetiminde bulunan gerçek boşluk: BomService
+        // önceden DuctEntity/AirTerminalEntity/DamperEntity'yi hiç saymıyordu — yerleştirilen
+        // HVAC donanımı metraj raporunda görünmüyordu.
+        var db = new CadDatabase();
+        var d1 = new DuctEntity(new Vector3D(0, 0, 0), new Vector3D(4000, 0, 0), 250);
+        var d2 = new DuctEntity(new Vector3D(0, 0, 0), new Vector3D(2000, 0, 0), 250);
+        db.AddEntity(d1);
+        db.AddEntity(d2);
+
+        var bom = new BomService(db).GenerateBom();
+
+        var ductItem = Assert.Single(bom, b => b.Category == "Kanal");
+        Assert.Equal((d1.GetLength() + d2.GetLength()) / 1000.0, ductItem.Quantity, precision: 3);
+        Assert.Equal("m", ductItem.Unit);
+    }
+
+    [Fact]
+    public void GenerateBom_AirTerminals_AreGroupedByTypeAndCounted()
+    {
+        var db = new CadDatabase();
+        db.AddEntity(new AirTerminalEntity(new Vector3D(0, 0, 0), AirTerminalType.SupplyDiffuser, 100));
+        db.AddEntity(new AirTerminalEntity(new Vector3D(10, 0, 0), AirTerminalType.SupplyDiffuser, 100));
+        db.AddEntity(new AirTerminalEntity(new Vector3D(20, 0, 0), AirTerminalType.ReturnGrille, 100));
+
+        var bom = new BomService(db).GenerateBom();
+
+        var terminalItems = bom.Where(b => b.Category == "Hava Terminali").ToList();
+        Assert.Equal(2, terminalItems.Count);
+        Assert.Contains(terminalItems, i => i.Description == "SupplyDiffuser" && i.Quantity == 2);
+        Assert.Contains(terminalItems, i => i.Description == "ReturnGrille" && i.Quantity == 1);
+    }
+
+    [Fact]
+    public void GenerateBom_Dampers_AreGroupedByTypeAndCounted()
+    {
+        var db = new CadDatabase();
+        db.AddEntity(new DamperEntity(new Vector3D(0, 0, 0), DamperType.Volume, 250));
+        db.AddEntity(new DamperEntity(new Vector3D(10, 0, 0), DamperType.Volume, 250));
+
+        var bom = new BomService(db).GenerateBom();
+
+        var damperItem = Assert.Single(bom, b => b.Category == "Damper");
+        Assert.Equal(2, damperItem.Quantity);
+    }
+
+    [Fact]
     public void GenerateBom_MixedEntities_IgnoresUnrelatedEntityTypes()
     {
         // LineEntity gibi BOM'da hiç kapsanmayan bir tip, sonuca kirlilik/hata olarak
