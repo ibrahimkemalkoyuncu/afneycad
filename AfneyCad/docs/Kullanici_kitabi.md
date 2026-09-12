@@ -3316,3 +3316,17 @@ Kullanıcı "Aktif Session güncelle ve github'a gönder... Bir Sonraki Session 
 **Kalan (yapısal, tek oturumda güvenle tamamlanamayacak kadar büyük):** pis su/sprinkler/çok katlı bina için üç farklı veri modelini TEK modelde birleştirmek (şu an köprü var, birleşme yok) — bu, `LevelManager`/`MultiStoryBuildingService`/`DefineBuildingDialog`'un JSON formatının hepsinin yeniden tasarlanmasını gerektirir ve ayrı bir oturumda plan modu ile ele alınmalı.
 
 **Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **698/698 test başarılı**, regresyon yok. Her madde ayrı commit olarak push edildi (5e6da6b, 3178e2f, da0c887, 0e87da0).
+
+---
+
+### 66. HVAC P0 Kapatıldı: HvacDesignDialog Artık RouteDuctCommand'ı Gerçekten Besliyor (`commit f1ebb9f`)
+
+Kullanıcı yine "sırayla tamamla" dedi — madde 65'in ardından, İş Akışı Denetimi raporunun bölüm 02'sinde hâlâ `bad` (P0) olarak işaretli kalan tek satır ele alındı: "Kanal boyutlandırma → çizim". Madde 63'teki düzeltme `RouteDuctCommand`'a manuel boyut girişi eklemişti ama hesap ekranından (`HvacDesignDialog`) otomatik bir köprü hâlâ yoktu — kullanıcı hesaplanan sayıyı elle okuyup elle yazmak zorundaydı.
+
+- `HvacDesignDialog`'un sonuç tablosuna (`ResultGrid`) "Seçili Segmenti Çizime Başlat →" butonu eklendi. Seçili satırın **gerçek hesaplanmış** (yuvarlanmamış) genişlik/yükseklik veya çapı `DrawSegmentRequested` olayıyla dışarı açılıyor.
+- `MainWindow.OnHvacDesign` bu olaya abone olup diyaloğu kapatıyor ve `RouteDuctCommand`'ı doğrudan o gerçek boyutla başlatıyor (`OnRouteDuctCommand`'daki mevcut Viewport/TransactionManager deseniyle birebir aynı).
+- Şekil ayrımı (`DuctShape.Rectangular` / `Circular`) `DuctSegment.WidthMm != DiameterMm` karşılaştırmasıyla yapılıyor — `DuctSizingService.Calculate` zaten dairesel hesapta `WidthMm = HeightMm = DiameterMm` atadığı için bu güvenilir bir ayraç (aynı mantık `RectLabel` görüntüleme property'sinde zaten kullanılıyordu).
+
+**Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **698/698 test başarılı**, regresyon yok (bu madde WPF diyalog etkileşimi olduğu için ayrı birim testi eklenmedi — build+manuel akış doğrulaması yapıldı).
+
+**Kalan:** Diğer HVAC ekranlarında (VAV/CAV, bobin/filtre — bilinçli kapsam dışı) benzer bir köprü yok; onlar zaten "kapsam dışı" olarak belgelenmişti. Yapısal 3 veri modeli birleştirmesi (madde 65'in kalanı) hâlâ açık.
