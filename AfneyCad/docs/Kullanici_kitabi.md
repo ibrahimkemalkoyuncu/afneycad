@@ -3269,3 +3269,27 @@ Kullanıcı "AfneyCad'i daha iyi analiz etmeni, iş akışlarını/süreçlerini
 **Kalan (bir sonraki tur için, İş Akışı Denetimi raporunda ayrıntılı):** pis su/sprinkler/çok katlı bina ikiz ekranlarının birleştirilmesi, 4 ayrı BOM servisinin tek keşif raporunda toplanması, HVAC donanımının (kanal/damper/terminal) BOM'a eklenmesi, `FanSelectionDialog`'un seçiminin bir yere bağlanması, susturucu→akustik UI köprüsü, "Xref Manager"ın yeniden adlandırılması veya gerçek xref'e dönüştürülmesi.
 
 **Doğrulama:** `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **683/683 test başarılı**, regresyon yok.
+
+---
+
+### 64. İş Akışı Denetiminin Kalan Bulguları — 4 Ek Tur
+Kullanıcı "olur" diyerek devam onayı verdi — madde 63'ün bıraktığı öncelik listesi, düşük-riskli/sınırlı-kapsamlı maddelerden başlanarak dört ayrı turda ele alındı.
+
+**Tur 1 (`commit cabfab8`):**
+- 3 hayalet diyalog silindi (`BlockNameDialog`, `MahalInfoDialog`, `BOMDialog`) — kod tabanında kendi dosyaları dışında sıfır referans. `PipeCostService.cs:172`'deki BOMDialog'u "canlı" diye yanlış tanımlayan yorum da düzeltildi (gerçek çağıran her zaman `PipeCostDialog`'du).
+- `BomService` artık `DuctEntity`/`AirTerminalEntity`/`DamperEntity`'yi de sayıyor — yerleştirilen HVAC donanımı önceden metraj raporunda hiç görünmüyordu.
+- `ArchitecturalRecognitionService` (tanıma/çakışma yolu) artık `ArcEntity`'yi `ArchEntityConverterService`'in (DWG-import yolu) kullandığı AYNI chord-tessellation ile işliyor — önceden kaba bir bounding-box dörtgeniyle temsil ediliyordu.
+
+**Tur 2 (`commit dcba05e`):**
+- `GutterDesignDialog` (şehir yağış tablosu, oluk/dere boyutlandırma) ribbon'a bağlandı — tam çalışan bir ekrandı ama hiçbir menü girişi yoktu.
+- `PipeWizardDialog.Place_Click` şablonu her zaman sabit dünya orijinine ((0,0,0)) yerleştiriyordu ve `TransactionManager`'ı hiç kullanmıyordu. Yeni `PlacePipeWizardTemplateCommand` ile artık gerçek tıklama noktası + Undo desteği var (13-komut denetiminde bu diyalog atlanmıştı, aynı hata sınıfıydı).
+
+**Tur 3 (`commit 20d8fa8`):**
+- `FanSelectionDialog.SelectedFan` hiçbir yerden tüketilmiyordu — artık seçilen fanın özeti çizime ekleniyor (`TS825InsulationDialog` ile aynı desen).
+- `SilencerSelectionDialog`'un kendi kod içi yorumu bile "CAD'e ekleme adımı yok" diyordu — `ApplyToNoiseBudget` servis metodu vardı ama hiçbir UI onu çağırmıyordu. "Seç ve Akustiğe Uygula" butonu eklenip `AcousticAnalysisDialog`'un susturucu kaybı alanına otomatik aktarım sağlandı.
+
+**Test sayısı:** 683 → 691 (+8 yeni test, `PlacePipeWizardTemplateCommandTests`, `ArchitecturalRecognitionServiceTests`, `BomServiceTests`'e ek testler).
+
+**Kalan (hâlâ açık, daha büyük/yapısal işler):** pis su/sprinkler/çok katlı bina ikiz ekranlarının birleştirilmesi (farklı veri modelleri gerektiriyor), 4 ayrı BOM servisinin tek "Genel Keşif" raporunda toplanması, pafta setinin gerçek toplu baskı/export'a bağlanması, "Xref Manager"ın yeniden adlandırılması veya gerçek harici-dosya xref'ine dönüştürülmesi.
+
+**Doğrulama:** Her turda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **691/691 test başarılı**, regresyon yok.
