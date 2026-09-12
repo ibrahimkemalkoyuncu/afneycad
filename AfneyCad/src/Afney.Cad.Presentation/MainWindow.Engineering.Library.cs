@@ -21,15 +21,28 @@ namespace Afney.Cad.Presentation
     {
         #region -- MUHENDISLIK - KUTUPHANE/KATALOG/OZEL HESAPLAR/ARACLAR (ENGINEERING.LIBRARY) --
 
+        /*
+           NE: Boru Sihirbazı (OnPipeWizard)
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Şablon önceden
+                  diyalog kapanır kapanmaz sabit dünya orijinine ((0,0,0)) ekleniyordu — tıklayarak
+                  yerleştirme noktası seçmenin hiçbir yolu yoktu, ayrıca TransactionManager'dan
+                  hiç geçmiyordu (Ctrl+Z ile geri alınamıyordu). Artık diyalog sadece seçimi
+                  topluyor; gerçek yerleştirme `PlacePipeWizardTemplateCommand` ile viewport'ta
+                  bir tıklama bekliyor ve Undo destekli.
+        */
         private void OnPipeWizard(object sender, RoutedEventArgs e)
         {
             try
             {
-                var dialog = new PipeWizardDialog(_database) { Owner = this };
+                var dialog = new PipeWizardDialog { Owner = this };
                 if (dialog.ShowDialog() == true)
                 {
-                    Viewport.InvalidateVisual();
-                    MessageBox.Show("Tesisat şablonu başarıyla yerleştirildi.", "Boru Sihirbazı");
+                    var cmd = new PlacePipeWizardTemplateCommand(
+                        _database, _history.TransactionManager, dialog.SelectedTemplateType, dialog.SelectedSystemType);
+                    cmd.OnFeedback += msg => StatusText.Text = msg;
+                    cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); Viewport.InvalidateViewport(); };
+                    Viewport.SetActiveCommand(cmd);
+                    cmd.Start();
                 }
             }
             catch (Exception ex) { MessageBox.Show($"Boru Sihirbazı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
@@ -317,6 +330,18 @@ namespace Afney.Cad.Presentation
         {
             try { new RainWaterCalcDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Yağmur Suyu Hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        /*
+           NE: Oluk/Dere Boyutlandırma (OnGutterDesign)
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): GutterDesignDialog
+                  (şehir yağış tablosu, çatı bölümü ızgarası, Manning n) tam çalışan bir
+                  ekrandı ama hiçbir ribbon/menü girişi yoktu — "hayalet özellik".
+        */
+        private void OnGutterDesign(object sender, RoutedEventArgs e)
+        {
+            try { new GutterDesignDialog() { Owner = this }.ShowDialog(); }
+            catch (Exception ex) { MessageBox.Show($"Oluk/Dere Hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void OnHeatingDesign(object sender, RoutedEventArgs e)

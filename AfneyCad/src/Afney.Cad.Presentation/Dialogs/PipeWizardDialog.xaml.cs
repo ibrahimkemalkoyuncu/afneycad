@@ -1,8 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using Afney.Cad.Database.Core;
-using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Enums;
 using Afney.Cad.Mechanical.Services;
 
@@ -10,12 +8,17 @@ namespace Afney.Cad.Presentation.Dialogs
 {
     public partial class PipeWizardDialog : Window
     {
-        private readonly CadDatabase _database;
+        // ── Sonuç ────────────────────────────────────────────────────────────────
+        // NE/NEDEN — Session #75 iş akışı denetiminde bulunan hatanın düzeltmesi: bu diyalog
+        // artık ENTITY OLUŞTURMUYOR/EKLEMİYOR (veritabanına ihtiyacı yok) — sadece kullanıcının
+        // seçtiği şablon+sistem tipini dışa açıyor. Gerçek yerleştirme (tıklama noktası +
+        // TransactionManager) PlacePipeWizardTemplateCommand'da yapılıyor (bkz. OnPipeWizard çağıran).
+        public PipeWizardService.TemplateType SelectedTemplateType { get; private set; }
+        public MechanicalSystemType SelectedSystemType { get; private set; }
 
-        public PipeWizardDialog(CadDatabase database)
+        public PipeWizardDialog()
         {
             InitializeComponent();
-            _database = database;
             LoadTemplates();
         }
 
@@ -53,7 +56,8 @@ namespace Afney.Cad.Presentation.Dialogs
                 MessageBox.Show("Lütfen bir şablon seçin.", "Uyarı"); return;
             }
 
-            var systemType = SystemTypeCombo.SelectedIndex switch
+            SelectedTemplateType = type;
+            SelectedSystemType = SystemTypeCombo.SelectedIndex switch
             {
                 0 => MechanicalSystemType.DomesticColdWater,
                 1 => MechanicalSystemType.DomesticHotWater,
@@ -61,22 +65,8 @@ namespace Afney.Cad.Presentation.Dialogs
                 _ => MechanicalSystemType.DomesticColdWater
             };
 
-            try
-            {
-                var wizard = new PipeWizardService(_database);
-                var origin = new Vector3D(0, 0, 0);
-                var riser = new Vector3D(-500, 0, 0);
-                var entities = wizard.GenerateFromTemplate(type, origin, riser, systemType);
-
-                foreach (var ent in entities) _database.AddEntity(ent);
-
-                DialogResult = true;
-                Close();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Şablon yerleştirme hatası: {ex.Message}", "Hata");
-            }
+            DialogResult = true;
+            Close();
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)

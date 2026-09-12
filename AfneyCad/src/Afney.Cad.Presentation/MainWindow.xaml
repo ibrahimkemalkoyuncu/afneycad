@@ -854,6 +854,15 @@
                                                         <TextBlock Text="Yağmur Suyu" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
+                                                <!-- NE/NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): GutterDesignDialog
+                                                     (şehir yağış tablosu, oluk/dere boyutlandırma) tam çalışıyordu ama hiçbir ribbon/menü
+                                                     girişi yoktu — kod tabanında sadece kendi dosyası çağırıyordu. -->
+                                                <Button Click="OnGutterDesign"     Style="{StaticResource RbnBtn}" Margin="2,2,0,0" ToolTip="Çatı oluğu/dere boyutlandırma">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Data="{StaticResource Ico.WaterDrop}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Oluk/Dere" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Click="OnTS825Insulation" Style="{StaticResource RbnBtn}" Margin="0,2,0,0"
