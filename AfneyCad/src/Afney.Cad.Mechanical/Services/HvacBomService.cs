@@ -183,7 +183,9 @@ public class HvacBomService
         return sb.ToString();
     }
 
-    private static double GetDuctPrice(DuctShape shape, string size)
+    // internal (private değil) — UnifiedBomService (Genel Keşif) gerçek kanal metrajını
+    // aynı fiyat formülüyle fiyatlandırmak için bu ikisini paylaşıyor (bkz. o dosyadaki not).
+    internal static double GetDuctPrice(DuctShape shape, string size)
     {
         double basePrice = shape == DuctShape.Circular ? 120.0 : 95.0;
         if (size.Contains("x"))
@@ -199,5 +201,5 @@ public class HvacBomService
         return Math.Max(basePrice, 50);
     }
 
-    private static double GetFittingPrice(string size) => GetDuctPrice(DuctShape.Rectangular, size) * 0.8;
+    internal static double GetFittingPrice(string size) => GetDuctPrice(DuctShape.Rectangular, size) * 0.8;
 }

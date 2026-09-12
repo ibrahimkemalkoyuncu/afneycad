@@ -521,7 +521,7 @@ namespace Afney.Cad.Presentation
         private void OnXrefManager(object sender, RoutedEventArgs e)
         {
             try { new XrefManagerDialog(_database) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
-            catch (Exception ex) { MessageBox.Show($"Xref Yöneticisi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+            catch (Exception ex) { MessageBox.Show($"Kat Blok Yöneticisi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         #endregion

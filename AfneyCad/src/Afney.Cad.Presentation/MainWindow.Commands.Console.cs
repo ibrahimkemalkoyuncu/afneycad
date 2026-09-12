@@ -168,6 +168,42 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        private void OnGeneralBomCommand(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var svc = new UnifiedBomService(_database);
+                var result = svc.Generate();
+
+                if (result.MechanicalItems.Count == 0 && result.ArchitecturalItems.Count == 0)
+                {
+                    MessageBox.Show("Projede metraja dahil edilecek nesne bulunamadi.", "Genel Kesif", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Genel Kesif Kaydet",
+                    Filter = "HTML (*.html)|*.html",
+                    FileName = $"Genel_Kesif_{DateTime.Now:yyyyMMdd}",
+                    DefaultExt = ".html"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    string html = svc.ExportToHtml(result, _activeContext?.ProjectName);
+                    System.IO.File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    StatusText.Text = $"Genel Kesif: {result.MechanicalItems.Count} tesisat/HVAC kalemi, {result.ArchitecturalItems.Count} mimari kalem, tahmini {result.TotalEstimatedCostTl:N0} TL";
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true }); }
+                    catch (Exception exOpen) { Serilog.Log.Warning("[Rapor] Dosya kaydedildi ama açılamadı: {File} — {Error}", dlg.FileName, exOpen.Message); }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Genel Kesif hatasi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnSelectionBomCommand(object sender, RoutedEventArgs e)
         {
             var selected = _activeContext?.SelectionManager?.GetSelectedEntities();
@@ -349,6 +385,7 @@ namespace Afney.Cad.Presentation
                     case "area": case "alan": OnSelectAreaCommand(this, new RoutedEventArgs()); break;
                     case "secimmetraj": case "selbom": case "sm": OnSelectionBomCommand(this, new RoutedEventArgs()); break;
                     case "mimaribom": case "archbom": case "mb": OnArchBomCommand(this, new RoutedEventArgs()); break;
+                    case "genelkesif": case "generalbom": case "gk": OnGeneralBomCommand(this, new RoutedEventArgs()); break;
                     case "archdetect": case "mimaritani": case "ad": OnArchDetectCommand(this, new RoutedEventArgs()); break;
                     case "autoroute": case "route": case "ar": OnAutoRouteCommand(this, new RoutedEventArgs()); break;
                     case "sartname": case "spec": case "techspec": OnTechnicalSpecCommand(this, new RoutedEventArgs()); break;

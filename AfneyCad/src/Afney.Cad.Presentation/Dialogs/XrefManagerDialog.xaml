@@ -1,7 +1,7 @@
 <Window x:Class="Afney.Cad.Presentation.Dialogs.XrefManagerDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Dış Kaynak (Xref) Yöneticisi — AfneyCAD"
+        Title="Kat Blok Yöneticisi — AfneyCAD"
         Height="500" Width="680" WindowStartupLocation="CenterOwner"
         Background="#1E1E2E" Foreground="White" ResizeMode="CanResize">
     <Window.Resources>
@@ -42,8 +42,8 @@
         <!-- Başlık -->
         <Border Grid.Row="0" Background="#0D47A1" Padding="14,10">
             <StackPanel>
-                <TextBlock Text="DIŞ KAYNAK (XREF) YÖNETİCİSİ" FontSize="14" FontWeight="Bold"/>
-                <TextBlock Text="Ekran çizimleri olarak kaydedilmiş blokları yönetin ve bağlayın" FontSize="10" Foreground="#90CAF9"/>
+                <TextBlock Text="KAT BLOK YÖNETİCİSİ" FontSize="14" FontWeight="Bold"/>
+                <TextBlock Text="Ekran çizimleri olarak kaydedilmiş blokları yönetin ve bağlayın (belge-içi blok referansı — harici dosya xref'i değil)" FontSize="10" Foreground="#90CAF9"/>
             </StackPanel>
         </Border>
 

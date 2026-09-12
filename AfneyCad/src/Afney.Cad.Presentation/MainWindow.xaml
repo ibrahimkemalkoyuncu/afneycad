@@ -1260,6 +1260,13 @@
                                                     <TextBlock Text="Metraj (BOQ)" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Click="OnGeneralBomCommand"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0"
+                                                    ToolTip="Tesisat+HVAC+Mimari nesnelerini ve boru/kanal maliyetini tek raporda birleştirir">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Genel Keşif" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <Button Click="OnGenerateLegend"         Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
@@ -1578,7 +1585,7 @@
                                             <Button Click="OnXrefManager"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Path Data="{StaticResource Ico.Link}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="Xref Yöneticisi" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Kat Blok Yöneticisi" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Click="OnLayoutSheet"      Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
