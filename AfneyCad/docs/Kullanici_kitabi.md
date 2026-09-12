@@ -3330,3 +3330,26 @@ Kullanıcı yine "sırayla tamamla" dedi — madde 65'in ardından, İş Akış�
 **Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **698/698 test başarılı**, regresyon yok (bu madde WPF diyalog etkileşimi olduğu için ayrı birim testi eklenmedi — build+manuel akış doğrulaması yapıldı).
 
 **Kalan:** Diğer HVAC ekranlarında (VAV/CAV, bobin/filtre — bilinçli kapsam dışı) benzer bir köprü yok; onlar zaten "kapsam dışı" olarak belgelenmişti. Yapısal 3 veri modeli birleştirmesi (madde 65'in kalanı) hâlâ açık.
+
+---
+
+### 67. Çok Katlı Bina Veri Modeli Birleştirmesi — Plan Modunda Ele Alındı (`commit 6b9fc49`, `b044338`, `71621b7`)
+
+Madde 65/66'nın bıraktığı tek yapısal iş — pis su/sprinkler/çok katlı bina için üç ayrı veri modelinin (`LevelManager`/`MepLevel`, `MultiStoryBuildingService`/`FloorDefinition`, `DefineBuildingDialog`/`BuildingLevelViewModel`) birleştirilmesi — kullanıcının onayladığı bir plan (Plan Mode) ile ele alındı. Kullanıcı üç karar verdi: (a) `FloorDefinition`'ı tamamen kaldırıp `MepLevel`'e tam birleştir, (b) `LevelManager`'ın kat listesine kalıcı kayıt ekle, (c) `DefineBuildingDialog`'da sadece birim hatasını düzelt + tek yönlü ön-doldurma ekle (dosya-tabanlı mimarisini birleştirmeye çalışma — işlevi gerçekten farklı).
+
+**Tur 1 — veri modeli birleştirmesi (`commit 6b9fc49`):**
+- `MepLevel`'e `FloorDefinition`'ın taşıdığı alanlar eklendi: `Id` (Guid), `Order`, `IsActive`, `EntityIds`, `RiserIds`. `Rooms`/`Entities` (canlı entity referansı taşıyan, uygulamada hiç doldurulmayan alanlar) `[JsonIgnore]` ile işaretlendi.
+- `LevelManager`: `AddLevel`/`UpdateLevel` artık `Order`'ı elevation sırasına göre yeniden numaralandırıyor; `GetActiveFloor()`/`SetActiveFloor(Guid)` eklendi.
+- `MultiStoryBuildingService` artık kendi `_floors` listesini TUTMUYOR — constructor `LevelManager` alıp doğrudan onun üzerinde okuyup yazıyor. `InitializeStandardBuilding` paylaşılan listeyi önce temizliyor (LevelManager varsayılan 4 katla geldiği için).
+- `MultiStoryManagerDialog` artık `LevelManager`'ı zorunlu parametre olarak alıyor, kendi kopyasını tutmuyor — "İçe/Dışa Aktar" butonları tamamen kaldırıldı (artık gerekmiyor, iki ekran aynı listeye bakıyor) ve `LevelTableChanged`'a abone olup başka bir yerden (LevelManagerDialog) yapılan değişiklikleri otomatik yansıtıyor.
+- `FloorDefinition` sınıfı tamamen silindi.
+
+**Tur 2 — kalıcılık (`commit b044338`):** `LevelManager`'ın kat listesi önceden hiçbir yere kaydedilmiyordu, belge kapatılınca kayboluyordu. `SheetSetPersistenceService`/`LayerStatePersistenceService` ile aynı sidecar deseninde (`"<dosya>.levels.json"`) yeni `LevelPersistenceService` eklendi, `MainWindow.FileOps.cs`'teki `SaveToFile`/dosya-açma akışına bağlandı.
+
+**Tur 3 — `DefineBuildingDialog` (`commit 71621b7`):** Gerçek birim hatası düzeltildi — `BuildingLevelViewModel.Elevation` metre tutuyordu ama `LevelFileRegistration`/`BuildingAssemblyService` mm bekliyordu, dönüşüm hiç yapılmıyordu (katlar 3000mm yerine 3mm aralıklarla neredeyse üst üste biniyordu). Sınırda (`MainWindow.Commands.Mechanical.cs`) `*1000.0` dönüşümü eklendi; dialogun kendi "Kot (m)" gösterimi bilinçli bir tercih olarak değişmedi. "Kat Yöneticisi'nden Al" butonu eklendi — canlı belgenin kat isim/kotlarını, sadece dosya atanmamış satırlara tek yönlü olarak ön-dolduruyor (canlı senkronizasyon değil — `building_def.json` birden fazla ayrı dosyayı birleştirme işlevini bilinçli olarak koruyor).
+
+**Test sayısı:** 698 → 702 (+4 yeni test, `LevelPersistenceServiceTests`).
+
+**Kapsam dışı bırakılan (bilinçli):** `AdvancedLevelService`/`MultiStoryEnhancementService`/`FloorCopyService` gibi dört ayrı "kat kopyala/taşı/basınç raporu" motorunun birleştirilmesi (ayrı, daha büyük bir refactor); `MechanicalKernel.ProjectModel.Levels` (hiç doldurulmayan, kullanılmayan beşinci bir liste — dokunulmadı); `DefineBuildingDialog`'un dosya-başına-kat mimarisinin canlı belgeyle tam birleşimi.
+
+**Doğrulama:** Her turda `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **702/702 test başarılı**, regresyon yok.
