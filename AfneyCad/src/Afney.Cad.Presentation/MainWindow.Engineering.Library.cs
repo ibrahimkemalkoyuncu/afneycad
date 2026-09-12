@@ -294,6 +294,12 @@ namespace Afney.Cad.Presentation
                     Viewport.InvalidateViewport();
                 };
 
+                dlg.OpenCalcSheetRequested += () =>
+                {
+                    dlg.Close();
+                    OnWasteWaterCalcSheet(this, new RoutedEventArgs());
+                };
+
                 dlg.ShowDialog();
             }
             catch (Exception ex) { MessageBox.Show($"Pis su hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
@@ -309,7 +315,9 @@ namespace Afney.Cad.Presentation
                 if (!string.IsNullOrWhiteSpace(filePath))
                     projectDir = System.IO.Path.GetDirectoryName(filePath);
 
-                new WasteWaterCalcSheetDialog(_database, projectDir) { Owner = this }.ShowDialog();
+                var dlg = new WasteWaterCalcSheetDialog(_database, projectDir) { Owner = this };
+                dlg.OpenDesignScreenRequested += () => OnWasteWaterDesign(this, new RoutedEventArgs());
+                dlg.ShowDialog();
             }
             catch (Exception ex) { MessageBox.Show($"Hesap Föyü hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
@@ -417,7 +425,12 @@ namespace Afney.Cad.Presentation
 
         private void OnFireFightingDesign(object sender, RoutedEventArgs e)
         {
-            try { new FireFightingDialog() { Owner = this }.ShowDialog(); }
+            try
+            {
+                var dlg = new FireFightingDialog() { Owner = this };
+                dlg.OpenSprinklerDialogRequested += () => OnSprinklerDesign(this, new RoutedEventArgs());
+                dlg.ShowDialog();
+            }
             catch (Exception ex) { MessageBox.Show($"Yangın söndürme hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

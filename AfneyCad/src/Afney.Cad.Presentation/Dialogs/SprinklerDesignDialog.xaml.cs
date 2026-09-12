@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Mechanical.Services;
@@ -74,6 +75,13 @@ public partial class SprinklerDesignDialog
         else WarnBorder.Visibility = Visibility.Collapsed;
 
         StatusText.Text = $"✓ {r.TotalSprinklerCount} sprinkler · {r.TotalDesignFlowLpd:F0} L/dak · {r.SupplyPipeSize}";
+    }
+
+    public event Action? OpenFireFightingRequested;
+    private void OpenFireFightingDialog_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+        OpenFireFightingRequested?.Invoke();
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

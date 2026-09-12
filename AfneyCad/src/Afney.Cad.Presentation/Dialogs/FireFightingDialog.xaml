@@ -448,6 +448,14 @@
                     <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            <Button Click="OpenSprinklerDialog_Click"
+                    Style="{StaticResource FfBtnGray}" Width="180" Height="32" Margin="8"
+                    ToolTip="NFPA 13 yoğunluk/alan metoduyla ayrı bir sprinkler hesap ekranı açar">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Fire}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="NFPA 13 Sprinkler Hesabı" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat" Click="Close_Click"
                     Style="{StaticResource FfBtnGray}" Width="80" Height="32" Margin="0,8,12,8"/>
         </StackPanel>

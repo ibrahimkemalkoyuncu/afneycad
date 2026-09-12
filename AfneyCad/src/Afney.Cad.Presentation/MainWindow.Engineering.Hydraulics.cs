@@ -323,7 +323,12 @@ namespace Afney.Cad.Presentation
 
         private void OnSprinklerDesign(object sender, RoutedEventArgs e)
         {
-            try { new SprinklerDesignDialog() { Owner = this }.ShowDialog(); }
+            try
+            {
+                var dlg = new SprinklerDesignDialog() { Owner = this };
+                dlg.OpenFireFightingRequested += () => OnFireFightingDesign(this, new RoutedEventArgs());
+                dlg.ShowDialog();
+            }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

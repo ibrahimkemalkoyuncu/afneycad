@@ -303,6 +303,13 @@ namespace Afney.Cad.Presentation.Dialogs
             }
         }
 
+        public event Action? OpenSprinklerDialogRequested;
+        private void OpenSprinklerDialog_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+            OpenSprinklerDialogRequested?.Invoke();
+        }
+
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
         // ── YARDIMCI ──────────────────────────────────────────────────────────

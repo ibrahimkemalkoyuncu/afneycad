@@ -21,7 +21,20 @@
         </Style>
     </Window.Resources>
 
-    <TabControl Background="#252535" Margin="8">
+    <DockPanel Margin="8">
+        <!-- NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 04):
+             Bu ekran (çizim üzerinde tasarım) ve WasteWaterCalcSheetDialog (TS EN 12056
+             hesap föyü + keşif) aynı iş akışının iki adımıydı ama aralarında hiçbir geçiş
+             yoktu — kullanıcı elle kapatıp ribbon'dan diğerini bulmak zorundaydı. -->
+        <Border DockPanel.Dock="Bottom" Background="#161625" Padding="10,8" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Hesap Föyünü Aç →" Click="OpenCalcSheet_Click" Width="160" Height="30"
+                        Background="#1565C0" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand"
+                        ToolTip="TS EN 12056 hesap föyü ve keşif listesi ekranını açar"/>
+            </StackPanel>
+        </Border>
+
+    <TabControl Background="#252535">
 
         <!-- ===== SEKME 1: KATMAN / MODÜL YÖNETİMİ ===== -->
         <TabItem Header="Katmanlar">
@@ -293,4 +306,5 @@ Kontrol edilen koşullar:
         </TabItem>
 
     </TabControl>
+    </DockPanel>
 </Window>

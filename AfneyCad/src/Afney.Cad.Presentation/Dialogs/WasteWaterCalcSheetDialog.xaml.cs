@@ -460,6 +460,16 @@ tr:nth-child(even){background:#f9f9f9}
         dialog.ShowDialog();
     }
 
+    // NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 04): Bu ekran
+    // (hesap föyü) ve WasteWaterDesignDialog (çizim üzerinde tasarım) aynı iş akışının iki
+    // adımıydı ama aralarında hiçbir geçiş yoktu.
+    public event Action? OpenDesignScreenRequested;
+    private void OpenDesignScreen_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+        OpenDesignScreenRequested?.Invoke();
+    }
+
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     // ── Helpers ───────────────────────────────────────────────────────────────

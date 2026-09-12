@@ -104,9 +104,12 @@
 
         <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#AAAACC" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+                <Button Grid.Column="1" Content="EN 12845 / Hidrant / Hortum (Yangın Sist.)" Click="OpenFireFightingDialog_Click"
+                        Background="#1565C0" Margin="0,0,8,0" Padding="8,0"
+                        ToolTip="Sprinkler+hidrant+hortum dolabı+su kaynağını TS EN 12845/671 standardıyla tasarlayan ekranı açar"/>
+                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
 

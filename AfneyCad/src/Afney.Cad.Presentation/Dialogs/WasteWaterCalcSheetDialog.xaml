@@ -586,6 +586,14 @@
                         <TextBlock Text="Çizimi Güncelle" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+                <Button Click="OpenDesignScreen_Click"
+                        Background="#1565C0" Margin="0,0,8,0"
+                        ToolTip="Çizim üzerinde tasarım (katman/yağmur alanı/kolon/çıkış noktası) ekranını açar">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.ShowerHead}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="← Tasarım Ekranı" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Content="Kapat" Click="Close_Click" Background="#444" Width="80"/>
             </StackPanel>
         </Border>

@@ -26,6 +26,9 @@ namespace Afney.Cad.Presentation.Dialogs
         public event Action? ValidateCopySelectionRequested;
         public event Action? FilterAndCopyRequested;
         public event Action? AcceptSystemRequested;
+        public event Action? OpenCalcSheetRequested;
+
+        private void OpenCalcSheet_Click(object sender, RoutedEventArgs e) => OpenCalcSheetRequested?.Invoke();
 
         public WasteWaterDesignDialog(CadDatabase database)
         {
