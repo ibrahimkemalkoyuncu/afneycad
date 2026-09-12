@@ -230,6 +230,7 @@ namespace Afney.Cad.Presentation
                 LoadLayerState(filePath);
                 LoadSheetSetState(filePath);
                 LoadLayerStatesManager(filePath);
+                LoadLevelState(filePath);
 
                 Dispatcher.Invoke(() =>
                 {
@@ -376,6 +377,7 @@ namespace Afney.Cad.Presentation
             SaveLayerState(filePath);
             SaveSheetSetState(filePath);
             SaveLayerStatesManager(filePath);
+            SaveLevelState(filePath);
         }
 
         /*
@@ -437,6 +439,33 @@ namespace Afney.Cad.Presentation
                 Afney.Cad.Mechanical.Services.LayerStatePersistenceService.Load(filePath, _activeContext.LayerStates);
             }
             catch (Exception ex) { Log.Debug("[Katman State Yöneticisi] Yüklenemedi: {Error}", ex.Message); }
+        }
+
+        /*
+           NE: Kat Yöneticisi Kalıcılığı (Save/LoadLevelState)
+           NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: LevelManager'ın kat listesi
+                  hiçbir yere kaydedilmiyordu, belge kapatılıp açıldığında kayboluyordu.
+                  SheetSetPersistenceService/LayerStatePersistenceService ile aynı sidecar
+                  deseniyle kalıcı kılınıyor.
+        */
+        private void SaveLevelState(string filePath)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                Afney.Cad.Mechanical.Services.LevelPersistenceService.Save(filePath, _activeContext.MechanicalKernel.LevelManager);
+            }
+            catch (Exception ex) { Log.Debug("[Kat Yöneticisi] Kaydedilemedi: {Error}", ex.Message); }
+        }
+
+        private void LoadLevelState(string filePath)
+        {
+            try
+            {
+                if (_activeContext == null) return;
+                Afney.Cad.Mechanical.Services.LevelPersistenceService.Load(filePath, _activeContext.MechanicalKernel.LevelManager);
+            }
+            catch (Exception ex) { Log.Debug("[Kat Yöneticisi] Yüklenemedi: {Error}", ex.Message); }
         }
 
         private void SaveLayerState(string filePath)
