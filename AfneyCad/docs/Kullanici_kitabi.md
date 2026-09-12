@@ -3293,3 +3293,26 @@ Kullanıcı "olur" diyerek devam onayı verdi — madde 63'ün bıraktığı ön
 **Kalan (hâlâ açık, daha büyük/yapısal işler):** pis su/sprinkler/çok katlı bina ikiz ekranlarının birleştirilmesi (farklı veri modelleri gerektiriyor), 4 ayrı BOM servisinin tek "Genel Keşif" raporunda toplanması, pafta setinin gerçek toplu baskı/export'a bağlanması, "Xref Manager"ın yeniden adlandırılması veya gerçek harici-dosya xref'ine dönüştürülmesi.
 
 **Doğrulama:** Her turda `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **691/691 test başarılı**, regresyon yok.
+
+---
+
+### 65. Madde 63/64'ün Kalan Öncelik Listesi Sırayla Tamamlandı
+
+Kullanıcı "Aktif Session güncelle ve github'a gönder... Bir Sonraki Session Önceliklerini sırayla tamamla" dedi — madde 64'ün "hâlâ açık" listesindeki 4 madde, listelendiği sırayla, her biri ayrı commit+build+test doğrulamasıyla ele alındı.
+
+**1) "Xref Manager" yeniden adlandırıldı (`commit 5e6da6b`):** `XrefManagerDialog` gerçek harici-dosya xref'i yapmıyordu — sadece `FloorSnapshotService` ile belge-içi blok referanslarını yönetiyordu. Yanlış beklenti yaratan isim yerine "Kat Blok Yöneticisi" kullanıldı (başlık, ribbon metni, hata mesajı, alt başlık — hepsi "belge-içi blok referansı, harici xref değil" notunu içeriyor).
+
+**2) Genel Keşif — birleşik BOM raporu (`commit 5e6da6b`):** Yeni `UnifiedBomService`, `BomService` (tesisat+HVAC, gerçek yerleştirilmiş entity sayımı) ile `ArchitecturalBomService`'i (mimari) TEK bir HTML raporda birleştiriyor. Maliyet tarafında uydurma fiyat eklenmedi — sadece halihazırda doğrulanmış iki kaynak kullanıldı: `PipeCostService.CalculateFromDatabase` (boru) ve `HvacBomService`'in artık `internal` olan kanal fiyat formülü, gerçek kanal metrajına uygulanarak. Ribbon'a "Genel Keşif" butonu + `genelkesif/generalbom/gk` komut satırı alias'ı eklendi. `SelectionBomService` bilinçli olarak dahil edilmedi — o seçili-nesne alt kümesi için ayrı bir hızlı tahmin aracı.
+
+**3) RevisionTrackingDialog "Yayınla" artık gerçek PDF üretiyor (`commit 3178e2f`):** Önceden buton sadece revizyonun durum etiketini "Yayınlandı" yapıyordu — hiçbir çıktı üretmiyordu ("pafta setinin gerçek toplu baskı/export'a bağlanması" maddesi). Artık `PdfExportService` ile çizimin PDF raporu (revizyon kodu + onaylayan/kontrol eden bilgisiyle) gerçekten üretilip açılıyor.
+
+**4) İkiz ekranlar arasında gerçek geçiş köprüleri (`commit da0c887`, `0e87da0`):**
+- `WasteWaterDesignDialog` (çizim tasarımı) ↔ `WasteWaterCalcSheetDialog` (TS EN 12056 hesap föyü/keşif): her iki ekrana da diğerini doğrudan açan bir buton eklendi.
+- `SprinklerDesignDialog` (NFPA 13 tekil sprinkler hesabı) ↔ `FireFightingDialog` (TS EN 12845/671 sprinkler+hidrant+hortum+su kaynağı): iki farklı standart/hesap motoru olduğu için tek ekranda birleştirilmedi — bunun yerine kullanıcının doğru ekranı bilinçli seçmesini sağlayan karşılıklı geçiş butonu eklendi.
+- `MultiStoryManagerDialog` (FloorDefinition) ↔ `LevelManagerDialog` (MepLevel): üçüncü model olan `DefineBuildingDialog`'u da içeren tam bir veri-modeli birleştirmesi daha büyük bir yeniden yapılandırma gerektirdiği için, bunun yerine "Kat Yöneticisi'nden İçe Aktar / Kat Yöneticisi'ne Aktar" ile isim/kot/yükseklik alanlarını iki yönlü kopyalayan gerçek bir senkronizasyon köprüsü kuruldu (`MultiStoryBuildingService.ClearFloors()` bunun için eklendi).
+
+**Test sayısı:** 691 → 698 (+7 yeni test: `UnifiedBomServiceTests` x4, `MultiStoryBuildingServiceTests`'e `ClearFloors`/`AddFloor` testleri x2 — RevisionTrackingDialog ve cross-navigation butonları WPF diyalog etkileşimi olduğu için doğrudan test edilmedi, build+manuel akış doğrulaması yapıldı).
+
+**Kalan (yapısal, tek oturumda güvenle tamamlanamayacak kadar büyük):** pis su/sprinkler/çok katlı bina için üç farklı veri modelini TEK modelde birleştirmek (şu an köprü var, birleşme yok) — bu, `LevelManager`/`MultiStoryBuildingService`/`DefineBuildingDialog`'un JSON formatının hepsinin yeniden tasarlanmasını gerektirir ve ayrı bir oturumda plan modu ile ele alınmalı.
+
+**Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **698/698 test başarılı**, regresyon yok. Her madde ayrı commit olarak push edildi (5e6da6b, 3178e2f, da0c887, 0e87da0).
