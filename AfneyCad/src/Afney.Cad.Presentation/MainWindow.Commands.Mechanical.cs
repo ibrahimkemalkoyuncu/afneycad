@@ -567,7 +567,7 @@ namespace Afney.Cad.Presentation
 
             if (!System.IO.Directory.Exists(projectPath)) System.IO.Directory.CreateDirectory(projectPath);
 
-            var dialog = new DefineBuildingDialog(projectPath);
+            var dialog = new DefineBuildingDialog(projectPath, _mechanicalKernel.LevelManager);
             dialog.Owner = this;
 
             dialog.OnLevelActivated += (filePath) =>
@@ -620,10 +620,15 @@ namespace Afney.Cad.Presentation
                     MainProgressBar.Value = 0;
                     MainProgressBar.Visibility = Visibility.Visible;
 
+                    // NE/NEDEN — GERÇEK BİRİM HATASI (Session #75 iş akışı denetiminde bulundu):
+                    // BuildingLevelViewModel.Elevation metre cinsinden tutuluyor (dialog'un
+                    // kendi "Kot (m)" gösterimiyle tutarlı), ama LevelFileRegistration/
+                    // BuildingAssemblyService dünyası mm bekliyor — dönüşüm hiç yapılmıyordu,
+                    // katlar 3.0mm gibi neredeyse üst üste biniyordu (3000mm yerine).
                     var regs = levels.Select(l => new LevelFileRegistration
                     {
                         FilePath = l.FilePath,
-                        Elevation = l.Elevation,
+                        Elevation = l.Elevation * 1000.0, // m -> mm
                         LevelName = l.LevelName
                     }).ToList();
 

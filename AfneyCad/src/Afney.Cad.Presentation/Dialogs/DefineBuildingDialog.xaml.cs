@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Mechanical.Services;
 using Microsoft.Win32;
 
 namespace Afney.Cad.Presentation.Dialogs
@@ -62,19 +63,78 @@ namespace Afney.Cad.Presentation.Dialogs
         }
         private string _projectPath;
         private string _defFile;
+        private readonly LevelManager? _levelManager;
 
         /*
            NE: DefineBuildingDialog Yapıcı Metodu
            NEDEN: Bina tanım arayüzünü yükler ve proje yolundaki kayıtlı tanımları (building_def.json) hafızaya alır.
+                  `levelManager` opsiyoneldir — verildiğinde "Kat Yöneticisi'nden Al" butonu
+                  canlı belgenin kat isim/kotlarını tek yönlü ön-doldurma için kullanabilir
+                  (bkz. ImportNamesFromLevelManager_Click).
         */
-        public DefineBuildingDialog(string? projectPath = null)
+        public DefineBuildingDialog(string? projectPath = null, LevelManager? levelManager = null)
         {
             InitializeComponent();
             _projectPath = projectPath ?? AppDomain.CurrentDomain.BaseDirectory;
             _defFile = Path.Combine(_projectPath, "building_def.json");
-            
+            _levelManager = levelManager;
+
             LevelsGrid.ItemsSource = Levels;
             LoadDefinitions();
+        }
+
+        /*
+           NE: Kat Yöneticisi'nden İsim/Kot Al (ImportNamesFromLevelManager_Click)
+           NEDEN — Session #75 iş akışı denetiminde bulunan boşluğun kapatılması: bu ekranın kat
+                  listesi (dosya-başına-kat, `building_def.json`) ile canlı belgenin kat listesi
+                  (`LevelManager`/`MepLevel`) arasında hiçbir bağlantı yoktu — kullanıcı aynı kat
+                  isimlerini/kotlarını üçüncü kez elle giriyordu. Bu TEK YÖNLÜ bir ön-doldurma —
+                  canlı senkronizasyon DEĞİL: `building_def.json` birden fazla AYRI dosyayı
+                  birleştirmeyi tanımlar, bu yüzden otomatik/sürekli senkron yanıltıcı olurdu.
+                  Sadece henüz dosya atanmamış (FilePath boş) satırlar dolduruluyor — kullanıcının
+                  zaten yapılandırdığı satırlara asla dokunulmuyor.
+        */
+        private void ImportNamesFromLevelManager_Click(object sender, RoutedEventArgs e)
+        {
+            if (_levelManager is null)
+            {
+                MessageBox.Show("Kat Yöneticisi bu belge için erişilebilir değil.", "Kat Yöneticisi'nden Al", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var sourceLevels = _levelManager.GetLevels().OrderBy(l => l.Order).ToList();
+            if (sourceLevels.Count == 0)
+            {
+                MessageBox.Show("Kat Yöneticisi'nde henüz tanımlı kat yok.", "Kat Yöneticisi'nden Al", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            int filled = 0;
+            var unassigned = Levels.Where(l => string.IsNullOrEmpty(l.FilePath)).ToList();
+
+            for (int i = 0; i < unassigned.Count && i < sourceLevels.Count; i++)
+            {
+                unassigned[i].LevelName = sourceLevels[i].Name;
+                unassigned[i].Elevation = sourceLevels[i].Elevation / 1000.0; // mm -> m (bu dialog metre kullanıyor)
+                filled++;
+            }
+
+            // Bu ekranda hiç satır yoksa veya sourceLevels daha fazlaysa, kalanlar için yeni satır ekle.
+            for (int i = unassigned.Count; i < sourceLevels.Count; i++)
+            {
+                int nextNo = Levels.Count > 0 ? Levels.Max(l => l.FloorNumber) + 1 : 0;
+                Levels.Add(new BuildingLevelViewModel
+                {
+                    FloorNumber = nextNo,
+                    LevelName = sourceLevels[i].Name,
+                    Elevation = sourceLevels[i].Elevation / 1000.0
+                });
+                filled++;
+            }
+
+            LevelsGrid.Items.Refresh();
+            SaveDefinitions();
+            FeedbackText.Text = $"• Kat Yöneticisi'nden {filled} kat için isim/kot alındı (dosya ataması yapılmadı — henüz dosya atanmış satırlara dokunulmadı).";
         }
 
         /*

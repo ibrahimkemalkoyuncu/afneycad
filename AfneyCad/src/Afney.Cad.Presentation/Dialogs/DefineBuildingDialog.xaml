@@ -81,7 +81,9 @@
         <!-- Action Buttons -->
         <Grid Grid.Row="5" Margin="0,15,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                <Button x:Name="AddFloorBtn" Content="KAT EKLE" Click="AddFloor_Click" Width="100" Background="#3E3E42" Foreground="White" BorderThickness="0" Padding="10,5"/>
+                <Button x:Name="AddFloorBtn" Content="KAT EKLE" Click="AddFloor_Click" Width="100" Background="#3E3E42" Foreground="White" BorderThickness="0" Padding="10,5" Margin="0,0,8,0"/>
+                <Button Content="KAT YÖNETİCİSİ'NDEN AL" Click="ImportNamesFromLevelManager_Click" Width="170" Background="#3E3E42" Foreground="White" BorderThickness="0" Padding="6,5"
+                        ToolTip="Dosya atanmamış satırlara, canlı belgedeki Kat Yöneticisi'nin isim/kotlarını tek yönlü olarak doldurur"/>
             </StackPanel>
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
