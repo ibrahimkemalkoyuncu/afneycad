@@ -19,7 +19,7 @@ public class MultiStoryBuildingServiceTests
     [Fact]
     public void InitializeStandardBuilding_WithBasement_ProducesCorrectFloorCountAndOrder()
     {
-        var service = new MultiStoryBuildingService(new CadDatabase());
+        var service = new MultiStoryBuildingService(new CadDatabase(), new LevelManager());
 
         var floors = service.InitializeStandardBuilding(normalFloorCount: 3, floorHeight: 3000, hasBasement: true);
 
@@ -39,7 +39,9 @@ public class MultiStoryBuildingServiceTests
     [Fact]
     public void AddFloor_OutOfOrderInsertion_ResortsAndRenumbersByElevation()
     {
-        var service = new MultiStoryBuildingService(new CadDatabase());
+        var levelManager = new LevelManager();
+        levelManager.Clear(); // LevelManager varsayılan 4 katla gelir — bu test sıfırdan başlamalı
+        var service = new MultiStoryBuildingService(new CadDatabase(), levelManager);
 
         service.AddFloor("Kat 2", elevationMm: 6000);
         service.AddFloor("Kat 1", elevationMm: 3000); // eklenme sırası ters, elevation sırası doğru olmalı
@@ -58,7 +60,7 @@ public class MultiStoryBuildingServiceTests
     [Fact]
     public void CreateRiser_ForNFloors_ProducesNMinus1PipesSpanningConsecutiveElevations()
     {
-        var service = new MultiStoryBuildingService(new CadDatabase());
+        var service = new MultiStoryBuildingService(new CadDatabase(), new LevelManager());
         service.InitializeStandardBuilding(normalFloorCount: 4, floorHeight: 3000, hasBasement: false);
         // Zemin + 4 Normal + Çatı = 6 kat → 5 riser segmenti
 
@@ -82,7 +84,7 @@ public class MultiStoryBuildingServiceTests
     [Fact]
     public void SetActiveFloor_OnlyOneFloorIsActiveAtATime()
     {
-        var service = new MultiStoryBuildingService(new CadDatabase());
+        var service = new MultiStoryBuildingService(new CadDatabase(), new LevelManager());
         var floors = service.InitializeStandardBuilding(normalFloorCount: 2, floorHeight: 3000, hasBasement: false);
 
         service.SetActiveFloor(floors[0].Id);
@@ -94,17 +96,15 @@ public class MultiStoryBuildingServiceTests
     }
 
     /*
-       NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 05):
-       ClearFloors, MultiStoryManagerDialog ile LevelManagerDialog'un (MepLevel tabanlı,
-       tamamen ayrı bir veri modeli) senkronize edilebilmesi için eklendi. Bu test yalnızca
-       ClearFloors'un gerçekten listeyi boşalttığını kilitler; UI senkronizasyon akışının
-       kendisi MultiStoryManagerDialog.ImportFromLevelManager_Click/ExportToLevelManager_Click
-       içinde (WPF diyalog, bu test projesinde doğrudan test edilmiyor).
+       NE/NEDEN: ClearFloors artık doğrudan paylaşılan LevelManager.Clear()'a delege ediyor
+       (bkz. madde 65/66 sonrası tam birleştirme — FloorDefinition kaldırıldı, MultiStoryBuildingService
+       artık kendi listesini tutmuyor). Bu test yalnızca ClearFloors'un gerçekten listeyi
+       boşalttığını kilitler.
     */
     [Fact]
     public void ClearFloors_RemovesAllFloors()
     {
-        var service = new MultiStoryBuildingService(new CadDatabase());
+        var service = new MultiStoryBuildingService(new CadDatabase(), new LevelManager());
         service.InitializeStandardBuilding(normalFloorCount: 3, floorHeight: 3000, hasBasement: true);
         Assert.NotEmpty(service.GetAllFloors());
 
@@ -116,7 +116,7 @@ public class MultiStoryBuildingServiceTests
     [Fact]
     public void AddFloor_AfterClear_RebuildsFromScratch()
     {
-        var service = new MultiStoryBuildingService(new CadDatabase());
+        var service = new MultiStoryBuildingService(new CadDatabase(), new LevelManager());
         service.InitializeStandardBuilding(normalFloorCount: 2, floorHeight: 3000, hasBasement: false);
         service.ClearFloors();
 

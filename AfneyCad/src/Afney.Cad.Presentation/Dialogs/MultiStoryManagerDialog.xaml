@@ -102,20 +102,12 @@
                 </StackPanel>
             </Button>
         </StackPanel>
-        <!-- NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu): Bu ekranın
-             kat listesi (FloorDefinition) ve Kat Yöneticisi'nin (LevelManagerDialog) kat
-             listesi (MepLevel) birbirinden tamamen habersiz iki ayrı veri modeliydi — aynı
-             binanın kat sayısı/yüksekliği iki yerde ayrı ayrı girilmek zorundaydı. -->
+        <!-- NE/NEDEN: Bu ekran artık "Kat Yöneticisi" (LevelManagerDialog) ile AYNI kat
+             listesini (LevelManager) paylaşıyor — önceden ayrı bir FloorDefinition listesi
+             tutulup elle İçe/Dışa Aktar butonlarıyla senkronize edilmesi gerekiyordu. -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="Kat Yöneticisi ile senkronizasyon:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#AAAACC" FontSize="11"/>
-            <Button Click="ImportFromLevelManager_Click" Width="190" Height="26" Background="#1565C0" Foreground="White" BorderThickness="0" Margin="0,0,8,0"
-                    ToolTip="Kat Yöneticisi'ndeki kat listesini buraya kopyalar (mevcut listenin üzerine yazar)">
-                <TextBlock Text="Kat Yöneticisi'nden İçe Aktar" FontSize="11"/>
-            </Button>
-            <Button Click="ExportToLevelManager_Click" Width="190" Height="26" Background="#1565C0" Foreground="White" BorderThickness="0"
-                    ToolTip="Buradaki kat listesini Kat Yöneticisi'ne yazar (oradaki listenin üzerine yazar)">
-                <TextBlock Text="Kat Yöneticisi'ne Aktar" FontSize="11"/>
-            </Button>
+            <TextBlock Text="Bu liste, Kat Yöneticisi (LevelManagerDialog) ile aynı kat verisini paylaşır — ayrıca senkronize etmeye gerek yok."
+                       VerticalAlignment="Center" Foreground="#AAAACC" FontSize="11" TextWrapping="Wrap"/>
         </StackPanel>
         <DataGrid Grid.Row="3" x:Name="FloorGrid" AutoGenerateColumns="False" IsReadOnly="True"
                   Background="#252535" Foreground="White" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"

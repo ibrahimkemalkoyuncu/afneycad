@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Afney.Cad.Mechanical.Models;
 
 namespace Afney.Cad.Mechanical.Services;
@@ -59,11 +60,23 @@ public class LevelManager
         }
         
         _levels.Add(level);
-        
+
         // Elevation'a göre sırala (alçaktan yükseğe)
         _levels.Sort((a, b) => a.Elevation.CompareTo(b.Elevation));
-        
+        RenumberOrder();
+
         LevelTableChanged?.Invoke();
+    }
+
+    /*
+    NE: Order Alanını Yeniden Numaralandırır
+    NEDEN — Session #75 iş akışı denetiminde birleştirilen `FloorDefinition.Order` mantığıyla
+           birebir aynı: kat listesi elevation'a göre sıralandıktan sonra 0'dan başlayarak
+           gösterim/istifleme sırası yeniden atanır.
+    */
+    private void RenumberOrder()
+    {
+        for (int i = 0; i < _levels.Count; i++) _levels[i].Order = i;
     }
     
     /*
@@ -95,9 +108,24 @@ public class LevelManager
             
             // Yeniden sırala
             _levels.Sort((a, b) => a.Elevation.CompareTo(b.Elevation));
-            
+            RenumberOrder();
+
             LevelTableChanged?.Invoke();
         }
+    }
+
+    /*
+    NE: Aktif Katı Bulur / Ayarlar (GetActiveFloor / SetActiveFloor)
+    NEDEN — Session #75 iş akışı denetiminde birleştirilen `FloorDefinition.IsActive`
+           mantığıyla birebir aynı: `MultiStoryManagerDialog`'un "çalışma katı" kavramı artık
+           doğrudan `MepLevel.IsActive` üzerinden yürüyor.
+    */
+    public MepLevel? GetActiveFloor() => _levels.FirstOrDefault(l => l.IsActive);
+
+    public void SetActiveFloor(Guid id)
+    {
+        foreach (var l in _levels) l.IsActive = l.Id == id;
+        LevelTableChanged?.Invoke();
     }
     
     /*
@@ -120,5 +148,36 @@ public class LevelManager
     {
         _levels.Clear();
         LevelTableChanged?.Invoke();
+    }
+
+    // ── Kalıcılık (LevelPersistenceService için) ─────────────────────────────
+    private class PersistedState
+    {
+        public List<MepLevel> Levels { get; set; } = [];
+    }
+
+    /// <summary>Kat listesini JSON'a dönüştürür (LevelPersistenceService sidecar dosyası için).</summary>
+    public string ToJson()
+    {
+        var state = new PersistedState { Levels = _levels };
+        return JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
+    /// Daha önce ToJson() ile üretilmiş bir durumu geri yükler. Bozuk/eksik JSON durumunda
+    /// mevcut duruma sessizce geri döner (proje dosyasının açılmasını engellemez).
+    /// </summary>
+    public void LoadFromJson(string json)
+    {
+        try
+        {
+            var state = JsonSerializer.Deserialize<PersistedState>(json);
+            if (state == null) return;
+
+            _levels.Clear();
+            _levels.AddRange(state.Levels);
+            LevelTableChanged?.Invoke();
+        }
+        catch { /* Bozuk JSON — mevcut durumla devam et */ }
     }
 }

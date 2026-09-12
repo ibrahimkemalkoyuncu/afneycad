@@ -7,6 +7,7 @@ using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Models;
 
 namespace Afney.Cad.Mechanical.Services;
 
@@ -14,21 +15,30 @@ namespace Afney.Cad.Mechanical.Services;
    NE: Çok Katlı Bina Yönetim Servisi (MultiStoryBuildingService)
    NEDEN: Birden fazla katı olan binalarda kat tanımı, katlar arası boru (kolon) bağlantısı,
           kat kopyalama ve dikey hizalama işlemlerini yönetmek için.
-   
+
    ÇALIŞMA MANTIĞI:
    1. Kat Tanımı: Her kat bir Z yüksekliği, isim ve kat planı referansı taşır
    2. Kolon Yönetimi: Dikey borular (Riser) katlar arasında otomatik bağlanır
    3. Kat Kopyalama: Bir katın tüm tesisatı (vitrifiye + boru) başka bir kata kopyalanır
    4. Yükseklik Farkı: Basınç kaybı hesabında statik yükseklik farkı otomatik dahil edilir
+
+   NE/NEDEN — Session #75 iş akışı denetiminde bulunan veri-modeli parçalanmasının kapatılması:
+          Bu servis önceden kendi özel `FloorDefinition` listesini tutuyordu — `LevelManager`'ın
+          (LevelManagerDialog/RiserEngine'in "canonical" kabul ettiği) `MepLevel` listesinden
+          tamamen habersizdi. İki liste arasında manuel bir "İçe/Dışa Aktar" köprüsü vardı ama bu
+          gerçek bir birleşme değildi. Artık bu servis kendi `_floors` listesini TUTMUYOR — doğrudan
+          paylaşılan `LevelManager` üzerinde okuyup yazıyor. `FloorDefinition` sınıfı kaldırıldı;
+          onun taşıdığı Id/Order/IsActive/EntityIds/RiserIds alanları `MepLevel`'e taşındı.
 */
 public class MultiStoryBuildingService
 {
     private readonly CadDatabase _database;
-    private readonly List<FloorDefinition> _floors = new();
+    private readonly LevelManager _levelManager;
 
-    public MultiStoryBuildingService(CadDatabase database)
+    public MultiStoryBuildingService(CadDatabase database, LevelManager levelManager)
     {
         _database = database;
+        _levelManager = levelManager;
     }
 
     // --- KAT TANIMI ---
@@ -37,30 +47,26 @@ public class MultiStoryBuildingService
        NE: Yeni Kat Ekle (AddFloor)
        NEDEN: Bina kat planını tanımlamak ve Z koordinat yönetimini merkezi yapmak.
     */
-    public FloorDefinition AddFloor(string name, double elevationMm, double heightMm = 3000, int? order = null)
+    public MepLevel AddFloor(string name, double elevationMm, double heightMm = 3000, int? order = null)
     {
-        var floor = new FloorDefinition
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            Elevation = elevationMm,
-            Height = heightMm,
-            Order = order ?? _floors.Count,
-            IsActive = false
-        };
-        _floors.Add(floor);
-        _floors.Sort((a, b) => a.Elevation.CompareTo(b.Elevation));
-        // Order'ı yeniden numarala
-        for (int i = 0; i < _floors.Count; i++) _floors[i].Order = i;
+        var floor = new MepLevel(name, elevationMm, heightMm);
+        if (order.HasValue) floor.Order = order.Value;
+        _levelManager.AddLevel(floor); // AddLevel zaten elevation'a göre sıralayıp Order'ı yeniden numaralandırıyor
         return floor;
     }
 
     /*
        NE: Standart Kat Yapısı Oluştur (InitializeStandardBuilding)
        NEDEN: Tipik bir konut binası için Bodrum + Zemin + Normal Katlar + Çatı yapısını otomatik oluşturmak.
+       NOT: Paylaşılan LevelManager varsayılan katlarla (4 adet) gelir — bu metod her zaman
+            sıfırdan bir bina kurduğu için önce mevcut kat listesini temizler (eskiden
+            MultiStoryBuildingService her diyalog açılışında boş bir `_floors` ile başladığından
+            bu, önceki davranışın gerçek karşılığıdır).
     */
-    public List<FloorDefinition> InitializeStandardBuilding(int normalFloorCount, double floorHeight = 3000, bool hasBasement = true)
+    public List<MepLevel> InitializeStandardBuilding(int normalFloorCount, double floorHeight = 3000, bool hasBasement = true)
     {
+        _levelManager.Clear();
+
         double currentElevation = 0;
 
         if (hasBasement)
@@ -81,30 +87,19 @@ public class MultiStoryBuildingService
 
         AddFloor("Çatı Katı", currentElevation, floorHeight * 0.5);
 
-        return _floors.ToList();
+        return GetAllFloors();
     }
 
-    public List<FloorDefinition> GetAllFloors() => _floors.OrderBy(f => f.Order).ToList();
+    public List<MepLevel> GetAllFloors() => _levelManager.GetLevels().OrderBy(f => f.Order).ToList();
 
-    /*
-       NE: Kat Listesini Temizle (ClearFloors)
-       NEDEN: LevelManager (MepLevel tabanlı) ile senkronizasyon için — bkz.
-              MultiStoryManagerDialog.ImportFromLevelManager_Click. Entity/riser atamaları
-              korunmaz; bu yalnızca kat-tanımı (isim/kot/yükseklik) senkronizasyonu içindir.
-    */
-    public void ClearFloors() => _floors.Clear();
+    public void ClearFloors() => _levelManager.Clear();
 
-    public FloorDefinition? GetFloorByName(string name) =>
-        _floors.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    public MepLevel? GetFloorByName(string name) =>
+        _levelManager.GetLevels().FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-    public FloorDefinition? GetActiveFloor() => _floors.FirstOrDefault(f => f.IsActive);
+    public MepLevel? GetActiveFloor() => _levelManager.GetActiveFloor();
 
-    public void SetActiveFloor(Guid floorId)
-    {
-        foreach (var f in _floors) f.IsActive = false;
-        var floor = _floors.FirstOrDefault(f => f.Id == floorId);
-        if (floor != null) floor.IsActive = true;
-    }
+    public void SetActiveFloor(Guid floorId) => _levelManager.SetActiveFloor(floorId);
 
     // --- KOLON YÖNETİMİ ---
 
@@ -116,7 +111,7 @@ public class MultiStoryBuildingService
         string? fromFloor = null, string? toFloor = null)
     {
         var pipes = new List<PipeEntity>();
-        var sortedFloors = _floors.OrderBy(f => f.Elevation).ToList();
+        var sortedFloors = _levelManager.GetLevels().OrderBy(f => f.Elevation).ToList();
 
         int startIdx = 0;
         int endIdx = sortedFloors.Count - 1;
@@ -157,7 +152,7 @@ public class MultiStoryBuildingService
     /*
        NE: Katı Kopyala (CopyFloorPlumbing)
        NEDEN: Tip katı tanımlanmış bir binada, aynı tesisat düzenini diğer katlara çoğaltmak.
-       
+
        PARAMETRELER:
        - sourceFloorId: Kaynak kat
        - targetFloorId: Hedef kat
@@ -165,8 +160,9 @@ public class MultiStoryBuildingService
     */
     public int CopyFloorPlumbing(Guid sourceFloorId, Guid targetFloorId)
     {
-        var source = _floors.FirstOrDefault(f => f.Id == sourceFloorId);
-        var target = _floors.FirstOrDefault(f => f.Id == targetFloorId);
+        var levels = _levelManager.GetLevels();
+        var source = levels.FirstOrDefault(f => f.Id == sourceFloorId);
+        var target = levels.FirstOrDefault(f => f.Id == targetFloorId);
         if (source == null || target == null) return 0;
 
         double deltaZ = target.Elevation - source.Elevation;
@@ -216,8 +212,9 @@ public class MultiStoryBuildingService
     */
     public double GetTotalBuildingHeight()
     {
-        if (!_floors.Any()) return 0;
-        return (_floors.Max(f => f.Elevation + f.Height) - _floors.Min(f => f.Elevation)) / 1000.0;
+        var levels = _levelManager.GetLevels();
+        if (!levels.Any()) return 0;
+        return (levels.Max(f => f.Elevation + f.Height) - levels.Min(f => f.Elevation)) / 1000.0;
     }
 
     // --- YARDIMCI ---
@@ -275,18 +272,4 @@ public class MultiStoryBuildingService
         }
         return null;
     }
-}
-
-// --- KAT VERİ MODELİ ---
-
-public class FloorDefinition
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = "";
-    public double Elevation { get; set; }       // Kat yüksekliği (mm cinsinden, 0 = Zemin)
-    public double Height { get; set; }          // Kat brüt yüksekliği (mm)
-    public int Order { get; set; }              // Sıra numarası (0 = en alt)
-    public bool IsActive { get; set; }          // Aktif çalışma katı
-    public List<Guid> EntityIds { get; set; } = new();  // Bu kattaki entity ID'leri
-    public List<Guid> RiserIds { get; set; } = new();   // Bu kattan geçen kolon ID'leri
 }
