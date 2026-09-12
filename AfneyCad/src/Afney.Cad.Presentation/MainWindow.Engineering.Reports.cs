@@ -926,7 +926,7 @@ namespace Afney.Cad.Presentation
                 var svc = _activeContext.Revisions;
                 if (string.IsNullOrWhiteSpace(svc.TitleBlock.ProjectName))
                     svc.TitleBlock.ProjectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
-                new RevisionTrackingDialog(svc) { Owner = this }.ShowDialog();
+                new RevisionTrackingDialog(svc, _database) { Owner = this }.ShowDialog();
             }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }

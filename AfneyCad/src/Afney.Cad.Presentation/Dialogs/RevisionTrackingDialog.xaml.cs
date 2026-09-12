@@ -5,18 +5,29 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Services;
+using Afney.Cad.Presentation.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
 
 public partial class RevisionTrackingDialog
 {
     private readonly RevisionTrackingService _svc;
+    private readonly CadDatabase? _database;
 
-    public RevisionTrackingDialog(RevisionTrackingService service)
+    /*
+       NE: database parametresi (opsiyonel)
+       NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu): "Yayınla" butonu
+              sadece revizyonun durum etiketini "Yayınlandı" yapıyordu — hiçbir gerçek
+              çıktı (PDF/baskı) üretmiyordu. database verildiğinde Yayınla artık gerçekten
+              PdfExportService ile çizimin PDF çıktısını üretip açıyor.
+    */
+    public RevisionTrackingDialog(RevisionTrackingService service, CadDatabase? database = null)
     {
         InitializeComponent();
         _svc = service;
+        _database = database;
 
         foreach (var r in RevisionTrackingService.StandardChangeReasons)
             CboReason.Items.Add(new ComboBoxItem { Content = r });
@@ -117,8 +128,44 @@ public partial class RevisionTrackingDialog
     // ── Durum Değiştirme ─────────────────────────────────────────────────────────
 
     private void Approve_Click(object sender, RoutedEventArgs e) => ChangeStatus(RevisionTrackingService.RevisionStatus.Onaylandı);
-    private void Publish_Click(object sender, RoutedEventArgs e) => ChangeStatus(RevisionTrackingService.RevisionStatus.Yayınlandı);
     private void Cancel_Click(object sender, RoutedEventArgs e)  => ChangeStatus(RevisionTrackingService.RevisionStatus.İptal);
+
+    private void Publish_Click(object sender, RoutedEventArgs e)
+    {
+        if (RevGrid.SelectedItem is not RevisionTrackingService.RevisionEntry rev) return;
+        ChangeStatus(RevisionTrackingService.RevisionStatus.Yayınlandı);
+
+        if (_database is null)
+        {
+            StatusText.Text += " (PDF üretilmedi — belge bağlantısı yok)";
+            return;
+        }
+
+        try
+        {
+            SaveTitleBlock();
+            var tb = _svc.TitleBlock;
+            var pdfTb = new PdfExportService.TitleBlockInfo
+            {
+                ProjeAdi        = tb.ProjectName,
+                ProjeNo         = tb.ProjectNumber,
+                FirmaAdi        = tb.CompanyName,
+                MuhendisAdi     = tb.ResponsibleEng,
+                Revizyon        = $"Rev.{rev.RevCode}",
+                Tarih           = DateTime.Now.ToString("dd.MM.yyyy"),
+                OnayCizdiren    = rev.Engineer,
+                OnayKontrolEden = rev.Checker
+            };
+
+            string path = new PdfExportService(_database).ExportReport(tb.ProjectName, pdfTb);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+            StatusText.Text = $"✓ Rev.{rev.RevCode} yayınlandı ve PDF olarak dışa aktarıldı: {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"✓ Rev.{rev.RevCode} yayınlandı ama PDF üretilemedi: {ex.Message}";
+        }
+    }
 
     private void ChangeStatus(RevisionTrackingService.RevisionStatus status)
     {
