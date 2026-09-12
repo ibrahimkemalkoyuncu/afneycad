@@ -73,6 +73,11 @@
                         <TextBox x:Name="TxtElbowCount" Text="3" Width="40"/>
                         <TextBlock Text="  Susturucu Ek Kaybı (dB):" Margin="12,0,8,0"/>
                         <TextBox x:Name="TxtSilencerLoss" Text="0" Width="50"/>
+                        <!-- NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu):
+                             Bu kutuya değer girmenin tek yolu elle yazmaktı — SilencerSelectionDialog'da
+                             bulunan bir susturucunun kritik bant ekleme kaybını buraya taşımanın
+                             hiçbir yolu yoktu. -->
+                        <Button Content="Susturucu Seç..." Click="PickSilencer_Click" Margin="8,0,0,0" Padding="6,2"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Terminal Hızı (m/s):" Margin="0,0,8,0"/>

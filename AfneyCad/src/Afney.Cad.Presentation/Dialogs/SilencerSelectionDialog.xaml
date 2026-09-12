@@ -49,7 +49,11 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="TxtStatus" Grid.Column="0" Text="" Foreground="#77AA77" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Seç ve Akustiğe Uygula" Width="170" Click="SelectAndClose_Click" Background="#1565C0" Margin="0,0,6,0"
+                            ToolTip="Seçilen susturucunun kritik bant ekleme kaybını AcousticAnalysisDialog'a aktarır"/>
+                    <Button Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+                </StackPanel>
             </Grid>
         </Border>
 

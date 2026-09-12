@@ -15,6 +15,22 @@ public partial class AcousticAnalysisDialog
         InitializeComponent();
     }
 
+    /*
+       NE: Susturucu Seç (PickSilencer_Click)
+       NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu): `ApplyToNoiseBudget`
+              servis metodu ve SilencerSelectionDialog ayrı ayrı vardı ama aralarında UI
+              bağlantısı yoktu — kullanıcı SilencerSelectionDialog'da bir model seçse bile
+              o modelin kritik bant IL değerini burada elle yeniden yazmak zorundaydı.
+    */
+    private void PickSilencer_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SilencerSelectionDialog { Owner = this };
+        if (dlg.ShowDialog() == true && dlg.SelectedInsertionLossDb.HasValue)
+        {
+            TxtSilencerLoss.Text = dlg.SelectedInsertionLossDb.Value.ToString("F0", CultureInfo.InvariantCulture);
+        }
+    }
+
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
         try

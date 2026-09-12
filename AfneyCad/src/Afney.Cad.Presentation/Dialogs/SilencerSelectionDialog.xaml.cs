@@ -13,14 +13,30 @@ namespace Afney.Cad.Presentation.Dialogs;
    NE: Susturucu Seçim Dialogu (SilencerSelectionDialog)
    NEDEN: SilencerSelectionService bir "seçim/hesap" servisidir (entity değil) — kanal ağına
           bir CAD elemanı olarak yerleştirilmez (Draw() override'ı yok, MechanicalEntity/
-          CadEntity türevi değil). Denetim raporu bu servisin Presentation katmanından hiç
-          erişilemediğini bulmuştu; bu basit dialog debi + hedef ekleme kaybı (Insertion Loss)
+          CadEntity türevi değil). Bu basit dialog debi + hedef ekleme kaybı (Insertion Loss)
           girilerek uygun susturucuyu FindSilencers/BestSilencer ile listeler — ValveLibraryDialog
-          ile aynı görsel dilde ama CAD'e ekleme adımı yok (servis kendisi bir çizim nesnesi
-          üretmiyor).
+          ile aynı görsel dilde.
+          Session #75 iş akışı denetiminde bulunan boşluk: "Seç ve Akustiğe Uygula" butonu
+          eklenmeden önce bu ekranın seçim sonucunu dışarı açan hiçbir yolu yoktu —
+          AcousticAnalysisDialog'daki TxtSilencerLoss kutusuna kullanıcı elle bir sayı
+          yazmak zorundaydı. Artık `SelectedInsertionLossDb`/`SelectedModelName` sonucu
+          gerçek bir "seç ve kapat" akışıyla (FanSelectionDialog ile aynı desen) dışa açılıyor.
 */
 public partial class SilencerSelectionDialog : Window
 {
+    /*
+       NE: Seçim Sonucu (SelectedInsertionLossDb / SelectedModelName)
+       NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu): Bu ekranın kod içi
+              kendi yorumu bile "servis kendisi bir çizim nesnesi üretmiyor" diyerek CAD'e
+              bağlanmadığını itiraf ediyordu. `ApplyToNoiseBudget` servis metodu zaten
+              vardı ama hiçbir UI onu çağırmıyordu — AcousticAnalysisDialog'daki
+              TxtSilencerLoss kutusuna kullanıcı elle bir sayı yazmak zorundaydı. Artık bu
+              ekran gerçek bir "seç ve kapat" akışı sunuyor; çağıran (AcousticAnalysisDialog)
+              seçilen susturucunun kritik bant ekleme kaybını otomatik okuyup uyguluyor.
+    */
+    public double? SelectedInsertionLossDb { get; private set; }
+    public string? SelectedModelName { get; private set; }
+
     public SilencerSelectionDialog()
     {
         InitializeComponent();
@@ -66,6 +82,20 @@ public partial class SilencerSelectionDialog : Window
             $"Oktav Bant Ekleme Kaybı (IL): {string.Join("  ", bands)}\n" +
             $"Kritik Bant ({row.Result.CriticalBandHz} Hz) IL: {row.Result.InsertionLossAtCriticalBandDb:F0} dB   " +
             $"Debi Marjı: %{row.Result.FlowMarginPct:F0}   Fiyat: {s.PriceEur:F0} EUR";
+    }
+
+    private void SelectAndClose_Click(object sender, RoutedEventArgs e)
+    {
+        if (ResultGrid.SelectedItem is not SilencerRowVm row)
+        {
+            TxtStatus.Text = "⚠ Lütfen bir susturucu seçin.";
+            return;
+        }
+
+        SelectedInsertionLossDb = row.Result.InsertionLossAtCriticalBandDb;
+        SelectedModelName = $"{row.Result.Silencer.Manufacturer} {row.Result.Silencer.ModelName}";
+        DialogResult = true;
+        Close();
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

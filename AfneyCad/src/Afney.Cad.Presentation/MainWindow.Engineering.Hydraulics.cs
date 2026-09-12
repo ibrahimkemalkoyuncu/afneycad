@@ -276,9 +276,36 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"Maliyet analizi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        /*
+           NE: Fan Seçimi (OnFanSelection)
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Diyalog
+                  `SelectAndClose_Click`'te `SelectedFan`'ı gerçekten dolduruyordu ama bu
+                  metod `.ShowDialog()`'un sonucunu hiç okumuyordu — kullanıcı bir fan seçse
+                  bile hiçbir yere kaydedilmiyordu, "ölü uç" bir seçimdi. Artık TS825InsulationDialog
+                  ile aynı desende, seçilen fanın özeti çizime (metin olarak) ekleniyor.
+        */
         private void OnFanSelection(object sender, RoutedEventArgs e)
         {
-            try { new FanSelectionDialog() { Owner = this }.ShowDialog(); }
+            try
+            {
+                var dialog = new FanSelectionDialog { Owner = this };
+                if (dialog.ShowDialog() == true && dialog.SelectedFan != null)
+                {
+                    var f = dialog.SelectedFan;
+                    string txt = $"Fan Seçimi — {f.ModelName} ({f.Manufacturer} {f.Series})  " +
+                                 $"Q={f.MaxFlowM3h:F0} m³/h  ΔP={f.MaxPressurePa:F0} Pa  " +
+                                 $"P={f.PowerKw:F3} kW  Verim={f.EfficiencyPct:F0}%  Gürültü={f.NoiseDB:F0} dB(A)";
+
+                    var te = new Afney.Cad.Domain.Entities.Basic.TextEntity(txt, new Vector3D(0, 0, 0), 200)
+                    {
+                        Color = 0xFF90CAF9,
+                        Layer = "FAN_SECIMI"
+                    };
+                    _history.TransactionManager.Submit(new AddEntityOperation(_database, te));
+                    Viewport.InvalidateViewport();
+                    StatusText.Text = $"Fan seçimi çizime eklendi: {f.ModelName}";
+                }
+            }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
