@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 using System.Windows;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Models;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs
@@ -11,12 +13,63 @@ namespace Afney.Cad.Presentation.Dialogs
     {
         private readonly CadDatabase _database;
         private readonly MultiStoryBuildingService _buildingService;
+        private readonly LevelManager? _levelManager;
 
-        public MultiStoryManagerDialog(CadDatabase database)
+        public MultiStoryManagerDialog(CadDatabase database, LevelManager? levelManager = null)
         {
             InitializeComponent();
             _database = database;
             _buildingService = new MultiStoryBuildingService(database);
+            _levelManager = levelManager;
+        }
+
+        /*
+           NE: Kat Yöneticisi (LevelManager) ile senkronizasyon
+           NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 05): Bu
+                  ekranın kat listesi (FloorDefinition/mm) ve LevelManagerDialog'un kat
+                  listesi (MepLevel/mm) tamamen ayrı, birbirinden habersiz veri modelleriydi.
+                  Tam bir veri-modeli birleştirmesi (üçüncü bir model olan DefineBuildingDialog
+                  ile birlikte) daha büyük bir yeniden yapılandırma gerektirir — bu yüzden
+                  burada güvenli, gerçek bir çift yönlü senkronizasyon köprüsü kuruldu: isim/
+                  kot/yükseklik alanları kopyalanıyor (entity/riser atamaları korunmuyor,
+                  onlar zaten iki modelde de farklı anlam taşıyor).
+        */
+        private void ImportFromLevelManager_Click(object sender, RoutedEventArgs e)
+        {
+            if (_levelManager is null)
+            {
+                MessageBox.Show("Kat Yöneticisi bu belge için erişilebilir değil.", "Senkronizasyon", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _buildingService.ClearFloors();
+            foreach (var level in _levelManager.GetLevels())
+                _buildingService.AddFloor(level.Name, level.Elevation, level.Height);
+
+            RefreshGrid();
+            InfoText.Text = $"Kat Yöneticisi'nden {_levelManager.GetLevels().Count} kat içe aktarıldı.";
+        }
+
+        private void ExportToLevelManager_Click(object sender, RoutedEventArgs e)
+        {
+            if (_levelManager is null)
+            {
+                MessageBox.Show("Kat Yöneticisi bu belge için erişilebilir değil.", "Senkronizasyon", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var floors = _buildingService.GetAllFloors();
+            if (floors.Count == 0)
+            {
+                MessageBox.Show("Aktarılacak kat yok — önce 'Standart Bina Oluştur' ile kat listesi oluşturun.", "Senkronizasyon", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _levelManager.Clear();
+            foreach (var floor in floors.OrderBy(f => f.Order))
+                _levelManager.AddLevel(new MepLevel(floor.Name, floor.Elevation, floor.Height));
+
+            InfoText.Text = $"{floors.Count} kat Kat Yöneticisi'ne aktarıldı.";
         }
 
         private void CreateBuilding_Click(object sender, RoutedEventArgs e)

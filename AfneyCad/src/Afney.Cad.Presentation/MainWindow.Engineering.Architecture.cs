@@ -125,7 +125,7 @@ namespace Afney.Cad.Presentation
 
         private void OnMultiStoryManager(object sender, RoutedEventArgs e)
         {
-            try { new MultiStoryManagerDialog(_database) { Owner = this }.ShowDialog(); }
+            try { new MultiStoryManagerDialog(_database, _mechanicalKernel.LevelManager) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Çok katlı bina hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

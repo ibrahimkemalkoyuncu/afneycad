@@ -82,6 +82,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -101,7 +102,22 @@
                 </StackPanel>
             </Button>
         </StackPanel>
-        <DataGrid Grid.Row="2" x:Name="FloorGrid" AutoGenerateColumns="False" IsReadOnly="True"
+        <!-- NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu): Bu ekranın
+             kat listesi (FloorDefinition) ve Kat Yöneticisi'nin (LevelManagerDialog) kat
+             listesi (MepLevel) birbirinden tamamen habersiz iki ayrı veri modeliydi — aynı
+             binanın kat sayısı/yüksekliği iki yerde ayrı ayrı girilmek zorundaydı. -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Kat Yöneticisi ile senkronizasyon:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#AAAACC" FontSize="11"/>
+            <Button Click="ImportFromLevelManager_Click" Width="190" Height="26" Background="#1565C0" Foreground="White" BorderThickness="0" Margin="0,0,8,0"
+                    ToolTip="Kat Yöneticisi'ndeki kat listesini buraya kopyalar (mevcut listenin üzerine yazar)">
+                <TextBlock Text="Kat Yöneticisi'nden İçe Aktar" FontSize="11"/>
+            </Button>
+            <Button Click="ExportToLevelManager_Click" Width="190" Height="26" Background="#1565C0" Foreground="White" BorderThickness="0"
+                    ToolTip="Buradaki kat listesini Kat Yöneticisi'ne yazar (oradaki listenin üzerine yazar)">
+                <TextBlock Text="Kat Yöneticisi'ne Aktar" FontSize="11"/>
+            </Button>
+        </StackPanel>
+        <DataGrid Grid.Row="3" x:Name="FloorGrid" AutoGenerateColumns="False" IsReadOnly="True"
                   Background="#252535" Foreground="White" RowBackground="#2A2A3A" AlternatingRowBackground="#1E1E2E"
                   BorderBrush="#555" GridLinesVisibility="All" CanUserSortColumns="True"
                   ColumnHeaderHeight="32" RowHeight="26">
@@ -192,7 +208,7 @@
                 </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-        <StackPanel Grid.Row="3" Margin="0,10">
+        <StackPanel Grid.Row="4" Margin="0,10">
             <!-- Kat kopyalama -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                 <TextBlock Text="Hedef Kat:" VerticalAlignment="Center" Foreground="#AAA" Margin="0,0,6,0"/>
@@ -239,6 +255,6 @@
                 <TextBlock x:Name="InfoText" Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
             </StackPanel>
         </StackPanel>
-        <Button Grid.Row="4" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+        <Button Grid.Row="5" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
     </Grid>
 </Window>

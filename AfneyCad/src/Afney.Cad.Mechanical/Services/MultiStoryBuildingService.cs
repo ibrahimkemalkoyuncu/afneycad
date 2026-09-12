@@ -86,6 +86,14 @@ public class MultiStoryBuildingService
 
     public List<FloorDefinition> GetAllFloors() => _floors.OrderBy(f => f.Order).ToList();
 
+    /*
+       NE: Kat Listesini Temizle (ClearFloors)
+       NEDEN: LevelManager (MepLevel tabanlı) ile senkronizasyon için — bkz.
+              MultiStoryManagerDialog.ImportFromLevelManager_Click. Entity/riser atamaları
+              korunmaz; bu yalnızca kat-tanımı (isim/kot/yükseklik) senkronizasyonu içindir.
+    */
+    public void ClearFloors() => _floors.Clear();
+
     public FloorDefinition? GetFloorByName(string name) =>
         _floors.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 

@@ -92,4 +92,40 @@ public class MultiStoryBuildingServiceTests
         Assert.Equal(floors[2].Id, service.GetActiveFloor()!.Id);
         Assert.All(service.GetAllFloors(), f => Assert.Equal(f.Id == floors[2].Id, f.IsActive));
     }
+
+    /*
+       NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 05):
+       ClearFloors, MultiStoryManagerDialog ile LevelManagerDialog'un (MepLevel tabanlı,
+       tamamen ayrı bir veri modeli) senkronize edilebilmesi için eklendi. Bu test yalnızca
+       ClearFloors'un gerçekten listeyi boşalttığını kilitler; UI senkronizasyon akışının
+       kendisi MultiStoryManagerDialog.ImportFromLevelManager_Click/ExportToLevelManager_Click
+       içinde (WPF diyalog, bu test projesinde doğrudan test edilmiyor).
+    */
+    [Fact]
+    public void ClearFloors_RemovesAllFloors()
+    {
+        var service = new MultiStoryBuildingService(new CadDatabase());
+        service.InitializeStandardBuilding(normalFloorCount: 3, floorHeight: 3000, hasBasement: true);
+        Assert.NotEmpty(service.GetAllFloors());
+
+        service.ClearFloors();
+
+        Assert.Empty(service.GetAllFloors());
+    }
+
+    [Fact]
+    public void AddFloor_AfterClear_RebuildsFromScratch()
+    {
+        var service = new MultiStoryBuildingService(new CadDatabase());
+        service.InitializeStandardBuilding(normalFloorCount: 2, floorHeight: 3000, hasBasement: false);
+        service.ClearFloors();
+
+        service.AddFloor("Zemin Kat", 0, 3000);
+        service.AddFloor("1. Kat", 3000, 3000);
+
+        var floors = service.GetAllFloors();
+        Assert.Equal(2, floors.Count);
+        Assert.Equal("Zemin Kat", floors[0].Name);
+        Assert.Equal("1. Kat", floors[1].Name);
+    }
 }
