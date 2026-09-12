@@ -3250,3 +3250,22 @@ Kullanıcı "kalan bu 2 maddeyi de tamamla" dedi — madde 61'in bıraktığı s
 **Sonuç:** Session #71'de başlayan "AfneyCAD × FineSANI" denetim serüveninin TÜM somut, kod-çözülebilir maddeleri artık kapalı. Kalan tek kategori (çoklu-kullanıcı/mobil) kullanıcının kendi kararıyla, altyapı gerektirdiği için bilinçli ertelenmiş durumda.
 
 **Doğrulama:** `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **683/683 test başarılı**, regresyon yok.
+
+---
+
+### 63. İş Akışı Denetimi — 5 Paralel Modül Denetimi ve En Kritik 6 Bulgunun Düzeltilmesi
+Kullanıcı "AfneyCad'i daha iyi analiz etmeni, iş akışlarını/süreçlerini değerlendirmeni, tüm modülleri/ekranları/alt ekranları/özellikleri FineSANI ile karşılaştırmanı" istedi — önceki denetimlerden farklı olarak bu kez "kodda var mı" değil "kullanıcı gerçekte ne tıklıyor" sorusu soruldu. 5 paralel ajan (Tesisat, HVAC, Çizim/CAD/3D/BIM, Mimari/Mahal/Metraj/Raporlama, Proje Yönetimi/UX) 96 diyalog ekranının TAMAMINI kod üzerinden tek tek inceleyip FineSANI/FineHVAC/4MCAD ile web araştırmasıyla karşılaştırdı. Sonuç: [İş Akışı Denetimi](https://claude.ai/code/artifact/1e75e9d1-00af-406b-bf58-8d946acc5c97) (ayrı rapor, eski koda-göre-doğrulanan "AfneyCAD × FineSANI" raporundan bağlantılı).
+
+**Bulunan hata sınıfları:** hayalet ekranlar (`GutterDesignDialog`, `BlockNameDialog`, `MahalInfoDialog`, `BOMDialog` — hiçbir yerden çağrılmıyor), sahte/simüle işlevler (kullanıcıyı aktif olarak yanıltan), iş akışı parçalanması (aynı işi yapan 2-4 habersiz ikiz ekran), ve "hesapla ama çizime hiç yazma" deseni (neredeyse tüm hesap ekranlarında).
+
+**Kullanıcının seçtiği en kritik 6 bulgu düzeltildi (`commit 2c9cd23`):**
+1. **`NewProjectWizardDialog`** artık girdiyi çöpe atmıyor — `OnNewProjectWizard` gerçekten yeni MDI belgesi açıyor, `ProjectMetadata`'yı dolduruyor, seçilen şablonun kat sayısı/yüksekliğiyle gerçek bir `LevelManager` kat listesi oluşturuyor.
+2. **`BuildingPropertiesDialog`** artık hiçbir şeyi sessizce kaybetmiyor — alanlara `x:Name` eklendi, `ProjectMetadata`'ya Address/City/GroundElevationM eklenip dialog gerçekten okuyup yazıyor.
+3. **`DefineBuildingDialog`**'daki kod içinde "(Simulation)" diye işaretli WBlock/Stack gerçek işlemlere dönüştürüldü: `WBlock_Click` artık dosyayı gerçekten okuyup bounding box'a göre (0,0)'a taşıyor ve kaydediyor; `BuildingAssemblyService.AutoConnectCrossLevelRisers` artık gerçek bağlantı sayısını döndürüyor, `Stack_Click` bu sayı gelene kadar (asenkron iş bitene kadar) "hizalandı" iddia etmiyor — eskiden iş daha başlamadan başarı mesajı gösteriliyordu.
+4. Ribbon'daki **"Aç"** butonu artık zengin `DwgImportDialog`'u (ölçek algılama, katman seçimi) kullanıyor.
+5. **CSG Boolean** (BOX/UNION/SUBTRACT/INTERSECT) ve **FILLET/CHAMFER** için ribbon butonları eklendi — motor tam çalışıyordu ama sadece komut satırından erişilebiliyordu (FILLET/CHAMFER'ın da hiç ribbon butonu olmadığı bu düzeltme sırasında ayrıca keşfedildi).
+6. **`RouteDuctCommand`** artık çizime başlamadan önce boyut soruyor (GxY veya D) — eskiden her zaman sabit 400x300/D315 varsayılanına düşüyordu.
+
+**Kalan (bir sonraki tur için, İş Akışı Denetimi raporunda ayrıntılı):** pis su/sprinkler/çok katlı bina ikiz ekranlarının birleştirilmesi, 4 ayrı BOM servisinin tek keşif raporunda toplanması, HVAC donanımının (kanal/damper/terminal) BOM'a eklenmesi, `FanSelectionDialog`'un seçiminin bir yere bağlanması, susturucu→akustik UI köprüsü, "Xref Manager"ın yeniden adlandırılması veya gerçek xref'e dönüştürülmesi.
+
+**Doğrulama:** `dotnet build -c Release` (0 hata) + `dotnet test -c Release --no-build`. **683/683 test başarılı**, regresyon yok.
