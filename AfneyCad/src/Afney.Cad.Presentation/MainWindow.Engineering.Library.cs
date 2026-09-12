@@ -435,9 +435,61 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        /*
+           NE: Yeni Proje Sihirbazını Uygula (OnNewProjectWizard)
+           NEDEN — GERÇEK HATA (denetim raporunda "kullanıcının girdiği HER ŞEYİ siliyor"
+                  olarak işaretlenmişti): Bu metod önceden sadece `.ShowDialog()` çağırıp
+                  sonucu hiç okumuyordu — "✅ Proje Oluştur"a basınca ne yeni bir belge
+                  açılıyordu ne şablon verisi (kat sayısı, kat yüksekliği, proje bilgileri)
+                  hiçbir yere işleniyordu. Diyaloğun kendisi (`NewProjectWizardDialog.xaml.cs`)
+                  zaten `DialogResult=true` ile ProjectName/Floors/FloorHeightM/SelectedTemplate
+                  gibi gerçek sonuç özelliklerini dolduruyordu — eksik olan tek şey çağıranın
+                  bunları okuyup kullanmasıydı. Artık `OnNewProject`'teki (bkz. MainWindow.FileOps.cs)
+                  aynı desenle yeni bir MDI belgesi açılıyor, proje metadata'sı
+                  (firma/mühendis/bina tipi) kernel'e yazılıyor ve şablon seçildiyse
+                  Floors/FloorHeightM ile gerçek bir kat listesi (LevelManager) oluşturuluyor.
+        */
         private void OnNewProjectWizard(object sender, RoutedEventArgs e)
         {
-            try { new NewProjectWizardDialog() { Owner = this }.ShowDialog(); }
+            try
+            {
+                var dialog = new NewProjectWizardDialog { Owner = this };
+                if (dialog.ShowDialog() != true) return;
+
+                string projectName = string.IsNullOrWhiteSpace(dialog.ProjectName) ? "Yeni Proje" : dialog.ProjectName;
+                CreateNewDocument(projectName);
+
+                if (_activeContext?.MechanicalKernel != null)
+                {
+                    var metadata = _activeContext.MechanicalKernel.Metadata;
+                    metadata.ProjectName = projectName;
+                    if (!string.IsNullOrWhiteSpace(dialog.CompanyName)) metadata.CompanyName = dialog.CompanyName;
+                    if (!string.IsNullOrWhiteSpace(dialog.EngineerName)) metadata.DesignerName = dialog.EngineerName;
+
+                    // Kat sayısı/yüksekliği (sihirbazın kendi girdisi veya şablonun varsayılanı)
+                    // — LevelManager, LevelManagerDialog/RiserEngine'in de kullandığı KANONİK
+                    // kat modeli (bkz. denetim raporu madde: "çok katlı bina 3 ayrı veri modeline
+                    // bölünmüş" — bu düzeltme en azından sihirbazı o üçünden DOĞRU olanına bağlıyor).
+                    var levelManager = _activeContext.MechanicalKernel.LevelManager;
+                    levelManager.Clear();
+                    double heightMm = dialog.FloorHeightM > 0 ? dialog.FloorHeightM * 1000.0 : 3000.0;
+                    int floorCount = Math.Max(1, dialog.Floors);
+                    double elevation = 0;
+                    for (int i = 0; i < floorCount; i++)
+                    {
+                        string name = i == 0 ? "Zemin Kat" : $"{i}. Kat";
+                        levelManager.AddLevel(new MepLevel(name, elevation, heightMm));
+                        elevation += heightMm;
+                    }
+                }
+
+                string templateNote = dialog.SelectedTemplate != null
+                    ? $" — şablon: {dialog.SelectedTemplate.Name} ({dialog.Floors} kat)"
+                    : $" — boş proje ({dialog.Floors} kat)";
+                StatusText.Text = $"Yeni proje oluşturuldu: {projectName}{templateNote}";
+                Log.Information("Yeni proje sihirbazı: {ProjectName}, {Floors} kat, şablon={Template}",
+                    projectName, dialog.Floors, dialog.SelectedTemplate?.Name ?? "(yok)");
+            }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

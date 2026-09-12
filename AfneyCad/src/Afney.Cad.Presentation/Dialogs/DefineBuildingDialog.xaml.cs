@@ -33,6 +33,33 @@ namespace Afney.Cad.Presentation.Dialogs
         public ObservableCollection<BuildingLevelViewModel> Levels { get; set; } = new ObservableCollection<BuildingLevelViewModel>();
         public event Action<string>? OnLevelActivated;
         public event Action<List<BuildingLevelViewModel>>? OnShow3D;
+
+        /*
+           NE: Montaj Tamamlanma Bildirimi (ReportAssemblyCompleted)
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): `Stack_Click`
+                  önceden `OnShow3D`'yi (asenkron, fire-and-forget) tetikleyip HEMEN ARDINDAN,
+                  gerçek montaj işi arka planda daha BAŞLAMADAN/BİTMEDEN, tüm normalize
+                  katları "hizalandı" işaretleyip başarı mesajı gösteriyordu. Artık bu metod
+                  çağıranın (MainWindow) gerçek montaj tamamlandığında GERÇEK kolon bağlantı
+                  sayısıyla çağırması için dışa açık — sadece o zaman durum güncellenir.
+        */
+        public void ReportAssemblyCompleted(int connectedRiserCount)
+        {
+            foreach (var l in Levels) l.IsAligned = l.IsNormalized && connectedRiserCount > 0;
+            LevelsGrid.Items.Refresh();
+            SaveDefinitions();
+
+            FeedbackText.Text = connectedRiserCount > 0
+                ? $"• Montaj tamamlandı: {connectedRiserCount} kolon bağlantısı gerçekten kuruldu."
+                : "• Montaj tamamlandı ama hiçbir kolon eşleşmedi (katlar arası dikey boru bulunamadı) — hizalama yapılmadı.";
+
+            MessageBox.Show(
+                connectedRiserCount > 0
+                    ? $"Bina montajı tamamlandı.\n{connectedRiserCount} kolon bağlantısı kuruldu."
+                    : "Bina montajı tamamlandı ama hiçbir kolon bağlantısı bulunamadı.\nKatlar arası dikey boru (riser) çizili mi kontrol edin.",
+                "Montaj Motoru", MessageBoxButton.OK,
+                connectedRiserCount > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
         private string _projectPath;
         private string _defFile;
 
@@ -135,7 +162,14 @@ namespace Afney.Cad.Presentation.Dialogs
 
         /*
            NE: WBlock Normalizasyonu (WBlock_Click)
-           NEDEN: Seçilen mimari kat dosyasını, dikey hizalama için (0,0,0) referans noktasına göre hazırlamak için.
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Bu metod kod içinde
+                  "(Simulation)" diye işaretliydi — dosyayı hiç açmadan, hiçbir gerçek geometrik
+                  işlem yapmadan `IsNormalized=true` set edip "tamamlandı" diyordu. Artık dosya
+                  gerçekten okunuyor (`CadSerializer`), tüm entity'lerin ortak bounding box'ının
+                  XY min köşesi hesaplanıp entity'ler (0,0,z) taban noktasına göre GERÇEKTEN
+                  taşınıyor ve dosya bu haliyle geri yazılıyor — FineSANI Blueprint'in kendi
+                  tarif ettiği "Translate(Floor, -Origin) -> MasterOrigin(0,0,0)" işlemi artık
+                  gerçekten uygulanıyor, sadece bir bayrak çevrilmiyor.
         */
         private void WBlock_Click(object sender, RoutedEventArgs e)
         {
@@ -147,18 +181,67 @@ namespace Afney.Cad.Presentation.Dialogs
                     return;
                 }
 
-                // --- BLOCK NORMALIZATION ENGINE (Simulation) ---
-                // FineSANI Blueprint: Translate(Floor, -Origin) -> MasterOrigin(0,0,0)
-                level.IsNormalized = true;
-                FeedbackText.Text = $"• {level.LevelName} normalizasyonu tamamlandı (Base Point: 0,0,0).";
-                LevelsGrid.Items.Refresh();
-                SaveDefinitions();
+                try
+                {
+                    if (!File.Exists(level.FilePath))
+                    {
+                        MessageBox.Show($"Dosya bulunamadı: {level.FilePath}");
+                        return;
+                    }
+
+                    var serializer = new Afney.Cad.Database.Persistence.CadSerializer();
+                    var data = serializer.Deserialize(File.ReadAllText(level.FilePath));
+                    if (data?.Entities == null || data.Entities.Count == 0)
+                    {
+                        MessageBox.Show("Dosyada normalize edilecek nesne bulunamadı.");
+                        return;
+                    }
+
+                    // Ortak bounding box'ın XY min köşesini bul.
+                    double minX = double.MaxValue, minY = double.MaxValue;
+                    foreach (var ent in data.Entities)
+                    {
+                        var bb = ent.GetBoundingBox();
+                        minX = Math.Min(minX, bb.Min.X);
+                        minY = Math.Min(minY, bb.Min.Y);
+                    }
+
+                    if (Math.Abs(minX) < 0.5 && Math.Abs(minY) < 0.5)
+                    {
+                        level.IsNormalized = true;
+                        FeedbackText.Text = $"• {level.LevelName} zaten (0,0) taban noktasında — taşımaya gerek yok.";
+                    }
+                    else
+                    {
+                        var translate = Afney.Cad.Geometry.Primitives.Matrix4x4.TranslationMatrix(-minX, -minY, 0);
+                        foreach (var ent in data.Entities)
+                            ent.Transform(translate);
+
+                        File.WriteAllText(level.FilePath, serializer.Serialize(data));
+                        level.IsNormalized = true;
+                        FeedbackText.Text = $"• {level.LevelName} normalize edildi: ({minX:F0},{minY:F0}) → (0,0) taşındı, dosyaya kaydedildi.";
+                    }
+
+                    LevelsGrid.Items.Refresh();
+                    SaveDefinitions();
+                }
+                catch (Exception ex)
+                {
+                    level.IsNormalized = false;
+                    MessageBox.Show($"Normalizasyon hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
         /*
            NE: Katları Üst Üste Diz (Stack_Click)
-           NEDEN: Tanımlanan tüm katları Z-kotlarına göre birleştirerek binanın 3D montajını gerçekleştirmek için.
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Bu metod, `OnShow3D`
+                  (gerçek montajı arka planda asenkron yapan) event'ini tetikledikten HEMEN
+                  SONRA — o iş daha bitmeden, hatta başlamadan — tüm katları "hizalandı" işaretleyip
+                  "başarıyla tamamlandı" mesajı gösteriyordu. Artık burada sadece montaj
+                  BAŞLATILIYOR; gerçek durum güncellemesi ve başarı/uyarı mesajı, işlem
+                  gerçekten bitince `ReportAssemblyCompleted`'da (MainWindow tarafından, gerçek
+                  kolon bağlantı sayısıyla) veriliyor.
         */
         private void Stack_Click(object sender, RoutedEventArgs e)
         {
@@ -168,16 +251,8 @@ namespace Afney.Cad.Presentation.Dialogs
                 return;
             }
 
-            // --- ASSEMBLY ENGINE ---
-            FeedbackText.Text = "• Bina montajı yapılıyor. Katlar Z-kotuna göre dizelecek...";
+            FeedbackText.Text = "• Bina montajı başlatıldı. Katlar Z-kotuna göre diziliyor, lütfen bekleyin...";
             OnShow3D?.Invoke(Levels.Where(l => !string.IsNullOrEmpty(l.FilePath)).ToList());
-            
-            // Kolon hizalaması yapıldığını varsayıyoruz (Simulation)
-            foreach(var l in Levels) if (l.IsNormalized) l.IsAligned = true;
-            LevelsGrid.Items.Refresh();
-
-            MessageBox.Show("Bina stack işlemi başarıyla tamamlandı.\nKolonlar otomatik hizalandı.", "Montaj Motoru", MessageBoxButton.OK, MessageBoxImage.Information);
-            SaveDefinitions();
         }
 
     /*

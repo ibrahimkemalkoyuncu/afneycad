@@ -33,10 +33,20 @@ public class BuildingAssemblyService
        NE: Bina Modelini Oluştur (AssembleBuilding)
        AMACI: Kat planlarını baz alarak 3D bütünsel tesisat ağını kurar.
     */
-    public void AssembleBuilding(IEnumerable<LevelFileRegistration> registrations)
+    /*
+       NE: Bina Montajı — Geri Dönüş Değeri (GERÇEK Hizalama Sayısı)
+       NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Bu metod önceden `void`
+              dönüyordu ve çağıran taraf (DefineBuildingDialog.Stack_Click) montajın gerçekten
+              kaç kolonu hizaladığını hiç bilmeden, işlem daha ASENKRON OLARAK BİLE BİTMEDEN
+              (fire-and-forget event) "Kolonlar otomatik hizalandı" diye başarı mesajı
+              gösteriyordu. Artık `AutoConnectCrossLevelRisers`'ın gerçekten bulduğu/hizaladığı
+              kolon sayısı geri döndürülüyor — çağıran taraf artık gerçek bir sayıya göre
+              (0 ise "hiçbir kolon eşleşmedi" uyarısı, >0 ise gerçek sayı) rapor verebiliyor.
+    */
+    public int AssembleBuilding(IEnumerable<LevelFileRegistration> registrations)
     {
         Log.Information(">>> BİNA MONTAJI BAŞLATILDI: Katlar üst üste dizelecek.");
-        
+
         _database.Clear(); // Master dosyayı hazırla
         _kernel.TopologyGraph.Clear();
 
@@ -46,9 +56,10 @@ public class BuildingAssemblyService
         }
 
         // EN KRİTİK ADIM: Katlar arası kolonları bağla
-        AutoConnectCrossLevelRisers();
-        
-        Log.Information(">>> BİNA MONTAJI TAMAMLANDI: Kolonlar otomatik hizalandı.");
+        int connectedCount = AutoConnectCrossLevelRisers();
+
+        Log.Information(">>> BİNA MONTAJI TAMAMLANDI: {Count} kolon bağlantısı kuruldu.", connectedCount);
+        return connectedCount;
     }
 
     private void LoadAndTransformLevel(LevelFileRegistration reg)
@@ -83,13 +94,14 @@ public class BuildingAssemblyService
        3. Aynı XY koordinatındaki (Farklı Z) uçları birleştir.
        4. EĞER: Koordinatlar arasında ufak kaçıklık varsa (Offset), alt katı referans alıp üst katı milimetrik olarak "HİZALA" (Snap to Master).
     */
-    public void AutoConnectCrossLevelRisers()
+    public int AutoConnectCrossLevelRisers()
     {
         var pipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
         var verticalPipes = pipes.Where(p => IsVertical(p)).OrderBy(p => p.StartPoint.Z).ToList();
-        
+
         const double xyTolerance = 50.0; // 5cm kaçıklık payı (AutoCAD standartlarında kabul edilebilir)
         int fixCount = 0;
+        int connectedCount = 0;
 
         for (int i = 0; i < verticalPipes.Count; i++)
         {
@@ -99,7 +111,7 @@ public class BuildingAssemblyService
                 var pUpper = verticalPipes[j]; // Üst Kat Kolonu
 
                 // XY Pozisyon kontrolü (Üst katın alt ucu ile alt katın üst ucu arasındaki mesafe)
-                double distXY = Math.Sqrt(Math.Pow(pBase.EndPoint.X - pUpper.StartPoint.X, 2) + 
+                double distXY = Math.Sqrt(Math.Pow(pBase.EndPoint.X - pUpper.StartPoint.X, 2) +
                                           Math.Pow(pBase.EndPoint.Y - pUpper.StartPoint.Y, 2));
 
                 if (distXY < xyTolerance) // Ufak bir kaçıklık var ama bunlar aslında aynı kolon!
@@ -114,25 +126,28 @@ public class BuildingAssemblyService
                         // Şimdilik sadece kolonu hizalayalım (MEP Accuracy)
                         pUpper.StartPoint = new Vector3D(pBase.EndPoint.X, pBase.EndPoint.Y, pUpper.StartPoint.Z);
                         pUpper.EndPoint = new Vector3D(pBase.EndPoint.X, pBase.EndPoint.Y, pUpper.EndPoint.Z);
-                        
+
                         fixCount++;
                     }
 
                     // Topolojik Bağlantı Kur
-                    TryConnectPipes(pBase, pUpper);
+                    connectedCount += TryConnectPipes(pBase, pUpper);
                 }
             }
         }
-        
+
         if (fixCount > 0)
             Log.Information(">>> RISER ALIGNMENT: {Count} adet kolon dikey eksende milimetrik olarak hizalandı.", fixCount);
+
+        return connectedCount;
     }
 
-    private void TryConnectPipes(PipeEntity pBase, PipeEntity pUpper)
+    private int TryConnectPipes(PipeEntity pBase, PipeEntity pUpper)
     {
         // En yakın uçları (Ports) bul ve topolojiye işle
         var portsBase = pBase.GetPorts();
         var portsUpper = pUpper.GetPorts();
+        int count = 0;
 
         foreach (var prt1 in portsBase)
         {
@@ -140,14 +155,17 @@ public class BuildingAssemblyService
             {
                 // Z mesafesi (Kat geçiş toleransı)
                 double distZ = Math.Abs(prt1.Position.Z - prt2.Position.Z);
-                
+
                 if (distZ < 500.0) // 50cm mesafe içindeyse (Döşeme kalınlığı vb)
                 {
                     _kernel.TopologyGraph.Connect(prt1, prt2);
                     Log.Debug("Kolon Sürekliliği Sağlandı: {B} -> {U} (Kot Farkı: {Z}mm)", pBase.Id, pUpper.Id, distZ);
+                    count++;
                 }
             }
         }
+
+        return count;
     }
 
     private bool IsVertical(PipeEntity pipe)

@@ -164,9 +164,14 @@ namespace Afney.Cad.Presentation
 
         private void OnBuildingProperties(object sender, RoutedEventArgs e)
         {
-            var dialog = new BuildingPropertiesDialog();
-            dialog.Owner = this;
-            dialog.ShowDialog();
+            if (_activeContext?.MechanicalKernel == null) return;
+
+            var metadata = _activeContext.MechanicalKernel.Metadata;
+            var dialog = new BuildingPropertiesDialog(metadata) { Owner = this };
+            if (dialog.ShowDialog() == true)
+            {
+                StatusText.Text = $"Bina özellikleri kaydedildi: {metadata.ProjectName} ({metadata.City})";
+            }
         }
 
         private void OnPumpSelection(object sender, RoutedEventArgs e)

@@ -23,7 +23,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="Proje Adı:" VerticalAlignment="Center" Foreground="#CCC"/>
-            <TextBox Grid.Column="1" Margin="5" Padding="5" Text="Yeni Proje"/>
+            <TextBox x:Name="TxtProjectName" Grid.Column="1" Margin="5" Padding="5" Text="Yeni Proje"/>
         </Grid>
 
         <Grid Grid.Row="2" Margin="0,5">
@@ -32,7 +32,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="Adres:" VerticalAlignment="Center" Foreground="#CCC"/>
-            <TextBox Grid.Column="1" Margin="5" Padding="5"/>
+            <TextBox x:Name="TxtAddress" Grid.Column="1" Margin="5" Padding="5"/>
         </Grid>
 
          <Grid Grid.Row="3" Margin="0,5">
@@ -41,7 +41,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="Şehir:" VerticalAlignment="Center" Foreground="#CCC"/>
-            <ComboBox Grid.Column="1" Margin="5" Padding="5" SelectedIndex="0">
+            <ComboBox x:Name="CboCity" Grid.Column="1" Margin="5" Padding="5" SelectedIndex="0">
                 <ComboBoxItem Content="İstanbul"/>
                 <ComboBoxItem Content="Ankara"/>
                 <ComboBoxItem Content="İzmir"/>
@@ -55,7 +55,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="Zemin Kotu (m):" VerticalAlignment="Center" Foreground="#CCC"/>
-            <TextBox Grid.Column="1" Margin="5" Padding="5" Text="0.00"/>
+            <TextBox x:Name="TxtGroundElevation" Grid.Column="1" Margin="5" Padding="5" Text="0.00"/>
         </Grid>
 
         <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">

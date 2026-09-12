@@ -940,7 +940,7 @@
                                                             <TextBlock Text="Buda (TR)" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
-                                                    <Button Content="↔ Uzat (EX)"   Click="OnExtendCommand"  Style="{StaticResource RbnMedGreen}" Margin="0,2,0,0"/>
+                                    <Button Content="↔ Uzat (EX)"   Click="OnExtendCommand"  Style="{StaticResource RbnMedGreen}" Margin="0,2,0,0"/>
                                                     <Button Content="⟺ Ayna (MI)"  Click="OnMirrorCommand"  Style="{StaticResource RbnMedOrange}" Margin="0,2,0,0"/>
                                                     <Button Click="OnExplodeCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0">
                                                         <StackPanel Orientation="Horizontal">
@@ -948,9 +948,65 @@
                                                             <TextBlock Text="Patlat (X)" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
+                                                    <!-- NE/NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): FilletCommand/
+                                                         ChamferCommand hiçbir ribbon butonuna sahip değildi, sadece komut satırından
+                                                         ("fillet"/"chamfer" yazarak) erişilebiliyordu. -->
+                                                    <Button Click="OnFilletCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Kavisli birleştirme (FILLET)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Kavisle Birleştir (F)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnChamferCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Pah kırma (CHAMFER)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Pah Kır (CHA)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Text="Yardımcı Çizim" Foreground="#6B6F88" FontSize="10"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Katı Modelleme (CSG Boolean) -->
+                                    <!-- NE/NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): B-Rep CSG
+                                         motoru (SolidBoxCommand/SolidUnionCommand/SolidSubtractCommand/SolidIntersectCommand)
+                                         tam çalışıyordu ama hiçbir ribbon butonu yoktu — sadece "box"/"union"/"subtract"/
+                                         "intersect" komutlarını ezbere bilen kullanıcılar bulabiliyordu. -->
+                                    <Border Margin="0,0,2,0" Padding="6,0,6,4"
+                                            BorderBrush="#252836" BorderThickness="0,0,1,0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <StackPanel Margin="0,8,0,0">
+                                                    <Button Click="OnSolidBoxCommand" Style="{StaticResource RbnBtn}" ToolTip="Katı kutu oluştur (BOX)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Katı Kutu (BOX)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnSolidUnionCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Katıları birleştir (UNION)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Birleştir (UNION)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnSolidSubtractCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Katıdan çıkar (SUBTRACT)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Çıkar (SUBTRACT)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Click="OnSolidIntersectCommand" Style="{StaticResource RbnBtn}" Margin="0,2,0,0" ToolTip="Kesişimi al (INTERSECT)">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.CubeOutline}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Kesiştir (INTERSECT)" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <TextBlock Text="Katı Modelleme" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>

@@ -48,24 +48,46 @@ namespace Afney.Cad.Presentation
             Process.Start(Environment.ProcessPath!);
         }
 
+        /*
+           NE: Dosya Aç (OnOpenFile)
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Bu buton önceden
+                  çıplak bir `OpenFileDialog` açıp doğrudan `LoadDwgInternal`'e gidiyordu —
+                  ölçek algılama, katman bazlı seçim, outlier/kısa-çizgi temizleme gibi
+                  zengin seçenekler sunan `DwgImportDialog` sadece komut satırından
+                  ("dwgimport" yazarak) erişilebiliyordu; görünür "Aç" butonuna tıklayan
+                  hiçbir kullanıcı bu ekranı hiç görmüyordu. Artık "Aç" da aynı zengin
+                  diyaloğu kullanıyor — dosya seçimi/analiz/katman filtresi/ölçek orada
+                  yapılıyor, sonuç yeni bir MDI sekmesine yükleniyor.
+        */
         private void OnOpenFile(object sender, RoutedEventArgs e)
         {
-            Log.Information("Dosya açma diyaloğu açılıyor...");
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Autocad DWG (*.dwg)|*.dwg|Autocad DXF (*.dxf)|*.dxf|Tüm Dosyalar (*.*)|*.*",
-                Title = "AfneyCAD - Proje Aç"
-            };
+            Log.Information("DWG/DXF içe aktarma diyaloğu açılıyor...");
+            var dlg = new DwgImportDialog { Owner = this };
+            if (dlg.ShowDialog() != true || dlg.ImportedEntities == null || string.IsNullOrEmpty(dlg.SelectedFilePath))
+                return;
 
-            if (openFileDialog.ShowDialog() == true)
-            {
-                var info = new FileInfo(openFileDialog.FileName);
-                string name = Path.GetFileNameWithoutExtension(info.Name);
+            var info = new FileInfo(dlg.SelectedFilePath);
+            string name = Path.GetFileNameWithoutExtension(info.Name);
 
-                CreateNewDocument(name, info.FullName);
-                LoadDwgInternal(openFileDialog.FileName);
-                _recentFiles.AddFile(info.FullName);
+            CreateNewDocument(name, info.FullName);
+
+            foreach (var ent in dlg.ImportedEntities)
+                _database.AddEntity(ent);
+
+            var layerGroups = dlg.ImportedEntities.Where(ent => ent.Layer != null).GroupBy(ent => ent.Layer);
+            foreach (var group in layerGroups)
+            {
+                if (_database.GetLayer(group.Key!) == null)
+                {
+                    uint layerColor = group.GroupBy(ent => ent.Color).OrderByDescending(g => g.Count()).First().Key;
+                    _database.AddLayer(new Afney.Cad.Domain.Tables.CadLayer(group.Key!) { Color = layerColor });
+                }
             }
+
+            Viewport.InvalidateViewport();
+            Viewport.ZoomExtents();
+            StatusText.Text = $"Açıldı: {dlg.ImportedEntities.Count:N0} nesne yüklendi.";
+            _recentFiles.AddFile(info.FullName);
         }
 
         private async void LoadDwgInternal(string filePath)

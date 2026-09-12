@@ -102,9 +102,58 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        /*
+           NE: Kanal Çiz (OnRouteDuctCommand)
+           NEDEN — GERÇEK HATA (Session #75 iş akışı denetiminde bulundu): Bu metod
+                  `RouteDuctCommand`'ı HİÇBİR boyut parametresi vermeden oluşturuyordu — komut
+                  her zaman sabit varsayılana (400x300 dikdörtgen) düşüyordu. Kullanıcının
+                  `HvacDesignDialog`'da hesapladığı çap/kesit hiçbir zaman buraya ulaşamıyordu
+                  ve manuel olarak farklı bir boyut girmenin de yolu yoktu. Artık çizime
+                  başlamadan önce boyut soruluyor (dikdörtgen "GxY" veya dairesel tek sayı "D")
+                  — hesap ekranından okunan bir değeri buraya elle girmek artık en azından
+                  MÜMKÜN; tam otomatik köprü (hesap sonucunun doğrudan burayı doldurması)
+                  ayrı, daha büyük bir iş olarak kalıyor.
+        */
         private void OnRouteDuctCommand(object sender, RoutedEventArgs e)
         {
-            var cmd = new RouteDuctCommand(_database, _history.TransactionManager);
+            var dlg = new InputDialog(
+                "KANAL Boyutu", "Dikdörtgen: GenişlikxYükseklik (ör. 400x300) — Dairesel: tek sayı (ör. 315)", "400x300")
+            { Owner = this };
+            if (dlg.ShowDialog() != true) return;
+
+            string text = dlg.InputText.Trim().ToLowerInvariant();
+            DuctShape shape;
+            double width = 400, height = 300, diameter = 315;
+
+            if (text.Contains('x'))
+            {
+                var parts = text.Split('x');
+                if (parts.Length == 2
+                    && double.TryParse(parts[0].Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double w)
+                    && double.TryParse(parts[1].Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double h)
+                    && w > 0 && h > 0)
+                {
+                    width = w; height = h;
+                    shape = DuctShape.Rectangular;
+                }
+                else
+                {
+                    MessageBox.Show("Geçersiz boyut. Örnek: 400x300", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            else if (double.TryParse(text.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double d) && d > 0)
+            {
+                diameter = d;
+                shape = DuctShape.Circular;
+            }
+            else
+            {
+                MessageBox.Show("Geçersiz boyut. Örnek: 400x300 (dikdörtgen) veya 315 (dairesel)", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var cmd = new RouteDuctCommand(_database, _history.TransactionManager, shape, DuctType.Supply, width, height, diameter);
             cmd.OnFeedback  += msg => StatusText.Text = msg;
             cmd.OnCompleted += () => Viewport.SetActiveCommand(null);
             Viewport.SetActiveCommand(cmd);
@@ -584,11 +633,12 @@ namespace Afney.Cad.Presentation
                         StatusText.Text = $"Bina montajı: %{p.Percent} — {p.Stage}";
                     });
 
-                    await System.Threading.Tasks.Task.Run(() =>
+                    int connectedRiserCount = await System.Threading.Tasks.Task.Run(() =>
                     {
                         var assemblyService = new BuildingAssemblyService(_database, _mechanicalKernel);
-                        assemblyService.AssembleBuilding(regs);
+                        int count = assemblyService.AssembleBuilding(regs);
                         _mechanicalKernel.RecalculateProject(_database.GetAllEntities(), progress);
+                        return count;
                     });
 
                     Viewport.SetViewMode(true);
@@ -596,6 +646,7 @@ namespace Afney.Cad.Presentation
                     Viewport.ZoomExtents();
 
                     StatusText.Text = "3D Bina Modeli ve Tesisat Ağı Oluşturuldu.";
+                    dialog.ReportAssemblyCompleted(connectedRiserCount);
                 }
                 catch (Exception ex)
                 {
