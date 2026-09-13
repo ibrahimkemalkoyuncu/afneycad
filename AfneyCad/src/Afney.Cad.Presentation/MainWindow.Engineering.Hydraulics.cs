@@ -266,7 +266,7 @@ namespace Afney.Cad.Presentation
 
         private void OnPressureZoneDesign(object sender, RoutedEventArgs e)
         {
-            try { new PressureZoneDialog() { Owner = this }.ShowDialog(); }
+            try { new PressureZoneDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Basınç bölgesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

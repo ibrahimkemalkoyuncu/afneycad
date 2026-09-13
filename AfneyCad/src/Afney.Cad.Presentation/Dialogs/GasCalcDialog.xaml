@@ -125,11 +125,14 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="TxtStatus" Grid.Column="0" Text="Hazır" Foreground="#99BBDD" VerticalAlignment="Center" TextWrapping="Wrap"/>
                 <Button Grid.Column="1" Content="HTML Rapor" Width="100" Margin="6,0,0,0" Click="ExportHtml_Click" Background="#1B5E20"/>
-                <Button Grid.Column="2" Content="Hesapla" Width="90" Margin="6,0,0,0" Click="Calculate_Click"/>
-                <Button Grid.Column="3" Content="Kapat"   Width="80" Margin="6,0,0,0" Click="Close_Click" Background="#333"/>
+                <Button Grid.Column="2" Content="Çizime Ekle" Width="100" Margin="6,0,0,0" Click="AddToDrawing_Click" Background="#1565C0"
+                        ToolTip="Doğalgaz hesap özetini çizime metin olarak ekler"/>
+                <Button Grid.Column="3" Content="Hesapla" Width="90" Margin="6,0,0,0" Click="Calculate_Click"/>
+                <Button Grid.Column="4" Content="Kapat"   Width="80" Margin="6,0,0,0" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
 

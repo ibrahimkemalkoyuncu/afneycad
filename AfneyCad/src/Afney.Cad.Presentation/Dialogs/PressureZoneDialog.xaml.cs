@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs
@@ -10,11 +13,13 @@ namespace Afney.Cad.Presentation.Dialogs
     public partial class PressureZoneDialog : Window
     {
         private readonly PressureZoneService _svc = new();
+        private readonly CadDatabase? _database;
         private PressureZoneService.PressureZoneDesignResult? _lastResult;
 
-        public PressureZoneDialog()
+        public PressureZoneDialog(CadDatabase? database = null)
         {
             InitializeComponent();
+            _database = database;
         }
 
         private void Calculate_Click(object sender, RoutedEventArgs e)
@@ -63,6 +68,35 @@ namespace Afney.Cad.Presentation.Dialogs
             {
                 MessageBox.Show($"Rapor hatası: {ex.Message}", "Hata");
             }
+        }
+
+        /*
+           NE: Çizime Ekle (AddToDrawing_Click)
+           NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+                  hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+        */
+        private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+        {
+            if (_lastResult is null) { Calculate_Click(sender, e); if (_lastResult is null) return; }
+            if (_database is null)
+            {
+                MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var r = _lastResult;
+            string txt = $"Basınç Bölgesi — Toplam Bölge={r.TotalZones}, PRV Sayısı={r.PrvCount}, " +
+                         $"Maks. Statik Basınç={r.MaxStaticPressureKPa:F0} kPa" +
+                         (r.BoosterPumpRequired ? $", Güçlendirme Pompası Gerekli (Hm≥{r.BoosterPumpHeadMSS:F0} mSS)" : "");
+
+            var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+            {
+                Color = 0xFF90CAF9,
+                Layer = "BASINC_BOLGESI_HESAP"
+            };
+            _database.AddEntity(te);
+            MessageBox.Show("Basınç bölgesi özeti çizime eklendi (katman: BASINC_BOLGESI_HESAP, konum: 0,0).",
+                "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();

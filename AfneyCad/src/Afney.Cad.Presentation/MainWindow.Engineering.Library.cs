@@ -432,7 +432,7 @@ namespace Afney.Cad.Presentation
 
         private void OnSepticTankDesign(object sender, RoutedEventArgs e)
         {
-            try { new SepticTankDialog() { Owner = this }.ShowDialog(); }
+            try { new SepticTankDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Fosseptik hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
