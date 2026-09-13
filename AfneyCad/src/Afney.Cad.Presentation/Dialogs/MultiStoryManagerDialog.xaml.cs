@@ -22,6 +22,7 @@ namespace Afney.Cad.Presentation.Dialogs
         private readonly CadDatabase _database;
         private readonly LevelManager _levelManager;
         private readonly MultiStoryBuildingService _buildingService;
+        private readonly MultiStoryEnhancementService _enhancementService;
 
         public MultiStoryManagerDialog(CadDatabase database, LevelManager levelManager)
         {
@@ -29,6 +30,7 @@ namespace Afney.Cad.Presentation.Dialogs
             _database = database;
             _levelManager = levelManager;
             _buildingService = new MultiStoryBuildingService(database, levelManager);
+            _enhancementService = new MultiStoryEnhancementService(database, levelManager);
 
             _levelManager.LevelTableChanged += OnLevelTableChanged;
             Closed += (_, _) => _levelManager.LevelTableChanged -= OnLevelTableChanged;
@@ -56,6 +58,16 @@ namespace Afney.Cad.Presentation.Dialogs
             }
         }
 
+        /*
+           NE/NEDEN — GERÇEK HAYALET ÖZELLİK (bu turda bulundu): `MultiStoryEnhancementService`
+           tam çalışan, test edilmiş (`MultiStoryEnhancementServiceTests`), hatta kendi içinde
+           gerçek bir dejenere-sıfır-uzunluklu-bağlantı-borusu hatasının düzeltmesini taşıyan
+           bir servisti — ama HİÇBİR yerden çağrılmıyordu (ne bir dialog ne bir komut). Bu buton
+           artık `MultiStoryBuildingService.CopyFloorPlumbing` (basit, bağlantı korumayan kopya)
+           yerine `CopyFloorWithConnections`'ı kullanıyor: kopyalanan borular arasındaki mevcut
+           bağlantıları koruyor VE kat-arası kolon bağlantısını (sadece gerçek bir boşluk varsa)
+           otomatik kuruyor.
+        */
         private void CopyFloor_Click(object sender, RoutedEventArgs e)
         {
             if (FloorGrid.SelectedItem is not MepLevel source)
@@ -71,8 +83,25 @@ namespace Afney.Cad.Presentation.Dialogs
                 MessageBox.Show("Kaynak ve hedef kat aynı olamaz."); return;
             }
 
-            int copied = _buildingService.CopyFloorPlumbing(source.Id, target.Id);
-            InfoText.Text = $"{copied} bileşen '{source.Name}' → '{target.Name}' kopyalandı.";
+            var result = _enhancementService.CopyFloorWithConnections(source, target);
+            InfoText.Text = $"{result.CopiedCount} bileşen '{source.Name}' → '{target.Name}' kopyalandı " +
+                             $"({result.ConnectionsPreserved} bağlantı korundu, {result.RiserConnectionsCreated} kolon bağlantısı kuruldu).";
+            RefreshGrid();
+        }
+
+        /*
+           NE: Katlar Arası Kolonları Otomatik Bağla (AutoConnectRisers_Click)
+           NEDEN: `MultiStoryEnhancementService.AutoConnectInterFloorRisers` — aynı XY konumunda,
+                  aynı sistem tipindeki, katlar arasında kalan riser boşluklarını otomatik
+                  bağlantı borusuyla dolduran, test edilmiş bir yetenekti ama hiçbir ekrandan
+                  erişilemiyordu.
+        */
+        private void AutoConnectRisers_Click(object sender, RoutedEventArgs e)
+        {
+            int connections = _enhancementService.AutoConnectInterFloorRisers();
+            InfoText.Text = connections > 0
+                ? $"{connections} katlar arası kolon bağlantısı kuruldu."
+                : "Bağlanacak eşleşen riser bulunamadı (aynı XY konumu + aynı sistem tipi gerekli).";
             RefreshGrid();
         }
 

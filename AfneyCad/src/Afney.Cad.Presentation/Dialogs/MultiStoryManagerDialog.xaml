@@ -207,10 +207,19 @@
                 <ComboBox x:Name="TargetFloorCombo" Width="160" Height="28" Background="#333" Foreground="White"
                           DisplayMemberPath="Name" ToolTip="Kopyalama / kolon için hedef kat"/>
                 <Button Click="CopyFloor_Click" Width="130" Height="28"
-                        Background="#005A9C" Foreground="White" BorderThickness="0" Margin="8,0,0,0">
+                        Background="#005A9C" Foreground="White" BorderThickness="0" Margin="8,0,0,0"
+                        ToolTip="Bağlantı-korumalı kopyalama: kopyalanan borular arasındaki mevcut bağlantıları ve kat-arası kolon bağlantısını korur">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource Ico.ClipboardList}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
                         <TextBlock Text="Kat Kopyala" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="AutoConnectRisers_Click" Width="170" Height="28"
+                        Background="#5A4A00" Foreground="White" BorderThickness="0" Margin="8,0,0,0"
+                        ToolTip="Katlar arasındaki, aynı XY konumunda ve aynı sistem tipindeki riser'ları otomatik olarak bağlantı borusuyla birleştirir">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Link}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Kolonları Otomatik Bağla" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StackPanel>
