@@ -6,6 +6,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs
@@ -16,6 +18,7 @@ namespace Afney.Cad.Presentation.Dialogs
         private readonly HotWaterCirculationService _svc;
         private readonly ObservableCollection<SegmentInputVm> _inputs = [];
         private List<ResultRowVm> _results = [];
+        private CirculationLoopResult? _lastResult;
 
         public HotWaterCirculationDialog(CadDatabase database)
         {
@@ -182,8 +185,32 @@ namespace Afney.Cad.Presentation.Dialogs
             return list;
         }
 
+        /*
+           NE: Çizime Ekle (AddToDrawing_Click)
+           NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+                  hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+        */
+        private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+        {
+            if (_lastResult is null) { Calculate_Click(sender, e); if (_lastResult is null) return; }
+
+            var r = _lastResult;
+            string txt = $"Sıcak Su Resirkülasyonu — Isı Kaybı={r.TotalHeatLossW:F0} W, Debi={r.TotalRecircFlowLh:F1} lt/h, " +
+                         $"Pompa Q={r.RecommendedPumpFlow:F1} lt/h Hm={r.RecommendedPumpHeadMSS:F2} mSS";
+
+            var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+            {
+                Color = 0xFF90CAF9,
+                Layer = "RESIRKULASYON_HESAP"
+            };
+            _database.AddEntity(te);
+            MessageBox.Show("Resirkülasyon özeti çizime eklendi (katman: RESIRKULASYON_HESAP, konum: 0,0).",
+                "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void ShowResults(CirculationLoopResult result)
         {
+            _lastResult = result;
             _results = result.Segments.Select(s => new ResultRowVm(s)).ToList();
             ResultGrid.ItemsSource = _results;
 

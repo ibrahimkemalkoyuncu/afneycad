@@ -201,6 +201,13 @@
                     <TextBlock Text="HTML Rapor" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            <Button Click="AddToDrawing_Click" Width="110" Margin="8,0,0,0" Height="32" Background="#1565C0"
+                    ToolTip="Maliyet özetini çizime metin olarak ekler">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="{StaticResource Ico.Pencil}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Çizime Ekle" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Kapat"          Click="Close_Click"      Width="70"  Margin="8,0,0,0" Height="32" Background="#444"/>
         </StackPanel>
     </Grid>

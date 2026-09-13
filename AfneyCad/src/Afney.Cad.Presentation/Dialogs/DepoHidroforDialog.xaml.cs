@@ -2,6 +2,8 @@ using System;
 using System.Globalization;
 using System.Windows;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
@@ -9,6 +11,7 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class DepoHidroforDialog
 {
     private readonly CadDatabase _database;
+    private WaterTankService.TankResult? _last;
 
     public DepoHidroforDialog(CadDatabase database)
     {
@@ -35,6 +38,7 @@ public partial class DepoHidroforDialog
             };
 
             var r = svc.Calculate(persons);
+            _last = r;
 
             ResDailyDemand.Text = $"{r.DailyDemandL:F0} L/gün  ({r.DailyDemandL / 1000:F2} m³/gün)";
             ResTankVol.Text     = $"{r.TankVolumeL:F0} L  ({r.TankVolumeM3:F2} m³)";
@@ -61,6 +65,29 @@ public partial class DepoHidroforDialog
         {
             StatusText.Text = $"Hata: {ex.Message}";
         }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran (13 "rapor-sonu"
+              hesap ekranından biri) hesap sonucunu hiçbir yere yazmıyordu. `TS825InsulationDialog`
+              ile aynı desen: özet bir `TextEntity` olarak, kendi katmanına ekleniyor.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_last is null) { Calculate_Click(sender, e); if (_last is null) return; }
+
+        var r = _last;
+        string txt = $"Depo/Hidrofor — Depo: {r.RecommendedTank} ({r.TankVolumeM3:F2} m³), Pompa: {r.RecommendedPump} (Q={r.PumpFlowM3h:F2} m³/h, H={r.PumpHeadM:F1} m)";
+
+        var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "DEPO_HIDROFOR_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Depo/hidrofor özeti çizime eklendi (katman: DEPO_HIDROFOR_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

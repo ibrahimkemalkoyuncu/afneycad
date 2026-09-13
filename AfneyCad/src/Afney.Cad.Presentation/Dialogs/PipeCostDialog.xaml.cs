@@ -6,6 +6,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Services;
 
@@ -143,6 +145,29 @@ namespace Afney.Cad.Presentation.Dialogs
             {
                 MessageBox.Show($"Rapor hatası: {ex.Message}");
             }
+        }
+
+        /*
+           NE: Çizime Ekle (AddToDrawing_Click)
+           NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+                  hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+        */
+        private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+        {
+            if (_lastResult is null) { Calculate_Click(sender, e); if (_lastResult is null) return; }
+
+            var r = _lastResult;
+            string txt = $"Boru Maliyeti — Malzeme={r.TotalMaterialTl:N0} TL, İşçilik={r.TotalLaborTl:N0} TL, " +
+                         $"Ek Parça={r.TotalFittingTl:N0} TL, GENEL TOPLAM={r.GrandTotalTl:N0} TL";
+
+            var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+            {
+                Color = 0xFF90CAF9,
+                Layer = "BORU_MALIYET_HESAP"
+            };
+            _database.AddEntity(te);
+            MessageBox.Show("Boru maliyeti özeti çizime eklendi (katman: BORU_MALIYET_HESAP, konum: 0,0).",
+                "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();

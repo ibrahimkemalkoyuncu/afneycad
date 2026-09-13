@@ -236,7 +236,7 @@ namespace Afney.Cad.Presentation
 
         private void OnBackflowPreventer(object sender, RoutedEventArgs e)
         {
-            try { new BackflowPreventerDialog() { Owner = this }.ShowDialog(); }
+            try { new BackflowPreventerDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show(ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
