@@ -2,6 +2,9 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
@@ -9,10 +12,13 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class AcousticAnalysisDialog
 {
     private readonly AcousticAnalysisService _service = new();
+    private readonly CadDatabase? _database;
+    private AcousticResult? _last;
 
-    public AcousticAnalysisDialog()
+    public AcousticAnalysisDialog(CadDatabase? database = null)
     {
         InitializeComponent();
+        _database = database;
     }
 
     /*
@@ -52,6 +58,7 @@ public partial class AcousticAnalysisDialog
             };
 
             var r = _service.AnalyzeSystem(input);
+            _last = r;
 
             ResFanLw.Text = $"{r.FanSoundPowerLw:F0} dB";
             ResDuctAtt.Text = $"{r.DuctAttenuationDb:F1} dB";
@@ -70,6 +77,34 @@ public partial class AcousticAnalysisDialog
         {
             StatusText.Text = $"Hata: {ex.Message}";
         }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+              hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_last is null) { Calculate_Click(sender, e); if (_last is null) return; }
+        if (_database is null)
+        {
+            MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var r = _last;
+        string txt = $"HVAC Gürültü Analizi — Oda Ses Basıncı={r.RoomSoundPressureLp:F0} dBA, NR {r.NRLimit} " +
+                     $"({(r.NRCompliant ? "UYGUN" : "AŞILDI")}), Fan Lw={r.FanSoundPowerLw:F0} dB";
+
+        var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "GURULTU_ANALIZ_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Gürültü analizi özeti çizime eklendi (katman: GURULTU_ANALIZ_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

@@ -2,6 +2,9 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
@@ -9,10 +12,13 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class EnergySimulationDialog
 {
     private readonly EnergySimulationService _service = new();
+    private readonly CadDatabase? _database;
+    private EnergySimulationResult? _last;
 
-    public EnergySimulationDialog()
+    public EnergySimulationDialog(CadDatabase? database = null)
     {
         InitializeComponent();
+        _database = database;
     }
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
@@ -41,6 +47,7 @@ public partial class EnergySimulationDialog
             };
 
             var r = _service.Simulate(input);
+            _last = r;
             MonthlyGrid.ItemsSource = r.MonthlyData;
 
             ResTotalKWh.Text = $"{r.AnnualTotalKWh:F0} kWh/yıl";
@@ -57,6 +64,34 @@ public partial class EnergySimulationDialog
         {
             StatusText.Text = $"Hata: {ex.Message}";
         }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+              hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_last is null) { Calculate_Click(sender, e); if (_last is null) return; }
+        if (_database is null)
+        {
+            MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var r = _last;
+        string txt = $"Yıllık Enerji Simülasyonu — {r.City}: Toplam={r.AnnualTotalKWh:F0} kWh/yıl " +
+                     $"({r.SpecificEnergyKWhM2:F0} kWh/m²yıl), Sınıf {r.EnergyClass}, {r.AnnualCO2Tons:F1} t CO2, {r.AnnualCostTRY:F0} TL/yıl";
+
+        var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "ENERJI_SIMULASYON_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Enerji simülasyonu özeti çizime eklendi (katman: ENERJI_SIMULASYON_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

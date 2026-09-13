@@ -12,13 +12,13 @@ namespace Afney.Cad.Presentation
 
         private void OnHeatLoadCalculation(object sender, RoutedEventArgs e)
         {
-            try { new HeatLoadCalculationDialog { Owner = this }.ShowDialog(); }
+            try { new HeatLoadCalculationDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Isıtma yükü hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void OnPsychrometricAnalysis(object sender, RoutedEventArgs e)
         {
-            try { new PsychrometricDialog { Owner = this }.ShowDialog(); }
+            try { new PsychrometricDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Psikrometrik hesap hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
@@ -29,25 +29,25 @@ namespace Afney.Cad.Presentation
 
         private void OnEnergyRecoveryCommand(object sender, RoutedEventArgs e)
         {
-            try { new EnergyRecoveryDialog { Owner = this }.ShowDialog(); }
+            try { new EnergyRecoveryDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Isı geri kazanım hesabı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void OnAcousticAnalysisCommand(object sender, RoutedEventArgs e)
         {
-            try { new AcousticAnalysisDialog { Owner = this }.ShowDialog(); }
+            try { new AcousticAnalysisDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Gürültü analizi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void OnEnergySimulationCommand(object sender, RoutedEventArgs e)
         {
-            try { new EnergySimulationDialog { Owner = this }.ShowDialog(); }
+            try { new EnergySimulationDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Yıllık enerji simülasyonu hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void OnAdvancedCoolingCommand(object sender, RoutedEventArgs e)
         {
-            try { new AdvancedCoolingDialog { Owner = this }.ShowDialog(); }
+            try { new AdvancedCoolingDialog(_database) { Owner = this }.ShowDialog(); }
             catch (Exception ex) { MessageBox.Show($"Gelişmiş soğutma analizi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

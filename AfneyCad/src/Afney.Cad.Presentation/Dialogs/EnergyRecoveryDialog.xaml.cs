@@ -2,6 +2,9 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
@@ -9,10 +12,13 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class EnergyRecoveryDialog
 {
     private readonly EnergyRecoveryService _service = new();
+    private readonly CadDatabase? _database;
+    private ErvResult? _last;
 
-    public EnergyRecoveryDialog()
+    public EnergyRecoveryDialog(CadDatabase? database = null)
     {
         InitializeComponent();
+        _database = database;
     }
 
     private static ErvType SelectedErvType(int index) => index switch
@@ -42,6 +48,7 @@ public partial class EnergyRecoveryDialog
             };
 
             var r = _service.Calculate(input);
+            _last = r;
 
             ResEfficiency.Text = $"{r.Efficiency * 100:F0} %";
             ResSupplyTemp.Text = $"{r.SupplyOutletTempC:F1} °C";
@@ -57,6 +64,34 @@ public partial class EnergyRecoveryDialog
         {
             StatusText.Text = $"Hata: {ex.Message}";
         }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+              hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_last is null) { Calculate_Click(sender, e); if (_last is null) return; }
+        if (_database is null)
+        {
+            MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var r = _last;
+        string txt = $"Isı Geri Kazanım — {r.ErvTypeName}, Verim=%{r.Efficiency * 100:F0}, Isıl Kazanım={r.SensibleRecoveryKW:F2} kW, " +
+                     $"Yıllık Tasarruf={r.AnnualSavingsKWh:F0} kWh ({r.AnnualCO2SavingsKg:F0} kg CO2)";
+
+        var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "ISI_GERI_KAZANIM_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Isı geri kazanım özeti çizime eklendi (katman: ISI_GERI_KAZANIM_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

@@ -3,6 +3,9 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
@@ -11,11 +14,13 @@ public partial class HeatLoadCalculationDialog
 {
     private readonly ObservableCollection<BuildingSurface> _surfaces = [];
     private readonly HeatLoadCalculationService _service = new();
+    private readonly CadDatabase? _database;
     private HeatLoadResult? _lastResult;
 
-    public HeatLoadCalculationDialog()
+    public HeatLoadCalculationDialog(CadDatabase? database = null)
     {
         InitializeComponent();
+        _database = database;
 
         foreach (var name in HeatLoadCalculationService.DefaultUValues.Keys)
             CboDefaultU.Items.Add(new ComboBoxItem { Content = name });
@@ -76,6 +81,33 @@ public partial class HeatLoadCalculationDialog
             StatusText.Text = $"✓ Toplam ısıtma yükü: {_lastResult.TotalHeatLoadKW:F2} kW";
         }
         catch (Exception ex) { StatusText.Text = $"Hata: {ex.Message}"; }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+              hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_lastResult is null) { Calculate_Click(sender, e); if (_lastResult is null) return; }
+        if (_database is null)
+        {
+            MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var r = _lastResult;
+        string txt = $"EN 12831 Isıtma Yükü — Toplam={r.TotalHeatLoadKW:F2} kW (İletim={r.TransmissionLossW:F0} W, Havalandırma={r.VentilationLossW:F0} W, Isınma Payı={r.ReheatAllowanceW:F0} W)";
+
+        var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "ISITMA_YUKU_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Isıtma yükü özeti çizime eklendi (katman: ISITMA_YUKU_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

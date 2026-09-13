@@ -2,15 +2,22 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
 
 public partial class AdvancedCoolingDialog
 {
-    public AdvancedCoolingDialog()
+    private readonly CadDatabase? _database;
+    private string? _lastSummary;
+
+    public AdvancedCoolingDialog(CadDatabase? database = null)
     {
         InitializeComponent();
+        _database = database;
     }
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
@@ -52,11 +59,38 @@ public partial class AdvancedCoolingDialog
 
             SummaryText.Text = $"Oda hacmi={roomVolume:F0} m³, ACH={ach:F2}/h, dış/iç T={outdoorT:F0}/{indoorT:F0}°C";
             StatusText.Text = $"✓ Toplam infiltrasyon yükü: {inf.TotalW:F0} W, ekipman kazancı: {equipGainW:F0} W";
+
+            _lastSummary = $"Gelişmiş Soğutma — İnfiltrasyon={inf.TotalW:F0} W, CLTD={cltd:F1}°C ({orientation}, saat {hour}), " +
+                           $"Ekipman={equipGainW:F0} W ({equipCount}x {equipType}), Gölgeleme Faktörü={shadingFactor:F2} ({shadingLabel})";
         }
         catch (Exception ex)
         {
             StatusText.Text = $"Hata: {ex.Message}";
         }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+              hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_lastSummary is null) { Calculate_Click(sender, e); if (_lastSummary is null) return; }
+        if (_database is null)
+        {
+            MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var te = new TextEntity(_lastSummary, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "GELISMIS_SOGUTMA_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Gelişmiş soğutma özeti çizime eklendi (katman: GELISMIS_SOGUTMA_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

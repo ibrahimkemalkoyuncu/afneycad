@@ -1,15 +1,23 @@
 using System;
 using System.Globalization;
 using System.Windows;
+using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
 namespace Afney.Cad.Presentation.Dialogs;
 
 public partial class PsychrometricDialog
 {
+    private readonly CadDatabase? _database;
     private PsychrometricState? _lastState;
 
-    public PsychrometricDialog() => InitializeComponent();
+    public PsychrometricDialog(CadDatabase? database = null)
+    {
+        InitializeComponent();
+        _database = database;
+    }
 
     private void CalcState_Click(object sender, RoutedEventArgs e)
     {
@@ -78,6 +86,35 @@ public partial class PsychrometricDialog
             StatusText.Text = "✓ Hava akımı karışımı hesaplandı.";
         }
         catch (Exception ex) { StatusText.Text = $"Hata: {ex.Message}"; }
+    }
+
+    /*
+       NE: Çizime Ekle (AddToDrawing_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran hesap sonucunu
+              hiçbir yere yazmıyordu. `TS825InsulationDialog` ile aynı desen — burada son
+              hesaplanan durum noktası (CalcState) özetleniyor.
+    */
+    private void AddToDrawing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_lastState is null) { CalcState_Click(sender, e); if (_lastState is null) return; }
+        if (_database is null)
+        {
+            MessageBox.Show("Aktif çizim bulunamadı.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var s = _lastState;
+        string txt = $"Psikrometrik Durum — {s.DryBulbC:F1}°C / %{s.RelativeHumidity * 100:F0} RH, " +
+                     $"w={s.HumidityRatio * 1000:F2} g/kg, h={s.EnthalpyKJkg:F2} kJ/kg, Twb={s.WetBulbC:F1}°C, Tdp={s.DewPointC:F1}°C";
+
+        var te = new TextEntity(txt, new Vector3D(0, 0, 0), 200)
+        {
+            Color = 0xFF90CAF9,
+            Layer = "PSIKROMETRIK_HESAP"
+        };
+        _database.AddEntity(te);
+        MessageBox.Show("Psikrometrik durum özeti çizime eklendi (katman: PSIKROMETRIK_HESAP, konum: 0,0).",
+            "Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

@@ -43,11 +43,13 @@
         <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#77AA77" VerticalAlignment="Center" TextWrapping="Wrap"/>
                 <Button Grid.Column="1" Click="Calculate_Click" Background="#5D1A1A" Width="100" Margin="0,0,8,0" Content="Hesapla"/>
-                <Button Grid.Column="2" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
+                <Button Grid.Column="2" Click="AddToDrawing_Click" Background="#1565C0" Width="110" Margin="0,0,8,0" Content="Çizime Ekle"
+                        ToolTip="Isıtma yükü özetini çizime metin olarak ekler"/>
+                <Button Grid.Column="3" Content="Kapat" Width="80" Click="Close_Click" Background="#333"/>
             </Grid>
         </Border>
 
