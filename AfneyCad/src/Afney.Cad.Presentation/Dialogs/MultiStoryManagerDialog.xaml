@@ -86,6 +86,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <TextBlock Grid.Row="0" Text="ÇOK KATLI BİNA YÖNETİMİ" FontSize="18" FontWeight="Bold" Foreground="#7CFC00" Margin="0,0,0,10"/>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
@@ -256,6 +257,26 @@
                 <TextBlock x:Name="InfoText" Foreground="#AAA" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
             </StackPanel>
         </StackPanel>
-        <Button Grid.Row="5" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
+        <!-- NE/NEDEN — Session #75 iş akışı denetiminde bulunan hayalet özellik: MultiStoryEnhancementService
+             test edilmiş ama hiçbir ekrana bağlanmamış ValidateLevelGaps/ValidateAssembly/MirrorFloor
+             yeteneklerini taşıyordu. ReorderLevel (LevelManager'ın kendi sıralama/Order mantığıyla
+             çakışma riski) ve GenerateSectionView (gerçek bir çoklu-nokta seçim akışı gerektiriyor)
+             bilinçli olarak bu turda bağlanmadı. -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,6">
+            <Button Click="ValidateGaps_Click" Width="170" Height="26" Background="#5A2E00" Foreground="White" BorderThickness="0" Margin="0,0,8,0"
+                    ToolTip="Katlar arasında boşluk veya çakışma olup olmadığını kontrol eder">
+                <TextBlock Text="Kat Boşluklarını Kontrol Et" FontSize="11"/>
+            </Button>
+            <Button Click="ValidateAssembly_Click" Width="150" Height="26" Background="#5A2E00" Foreground="White" BorderThickness="0" Margin="0,0,8,0"
+                    ToolTip="Boş katları ve açık uçlu (bağlantısız) boruları listeler">
+                <TextBlock Text="Montajı Doğrula" FontSize="11"/>
+            </Button>
+            <CheckBox x:Name="MirrorXCheck" Content="X ekseninde aynala" IsChecked="True" Foreground="#AAA" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button Click="MirrorFloor_Click" Width="110" Height="26" Background="#005A9C" Foreground="White" BorderThickness="0"
+                    ToolTip="Seçili kaynak katı, işaretli eksende aynalayarak hedef kata kopyalar">
+                <TextBlock Text="Aynala" FontSize="11"/>
+            </Button>
+        </StackPanel>
+        <Button Grid.Row="6" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>
     </Grid>
 </Window>

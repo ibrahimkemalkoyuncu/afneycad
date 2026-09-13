@@ -144,6 +144,54 @@ namespace Afney.Cad.Presentation.Dialogs
             }
         }
 
+        /*
+           NE/NEDEN — GERÇEK HAYALET ÖZELLİK (bu turda bulundu): `MultiStoryEnhancementService`in
+           `ValidateLevelGaps`/`ValidateAssembly`/`MirrorFloor` yetenekleri hiçbir ekrandan
+           erişilemiyordu — sadece kendi test dosyasında (`MultiStoryEnhancementServiceTests`)
+           doğrulanmıştı. `ReorderLevel` (LevelManager'ın kendi Order/sıralama mantığıyla
+           doğrudan çakışma riski taşıyor) ve `GenerateSectionView` (gerçek bir çoklu-nokta
+           viewport seçim akışı gerektiriyor) bilinçli olarak bu turda bağlanmadı.
+        */
+        private void ValidateGaps_Click(object sender, RoutedEventArgs e)
+        {
+            var warnings = _enhancementService.ValidateLevelGaps();
+            InfoText.Text = warnings.Count == 0 ? "✓ Kat kotları arasında boşluk/çakışma yok." : $"⚠ {warnings.Count} boşluk/çakışma bulundu.";
+            MessageBox.Show(
+                warnings.Count == 0 ? "Kat kotları arasında boşluk veya çakışma bulunamadı." : string.Join("\n", warnings),
+                "Kat Boşluk Kontrolü", MessageBoxButton.OK,
+                warnings.Count == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+
+        private void ValidateAssembly_Click(object sender, RoutedEventArgs e)
+        {
+            var issues = _enhancementService.ValidateAssembly();
+            InfoText.Text = issues.Count == 0 ? "✓ Montaj doğrulaması: sorun bulunamadı." : $"⚠ {issues.Count} sorun bulundu.";
+            MessageBox.Show(
+                issues.Count == 0 ? "Boş kat veya açık uçlu boru bulunamadı." : string.Join("\n", issues),
+                "Montaj Doğrulaması", MessageBoxButton.OK,
+                issues.Count == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+
+        private void MirrorFloor_Click(object sender, RoutedEventArgs e)
+        {
+            if (FloorGrid.SelectedItem is not MepLevel source)
+            {
+                MessageBox.Show("Lütfen Grid'den kaynak katı seçin."); return;
+            }
+            if (TargetFloorCombo.SelectedItem is not MepLevel target)
+            {
+                MessageBox.Show("Lütfen 'Hedef Kat' açılır listesinden hedef katı seçin."); return;
+            }
+            if (source.Id == target.Id)
+            {
+                MessageBox.Show("Kaynak ve hedef kat aynı olamaz."); return;
+            }
+
+            int copied = _enhancementService.MirrorFloor(source, target, MirrorXCheck.IsChecked == true);
+            InfoText.Text = $"{copied} bileşen '{source.Name}' → '{target.Name}' aynalanarak kopyalandı.";
+            RefreshGrid();
+        }
+
         private void RefreshGrid()
         {
             var floors = _buildingService.GetAllFloors();
