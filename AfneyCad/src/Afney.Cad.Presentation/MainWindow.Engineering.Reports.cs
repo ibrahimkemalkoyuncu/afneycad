@@ -968,7 +968,8 @@ namespace Afney.Cad.Presentation
             {
                 if (_activeContext == null) return;
                 string projectName = _mechanicalKernel?.Metadata?.ProjectName ?? "AfneyCAD Projesi";
-                new SheetSetManagerDialog(_activeContext.SheetIndex, projectName) { Owner = this }.ShowDialog();
+                new SheetSetManagerDialog(_activeContext.SheetIndex, projectName,
+                    Viewport, _database, _activeContext.LayerStates) { Owner = this }.ShowDialog();
             }
             catch (Exception ex) { MessageBox.Show($"Pafta Seti Yöneticisi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }

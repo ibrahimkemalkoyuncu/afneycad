@@ -51,6 +51,15 @@ public class SheetIndexService
 
         /// <summary>Sheet Set Manager'da gösterilen durum (ör. "Taslak", "Yayınlandı"). Serbest metin.</summary>
         public string    Status      { get; set; } = "Taslak";
+
+        /// <summary>
+        /// NE/NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: pafta setinin gerçek
+        /// toplu baskı/export'a bağlanması için, her paftanın HANGİ katman görünürlük
+        /// durumuyla (LayerStateManagerService'in isimlendirilmiş bir state'i) çizileceğini
+        /// bilmesi gerekiyor — aksi halde "toplu baskı" tüm paftaları aynı (o anki) görünümle
+        /// üretir. Boş bırakılırsa BatchPlotService o pafta için mevcut görünümü kullanır.
+        /// </summary>
+        public string?   LayerStateName { get; set; }
     }
 
     private readonly Dictionary<string, int> _counters = new(StringComparer.OrdinalIgnoreCase);

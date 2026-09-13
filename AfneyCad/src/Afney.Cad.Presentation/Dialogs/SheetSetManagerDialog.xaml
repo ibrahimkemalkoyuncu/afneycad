@@ -69,10 +69,17 @@
                 </Button>
                 <Button Width="36" Click="MoveUp_Click" Background="#0D3060" Margin="0,0,4,0" ToolTip="Yukarı Taşı" Content="▲"/>
                 <Button Width="36" Click="MoveDown_Click" Background="#0D3060" Margin="0,0,16,0" ToolTip="Aşağı Taşı" Content="▼"/>
-                <Button Width="130" Click="ExportIndex_Click" Background="#455A64" Margin="0,0,0,0">
+                <Button Width="130" Click="ExportIndex_Click" Background="#455A64" Margin="0,0,16,0">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource Ico.FileDocument}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
                         <TextBlock Text="Pafta İndeksi (HTML)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Width="150" Click="BatchPlot_Click" Background="#4A148C"
+                        ToolTip="Her paftayı kendi katman durumuyla ayrı bir sayfa olarak tek bir PDF'e yazdırır">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource Ico.Printer}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="12" Height="12" Margin="0,0,5,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Toplu Baskı (PDF)" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -101,6 +108,7 @@
                     <DataGridTextColumn Header="Çizim Adı"    Binding="{Binding Name}"        Width="220"/>
                     <DataGridTextColumn Header="Açıklama / Proje" Binding="{Binding Description}" Width="*"/>
                     <DataGridTextColumn Header="Durum"        Binding="{Binding Status}"      Width="90"/>
+                    <DataGridTextColumn Header="Katman Durumu" Binding="{Binding LayerStateName}" Width="120"/>
                     <DataGridTextColumn Header="Kayıt Tarihi" Binding="{Binding Registered, StringFormat=dd.MM.yyyy HH:mm}" Width="130"/>
                 </DataGrid.Columns>
             </DataGrid>
@@ -125,10 +133,14 @@
                     <TextBlock Text="Durum:" Foreground="#888" FontSize="10" Margin="0,0,0,2"/>
                     <TextBox x:Name="TxtStatus" Text="Taslak" Margin="0,0,0,8"/>
 
+                    <TextBlock Text="Katman Durumu (opsiyonel):" Foreground="#888" FontSize="10" Margin="0,0,0,2"/>
+                    <ComboBox x:Name="CboLayerState" Margin="0,0,0,8" Height="26"
+                              ToolTip="Toplu baskıda bu paftanın hangi katman görünürlüğüyle çizileceğini belirler — Katman Yöneticisi'nde kayıtlı bir state seçin"/>
+
                     <Button Content="+ Ekle" Click="AddSheet_Click" Background="#1B5E20" Margin="0,4,0,0"/>
 
                     <Separator Background="#333" Margin="0,12,0,12"/>
-                    <TextBlock Text="Seçili pafta çift tıklanınca Pafta İndeksi (HTML) raporu açılır ve ilgili kayıt vurgulanır."
+                    <TextBlock Text="Seçili pafta çift tıklanınca Pafta İndeksi (HTML) raporu açılır ve ilgili kayıt vurgulanır. Katman durumu atanmış paftalar 'Toplu Baskı' ile tek bir çok sayfalı PDF olarak dışa aktarılabilir."
                                TextWrapping="Wrap" Foreground="#777" FontSize="10"/>
                 </StackPanel>
             </Border>

@@ -37,7 +37,7 @@ public class PrintViewportService
         public int    DpiResolution      { get; set; } = 150;
     }
 
-    private static (double widthMm, double heightMm) GetPageSize(PageFormat fmt) => fmt switch
+    internal static (double widthMm, double heightMm) GetPageSize(PageFormat fmt) => fmt switch
     {
         PageFormat.A4_Portrait  => (210, 297),
         PageFormat.A4_Landscape => (297, 210),
@@ -163,7 +163,9 @@ public class PrintViewportService
         grid.Children.Add(sp);
     }
 
-    private static SKBitmap RenderToBitmap(Visual source, int pxW, int pxH, PrintOptions options)
+    // internal (private değil) — BatchPlotService, birden fazla paftayı tek bir çok sayfalı
+    // PDF'te birleştirirken her sayfa için ayrı bir bitmap üretmek amacıyla bunu paylaşıyor.
+    internal static SKBitmap RenderToBitmap(Visual source, int pxW, int pxH, PrintOptions options)
     {
         // WPF Visual → BitmapSource
         var rtb = new RenderTargetBitmap(pxW, pxH, options.DpiResolution, options.DpiResolution, PixelFormats.Pbgra32);

@@ -1,10 +1,14 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Services;
+using Afney.Cad.Presentation.Services;
+using Afney.Cad.Presentation.Views;
 
 namespace Afney.Cad.Presentation.Dialogs;
 
@@ -28,12 +32,32 @@ public partial class SheetSetManagerDialog : Window
 {
     private readonly SheetIndexService _sheetIndex;
     private readonly string _projectName;
+    private readonly CadViewport? _viewport;
+    private readonly CadDatabase? _database;
+    private readonly LayerStateManagerService? _layerStates;
 
-    public SheetSetManagerDialog(SheetIndexService sheetIndex, string projectName = "AfneyCAD Projesi")
+    /*
+       NE: viewport/database/layerStates parametreleri (opsiyonel)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: "Toplu Baskı (PDF)" özelliği
+              gerçek bir viewport render + katman durumu uygulaması gerektiriyor. Bu üçü
+              verilmezse (geriye dönük uyumluluk için opsiyonel bırakıldı) "Toplu Baskı" butonu
+              bilgilendirici bir mesaj gösterir, hata vermez.
+    */
+    public SheetSetManagerDialog(SheetIndexService sheetIndex, string projectName = "AfneyCAD Projesi",
+        CadViewport? viewport = null, CadDatabase? database = null, LayerStateManagerService? layerStates = null)
     {
         InitializeComponent();
         _sheetIndex  = sheetIndex;
         _projectName = string.IsNullOrWhiteSpace(projectName) ? "AfneyCAD Projesi" : projectName;
+        _viewport = viewport;
+        _database = database;
+        _layerStates = layerStates;
+
+        if (_layerStates != null)
+        {
+            CboLayerState.ItemsSource = _layerStates.Snapshots.Select(s => s.Name).ToList();
+        }
+
         RefreshGrid();
     }
 
@@ -78,10 +102,13 @@ public partial class SheetSetManagerDialog : Window
             entry = _sheetIndex.AddManualEntry(number, name, description, discipline, status);
         }
 
+        entry.LayerStateName = CboLayerState.SelectedItem as string;
+
         TxtNumber.Text = "";
         TxtName.Text = "";
         TxtDescription.Text = "";
         TxtStatus.Text = "Taslak";
+        CboLayerState.SelectedItem = null;
 
         RefreshGrid();
         StatusText.Text = $"✓ {entry.Number} eklendi.";
@@ -146,6 +173,57 @@ public partial class SheetSetManagerDialog : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Pafta indeksi açılırken hata oluştu: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /*
+       NE: Toplu Baskı (BatchPlot_Click)
+       NEDEN — Session #75 iş akışı denetiminde "pafta setinin gerçek toplu baskı/export'a
+              bağlanması" olarak işaretlenen boşluk: her paftayı (varsa) atanmış katman
+              durumuyla tek bir çok sayfalı PDF'in ayrı sayfaları olarak dışa aktarır (bkz.
+              BatchPlotService). viewport/database/layerStates verilmediyse (eski çağrı şekli)
+              bilgilendirici bir mesaj gösterir.
+    */
+    private void BatchPlot_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewport is null || _database is null || _layerStates is null)
+        {
+            MessageBox.Show("Toplu baskı için bu ekranın viewport/veritabanı bağlantısıyla açılması gerekir.", "Toplu Baskı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (_sheetIndex.Sheets.Count == 0)
+        {
+            MessageBox.Show("Baskı için önce en az bir pafta ekleyin.", "Toplu Baskı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Toplu Baskı — PDF Kaydet",
+            Filter = "PDF (*.pdf)|*.pdf",
+            FileName = $"PaftaSeti_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            var result = BatchPlotService.ExportSheetsToPdf(_viewport, _database, _layerStates, _sheetIndex.Sheets, dlg.FileName,
+                new PrintViewportService.PrintOptions { ProjectName = _projectName });
+
+            string msg = $"{result.PagesWritten} pafta PDF'e yazıldı: {Path.GetFileName(dlg.FileName)}";
+            if (result.SkippedSheets.Count > 0)
+                msg += $"\n\nAtlanan paftalar:\n{string.Join("\n", result.SkippedSheets)}";
+
+            StatusText.Text = msg.Split('\n')[0];
+            MessageBox.Show(msg, "Toplu Baskı Tamamlandı", MessageBoxButton.OK,
+                result.SkippedSheets.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+
+            Process.Start(new ProcessStartInfo { FileName = dlg.FileName, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Toplu baskı hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

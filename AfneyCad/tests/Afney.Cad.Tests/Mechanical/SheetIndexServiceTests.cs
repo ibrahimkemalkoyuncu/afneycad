@@ -144,6 +144,26 @@ public class SheetIndexServiceTests
         Assert.Equal("E-02", restored.PeekNextNumber("E"));
     }
 
+    /*
+       NE/NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: pafta setinin toplu baskıya
+       bağlanabilmesi için her paftanın bir katman durumu adı taşıması gerekiyordu
+       (BatchPlotService bunu kullanıyor). Bu test, bu yeni alanın da JSON kalıcılığından
+       sağ çıktığını kilitler.
+    */
+    [Fact]
+    public void ToJson_ThenLoadFromJson_RestoresLayerStateName()
+    {
+        var svc = new SheetIndexService();
+        var sheet = svc.RegisterSheet(null, "Zemin Kat Tesisat", "Proje A");
+        sheet.LayerStateName = "Zemin Kat Görünümü";
+
+        string json = svc.ToJson();
+        var restored = new SheetIndexService();
+        restored.LoadFromJson(json);
+
+        Assert.Equal("Zemin Kat Görünümü", restored.Sheets[0].LayerStateName);
+    }
+
     [Fact]
     public void LoadFromJson_CorruptJson_LeavesStateUnchanged()
     {
