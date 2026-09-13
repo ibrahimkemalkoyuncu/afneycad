@@ -70,6 +70,44 @@ public class UnifiedBomServiceTests
         Assert.Equal(0, result.DuctCostTl);
     }
 
+    /*
+       NE/NEDEN — Session #75 iş akışı denetiminde bulunan boşluk (madde 04/68): poz kataloğu
+       HVAC'ı hiç kapsamıyordu, Genel Keşif'te kanal/terminal/damper fiyatsızdı. PozKatalogService'e
+       eklenen GRUP 30 (Havalandırma) kalemleri artık gerçek sac yüzey alanı (perimeter × uzunluk)
+       ve adet üzerinden fiyatlandırıyor. Bu testler poz kataloğuyla birebir eşleştiğini kilitler.
+    */
+    [Fact]
+    public void Generate_DuctCost_MatchesPozKatalogUnitPriceTimesSurfaceArea()
+    {
+        var db = new CadDatabase();
+        var duct = new DuctEntity(new Vector3D(0, 0, 0), new Vector3D(10000, 0, 0), 400, 300);
+        db.AddEntity(duct);
+
+        var poz = new PozKatalogService().FindForDuct(DuctShape.Rectangular)!;
+        double expected = duct.GetInsulationArea() * (double)poz.BirimFiyat;
+
+        var result = new UnifiedBomService(db).Generate();
+
+        Assert.Equal(expected, result.DuctCostTl, precision: 2);
+    }
+
+    [Fact]
+    public void Generate_AirTerminalAndDamperCost_MatchesPozKatalogUnitPriceTimesCount()
+    {
+        var db = new CadDatabase();
+        db.AddEntity(new AirTerminalEntity(new Vector3D(0, 0, 0), AirTerminalType.SupplyDiffuser, 500));
+        db.AddEntity(new AirTerminalEntity(new Vector3D(1000, 0, 0), AirTerminalType.ReturnGrille, 500));
+        db.AddEntity(new DamperEntity(new Vector3D(0, 0, 0), DamperType.Volume, 300));
+
+        var terminalPoz = new PozKatalogService().FindForAirTerminal()!;
+        var damperPoz = new PozKatalogService().FindForDamper()!;
+
+        var result = new UnifiedBomService(db).Generate();
+
+        Assert.Equal(2 * (double)terminalPoz.BirimFiyat, result.AirTerminalCostTl, precision: 2);
+        Assert.Equal(1 * (double)damperPoz.BirimFiyat, result.DamperCostTl, precision: 2);
+    }
+
     [Fact]
     public void ExportToHtml_ContainsBothSections()
     {

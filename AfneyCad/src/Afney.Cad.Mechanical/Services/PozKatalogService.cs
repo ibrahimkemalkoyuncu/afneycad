@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
 
 namespace Afney.Cad.Mechanical.Services;
@@ -97,6 +98,20 @@ public class PozKatalogService
         new("29.001/4",  "Çelik gaz borusu DN32 (1¼\") — doğalgaz",             "m",    950m,  "29-Gaz"),
         new("29.001/5",  "Çelik gaz borusu DN40 (1½\") — doğalgaz",             "m",   1200m,  "29-Gaz"),
         new("29.001/6",  "Çelik gaz borusu DN50 (2\") — doğalgaz",              "m",   1550m,  "29-Gaz"),
+
+        /*
+           NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu, madde 04):
+           Poz kataloğu sadece tesisat/mimariyi kapsıyordu, HVAC (kanal/terminal/damper)
+           tamamen dışarıdaydı — "Genel Keşif" raporunda bu kalemler fiyatsız (sadece
+           adet/miktar) görünüyordu. Galvanizli sac kanal geleneksel olarak m² (sac yüzey
+           alanı) üzerinden fiyatlandırılır — DN bazlı boru gruplarından farklı bir birim.
+        */
+        // ── GRUP 30: Havalandırma (HVAC) ──────────────────────────────────────
+        new("30.001/1",  "Galvanizli sac kanal (dikdörtgen) — 0.6mm",           "m2",   850m,  "30-Havalandırma"),
+        new("30.001/2",  "Galvanizli sac kanal (dairesel/spiro)",               "m2",   950m,  "30-Havalandırma"),
+        new("30.010",    "Kanal izolasyonu — cam yünü 25mm",                    "m2",   320m,  "30-Havalandırma"),
+        new("30.101",    "Menfez/Difüzör (hava terminali) — standart",          "adet", 1450m, "30-Havalandırma"),
+        new("30.102",    "Ayar damperi (volume control damper)",                "adet", 1850m, "30-Havalandırma"),
     ];
 
     private List<PozKalemi> _aktifKatalog = [.. _builtinKatalog];
@@ -263,6 +278,19 @@ public class PozKatalogService
             .OrderBy(k => Math.Abs(ExtractDiameterFromTanim(k.Tanim) - innerDiamMm))
             .FirstOrDefault();
     }
+
+    /*
+       NE: FindForDuct / FindForAirTerminal / FindForDamper
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: Genel Keşif raporu HVAC
+              donanımını gerçek entity'lerden sayıyordu ama fiyatlandıramıyordu (poz kataloğu
+              HVAC'ı kapsamıyordu). Artık bu üç metod GRUP 30'dan gerçek birim fiyat döndürüyor.
+    */
+    public PozKalemi? FindForDuct(DuctShape shape) =>
+        FindByPozNo(shape == DuctShape.Circular ? "30.001/2" : "30.001/1");
+
+    public PozKalemi? FindForAirTerminal() => FindByPozNo("30.101");
+
+    public PozKalemi? FindForDamper() => FindByPozNo("30.102");
 
     public PozKalemi? FindForFixture(string fixtureType)
     {

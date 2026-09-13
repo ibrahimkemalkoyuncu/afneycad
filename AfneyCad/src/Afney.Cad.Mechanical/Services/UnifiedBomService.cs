@@ -16,10 +16,10 @@ namespace Afney.Cad.Mechanical.Services;
    KAPSAM: BomService (tesisat: boru/fitting/vitrifiye + HVAC: kanal/terminal/damper —
           gerçek yerleştirilmiş entity sayımı) ve ArchitecturalBomService (duvar/kolon/
           kiriş/kapı/pencere/mahal) burada TEK bir rapora birleştiriliyor. Maliyet
-          tarafında UYDURMA fiyat eklemek yerine sadece halihazırda gerçek/doğrulanmış
-          fiyatlandırma mantığı olan iki kaynak kullanılıyor: PipeCostService (boru,
-          malzeme+işçilik+ek parça) ve HvacBomService'in kanal fiyat formülü (artık
-          internal, bkz. HvacBomService.cs) gerçek kanal metrajına uygulanıyor.
+          tarafında UYDURMA fiyat eklemek yerine sadece gerçek/doğrulanmış fiyatlandırma
+          kaynakları kullanılıyor: PipeCostService (boru, malzeme+işçilik+ek parça) ve
+          PozKatalogService'in GRUP 30 (Havalandırma) kalemleri (kanal/terminal/damper —
+          madde 68'de eklendi, önceden HVAC hiç poz kataloğu kapsamındaydı).
           SelectionBomService buraya dahil EDİLMEDİ — o seçili nesne alt kümesi için ayrı
           bir "hızlı tahmin" aracı, bütün-belge keşfiyle aynı amaca hizmet etmiyor.
 */
@@ -30,28 +30,44 @@ public class UnifiedBomResult
     public ArchBomResult ArchSummary { get; set; } = new();
     public double PipeCostTl { get; set; }
     public double DuctCostTl { get; set; }
-    public double TotalEstimatedCostTl => PipeCostTl + DuctCostTl;
+    public double AirTerminalCostTl { get; set; }
+    public double DamperCostTl { get; set; }
+    public double TotalEstimatedCostTl => PipeCostTl + DuctCostTl + AirTerminalCostTl + DamperCostTl;
 }
 
 public class UnifiedBomService
 {
     private readonly CadDatabase _database;
+    private readonly PozKatalogService _poz;
 
-    public UnifiedBomService(CadDatabase database)
+    public UnifiedBomService(CadDatabase database, PozKatalogService? pozKatalog = null)
     {
         _database = database;
+        _poz = pozKatalog ?? new PozKatalogService();
     }
 
     public UnifiedBomResult Generate()
     {
         var mech = new BomService(_database).GenerateBom();
         var arch = new ArchitecturalBomService(_database).Generate();
+        var entities = _database.GetAllEntities().ToList();
 
         double pipeCost = new PipeCostService().CalculateFromDatabase(_database).TotalCostTl;
 
-        double ductCost = _database.GetAllEntities().OfType<DuctEntity>()
-            .GroupBy(d => new { d.Shape, Size = d.GetSizeText() })
-            .Sum(g => (g.Sum(d => d.GetLength()) / 1000.0) * HvacBomService.GetDuctPrice(g.Key.Shape, g.Key.Size));
+        double ductCost = entities.OfType<DuctEntity>()
+            .GroupBy(d => d.Shape)
+            .Sum(g =>
+            {
+                var poz = _poz.FindForDuct(g.Key);
+                double areaM2 = g.Sum(d => d.GetInsulationArea()); // gerçek sac yüzey alanı (perimeter × uzunluk)
+                return poz != null ? areaM2 * (double)poz.BirimFiyat : 0;
+            });
+
+        var terminalPoz = _poz.FindForAirTerminal();
+        double terminalCost = terminalPoz != null ? entities.OfType<AirTerminalEntity>().Count() * (double)terminalPoz.BirimFiyat : 0;
+
+        var damperPoz = _poz.FindForDamper();
+        double damperCost = damperPoz != null ? entities.OfType<DamperEntity>().Count() * (double)damperPoz.BirimFiyat : 0;
 
         return new UnifiedBomResult
         {
@@ -59,7 +75,9 @@ public class UnifiedBomService
             ArchitecturalItems = arch.Items,
             ArchSummary = arch,
             PipeCostTl = pipeCost,
-            DuctCostTl = ductCost
+            DuctCostTl = ductCost,
+            AirTerminalCostTl = terminalCost,
+            DamperCostTl = damperCost
         };
     }
 
@@ -86,14 +104,15 @@ public class UnifiedBomService
         sb.AppendLine("<div class='summary'>");
         sb.AppendLine($"<div class='card'><div>Boru Maliyeti</div><div class='val'>{r.PipeCostTl:N0} TL</div></div>");
         sb.AppendLine($"<div class='card'><div>Kanal Maliyeti</div><div class='val'>{r.DuctCostTl:N0} TL</div></div>");
+        sb.AppendLine($"<div class='card'><div>Terminal/Damper Maliyeti</div><div class='val'>{(r.AirTerminalCostTl + r.DamperCostTl):N0} TL</div></div>");
         sb.AppendLine($"<div class='card'><div>Tahmini Toplam</div><div class='val'>{r.TotalEstimatedCostTl:N0} TL</div></div>");
         sb.AppendLine($"<div class='card'><div>Duvar</div><div class='val'>{r.ArchSummary.WallCount}</div></div>");
         sb.AppendLine($"<div class='card'><div>Mahal</div><div class='val'>{r.ArchSummary.RoomCount}</div></div>");
         sb.AppendLine("</div>");
-        sb.AppendLine("<p class='note'>Tahmini toplam yalnızca boru (PipeCostService: malzeme+işçilik+ek parça) ve kanal " +
-                       "(gerçek metraj × birim fiyat formülü) kalemlerini kapsar — vitrifiye/terminal/damper/mimari " +
-                       "kalemlerin poz-fiyat kataloğu henüz bu kategorileri kapsamadığı için (bkz. Kullanici_kitabi.md) " +
-                       "buraya uydurma bir fiyat eklenmedi, sadece adet/miktar gösteriliyor.</p>");
+        sb.AppendLine("<p class='note'>Tahmini toplam boru (PipeCostService: malzeme+işçilik+ek parça) ve HVAC " +
+                       "(kanal/terminal/damper — PozKatalogService GRUP 30, 2024 ÇŞB referanslı) kalemlerini kapsar. " +
+                       "Vitrifiye ve mimari kalemlerin poz-fiyat kataloğu henüz bu kategorileri kapsamadığı için " +
+                       "(bkz. Kullanici_kitabi.md) buraya uydurma bir fiyat eklenmedi, sadece adet/miktar gösteriliyor.</p>");
 
         sb.AppendLine("<h2>Tesisat / HVAC (gerçek yerleştirilmiş nesneler)</h2>");
         sb.AppendLine("<table><tr><th>Kategori</th><th>Açıklama</th><th>Malzeme/Tip</th><th>Miktar</th><th>Birim</th></tr>");
