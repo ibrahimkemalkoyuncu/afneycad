@@ -3391,3 +3391,25 @@ Kullanıcı "Hâlâ açık ve tamamlanmayan iyileştirme yapılması gerekenleri
 **Test sayısı:** 709 → 715 (+6 yeni test: `PozKatalogServiceHvacTests`, `UnifiedBomServiceTests`'e poz-fiyat testleri).
 
 **Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
+
+---
+
+### 70. "Çizime Ekle" Deseninin Yayılmasına Devam — 9/13 Ekran Tamamlandı (`commit cbacb99`, `355c696`)
+
+Kullanıcı "Evet Geliştirmeye devam et" dedi — madde 69'da kısmi bırakılan "Çizime Ekle" maddesine devam edildi. `TS825InsulationDialog`/`WaterMeterDialog`/`ExpansionTankDialog` ile aynı desen (özet `TextEntity`, kendi katmanında, (0,0,0)'a ekleniyor) 7 ekrana daha yayıldı:
+
+- `DepoHidroforDialog` (katman: `DEPO_HIDROFOR_HESAP`)
+- `HotWaterCirculationDialog` (katman: `RESIRKULASYON_HESAP`)
+- `PipeCostDialog` (katman: `BORU_MALIYET_HESAP` — zaten `_lastResult` tutuyordu, sadece buton eklendi)
+- `BackflowPreventerDialog` (katman: `GERI_AKIS_ONLEYICI_HESAP` — constructor'a opsiyonel `CadDatabase` eklendi)
+- `PressureZoneDialog` (katman: `BASINC_BOLGESI_HESAP` — PRV boyutlandırması da bu ekranda, ayrı bir PRV ekranı yok)
+- `SepticTankDialog` (katman: `FOSSEPTIK_HESAP`)
+- `GasCalcDialog` (katman: `DOGALGAZ_HESAP` — zaten `_database`/`_lastResult` tutuyordu, sadece buton eklendi)
+
+Orijinal raporda isimlendirilen tüm örnekler (su sayacı, genleşme deposu, geri akış önleyici, PRV, boru maliyeti) artık tamamlandı. Toplam **9/13 hesap ekranı** artık gerçekten çizime yazıyor.
+
+**Test sayısı:** 715 (değişmedi — bu madde WPF diyalog etkileşimi olduğu için ayrı birim testi eklenmedi, build+manuel akış doğrulaması yapıldı).
+
+**Kalan ~4 ekran:** Kalan hesap ekranları (ör. `HeatLoadCalculation`/EN 12831, Psikrometrik analiz, Enerji Geri Kazanımı, Gelişmiş Soğutma — Session #52'de "kod tamam ama arayüze bağlı değil" olarak belgelenmiş HVAC ek hesapları) için bu desen henüz uygulanmadı.
+
+**Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.

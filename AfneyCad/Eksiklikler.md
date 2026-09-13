@@ -334,11 +334,11 @@ Bu bölüm, yukarıdaki self-assessment tablolarının aksine, **gerçek kod oku
 - ~~Yeni Proje ekranlarını birleştir~~ → **Tamamlandı.** `NewProjectDialog`'a "Şablon Sihirbazıyla Oluştur" köprüsü eklendi. Ek bulgu: `ArchitectPath` ölü kod olarak bulunup temizlendi (hiçbir UI onu doldurmuyordu).
 - ~~Poz kataloğunu HVAC'a genişlet~~ → **Tamamlandı.** GRUP 30 (Havalandırma) eklendi; Genel Keşif artık kanal/terminal/damper için gerçek poz fiyatı kullanıyor.
 - ~~`MultiStoryEnhancementService`'in geri kalan yetenekleri~~ → **Kısmen tamamlandı.** `ValidateLevelGaps`/`ValidateAssembly`/`MirrorFloor` bağlandı. `ReorderLevel` (LevelManager'ın Order mantığıyla çakışma riski) ve `GenerateSectionView` (çoklu-nokta seçim gerektiriyor) bilinçli olarak bağlanmadı; `AnalyzePressureZones` zaten canlı `PressureZoneDialog` olduğu için eklenmedi.
-- ~~"Çizime Ekle" deseninin yayılması~~ → **Kısmen tamamlandı.** `WaterMeterDialog`/`ExpansionTankDialog`'a eklendi. Kalan ~11 hesap ekranı için henüz tekrarlanmadı (geniş, tekrarlayan iş — bilinçli olarak kısmi bırakıldı).
+- ~~"Çizime Ekle" deseninin yayılması~~ → **Kısmen tamamlandı, 9/13.** Madde 70'te (`commit cbacb99`/`355c696`) `DepoHidroforDialog`/`HotWaterCirculationDialog`/`PipeCostDialog`/`BackflowPreventerDialog`/`PressureZoneDialog`/`SepticTankDialog`/`GasCalcDialog`'a da eklendi. Raporda isimlendirilen tüm örnekler (su sayacı, genleşme deposu, geri akış önleyici, PRV, boru maliyeti) tamamlandı. Kalan ~4 ekran (HVAC ek hesapları: EN 12831 ısı yükü, psikrometrik analiz, enerji geri kazanımı, gelişmiş soğutma) için henüz tekrarlanmadı.
 
 ### Hâlâ açık (bilinçli olarak ertelenen veya kısmi bırakılan)
 
 - Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).
 - `MultiStoryEnhancementService`'in `ReorderLevel`/`GenerateSectionView`/`AnalyzePressureZones` yetenekleri hâlâ hiçbir ekrana bağlanmadı (gerekçeler yukarıda).
-- ~11 hesap ekranına (geri akış önleyici, PRV, boru maliyeti, su deposu/hidrofor, doğalgaz hesap föyü, fosseptik vb.) "Çizime Ekle" deseni henüz yayılmadı.
+- ~4 HVAC ek hesap ekranına (EN 12831 ısı yükü, psikrometrik analiz, enerji geri kazanımı, gelişmiş soğutma) "Çizime Ekle" deseni henüz yayılmadı.
 - Bu belgenin Session #30-37 arası diğer tüm "10/10" iddiaları (boyutlandırma, hatch, komut satırı, 3D görünüm vb.) — Session #75 denetiminin kapsamına HİÇ girmedi, ne doğrulandı ne çürütüldü.
