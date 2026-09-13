@@ -3353,3 +3353,23 @@ Madde 65/66'nın bıraktığı tek yapısal iş — pis su/sprinkler/çok katlı
 **Kapsam dışı bırakılan (bilinçli):** `AdvancedLevelService`/`MultiStoryEnhancementService`/`FloorCopyService` gibi dört ayrı "kat kopyala/taşı/basınç raporu" motorunun birleştirilmesi (ayrı, daha büyük bir refactor); `MechanicalKernel.ProjectModel.Levels` (hiç doldurulmayan, kullanılmayan beşinci bir liste — dokunulmadı); `DefineBuildingDialog`'un dosya-başına-kat mimarisinin canlı belgeyle tam birleşimi.
 
 **Doğrulama:** Her turda `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **702/702 test başarılı**, regresyon yok.
+
+---
+
+### 68. Kalan Son 3 Madde Sırayla Tamamlandı (`commit 55f1524`, `b1303fc`, `0719481`)
+
+Kullanıcı `Eksiklikler.md`'yi Session #75+ bulgularıyla güncelledikten sonra "Sırayla uygula" dedi — bölüm 15'in "hâlâ açık" listesindeki 3 madde (pis su/sprinkler tam birleşimi hariç, o bilinçli olarak köprü-only bırakılmıştı) sırayla ele alındı.
+
+**1) Kat-kopyalama motoru "konsolidasyonu" — beklenenden farklı, daha iyi bir sonuç (`commit 55f1524`):** Araştırma "4 ayrı canlı motor" değil, "1 canlı + 3 tamamen UI'a bağlanmamış hayalet servis" olduğunu ortaya çıkardı:
+- `AdvancedLevelService` ve `FloorCopyService`: kod tabanında SIFIR referans (test bile yok) — silindi.
+- `MultiStoryEnhancementService`: 5 gerçek testi olan, kendi içinde gerçek bir dejenere-sıfır-uzunluklu-bağlantı-borusu hatasının belgeli düzeltmesini taşıyan ama hiçbir dialogdan çağrılmayan bir servisti. `MultiStoryManagerDialog`'un "Kat Kopyala" butonu artık bunun `CopyFloorWithConnections`'ını kullanıyor (eski `CopyFloorPlumbing`'den daha iyi: bağlantıları koruyor + otomatik kolon bağlıyor); yeni "Kolonları Otomatik Bağla" butonu `AutoConnectInterFloorRisers`'ı bağladı.
+
+**2) `ClashReportDialog` — BCF export + tolerans ayarı (`commit b1303fc`):** `ClashDetectionService.DetectClashes` artık opsiyonel `clearanceMarginMm` parametresi alıyor (varsayılan 25mm, diğer 4 çağıranın davranışı değişmedi). Dialogda "Minimum boşluk toleransı" alanı + "Yeniden Tara" butonu eklendi. Yeni `BcfExportService`: buildingSMART BCF 2.1 şeklinde bir ZIP üretiyor (bcf.version + konu başına markup.bcf/viewpoint.bcfv). Dürüstlük notu koda işlendi: AfneyCAD entity ID'leri IFC GUID değil, bu yüzden BCF konuları hedef araçta seçilebilir bir IFC bileşen referansı taşımıyor — sadece konum/mesaj/ID izlenebilirliği sağlıyor.
+
+**3) Pafta seti gerçek toplu baskı/export (`commit 0719481`):** `SheetIndexService.SheetEntry`'ye opsiyonel `LayerStateName` eklendi — her pafta `LayerStateManagerService`'teki isimlendirilmiş bir katman durumuna bağlanabiliyor. Yeni `BatchPlotService`: her pafta için (varsa) atanmış katman durumunu uygulayıp viewport'u render ediyor, tek bir çok sayfalı PDF'in ayrı sayfaları haline getiriyor, işlem bitince orijinal katman durumunu TAM geri yüklüyor (try/finally). `SheetSetManagerDialog`'a "Katman Durumu" seçici + "Toplu Baskı (PDF)" butonu eklendi.
+
+**Test sayısı:** 702 → 709 (+7 yeni test: `ClashDetectionServiceTests`'e tolerans testleri, yeni `BcfExportServiceTests`, `SheetIndexServiceTests`'e `LayerStateName` round-trip testi).
+
+**Kalan (bilinçli olarak açık bırakılan):** Pis su/sprinkler için hâlâ sadece geçiş köprüsü var (farklı hesap standartları/motorları nedeniyle tam birleştirme riskli — madde 65'te gerekçelendirildi). `MultiStoryEnhancementService`'in geri kalan yetenekleri (`ReorderLevel`, `ValidateLevelGaps`, `MirrorFloor`, `GenerateSectionView`, `AnalyzePressureZones`, `ValidateAssembly`) hâlâ UI'a bağlanmadı.
+
+**Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **709/709 test başarılı**, regresyon yok.

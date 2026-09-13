@@ -323,9 +323,14 @@ Bu bölüm, yukarıdaki self-assessment tablolarının aksine, **gerçek kod oku
 - **HVAC son P0** (madde 66): `HvacDesignDialog`'un hesapladığı kanal boyutu artık `RouteDuctCommand`'a gerçekten aktarılıyor.
 - **Çok katlı bina veri modeli birleştirmesi** (madde 67, Plan Mode ile): `FloorDefinition` tamamen kaldırıldı, `MultiStoryBuildingService` artık `LevelManager`/`MepLevel` üzerinde doğrudan çalışıyor (tek canonical model), kat listesi artık kalıcı (`LevelPersistenceService`), `DefineBuildingDialog`'daki metre/mm birim hatası düzeltildi.
 
+### Güncelleme (madde 68, `commit 55f1524`/`b1303fc`/`0719481`) — 3 madde daha kapatıldı
+
+- ~~`AdvancedLevelService`/`MultiStoryEnhancementService`/`FloorCopyService` konsolidasyonu~~ → **Tamamlandı.** Araştırma "4 canlı motor" değil "1 canlı + 2 tamamen ölü + 1 hiç bağlanmamış test edilmiş servis" olduğunu gösterdi. `AdvancedLevelService`/`FloorCopyService` silindi (sıfır referans). `MultiStoryEnhancementService` artık `MultiStoryManagerDialog`'a bağlı (`CopyFloorWithConnections`, `AutoConnectInterFloorRisers`).
+- ~~`ClashReportDialog`'a BCF export + tolerans ayarı~~ → **Tamamlandı.** `ClashDetectionService.DetectClashes` artık tolerans parametresi alıyor; yeni `BcfExportService` buildingSMART BCF 2.1 formatında dışa aktarıyor (IFC bileşen referansı yok — dürüstlük notu koda işlendi).
+- ~~Pafta setinin gerçek toplu baskı/export'a bağlanması~~ → **Tamamlandı.** Yeni `BatchPlotService` + `SheetEntry.LayerStateName` ile her pafta kendi katman durumuyla tek bir çok-sayfalı PDF'in sayfası oluyor.
+
 ### Hâlâ açık (bilinçli olarak ertelenen, büyük/yapısal)
 
 - Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).
-- `AdvancedLevelService`/`MultiStoryEnhancementService`/`FloorCopyService` gibi 3-4 ayrı "kat kopyala/taşı/basınç raporu" motorunun birleştirilmesi — ayrı, daha büyük bir refactor.
-- `ClashReportDialog`'a BCF export + tolerans ayarı, pafta setinin gerçek toplu baskı/export'a bağlanması (kısmen: `RevisionTrackingDialog` artık PDF üretiyor ama çoklu-pafta toplu export yok).
+- `MultiStoryEnhancementService`'in geri kalan yetenekleri (`ReorderLevel`, `ValidateLevelGaps`, `MirrorFloor`, `GenerateSectionView`, `AnalyzePressureZones`, `ValidateAssembly`) hâlâ hiçbir ekrana bağlanmadı.
 - Bu belgenin Session #30-37 arası diğer tüm "10/10" iddiaları (boyutlandırma, hatch, komut satırı, 3D görünüm vb.) — Session #75 denetiminin kapsamına HİÇ girmedi, ne doğrulandı ne çürütüldü.
