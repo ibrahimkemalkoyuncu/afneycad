@@ -10,12 +10,40 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class ClashReportDialog : Window
 {
     private List<ClashResult> _clashes;
+    private readonly Func<double, List<ClashResult>>? _rescan;
 
-    public ClashReportDialog(List<ClashResult> clashes)
+    public ClashReportDialog(List<ClashResult> clashes, Func<double, List<ClashResult>>? rescan = null)
     {
         InitializeComponent();
         _clashes = clashes;
-        
+        _rescan = rescan;
+
+        LoadData();
+    }
+
+    /*
+       NE: Tolerans ile Yeniden Tarama (Rescan_Click)
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: minimum boru-boru/vana aralığı
+              (+25mm) kod içinde sabitti, kullanıcı değiştiremiyordu. `rescan` opsiyonel bir
+              delege olarak verildiğinde (bkz. MainWindow.OnClashDetectionClick), kullanıcı
+              burada gerçek bir toleransla yeniden tarama yaptırabiliyor. Delege verilmezse
+              (örn. testte veya eski çağrı şeklinde) buton sessizce bilgi mesajı gösterir.
+    */
+    private void Rescan_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rescan is null)
+        {
+            MessageBox.Show("Bu rapor yeniden taramayı desteklemiyor.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!double.TryParse(ToleranceInput.Text.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double toleranceMm) || toleranceMm < 0)
+        {
+            MessageBox.Show("Geçerli bir tolerans (mm) girin.", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _clashes = _rescan(toleranceMm);
         LoadData();
     }
 
@@ -67,6 +95,34 @@ public partial class ClashReportDialog : Window
             catch (Exception ex)
             {
                 MessageBox.Show($"Hata: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private void ExportBcf_Click(object sender, RoutedEventArgs e)
+    {
+        if (_clashes == null || !_clashes.Any())
+        {
+            MessageBox.Show("Dışa aktarılacak çakışma kaydı bulunamadı.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "BCF Dosyası (*.bcf;*.bcfzip)|*.bcf;*.bcfzip",
+            FileName = $"ClashReport_{DateTime.Now:yyyyMMdd_HHmmss}.bcf"
+        };
+
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            try
+            {
+                Afney.Cad.Mechanical.Services.BcfExportService.Export(_clashes, saveFileDialog.FileName);
+                MessageBox.Show("BCF raporu başarıyla kaydedildi.", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"BCF dışa aktarma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

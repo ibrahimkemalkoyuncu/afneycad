@@ -156,6 +156,39 @@ public class ClashDetectionServiceTests
         Assert.Empty(results);
     }
 
+    /*
+       NE/NEDEN — GERÇEK BOŞLUK (Session #75 iş akışı denetiminde bulundu): minimum boşluk
+       toleransı (+25mm) önceden koda gömülüydü, kullanıcı değiştiremiyordu. Bu testler
+       `clearanceMarginMm` parametresinin gerçekten hem dar-faz (minClearance) hem geniş-faz
+       (QuadTree margin) hesabına uygulandığını kilitler — aynı 200mm aralık, düşük toleransta
+       "çakışma yok", yüksek toleransta "çakışma var" sonucunu vermeli.
+    */
+    [Fact]
+    public void DetectClashes_WithDefaultTolerance_200mmGapIsClear()
+    {
+        var svc = new ClashDetectionService(new List<ArchitecturalObstacle>());
+        var pipe1 = MakePipe(new Vector3D(0, 0, 0), new Vector3D(1000, 0, 0), diameterMm: 25);
+        var pipe2 = MakePipe(new Vector3D(0, 200, 0), new Vector3D(1000, 200, 0), diameterMm: 25);
+
+        var results = svc.DetectClashes(new MechanicalEntity[] { pipe1, pipe2 });
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void DetectClashes_WithLargerTolerance_SameGapNowFlaggedAsClash()
+    {
+        var svc = new ClashDetectionService(new List<ArchitecturalObstacle>());
+        // Aynı 200mm aralık — ama tolerans 200mm'ye çıkarılınca minClearance = 25+200 = 225mm > 200mm.
+        var pipe1 = MakePipe(new Vector3D(0, 0, 0), new Vector3D(1000, 0, 0), diameterMm: 25);
+        var pipe2 = MakePipe(new Vector3D(0, 200, 0), new Vector3D(1000, 200, 0), diameterMm: 25);
+
+        var results = svc.DetectClashes(new MechanicalEntity[] { pipe1, pipe2 }, clearanceMarginMm: 200);
+
+        Assert.Single(results);
+        Assert.Equal(ClashType.MechanicalVsMechanical, results[0].Type);
+    }
+
     [Fact]
     public void ResolveClash_MechanicalVsMechanical_CreatesFiveSegmentByPassAroundClashPoint()
     {

@@ -63,7 +63,8 @@ namespace Afney.Cad.Presentation
                 var mechanicals = _mechanicalKernel.TopologyGraph.Nodes.Select(n => n.Entity).ToList();
                 var clashes = clashService.DetectClashes(mechanicals);
 
-                var reportDialog = new ClashReportDialog(clashes);
+                var reportDialog = new ClashReportDialog(clashes,
+                    rescan: toleranceMm => clashService.DetectClashes(mechanicals, toleranceMm));
                 reportDialog.Owner = this;
                 reportDialog.ShowDialog();
 

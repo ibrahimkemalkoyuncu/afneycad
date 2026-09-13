@@ -35,7 +35,15 @@ public class ClashDetectionService
         new Vector3D(-1000000000000, -1000000000000, -100000000),
         new Vector3D(1000000000000, 1000000000000, 100000000));
 
-    public List<ClashResult> DetectClashes(IEnumerable<MechanicalEntity> entities)
+    /*
+       NE: clearanceMarginMm parametresi
+       NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: minimum boru-boru/boru-vana
+              aralığı önceden sabit +25mm idi, kullanıcı bunu değiştiremiyordu (rapor
+              "tolerans ayarı yok" diye işaretlemişti). Artık çağıran (ClashReportDialog'un
+              "Yeniden Tara" akışı) bunu geçebiliyor; varsayılan 25mm ile diğer tüm çağıranların
+              (MechanicalKernel, ClashHighlightService, DomainGuardService) davranışı değişmedi.
+    */
+    public List<ClashResult> DetectClashes(IEnumerable<MechanicalEntity> entities, double clearanceMarginMm = 25.0)
     {
         var results = new List<ClashResult>();
         var mechanicalEntities = entities.ToList();
@@ -116,7 +124,7 @@ public class ClashDetectionService
                 // En kötü durum: p1 en büyük çaplı boruyla eşleşirse minClearance = (d1+maxD)/2+25.
                 // Bu marj kadar genişletilmiş kutu, gerçekten çakışabilecek TÜM adayları kapsar
                 // (broad-phase'te kaçırma riski yok, sadece fazladan aday olabilir).
-                double margin = (p1.InnerDiameter + maxDiameter) / 2.0 + 25.0;
+                double margin = (p1.InnerDiameter + maxDiameter) / 2.0 + clearanceMarginMm;
                 var queryBox = p1.GetBoundingBox().Expand(margin);
 
                 var candidates = new HashSet<CadEntity>();
@@ -132,7 +140,7 @@ public class ClashDetectionService
                     var p2 = pipes[j];
                     if (IsConnected(p1, p2)) continue;
 
-                    double minClearance = (p1.InnerDiameter + p2.InnerDiameter) / 2.0 + 25.0; // +25mm boşluk
+                    double minClearance = (p1.InnerDiameter + p2.InnerDiameter) / 2.0 + clearanceMarginMm;
                     double dist = SegmentToSegmentDistance(p1.StartPoint, p1.EndPoint, p2.StartPoint, p2.EndPoint);
 
                     if (dist < minClearance)
