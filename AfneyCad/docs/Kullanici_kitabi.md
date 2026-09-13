@@ -3373,3 +3373,21 @@ Kullanıcı `Eksiklikler.md`'yi Session #75+ bulgularıyla güncelledikten sonra
 **Kalan (bilinçli olarak açık bırakılan):** Pis su/sprinkler için hâlâ sadece geçiş köprüsü var (farklı hesap standartları/motorları nedeniyle tam birleştirme riskli — madde 65'te gerekçelendirildi). `MultiStoryEnhancementService`'in geri kalan yetenekleri (`ReorderLevel`, `ValidateLevelGaps`, `MirrorFloor`, `GenerateSectionView`, `AnalyzePressureZones`, `ValidateAssembly`) hâlâ UI'a bağlanmadı.
 
 **Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **709/709 test başarılı**, regresyon yok.
+
+---
+
+### 69. Rapordaki Son 4 "Hâlâ Açık" Madde — Todos Oluşturuldu ve Adım Adım Tamamlandı
+
+Kullanıcı "Hâlâ açık ve tamamlanmayan iyileştirme yapılması gerekenleri için todos oluştur ve adım adım tamamla" dedi — İş Akışı Denetimi raporunun (v4) "Öncelikli boşluklar" listelerindeki 4 madde todo'ya çevrilip sırayla tamamlandı.
+
+**1) NewProjectDialog ↔ NewProjectWizardDialog köprüsü (`commit 2f5240e`):** "Şablon Sihirbazıyla Oluştur" butonu eklendi. Ek bulgu: `NewProjectDialog.ArchitectPath` alanı `"// Compat"` yorumuyla her zaman boş string dönecek şekilde tanımlıydı — hiçbir UI onu doldurmuyordu, bu yüzden `OnNewProject`'teki mimari DWG import dalı asla çalışmıyordu. Dal + ölü alan temizlendi.
+
+**2) Poz kataloğu HVAC'a genişletildi (`commit 702fc4b`):** `PozKatalogService`'e GRUP 30 (Havalandırma) eklendi — galvanizli sac kanal (m² — geleneksel ÇŞB birimi), izolasyon, menfez/difüzör, ayar damperi. `UnifiedBomService` (Genel Keşif) artık kanal maliyetini gerçek sac yüzey alanı (perimeter×uzunluk) × poz birim fiyatıyla, terminal/damper maliyetini gerçek adet × poz fiyatıyla hesaplıyor (önceden fiyatsızdı).
+
+**3) `MultiStoryEnhancementService`'in kalan yetenekleri (`commit 1121e3b`, kısmi):** `ValidateLevelGaps`/`ValidateAssembly`/`MirrorFloor` `MultiStoryManagerDialog`'a bağlandı. `ReorderLevel` (LevelManager'ın kendi Order/elevation-sort mantığıyla çakışma riski) ve `GenerateSectionView` (gerçek çoklu-nokta viewport seçimi gerektiriyor) bilinçli olarak bağlanmadı; `AnalyzePressureZones` zaten canlı `PressureZoneDialog` olduğu için ikinci bir veri kaynağı eklenmedi (yeniden parçalanma riski).
+
+**4) "Çizime Ekle" deseni yayılması (`commit 2626687`, kısmi):** `WaterMeterDialog` ve `ExpansionTankDialog`'a `TS825InsulationDialog` ile aynı desende "Çizime Ekle" butonu eklendi. Kalan ~11 hesap ekranı (geri akış önleyici, PRV, boru maliyeti, su deposu/hidrofor, doğalgaz hesap föyü, fosseptik vb.) için aynı desen henüz tekrarlanmadı — geniş, tekrarlayan bir iş olduğu için bilinçli olarak kısmi bırakıldı.
+
+**Test sayısı:** 709 → 715 (+6 yeni test: `PozKatalogServiceHvacTests`, `UnifiedBomServiceTests`'e poz-fiyat testleri).
+
+**Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.

@@ -329,8 +329,16 @@ Bu bölüm, yukarıdaki self-assessment tablolarının aksine, **gerçek kod oku
 - ~~`ClashReportDialog`'a BCF export + tolerans ayarı~~ → **Tamamlandı.** `ClashDetectionService.DetectClashes` artık tolerans parametresi alıyor; yeni `BcfExportService` buildingSMART BCF 2.1 formatında dışa aktarıyor (IFC bileşen referansı yok — dürüstlük notu koda işlendi).
 - ~~Pafta setinin gerçek toplu baskı/export'a bağlanması~~ → **Tamamlandı.** Yeni `BatchPlotService` + `SheetEntry.LayerStateName` ile her pafta kendi katman durumuyla tek bir çok-sayfalı PDF'in sayfası oluyor.
 
-### Hâlâ açık (bilinçli olarak ertelenen, büyük/yapısal)
+### Güncelleme (madde 69, `commit 2f5240e`/`702fc4b`/`1121e3b`/`2626687`) — son 4 madde todo'ya çevrilip tamamlandı
+
+- ~~Yeni Proje ekranlarını birleştir~~ → **Tamamlandı.** `NewProjectDialog`'a "Şablon Sihirbazıyla Oluştur" köprüsü eklendi. Ek bulgu: `ArchitectPath` ölü kod olarak bulunup temizlendi (hiçbir UI onu doldurmuyordu).
+- ~~Poz kataloğunu HVAC'a genişlet~~ → **Tamamlandı.** GRUP 30 (Havalandırma) eklendi; Genel Keşif artık kanal/terminal/damper için gerçek poz fiyatı kullanıyor.
+- ~~`MultiStoryEnhancementService`'in geri kalan yetenekleri~~ → **Kısmen tamamlandı.** `ValidateLevelGaps`/`ValidateAssembly`/`MirrorFloor` bağlandı. `ReorderLevel` (LevelManager'ın Order mantığıyla çakışma riski) ve `GenerateSectionView` (çoklu-nokta seçim gerektiriyor) bilinçli olarak bağlanmadı; `AnalyzePressureZones` zaten canlı `PressureZoneDialog` olduğu için eklenmedi.
+- ~~"Çizime Ekle" deseninin yayılması~~ → **Kısmen tamamlandı.** `WaterMeterDialog`/`ExpansionTankDialog`'a eklendi. Kalan ~11 hesap ekranı için henüz tekrarlanmadı (geniş, tekrarlayan iş — bilinçli olarak kısmi bırakıldı).
+
+### Hâlâ açık (bilinçli olarak ertelenen veya kısmi bırakılan)
 
 - Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).
-- `MultiStoryEnhancementService`'in geri kalan yetenekleri (`ReorderLevel`, `ValidateLevelGaps`, `MirrorFloor`, `GenerateSectionView`, `AnalyzePressureZones`, `ValidateAssembly`) hâlâ hiçbir ekrana bağlanmadı.
+- `MultiStoryEnhancementService`'in `ReorderLevel`/`GenerateSectionView`/`AnalyzePressureZones` yetenekleri hâlâ hiçbir ekrana bağlanmadı (gerekçeler yukarıda).
+- ~11 hesap ekranına (geri akış önleyici, PRV, boru maliyeti, su deposu/hidrofor, doğalgaz hesap föyü, fosseptik vb.) "Çizime Ekle" deseni henüz yayılmadı.
 - Bu belgenin Session #30-37 arası diğer tüm "10/10" iddiaları (boyutlandırma, hatch, komut satırı, 3D görünüm vb.) — Session #75 denetiminin kapsamına HİÇ girmedi, ne doğrulandı ne çürütüldü.
