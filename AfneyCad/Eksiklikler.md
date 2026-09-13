@@ -3,6 +3,10 @@
 > **Son güncelleme:** 2026-06-13 — Session #34 sonrası durum  
 > Bu belge, AfneyCAD'in mevcut yetenekleri ile endüstri standardı olan FINE MEP (AutoBUILD & ADAPT/FCALC) yazılımları arasındaki farkları özetlemektedir.
 
+> ⚠️ **ÖNEMLİ UYARI (Session #75+ eklendi):** Bu belgedeki "10/10 Tamamlandı" puanları **kendi kendine yapılan, koddan bağımsız doğrulanmamış** değerlendirmelerdi. Session #75'te başlatılan 5-ajanlı iş akışı denetimi (gerçek kod okuması + ribbon erişilebilirlik kontrolü ile), bu belgenin "✅ Var/Tamamlandı" dediği özelliklerden BİRÇOĞUNUN aslında ekrana hiç bağlı olmadığını (hayalet), çalışıyormuş gibi görünüp hiçbir şey yapmadığını (sahte/simülasyon) veya birbirinden habersiz 2-3 ayrı veri modeline bölündüğünü ortaya çıkardı. Somut örnekler için bkz. bölüm 15 (aşağıda) ve `docs/Kullanici_kitabi.md` madde 63-67.
+>
+> **Bundan sonra güncel/doğrulanmış durum için `docs/Kullanici_kitabi.md`'ye bakın** — o belge her değişikliği gerçek commit referansı ve `dotnet test` sonucuyla birlikte kaydediyor. Bu dosyadaki (Eksiklikler.md) Session #34-37 puanları, Session #75'in kapsamına girmeyen alanlarda (boyutlandırma, hatch, komut satırı vb.) hâlâ genel bir referans olarak kalabilir ama "doğrulanmış" olarak okunmamalı.
+
 ---
 
 ## 1. AutoBUILD (Mimari BIM Modelleme)
@@ -139,8 +143,8 @@ FineSANI Eğitimi 1 (Mimari Çizimin Programa Girilmesi) ekranlarındaki tüm ö
 | Uzaklık Ölçüm (DIST) | OtoNET → Uzaklık | ✅ **Tamamlandı** | `DistCommand` — mesafe/açı/deltaX/deltaY, yeşil kesikli çizgi önizleme (Session #37) |
 | AutoBLD Menüsü | AutoBLD menü çubuğu | ✅ **Tamamlandı** | Ribbon "🏗 AutoBLD" sekmesi — Mimari Belirle/Katman Yönet/Kat Kopyala/Eleman Tanı/DWG→BIM/Kütüphane/Block/WBlock/Insert/DIST/Pafta/3D (Session #37) |
 | Blok Oluştur (WBlock) | Kaynak (Blok/Tüm çizim/Nesneler) + Tutma Nokta + Dosya Yolu | ✅ **Tamamlandı** | `BMakeDialog` — Kaynak radio, Blok Adı, Base Point XYZ, Nesne seç, Dosya Adı ve Yolu (Session #37) |
-| Bina/Aktif Kat Belirle | Kat/Dosya/Kot/İsim dialog | ✅ **Var** | `DefineBuildingDialog` — kat tanımlama (Session #6) |
-| Kat Kopyala | AutoBLD → Kat Kopyala | ✅ **Var** | `MultiStoryBuildingService.CopyFloorPlumbing` (Session #18) |
+| Bina/Aktif Kat Belirle | Kat/Dosya/Kot/İsim dialog | ⚠️ **Düzeltildi (Session #75+)** | `DefineBuildingDialog` var ama Session #75'e kadar WBlock/Stack butonları kod içinde "(Simulation)" idi — hiçbir gerçek geometrik işlem yapmıyordu (commit 2c9cd23). Ayrıca kat kotu metre/mm birim hatası taşıyordu (düzeltildi: commit 71621b7). |
+| Kat Kopyala | AutoBLD → Kat Kopyala | ⚠️ **Düzeltildi (Session #75+)** | `MultiStoryBuildingService.CopyFloorPlumbing` çalışıyordu ama kendi izole `FloorDefinition` listesini tutuyordu — `LevelManagerDialog`'un (canonical) kat listesinden tamamen habersizdi. Artık ikisi AYNI `LevelManager` üzerinde çalışıyor (commit 6b9fc49). |
 | Mimari DWG Import | Dosya → Aç → DWG | ✅ **Var** | `DwgImportService` — ACadSharp (Session #3) |
 | 3D Bina Görünümü | Aksonometrik | ✅ **Var** | `AxonometricExportService` + `Pipe3DModelService` (Session #34) |
 
@@ -294,3 +298,34 @@ Bu özellikler FINE MEP'te **bulunmayan** veya çok sınırlı olan özelliklerd
 | Cihaz baglama | ConnectFixtureCommand | Manuel |
 | Kolon borusu | RiserPipeCommand | Manuel |
 | Tesisat dogrulama | DomainGuardService | Yok |
+
+---
+
+## 15. Session #75+ — İş Akışı Denetimi: Gerçek Bulgular ve Düzeltmeler
+
+Bu bölüm, yukarıdaki self-assessment tablolarının aksine, **gerçek kod okuması + ribbon erişilebilirlik grep'i + FineSANI web araştırmasıyla** doğrulanmış bir denetimin sonuçlarını özetler (5 paralel ajan, 96 diyalog ekranı tarandı). Ayrıntılı, canlı bir rapor için `docs/Kullanici_kitabi.md` madde 63-67'ye bakın.
+
+### Bulunan hata sınıfları (bu belgenin neden yanıltıcı olduğu)
+
+| Sınıf | Anlamı | Örnek |
+|---|---|---|
+| **Hayalet** | Kod tam çalışıyor ama hiçbir menüden erişilemiyor | `GutterDesignDialog`, CSG Boolean (Union/Subtract/Intersect) — düzeltildi |
+| **Sahte/Simülasyon** | Çalışıyormuş gibi görünüp hiçbir gerçek işlem yapmıyor | `DefineBuildingDialog.WBlock_Click`/`Stack_Click` kod içinde "(Simulation)" idi — düzeltildi |
+| **Sessiz veri kaybı** | Kullanıcı bir şey yaptığını sanıyor, hiçbir yere kaydedilmiyor | `NewProjectWizardDialog`, `BuildingPropertiesDialog` — düzeltildi |
+| **İş akışı parçalanması** | Aynı işi yapan 2-4 farklı, birbirinden habersiz ekran/veri modeli | Pis su (2 ekran), Sprinkler (2 standart), Çok katlı bina (3 veri modeli) — kısmen köprülendi/tam birleştirildi |
+| **Birim hatası** | Aynı alan farklı ekranlarda farklı birimde tutuluyor | `DefineBuildingDialog.Elevation` (metre) vs her yerde mm — düzeltildi |
+
+### Tamamlanan düzeltmeler (özet — tam liste `Kullanici_kitabi.md`'de)
+
+- **En kritik 6 bulgu** (madde 63): Yeni Proje Sihirbazı'nın girdiyi çöpe atması, Bina Özellikleri'nin hiçbir alanı kaydetmemesi, 3D montajın sahte olması, "Aç" butonunun akıllı DWG import'u atlaması, CSG Boolean'ın ribbon'da hiç olmaması, hesap ekranlarının çizime yazmaması.
+- **8 ek bulgu** (madde 64): 3 hayalet ekran silindi, HVAC donanımı (kanal/damper/terminal) metraja eklendi, kavisli-duvar tessellation'ı iki koda eşitlendi, `GutterDesignDialog`/`PipeWizardDialog` düzeltildi, `FanSelectionDialog`/`SilencerSelectionDialog`→Akustik köprüsü kuruldu.
+- **4 madde** (madde 65): "Xref Manager" yeniden adlandırıldı (gerçek harici xref değildi), "Genel Keşif" birleşik BOM raporu eklendi, `RevisionTrackingDialog`'un "Yayınla" butonu artık gerçek PDF üretiyor, pis su/sprinkler ikiz ekranları arasında geçiş köprüsü kuruldu.
+- **HVAC son P0** (madde 66): `HvacDesignDialog`'un hesapladığı kanal boyutu artık `RouteDuctCommand`'a gerçekten aktarılıyor.
+- **Çok katlı bina veri modeli birleştirmesi** (madde 67, Plan Mode ile): `FloorDefinition` tamamen kaldırıldı, `MultiStoryBuildingService` artık `LevelManager`/`MepLevel` üzerinde doğrudan çalışıyor (tek canonical model), kat listesi artık kalıcı (`LevelPersistenceService`), `DefineBuildingDialog`'daki metre/mm birim hatası düzeltildi.
+
+### Hâlâ açık (bilinçli olarak ertelenen, büyük/yapısal)
+
+- Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).
+- `AdvancedLevelService`/`MultiStoryEnhancementService`/`FloorCopyService` gibi 3-4 ayrı "kat kopyala/taşı/basınç raporu" motorunun birleştirilmesi — ayrı, daha büyük bir refactor.
+- `ClashReportDialog`'a BCF export + tolerans ayarı, pafta setinin gerçek toplu baskı/export'a bağlanması (kısmen: `RevisionTrackingDialog` artık PDF üretiyor ama çoklu-pafta toplu export yok).
+- Bu belgenin Session #30-37 arası diğer tüm "10/10" iddiaları (boyutlandırma, hatch, komut satırı, 3D görünüm vb.) — Session #75 denetiminin kapsamına HİÇ girmedi, ne doğrulandı ne çürütüldü.
