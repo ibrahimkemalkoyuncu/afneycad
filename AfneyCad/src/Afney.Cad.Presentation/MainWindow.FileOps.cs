@@ -20,18 +20,11 @@ namespace Afney.Cad.Presentation
         {
             var dialog = new NewProjectDialog();
             dialog.Owner = this;
+            dialog.OpenWizardRequested += () => OnNewProjectWizard(this, new RoutedEventArgs());
 
             if (dialog.ShowDialog() == true)
             {
                 CreateNewDocument(dialog.ProjectName);
-
-                string archPath = dialog.ArchitectPath;
-                if (!string.IsNullOrEmpty(archPath))
-                {
-                    string targetPath = Path.Combine(dialog.FinalProjectFolder, Path.GetFileName(archPath));
-                    LoadDwgInternal(targetPath);
-                }
-
                 StatusText.Text = $"Yeni Proje Sekmesi: {dialog.ProjectName}";
                 Log.Information("Yeni proje sekmesi oluşturuldu: {ProjectName}", dialog.ProjectName);
             }

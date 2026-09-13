@@ -186,6 +186,8 @@
 
                 <!-- Action Buttons -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="20,0,0,0">
+                    <Button Content="Şablon Sihirbazıyla Oluştur" Click="OpenWizard_Click" Style="{StaticResource ModernBtn}" Width="190" Height="40" Background="#1565C0" Margin="0,0,10,0"
+                            ToolTip="8 bina şablonu (Konut/Otel/AVM/Hastane...) + kat sayısı/yüksekliği ile tam kurulum sihirbazını açar"/>
                     <Button Content="İptal" Click="Cancel_Click" Style="{StaticResource ModernBtn}" Width="100" Height="40" Background="#333" Margin="0,0,10,0"/>
                     <Button Content="PROJEYİ AÇ / OLUŞTUR" Click="Save_Click" IsDefault="True"
                             Width="180" Height="40" FontSize="13" FontWeight="Bold" Cursor="Hand">

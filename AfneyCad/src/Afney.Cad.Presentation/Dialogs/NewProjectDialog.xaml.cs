@@ -12,7 +12,22 @@ namespace Afney.Cad.Presentation.Dialogs
     {
         public string ProjectName { get; private set; } = string.Empty;
         public string FinalProjectFolder { get; private set; } = string.Empty;
-        public string ArchitectPath { get; } = string.Empty; // Compat
+
+        /*
+           NE: OpenWizardRequested olayı
+           NEDEN — Session #75 iş akışı denetiminde bulunan boşluk: bu ekran (mevcut projeleri
+                  gez/aç + hızlı boş proje oluştur) ve NewProjectWizardDialog (8 bina şablonu +
+                  kat sayısı/yüksekliği ile tam kurulum) birbirinden habersizdi, aralarında
+                  geçiş yoktu. Artık burada "Şablon Sihirbazıyla Oluştur" seçeneği var.
+        */
+        public event Action? OpenWizardRequested;
+
+        private void OpenWizard_Click(object sender, RoutedEventArgs e)
+        {
+            OpenWizardRequested?.Invoke();
+            DialogResult = false;
+            Close();
+        }
 
         public ObservableCollection<ProjectFileItem> FileItems { get; set; } = new ObservableCollection<ProjectFileItem>();
 
