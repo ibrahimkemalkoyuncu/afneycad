@@ -3413,3 +3413,24 @@ Orijinal raporda isimlendirilen tüm örnekler (su sayacı, genleşme deposu, ge
 **Kalan ~4 ekran:** Kalan hesap ekranları (ör. `HeatLoadCalculation`/EN 12831, Psikrometrik analiz, Enerji Geri Kazanımı, Gelişmiş Soğutma — Session #52'de "kod tamam ama arayüze bağlı değil" olarak belgelenmiş HVAC ek hesapları) için bu desen henüz uygulanmadı.
 
 **Doğrulama:** Her madde için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
+
+---
+
+### 71. "Çizime Ekle" Deseni Tamamen Yayıldı — 13/13 Ekran (`commit a520dd0`)
+
+Kullanıcı yine "Geliştirmeye devam et" dedi — madde 70'te kalan son ~4 ekran (`MainWindow.Engineering.HvacExtra.cs`'teki tüm HVAC ek hesapları) tamamlandı:
+
+- `HeatLoadCalculationDialog` (EN 12831 ısıtma yükü, katman: `ISITMA_YUKU_HESAP`)
+- `PsychrometricDialog` (katman: `PSIKROMETRIK_HESAP` — son hesaplanan durum noktası özetleniyor; Process/Mix sekmelerinin sonuçları kapsam dışı bırakıldı, tek bir temsili özet yeterli görüldü)
+- `EnergyRecoveryDialog` (ERV/HRV, katman: `ISI_GERI_KAZANIM_HESAP`)
+- `AdvancedCoolingDialog` (katman: `GELISMIS_SOGUTMA_HESAP`)
+- `EnergySimulationDialog` (TS 825 Bin Method, katman: `ENERJI_SIMULASYON_HESAP`)
+- `AcousticAnalysisDialog` (VDI 2081, katman: `GURULTU_ANALIZ_HESAP`)
+
+Hepsi aynı desen: opsiyonel `CadDatabase` constructor parametresi (geriye dönük uyumlu) + özet bir `TextEntity`, kendi katmanında, (0,0,0)'a ekleniyor.
+
+**Sonuç: Raporun "diğer ~13 hesap ekranı çizime geri yazmıyor" bulgusu artık tamamen kapandı — 13/13.**
+
+**Test sayısı:** 715 (değişmedi — WPF diyalog etkileşimi, build+manuel akış doğrulaması yapıldı).
+
+**Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
