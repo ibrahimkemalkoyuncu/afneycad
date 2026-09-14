@@ -110,6 +110,20 @@ public class AutoRouteService
         var gScore = new Dictionary<string, double>();
         var visited = new HashSet<string>();
 
+        /*
+           NE/NEDEN — PERFORMANS (bu turda bulundu): A* burada her açılan komşu için (maks
+           5000 iterasyon × 8 yön = 40.000 komşu) `IsInsideObstacle`'ı ÇAĞIRIYORDU ve o metod
+           HER seferinde TÜM engel listesini (`obstacles`) doğrusal (O(n)) tarıyordu.
+           `PipingPathfinderService.IsCollision` da AYNI sorunu yaşıyordu ve `ObstacleSpatialIndex`
+           ile çözülmüştü (bkz. o dosyanın başındaki yorum). Burada ObstacleSpatialIndex doğrudan
+           kullanılamıyor çünkü o `ArchitecturalObstacle` modeli üzerinde çalışıyor, bu metodun
+           elindeyse zaten genişletilmiş (WallOffset uygulanmış) `CadBoundingBox` listesi var —
+           bu yüzden aynı grid-hash tekniğini doğrudan bu kutular üzerinde uygulayan hafif bir
+           yerel indeks (`ObstacleGridIndex`) kullanılıyor. Büyük binalarda (yüzlerce duvar)
+           otomatik rotalamayı gözle görülür hızlandırır, davranış/sonuç birebir aynı kalır.
+        */
+        var obstacleIndex = options.AvoidObstacles && obstacles.Count > 0 ? new ObstacleGridIndex(obstacles) : null;
+
         string Key(Vector3D v) => $"{Math.Round(v.X / step) * step},{Math.Round(v.Y / step) * step}";
 
         openSet.Enqueue(start, 0);
@@ -144,7 +158,7 @@ public class AutoRouteService
                 string nk = Key(neighbor);
 
                 if (visited.Contains(nk)) continue;
-                if (options.AvoidObstacles && IsInsideObstacle(neighbor, obstacles)) continue;
+                if (obstacleIndex != null && obstacleIndex.ContainsPoint(neighbor)) continue;
 
                 double tentG = gScore.GetValueOrDefault(ck, double.MaxValue) + dir.Length();
 
@@ -295,12 +309,57 @@ public class AutoRouteService
         return obstacles;
     }
 
-    private bool IsInsideObstacle(Vector3D point, List<CadBoundingBox> obstacles)
+    /*
+       NE: Engel Kutuları İçin Hafif Grid-Hash İndeks (ObstacleGridIndex)
+       NEDEN: `ObstacleSpatialIndex` (bkz. dosya başı yorumu) ArchitecturalObstacle modeli
+              üzerinde çalışır; burada zaten hesaplanmış (WallOffset uygulanmış) CadBoundingBox
+              listesi var — aynı grid-hash tekniğini doğrudan bu kutular üzerinde uygular.
+    */
+    private sealed class ObstacleGridIndex
     {
-        foreach (var bb in obstacles)
-            if (point.X >= bb.Min.X && point.X <= bb.Max.X && point.Y >= bb.Min.Y && point.Y <= bb.Max.Y)
-                return true;
-        return false;
+        private readonly double _cellSize;
+        private readonly Dictionary<(long, long), List<int>> _cells = new();
+        private readonly List<CadBoundingBox> _boxes;
+
+        public ObstacleGridIndex(List<CadBoundingBox> boxes, double cellSize = 2000.0)
+        {
+            _boxes = boxes;
+            _cellSize = Math.Max(cellSize, 1.0);
+
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                var (minX, minY, maxX, maxY) = CellRange(boxes[i]);
+                for (long cx = minX; cx <= maxX; cx++)
+                    for (long cy = minY; cy <= maxY; cy++)
+                    {
+                        if (!_cells.TryGetValue((cx, cy), out var list))
+                        {
+                            list = new List<int>();
+                            _cells[(cx, cy)] = list;
+                        }
+                        list.Add(i);
+                    }
+            }
+        }
+
+        private (long MinX, long MinY, long MaxX, long MaxY) CellRange(CadBoundingBox box) =>
+            ((long)Math.Floor(box.Min.X / _cellSize), (long)Math.Floor(box.Min.Y / _cellSize),
+             (long)Math.Floor(box.Max.X / _cellSize), (long)Math.Floor(box.Max.Y / _cellSize));
+
+        public bool ContainsPoint(Vector3D point)
+        {
+            long cx = (long)Math.Floor(point.X / _cellSize);
+            long cy = (long)Math.Floor(point.Y / _cellSize);
+            if (!_cells.TryGetValue((cx, cy), out var list)) return false;
+
+            foreach (var idx in list)
+            {
+                var bb = _boxes[idx];
+                if (point.X >= bb.Min.X && point.X <= bb.Max.X && point.Y >= bb.Min.Y && point.Y <= bb.Max.Y)
+                    return true;
+            }
+            return false;
+        }
     }
 
     private double CalculatePathLength(List<Vector3D> path)
