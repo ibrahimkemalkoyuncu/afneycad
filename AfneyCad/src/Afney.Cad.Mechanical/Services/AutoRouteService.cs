@@ -2,7 +2,9 @@ using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Models;
 using Afney.Cad.Geometry.Primitives;
+using System.Linq;
 
 namespace Afney.Cad.Mechanical.Services;
 
@@ -239,21 +241,39 @@ public class AutoRouteService
         return true;
     }
 
+    /*
+       NE/NEDEN — GERÇEK HATA (bu turda bulundu): Bu metod önceden sadece katman adı
+       "BUILD" veya "WALL" (İngilizce) içeren nesneleri engel sayıyordu. Ama mimari
+       tanımanın "canonical" uygulaması olan `ArchitecturalRecognitionService`
+       (`RecognizeObstacles`), Türkiye'de yaygın katman adlarını ("DUVAR", "MIMARI",
+       "KABA", "SIVA", "KOLON" vb.) da tanıyor. Sonuç: gerçek bir Türkçe mimari DWG'de
+       (katmanlar "DUVAR"/"MIMARI" gibi adlandırılmış) bu metod SIFIR engel buluyordu —
+       A* rota arama motoru duvarları hiç görmeden onların İÇİNDEN rota çiziyordu,
+       "otomatik rotalama" özelliğini duvar-farkındalığı olmayan düz bir çizgiye
+       indirgeyerek. Artık AYNI tanıma servisini (Wall+Column tipleri — Door/Window
+       birer açıklık, engel değil, ray-casting mantığıyla tutarlı) kullanıyor.
+    */
     private List<CadBoundingBox> CollectObstacles(RouteOptions options)
     {
         var obstacles = new List<CadBoundingBox>();
-        foreach (var entity in _database.GetAllEntities())
+
+        var archObstacles = new ArchitecturalRecognitionService(_database).RecognizeObstacles()
+            .Where(o => o.Type == ObstacleType.Wall || o.Type == ObstacleType.Column);
+
+        foreach (var obs in archObstacles)
         {
-            if (entity is PipeEntity || entity is SanitaryFixtureEntity) continue;
-            if (entity.Layer?.Contains("BUILD") == true || entity.Layer?.Contains("WALL") == true)
-            {
-                var bb = entity.GetBoundingBox();
-                var expanded = new CadBoundingBox(
-                    new Vector3D(bb.Min.X - options.WallOffset, bb.Min.Y - options.WallOffset, bb.Min.Z),
-                    new Vector3D(bb.Max.X + options.WallOffset, bb.Max.Y + options.WallOffset, bb.Max.Z));
-                obstacles.Add(expanded);
-            }
+            if (obs.Boundary.Count == 0) continue;
+
+            double minX = obs.Boundary.Min(p => p.X), maxX = obs.Boundary.Max(p => p.X);
+            double minY = obs.Boundary.Min(p => p.Y), maxY = obs.Boundary.Max(p => p.Y);
+            double minZ = obs.Boundary.Min(p => p.Z), maxZ = obs.Boundary.Max(p => p.Z);
+
+            var expanded = new CadBoundingBox(
+                new Vector3D(minX - options.WallOffset, minY - options.WallOffset, minZ),
+                new Vector3D(maxX + options.WallOffset, maxY + options.WallOffset, maxZ));
+            obstacles.Add(expanded);
         }
+
         return obstacles;
     }
 
