@@ -149,8 +149,10 @@ namespace Afney.Cad.Presentation.Dialogs
            `ValidateLevelGaps`/`ValidateAssembly`/`MirrorFloor` yetenekleri hiçbir ekrandan
            erişilemiyordu — sadece kendi test dosyasında (`MultiStoryEnhancementServiceTests`)
            doğrulanmıştı. `ReorderLevel` (LevelManager'ın kendi Order/sıralama mantığıyla
-           doğrudan çakışma riski taşıyor) ve `GenerateSectionView` (gerçek bir çoklu-nokta
-           viewport seçim akışı gerektiriyor) bilinçli olarak bu turda bağlanmadı.
+           doğrudan çakışma riski taşıyordu) artık `LevelManager.ReorderLevels` ile iç liste
+           gerçekten senkronize edildiği için "▲"/"▼" butonlarıyla aşağıda bağlandı.
+           `GenerateSectionView` (gerçek bir çoklu-nokta viewport seçim akışı gerektiriyordu)
+           `GenerateSectionViewCommand` ile ribbon'a (Mimari Giriş → "Kesit Oluştur") bağlandı.
         */
         private void ValidateGaps_Click(object sender, RoutedEventArgs e)
         {
@@ -190,6 +192,36 @@ namespace Afney.Cad.Presentation.Dialogs
             int copied = _enhancementService.MirrorFloor(source, target, MirrorXCheck.IsChecked == true);
             InfoText.Text = $"{copied} bileşen '{source.Name}' → '{target.Name}' aynalanarak kopyalandı.";
             RefreshGrid();
+        }
+
+        /*
+           NE: Katı Bir Sıra Yukarı/Aşağı Taşı (MoveLevelUp_Click / MoveLevelDown_Click)
+           NEDEN: `MultiStoryEnhancementService.ReorderLevel` artık `LevelManager.ReorderLevels`
+                  ile iç kat listesini gerçekten senkronize ediyor (bkz. o dosyadaki NE/NEDEN
+                  notu) — bu yüzden güvenle bir ekrana bağlanabilir. Kullanıcıya rastgele bir
+                  hedef index sordurmak yerine (hataya açık), Grid'in gösterdiği sırada basit
+                  bir yukarı/aşağı taşıma sunuluyor.
+        */
+        private void MoveLevelUp_Click(object sender, RoutedEventArgs e) => MoveSelectedLevel(-1);
+        private void MoveLevelDown_Click(object sender, RoutedEventArgs e) => MoveSelectedLevel(1);
+
+        private void MoveSelectedLevel(int delta)
+        {
+            if (FloorGrid.SelectedItem is not MepLevel selected)
+            {
+                MessageBox.Show("Lütfen Grid'den taşınacak katı seçin."); return;
+            }
+
+            var levels = _buildingService.GetAllFloors();
+            int currentIndex = levels.FindIndex(l => l.Id == selected.Id);
+            if (currentIndex < 0) return;
+
+            int newIndex = Math.Clamp(currentIndex + delta, 0, levels.Count - 1);
+            if (newIndex == currentIndex) return;
+
+            _enhancementService.ReorderLevel(selected.Name, newIndex);
+            RefreshGrid();
+            InfoText.Text = $"'{selected.Name}' yeni konuma taşındı, kat kotları yeniden hesaplandı.";
         }
 
         private void RefreshGrid()

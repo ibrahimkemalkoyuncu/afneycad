@@ -130,6 +130,24 @@ namespace Afney.Cad.Presentation
             catch (Exception ex) { MessageBox.Show($"Çok katlı bina hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        /*
+           NE/NEDEN — GERÇEK HAYALET ÖZELLİK (bu turda bulundu): `MultiStoryEnhancementService.
+           GenerateSectionView` test edilmiş (`MultiStoryEnhancementServiceTests`) ama hiçbir
+           ekrana bağlanmamıştı — gerekçesi gerçek bir çoklu-nokta viewport seçim akışı
+           gerektirmesiydi. `GenerateSectionViewCommand` bu akışı sağlıyor; burada sadece
+           komut nesnesi kurulup Viewport'a bağlanıyor (RoutePipeCommand/PlaceFixtureOnWallCommand
+           ile birebir aynı desen).
+        */
+        private void OnGenerateSectionViewCommand(object sender, RoutedEventArgs e)
+        {
+            var enhancementService = new Afney.Cad.Mechanical.Services.MultiStoryEnhancementService(_database, _mechanicalKernel.LevelManager);
+            var cmd = new Afney.Cad.Commands.MechanicalCommands.GenerateSectionViewCommand(_database, _history.TransactionManager, enhancementService);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; Viewport.InvalidateViewport(); };
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void OnWallParallelRoute(object sender, RoutedEventArgs e)
         {
             try

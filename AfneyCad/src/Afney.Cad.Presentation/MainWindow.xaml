@@ -1759,6 +1759,15 @@
                                                         <TextBlock Text="Kopyala" FontSize="9" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
+                                                <Button Style="{StaticResource RbnLarge}"
+                                                        Click="OnGenerateSectionViewCommand"
+                                                        ToolTip="Kesit Görünümü — Katları ve boruları kesit olarak çizime ekler (3 nokta: başlangıç, bitiş, ekleme noktası)">
+                                                    <StackPanel>
+                                                        <Path Data="{StaticResource Ico.Layers}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="22" Height="22" Stretch="Uniform" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="Kesit" FontSize="9" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="Oluştur" FontSize="9" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
                                             <TextBlock Text="Mimari Giriş" Foreground="#6B6F88" FontSize="10"
                                                        HorizontalAlignment="Center" Margin="0,4,0,0"/>

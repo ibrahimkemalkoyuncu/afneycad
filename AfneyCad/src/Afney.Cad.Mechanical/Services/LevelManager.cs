@@ -142,6 +142,30 @@ public class LevelManager
     }
     
     /*
+    NE: Kat Listesini Yeniden Sırala (ReorderLevels)
+    NEDEN — GERÇEK HATA (bu turda bulundu, MultiStoryEnhancementService.ReorderLevel'i
+           bağlarken): AddLevel/UpdateLevel her zaman `_levels`'i elevation'a göre sıralı
+           tutar. Ama bir katın gösterim sırasını değiştirip elevation'ları buna göre
+           yeniden atayan (MultiStoryEnhancementService.ReorderLevel gibi) bir çağıran,
+           SADECE GetLevels()'in döndürdüğü KOPYA liste üzerinde çalışırsa, `_levels`
+           özel listesi (referans olarak aynı MepLevel nesnelerini tutsa da) eski sırada
+           kalır — Order alanı yeniden numaralanmaz ve iç liste artık elevation'a göre
+           sıralı olmayabilir. Bu metod, çağıranın hesapladığı YENİ sırayı `_levels`'e
+           gerçekten yansıtıp Order'ı yeniden numaralandırır.
+    */
+    public void ReorderLevels(List<MepLevel> newOrder)
+    {
+        if (newOrder.Count != _levels.Count)
+            throw new ArgumentException("Yeni sıradaki kat sayısı mevcut kat sayısıyla eşleşmiyor.");
+
+        _levels.Clear();
+        _levels.AddRange(newOrder);
+        RenumberOrder();
+
+        LevelTableChanged?.Invoke();
+    }
+
+    /*
     NE: Tüm Katları Temizler
     */
     public void Clear()

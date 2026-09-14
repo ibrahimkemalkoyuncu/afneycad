@@ -37,19 +37,40 @@ public class MultiStoryEnhancementService
         return entities.Count;
     }
 
-    // Kat sırasını değiştir (elevation güncelle)
+    /*
+       NE/NEDEN — GERÇEK HATA (bu turda bulundu, bu metod ekrana bağlanırken): Önceden
+       sadece GetLevels()'in döndürdüğü KOPYA liste üzerinde çalışıp yeni elevation'ları
+       MepLevel nesnelerine yazıyordu — ama `LevelManager._levels`'in kendi iç sırası ve
+       Order alanı hiç güncellenmiyordu. Artık hesaplanan yeni sıra, `LevelManager.
+       ReorderLevels` ile GERÇEKTEN geri yazılıyor (iç liste senkronize, Order yeniden
+       numaralandırılıyor, LevelTableChanged tetikleniyor) — bu yüzden bu yetenek artık
+       güvenle bir ekrana bağlanabilir.
+    */
     public void ReorderLevel(string levelName, int newIndex)
     {
         var levels = _levelManager.GetLevels().OrderBy(l => l.Elevation).ToList();
         var target = levels.FirstOrDefault(l => l.Name == levelName);
         if (target == null) return;
 
+        /*
+           NE/NEDEN — GERÇEK HATA (bu turda bulundu, bu metod ekrana bağlanırken test
+           yazılırken ortaya çıktı): Taban kotu (`currentElev`'in başlangıç değeri)
+           önceden `levels.First().Elevation` (Remove/Insert SONRASI ilk eleman) olarak
+           alınıyordu — yani YENİ sırada başa gelen katın ESKİ kotu. Taşınan kat
+           genellikle başka bir kottaydı, bu yüzden tüm bina yeniden numaralandırılırken
+           binanın taban kotu (normalde 0 = zemin kat) rastgele bir değere (ör. taşınan
+           katın eski kotuna) kayıyordu. Artık taban, REMOVE/INSERT'TEN ÖNCEKİ orijinal
+           kat listesindeki EN DÜŞÜK kot olarak sabitleniyor — bina her zaman aynı taban
+           kotundan yeniden istifleniyor, sadece kat sırası değişiyor.
+        */
+        double baseElevation = levels.Min(l => l.Elevation);
+
         levels.Remove(target);
         newIndex = Math.Clamp(newIndex, 0, levels.Count);
         levels.Insert(newIndex, target);
 
-        // Yükseklikleri yeniden hesapla
-        double currentElev = levels.First().Elevation;
+        // Yükseklikleri yeniden hesapla — her zaman orijinal taban kotundan başla.
+        double currentElev = baseElevation;
         foreach (var level in levels)
         {
             double oldElev = level.Elevation;
@@ -65,6 +86,8 @@ public class MultiStoryEnhancementService
 
             currentElev += level.Height;
         }
+
+        _levelManager.ReorderLevels(levels);
     }
 
     // Elevation gap kontrolü

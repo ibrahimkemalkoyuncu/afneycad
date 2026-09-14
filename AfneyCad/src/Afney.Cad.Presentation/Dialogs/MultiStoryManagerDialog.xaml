@@ -259,9 +259,9 @@
         </StackPanel>
         <!-- NE/NEDEN — Session #75 iş akışı denetiminde bulunan hayalet özellik: MultiStoryEnhancementService
              test edilmiş ama hiçbir ekrana bağlanmamış ValidateLevelGaps/ValidateAssembly/MirrorFloor
-             yeteneklerini taşıyordu. ReorderLevel (LevelManager'ın kendi sıralama/Order mantığıyla
-             çakışma riski) ve GenerateSectionView (gerçek bir çoklu-nokta seçim akışı gerektiriyor)
-             bilinçli olarak bu turda bağlanmadı. -->
+             yeteneklerini taşıyordu. GenerateSectionView (gerçek bir çoklu-nokta seçim akışı gerektiriyor)
+             bilinçli olarak bağlanmadı. ReorderLevel artık LevelManager.ReorderLevels ile iç listeyi
+             gerçekten senkronize ettiği için (bkz. MultiStoryEnhancementService.cs) buraya bağlandı. -->
         <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,6">
             <Button Click="ValidateGaps_Click" Width="170" Height="26" Background="#5A2E00" Foreground="White" BorderThickness="0" Margin="0,0,8,0"
                     ToolTip="Katlar arasında boşluk veya çakışma olup olmadığını kontrol eder">
@@ -275,6 +275,14 @@
             <Button Click="MirrorFloor_Click" Width="110" Height="26" Background="#005A9C" Foreground="White" BorderThickness="0"
                     ToolTip="Seçili kaynak katı, işaretli eksende aynalayarak hedef kata kopyalar">
                 <TextBlock Text="Aynala" FontSize="11"/>
+            </Button>
+            <Button Click="MoveLevelUp_Click" Width="34" Height="26" Background="#3A3D52" Foreground="White" BorderThickness="0" Margin="12,0,4,0"
+                    ToolTip="Seçili katı bir sıra yukarı taşır (elevation'ları yeniden hesaplar)">
+                <TextBlock Text="▲" FontSize="11"/>
+            </Button>
+            <Button Click="MoveLevelDown_Click" Width="34" Height="26" Background="#3A3D52" Foreground="White" BorderThickness="0"
+                    ToolTip="Seçili katı bir sıra aşağı taşır (elevation'ları yeniden hesaplar)">
+                <TextBlock Text="▼" FontSize="11"/>
             </Button>
         </StackPanel>
         <Button Grid.Row="6" Content="Kapat" Click="Close_Click" Width="80" Height="30" HorizontalAlignment="Right" Background="#555" Foreground="White" BorderThickness="0"/>

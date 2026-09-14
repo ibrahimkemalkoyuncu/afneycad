@@ -1,3 +1,4 @@
+using System.Linq;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -152,5 +153,42 @@ public class MultiStoryEnhancementServiceTests
         int connections = service.AutoConnectInterFloorRisers(toleranceMm: 100);
 
         Assert.Equal(0, connections);
+    }
+
+    [Fact]
+    public void ReorderLevel_MoveTopFloorToBottom_SyncsLevelManagerInternalListAndOrder()
+    {
+        // NE/NEDEN: ReorderLevel önceden sadece GetLevels()'in KOPYA listesi üzerinde
+        // elevation'ları güncelliyordu — LevelManager'ın kendi iç `_levels` listesi ve
+        // `Order` alanı hiç senkronize edilmiyordu. Bu test, ReorderLevel sonrasında
+        // LevelManager.GetLevels()'in (Order'a göre) YENİ sırayı ve doğru, yeniden
+        // numaralandırılmış Order değerlerini döndürdüğünü doğrular.
+        var db = new CadDatabase();
+        var zemin = new MepLevel("Zemin", 0, 3000);
+        var birinci = new MepLevel("1. Kat", 3000, 3000);
+        var ikinci = new MepLevel("2. Kat", 6000, 3000);
+
+        var lm = MakeLevelManager(zemin, birinci, ikinci);
+        var service = new MultiStoryEnhancementService(db, lm);
+
+        // "2. Kat"ı en alta (index 0) taşı.
+        service.ReorderLevel("2. Kat", 0);
+
+        var levels = lm.GetLevels().OrderBy(l => l.Order).ToList();
+
+        Assert.Equal(3, levels.Count);
+        Assert.Equal("2. Kat", levels[0].Name);
+        Assert.Equal("Zemin", levels[1].Name);
+        Assert.Equal("1. Kat", levels[2].Name);
+
+        // Order 0..2 olarak yeniden numaralandırılmış olmalı.
+        Assert.Equal(0, levels[0].Order);
+        Assert.Equal(1, levels[1].Order);
+        Assert.Equal(2, levels[2].Order);
+
+        // Elevation'lar da yeni sıraya göre artan olmalı (0, 3000, 6000).
+        Assert.Equal(0, levels[0].Elevation);
+        Assert.Equal(3000, levels[1].Elevation);
+        Assert.Equal(6000, levels[2].Elevation);
     }
 }
