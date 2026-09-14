@@ -32,10 +32,25 @@ public class RouteResult
 public class AutoRouteService
 {
     private readonly CadDatabase _database;
+    private readonly List<ArchitecturalObstacle>? _sharedObstacles;
 
-    public AutoRouteService(CadDatabase database)
+    /*
+       NE/NEDEN — GERÇEK HATA (bu turda bulundu): Önceki turda CollectObstacles her
+       çağrıda `new ArchitecturalRecognitionService(_database).RecognizeObstacles()`
+       ile SIFIRDAN mimari tarama yapıyordu. Ama uygulamanın geri kalanı (`PipingPathfinderService`,
+       `AutoLayoutService`, `DomainGuardService`, `ClashDetectionService`) hepsi TEK, paylaşılan
+       `MechanicalKernel.ArchitecturalObstacles` listesini kullanıyor — kullanıcının "Mimari Tanı"
+       komutuyla ürettiği ve `ArchitecturalLibraryDialog`/`SmartBimConverterDialog` ile
+       düzenleyebildiği CANONICAL veri. Sıfırdan tarama hem performans israfı (her manuel boru
+       tıklamasında tüm katman/entity taraması) hem de tutarsızlık riski (kullanıcının BIM
+       düzenlemeleri paylaşılan listeye yansır ama bu servisin kendi taze taramasına yansımaz).
+       Artık opsiyonel paylaşılan listeyi kabul ediyor; yoksa (ör. birim testleri veya kernel
+       erişimi olmayan çağrılar) eskisi gibi taze tarama yapıyor.
+    */
+    public AutoRouteService(CadDatabase database, List<ArchitecturalObstacle>? sharedObstacles = null)
     {
         _database = database;
+        _sharedObstacles = sharedObstacles;
     }
 
     public RouteResult FindRoute(Vector3D start, Vector3D end, RouteOptions options)
@@ -257,8 +272,11 @@ public class AutoRouteService
     {
         var obstacles = new List<CadBoundingBox>();
 
-        var archObstacles = new ArchitecturalRecognitionService(_database).RecognizeObstacles()
-            .Where(o => o.Type == ObstacleType.Wall || o.Type == ObstacleType.Column);
+        var source = (_sharedObstacles != null && _sharedObstacles.Count > 0)
+            ? _sharedObstacles
+            : new ArchitecturalRecognitionService(_database).RecognizeObstacles();
+
+        var archObstacles = source.Where(o => o.Type == ObstacleType.Wall || o.Type == ObstacleType.Column);
 
         foreach (var obs in archObstacles)
         {

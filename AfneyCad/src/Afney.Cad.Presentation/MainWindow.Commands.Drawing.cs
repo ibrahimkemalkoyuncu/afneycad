@@ -307,7 +307,7 @@ namespace Afney.Cad.Presentation
 
         private void OnAutoRouteCommand(object sender, RoutedEventArgs e)
         {
-            var dlg = new AutoRouteDialog(_database, _history.TransactionManager) { Owner = this };
+            var dlg = new AutoRouteDialog(_database, _history.TransactionManager, _mechanicalKernel.ArchitecturalObstacles) { Owner = this };
             dlg.Show();
             StatusText.Text = "AUTO-ROUTE: Dialog açıldı. Başlangıç ve bitiş noktalarını belirleyin.";
         }

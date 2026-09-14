@@ -44,7 +44,7 @@ public class RoutePipeCommand : ICadCommand
         _database = database;
         _kernel = kernel;
         _routingEngine = new PipeRoutingEngine();
-        _autoRoute = new AutoRouteService(_database);
+        _autoRoute = new AutoRouteService(_database, _kernel.ArchitecturalObstacles);
 
         // Kernel üzerindeki akıllı parça seçiciyi motora bağla (Entegrasyon)
         _routingEngine.SetFittingSelector(_kernel.FittingSelector);

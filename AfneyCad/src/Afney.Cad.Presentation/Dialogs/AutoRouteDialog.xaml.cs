@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Mechanical.Enums;
+using Afney.Cad.Mechanical.Models;
 using Afney.Cad.Mechanical.Services;
 using Afney.Cad.Geometry.Primitives;
 
@@ -11,20 +13,22 @@ public partial class AutoRouteDialog : Window
 {
     private readonly CadDatabase _database;
     private readonly Afney.Cad.Database.Transactions.TransactionManager _tm;
+    private readonly List<ArchitecturalObstacle>? _sharedObstacles;
     private RouteResult? _lastResult;
     private RouteOptions? _lastOptions;
 
-    public AutoRouteDialog(CadDatabase database, Afney.Cad.Database.Transactions.TransactionManager tm)
+    public AutoRouteDialog(CadDatabase database, Afney.Cad.Database.Transactions.TransactionManager tm, List<ArchitecturalObstacle>? sharedObstacles = null)
     {
         InitializeComponent();
         _database = database;
         _tm = tm;
+        _sharedObstacles = sharedObstacles;
     }
 
     public void SetRouteResult(Vector3D start, Vector3D end)
     {
         var options = BuildOptions();
-        var svc = new AutoRouteService(_database);
+        var svc = new AutoRouteService(_database, _sharedObstacles);
         _lastResult = svc.FindRoute(start, end, options);
         _lastOptions = options;
 
