@@ -3454,3 +3454,5 @@ Kullanıcı bu noktada denetim raporunun kalan uzun kuyruğunu bırakıp yönü 
 **Test sayısı:** 715 (değişmedi — mevcut testler zaten mm biriminde yazılıydı, yeni regresyon testi gerekmedi; `BomServiceTests` bir testi bu turda düzeltildi).
 
 **Doğrulama:** Her commit için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
+
+**Ek düzeltme (`commit f5f29e5`):** Madde 72'deki `AutoRouteService` düzeltmesi Türkçe katman tanıma sorununu çözerken yeni bir tutarsızlık ekledi — her çağrıda sıfırdan `ArchitecturalRecognitionService` taraması yapıyordu, oysa uygulamanın geri kalanı (`PipingPathfinderService`, `AutoLayoutService`, `DomainGuardService`) hepsi TEK paylaşılan `MechanicalKernel.ArchitecturalObstacles` listesini kullanıyor. Bu hem performans israfıydı (her manuel boru tıklamasında tam tarama) hem de tutarsızlık riskiydi (kullanıcının BIM düzenlemeleri bu servise yansımazdı). `AutoRouteService` artık opsiyonel paylaşılan listeyi kabul ediyor; `RoutePipeCommand`/`AutoRouteDialog` artık `_kernel.ArchitecturalObstacles`'ı geçiyor. 715/715 test geçti.
