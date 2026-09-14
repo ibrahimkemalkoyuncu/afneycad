@@ -336,6 +336,13 @@ Bu bölüm, yukarıdaki self-assessment tablolarının aksine, **gerçek kod oku
 - ~~`MultiStoryEnhancementService`'in geri kalan yetenekleri~~ → **Kısmen tamamlandı.** `ValidateLevelGaps`/`ValidateAssembly`/`MirrorFloor` bağlandı. `ReorderLevel` (LevelManager'ın Order mantığıyla çakışma riski) ve `GenerateSectionView` (çoklu-nokta seçim gerektiriyor) bilinçli olarak bağlanmadı; `AnalyzePressureZones` zaten canlı `PressureZoneDialog` olduğu için eklenmedi.
 - ~~"Çizime Ekle" deseninin yayılması~~ → **Tamamlandı, 13/13 (madde 71, `commit a520dd0`).** Tüm hesap ekranları (madde 70: su sayacı/genleşme deposu/depo-hidrofor/resirkülasyon/boru maliyeti/geri akış önleyici/basınç bölgesi/fosseptik/doğalgaz + madde 71: EN 12831 ısı yükü/psikrometrik/ısı geri kazanımı/gelişmiş soğutma/enerji simülasyonu/gürültü analizi) artık hesap sonucunu çizime yazıyor.
 
+### Güncelleme (madde 72, `commit 3f45b17`/`0704f32`) — Çekirdek iş akışı odağı: "mimari üzerinde tesisat çizmek" iki kritik doğruluk hatası açığa çıkardı
+
+Kullanıcı yönü netleştirdi: kalan uzun kuyruk yerine önce (1) mimari DWG aktarımı/tanıma, sonra (2) otomatik tesisat yerleşimi/rotalama önceliklendirilsin. Bu odak, önceki "erişilebilir mi" denetiminin KAÇIRDIĞI iki gerçek doğruluk hatasını buldu:
+
+- ~~DWG import ölçek dönüşümü ters yönlüydü~~ → **Tamamlandı.** AfneyCAD dünya birimi mm iken `DwgImportDialog`'un "Metre"/"Milimetre" etiketleri metre varsayımıyla yazılmıştı — mm cinsi (Türkiye'de en yaygın) bir dosya "Milimetre" seçilince geometri 1000 kat küçülüyordu. Düzeltildi + `BomService`'in boru metrajı satırındaki eksik mm→m dönüşümü + `DwgImportDialog`'un kozmetik (okunmayan) temizleme onay kutuları + eski `LoadDwgEntities`'in etkisiz kısa-çizgi eşiği aynı turda düzeltildi.
+- ~~`AutoRouteService` sadece İngilizce katman adlarını (`BUILD`/`WALL`) tanıyordu~~ → **Tamamlandı.** Türkçe katmanlı (`DUVAR`/`MIMARI` vb.) gerçek projelerde otomatik rota motoru SIFIR engel buluyor, duvarların içinden geçiyordu. Artık canonical `ArchitecturalRecognitionService.RecognizeObstacles()` kullanıyor. Komşu servisler (`AutoBranchingService`, `AutoLayoutService`, `PipingPathfinderService`, `WallParallelRoutingService`) denetlenip sağlam olduğu teyit edildi — aynı hatayı taşımıyorlardı.
+
 ### Hâlâ açık (bilinçli olarak ertelenen veya kısmi bırakılan)
 
 - Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).

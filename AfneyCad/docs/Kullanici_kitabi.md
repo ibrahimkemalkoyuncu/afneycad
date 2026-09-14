@@ -3434,3 +3434,23 @@ Hepsi aynı desen: opsiyonel `CadDatabase` constructor parametresi (geriye dön�
 **Test sayısı:** 715 (değişmedi — WPF diyalog etkileşimi, build+manuel akış doğrulaması yapıldı).
 
 **Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
+
+---
+
+### 72. Stratejik Yön Değişimi — "En Temel Amaç" Odağında Çekirdek İş Akışı Denetimi (`commit 3f45b17`, `0704f32`)
+
+Kullanıcı bu noktada denetim raporunun kalan uzun kuyruğunu bırakıp yönü netleştirdi: **"amacımız 4M FineSANI'den daha iyi bir uygulama çıkarmak ve bu uygulamanın en temel amacı sıhhi tesisat projelerini gelen mimari üzerinde çizmek."** İki öncelik onaylandı (sırayla): (1) mimari DWG aktarımı ve tanıma, (2) otomatik tesisat yerleşimi/rotalama. Bu, "özellik erişilebilir mi/gerçek mi" sorgusundan "çekirdek iş akışı doğru mu/kaliteli mi" sorgusuna geçiş anlamına geldi — ve önceki denetimin YAKALAMADIĞI iki kritik doğruluk hatası ortaya çıktı:
+
+**1) DWG İçe Aktarma — Birim Ölçek Hatası Ters Yönlüydü (`commit 3f45b17`):** AfneyCAD'in dünya-koordinat birimi UYGULAMA GENELİNDE milimetredir (15'ten fazla servis `pipe.Length`'i `/1000.0` ile metreye çevirir — `PipeCostService`, `PressureDropService`, `HydraulicReportService` vb.). Ama `DwgImportDialog`'un ölçek seçenekleri TAM TERSİ bir varsayımla yazılmıştı: "Metre (ölçekleme yok)" ve "Milimetre (×0.001)" etiketleri dünya biriminin metre olduğunu varsayıyordu. Sonuç: Türkiye'de en yaygın mimari DWG kuralı olan milimetre cinsinden bir dosya "Milimetre" seçilerek içe aktarıldığında, tüm geometri yanlışlıkla **1000 kat küçülüyordu** — içe aktarılan mimari, üzerine çizilecek tesisata göre görünmez denecek kadar küçük kalıyordu. Düzeltildi: Milimetre = ölçekleme yok, Metre = ×1000, Santimetre = ×10; Otomatik Algıla eşikleri gerçekçi mm-cinsi duvar uzunluklarına göre yeniden kalibre edildi.
+
+**2) `BomService` Boru Metrajı — mm→m Dönüşümü Eksikti (`commit 3f45b17`):** Aynı dosyadaki Kanal (doğru) grubu `/1000.0` uyguluyordu, ama Boru grubu hiç dönüştürmeden mm değerini "m" etiketiyle raporluyordu — metraj raporunda her boru kalemi gerçek uzunluğunun 1000 katı görünüyordu. `UnifiedBomService` (Genel Keşif) da bu veriyi kullandığı için dolaylı olarak düzeldi.
+
+**3) `DwgImportDialog`'un temizleme onay kutuları kozmetikti (`commit 3f45b17`):** "Z koordinatlarını sıfırla", "Aşırı uzak nesneleri kaldır", "Çok kısa çizgileri kaldır" işaretliydi ama hiçbir çağıran bu bayrakları okumuyordu. `OnImport_Click` içinde gerçekten uygulanacak şekilde düzeltildi. Ayrıca `MainWindow.FileOps.cs`'teki eski `LoadDwgEntities` kısa-çizgi eşiği (`0.01`, metre varsayımıyla yazılmış ama mm koordinatlarda çalışıyordu — pratikte etkisiz) `10.0`'a düzeltildi.
+
+**4) `AutoRouteService.CollectObstacles` — Sadece İngilizce Katman Adlarını Tanıyordu (`commit 0704f32`):** Otomatik boru rotalama (A* pathfinding) motoru, engel taraması için sadece katman adında "BUILD" veya "WALL" (İngilizce) arıyordu. Ama mimari tanımanın canonical uygulaması (`ArchitecturalRecognitionService`) Türkiye'de yaygın katman adlarını da ("DUVAR", "MIMARI", "KABA", "SIVA", "KOLON") tanıyor. Sonuç: gerçek bir Türkçe mimari DWG'de bu motor SIFIR engel buluyordu — duvarların içinden rota çiziyordu. Artık aynı `ArchitecturalRecognitionService.RecognizeObstacles()` metodunu kullanıyor (Wall+Column engel, Door+Window açıklık).
+
+**Doğrulanan, sağlam olduğu teyit edilen komşu servisler:** `AutoBranchingService` (cihaz-boru bağlantısı, T-parçası split mantığı — karmaşık ama doğru), `AutoLayoutService` (oda içi otomatik vitrifiye yerleşimi, kapı/pencere çakışma kontrolü canlı `ArchitecturalObstacles`'a bağlı), `PipingPathfinderService` (armatür-kolon rotalama, zaten spatial-index'li tam A* + gerçek geometrik çakışma testi), `WallParallelRoutingService`/`WallParallelRouteDialog` (duvar-paralel rotalama, Türkçe katman adlarını zaten doğru tanıyordu).
+
+**Test sayısı:** 715 (değişmedi — mevcut testler zaten mm biriminde yazılıydı, yeni regresyon testi gerekmedi; `BomServiceTests` bir testi bu turda düzeltildi).
+
+**Doğrulama:** Her commit için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
