@@ -121,6 +121,25 @@ public partial class DwgImportDialog : Window
         }
     }
 
+    /*
+       NE/NEDEN — GERÇEK HATA (bu turda bulundu, kullanıcının "en temel amaç: sıhhi
+       tesisatı mimari üzerinde çizmek" önceliği üzerine araştırılırken): AfneyCAD'in
+       dünya-koordinat birimi UYGULAMA GENELİNDE milimetredir — bu, `PipeCostService`,
+       `PressureDropService`, `HydraulicReportService`, `CalculationTableService`,
+       `RealTimeCostService`, `SelectionBomService` gibi 15'ten fazla servisin `pipe.Length`'i
+       tutarlı şekilde "/1000.0" ile metreye çevirmesinden, `MepLevel`/`LevelManager`'ın kat
+       yüksekliklerini mm cinsinden tutmasından (ör. 3000 = 3m) ve `BomService`'teki paralel
+       "Kanal" (doğru) ile "Boru" (bu turda düzeltilen hatalı) satırlarının karşılaştırmasından
+       kesin olarak doğrulandı. Ama bu ekranın ölçek seçenekleri TAM TERSİ bir varsayımla
+       yazılmıştı — "Metre (ölçekleme yok)" ve "Milimetre (×0.001)" etiketleri, dünya biriminin
+       METRE olduğunu varsayıyordu. Sonuç: milimetre cinsinden (Türkiye'de en yaygın mimari
+       DWG kuralı) bir dosya "Milimetre" seçilerek içe aktarıldığında, tüm geometri yanlışlıkla
+       1000 KAT küçültülüyordu — içe aktarılan mimari, üzerine çizilecek tesisata göre
+       görünmez denecek kadar küçük kalıyordu. Şimdi her seçenek GERÇEKTEN uygulamanın mm
+       dünyasına dönüştürüyor: Milimetre = ölçekleme yok, Metre = ×1000, Santimetre = ×10.
+       Otomatik Algıla eşikleri de gerçekçi duvar/çizgi uzunluklarına göre (mm cinsinden en
+       yaygın durum binlerce birim) yeniden kalibre edildi.
+    */
     private void OnImport_Click(object sender, RoutedEventArgs e)
     {
         if (_previewEntities == null) return;
@@ -130,14 +149,18 @@ public partial class DwgImportDialog : Window
             .ToList();
 
         double scaleFactor = 1.0;
-        if (RbMilimetre.IsChecked == true) scaleFactor = 0.001;
-        else if (RbSantimetre.IsChecked == true) scaleFactor = 0.01;
+        if (RbMetre.IsChecked == true) scaleFactor = 1000.0;       // m  -> mm
+        else if (RbSantimetre.IsChecked == true) scaleFactor = 10.0;    // cm -> mm
+        else if (RbMilimetre.IsChecked == true) scaleFactor = 1.0;      // mm -> mm (zaten uygulamanın birimi)
         else if (RbAutoScale.IsChecked == true)
         {
             double avgLen = filtered.OfType<LineEntity>().Take(100)
-                .Select(l => l.GetLength()).Where(len => len > 0).DefaultIfEmpty(1).Average();
-            if (avgLen > 1000) scaleFactor = 0.001;
-            else if (avgLen > 50) scaleFactor = 0.01;
+                .Select(l => l.GetLength()).Where(len => len > 0).DefaultIfEmpty(1000).Average();
+            // Tipik bir mimari duvar/çizgi segmenti: metre cinsinde 0.1-9, santimetre
+            // cinsinde 10-900, milimetre cinsinde (en yaygın Türkiye kuralı) yüzlerce-binlerce.
+            if (avgLen < 50) scaleFactor = 1000.0;
+            else if (avgLen < 500) scaleFactor = 10.0;
+            // avgLen >= 500 -> muhtemelen zaten mm, ölçekleme yok.
         }
 
         if (Math.Abs(scaleFactor - 1.0) > 1e-9)
@@ -147,6 +170,48 @@ public partial class DwgImportDialog : Window
                 var scaleMatrix = Afney.Cad.Geometry.Primitives.Matrix4x4.CreateScale(scaleFactor);
                 ent.Transform(scaleMatrix);
             }
+        }
+
+        /*
+           NE/NEDEN — GERÇEK BOŞLUK (bu turda bulundu): "Z koordinatlarını sıfırla",
+           "Aşırı uzak nesneleri kaldır", "Çok kısa çizgileri kaldır" onay kutuları
+           varsayılan olarak işaretliydi ama hiçbir çağıran (ör. `OnOpenFile`) bu
+           bayrakları hiç okumuyordu — üçü de tamamen kozmetikti. Artık burada,
+           `ImportedEntities` dışarı açılmadan ÖNCE gerçekten uygulanıyor.
+        */
+        if (FlattenZ)
+        {
+            foreach (var ent in filtered)
+            {
+                if (ent is LineEntity line)
+                {
+                    line.StartPoint = new Afney.Cad.Geometry.Primitives.Vector3D(line.StartPoint.X, line.StartPoint.Y, 0);
+                    line.EndPoint = new Afney.Cad.Geometry.Primitives.Vector3D(line.EndPoint.X, line.EndPoint.Y, 0);
+                }
+            }
+        }
+
+        if (RemoveOutliers && filtered.Count > 0)
+        {
+            var centers = filtered.Select(ent => ent.GetBoundingBox().Center).ToList();
+            double avgX = centers.Average(c => c.X);
+            double avgY = centers.Average(c => c.Y);
+            const double thresholdMm = 500000.0; // 500m yarıçap dışındaki nesneler "sapkın" kabul edilir
+            double thresholdSq = thresholdMm * thresholdMm;
+
+            filtered = filtered.Where(ent =>
+            {
+                var c = ent.GetBoundingBox().Center;
+                double distSq = Math.Pow(c.X - avgX, 2) + Math.Pow(c.Y - avgY, 2);
+                return distSq < thresholdSq;
+            }).ToList();
+        }
+
+        if (RemoveShortLines)
+        {
+            // 10mm (1cm) altındaki çizgiler genellikle DWG dönüşüm artığı/gürültüdür.
+            const double minLengthMm = 10.0;
+            filtered = filtered.Where(ent => ent is not LineEntity line || line.GetLength() >= minLengthMm).ToList();
         }
 
         ImportedEntities = filtered;

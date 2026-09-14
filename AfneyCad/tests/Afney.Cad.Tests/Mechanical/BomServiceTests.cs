@@ -21,12 +21,21 @@ namespace Afney.Cad.Tests.Mechanical;
 */
 public class BomServiceTests
 {
+    /*
+       NE/NEDEN — GERÇEK HATA (bu turda bulundu): `BomService`, boru uzunluğunu (dünya
+       koordinatlarında mm) "m" etiketiyle HİÇ dönüştürmeden gösteriyordu — aynı metottaki
+       kanal (Kanal) grubu ve uygulamadaki HER DİĞER servis (PipeCostService,
+       PressureDropService, HydraulicReportService, vb.) pipe.Length'i mm→m için /1000.0
+       ile böler. Bu test artık doğru (mm→m dönüştürülmüş) değeri kilitliyor — eskiden
+       ham mm değerini "m" olarak kabul edip metraj raporunda her boru kalemini gerçek
+       uzunluğunun 1000 katı gösteriyordu.
+    */
     [Fact]
-    public void GenerateBom_PipesWithSameDiameterAndMaterial_AreGroupedAndLengthsSummed()
+    public void GenerateBom_PipesWithSameDiameterAndMaterial_AreGroupedAndLengthsSummedInMeters()
     {
         var db = new CadDatabase();
-        var pipe1 = new PipeEntity(new Vector3D(0, 0, 0), new Vector3D(10, 0, 0), 100) { PipeMaterialType = PipeMaterial.PPRC_PN20 };
-        var pipe2 = new PipeEntity(new Vector3D(0, 0, 0), new Vector3D(5, 0, 0), 100) { PipeMaterialType = PipeMaterial.PPRC_PN20 };
+        var pipe1 = new PipeEntity(new Vector3D(0, 0, 0), new Vector3D(10000, 0, 0), 100) { PipeMaterialType = PipeMaterial.PPRC_PN20 };
+        var pipe2 = new PipeEntity(new Vector3D(0, 0, 0), new Vector3D(5000, 0, 0), 100) { PipeMaterialType = PipeMaterial.PPRC_PN20 };
         db.AddEntity(pipe1);
         db.AddEntity(pipe2);
 
@@ -34,7 +43,8 @@ public class BomServiceTests
 
         var pipeItem = Assert.Single(bom, b => b.Category == "Boru");
         Assert.Equal("PPRC_PN20", pipeItem.Material);
-        Assert.Equal(pipe1.Length + pipe2.Length, pipeItem.Quantity, precision: 2);
+        Assert.Equal((pipe1.Length + pipe2.Length) / 1000.0, pipeItem.Quantity, precision: 2);
+        Assert.Equal(15.0, pipeItem.Quantity, precision: 2); // 10000mm + 5000mm = 15m
         Assert.Equal("m", pipeItem.Unit);
     }
 

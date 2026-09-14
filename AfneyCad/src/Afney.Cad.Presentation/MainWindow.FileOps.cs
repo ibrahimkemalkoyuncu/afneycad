@@ -189,7 +189,11 @@ namespace Afney.Cad.Presentation
                         double dy = l.EndPoint.Y - l.StartPoint.Y;
                         double len = Math.Sqrt(dx * dx + dy * dy);
 
-                        if (len > 0.01)
+                        // NE/NEDEN — GERÇEK HATA (bu turda bulundu): Eşik "0.01" metre
+                        // varsayımıyla yazılmıştı (1cm) — ama len burada mm cinsinden bir
+                        // dünya-koordinat mesafesi (uygulamanın genel birimi). 0.01 mm'lik bir
+                        // eşik neredeyse hiçbir çizgiyi filtrelemiyordu (etkisiz bir kontrol).
+                        if (len > 10.0)
                         {
                             lock (lenLock)
                             {

@@ -36,14 +36,19 @@ public class BomService
 
         foreach (var group in pipeGroups)
         {
-            double totalLength = group.Sum(p => p.Length);
-            
-            // Eğer totalLength miktarını metre cinsinden istiyorsak (çizim birimi mm ise / 1000)
-            // Varsayılan olarak AfneyCAD çizim birimini m kabul ediyorsak direkt alabiliriz.
-            // Fakat GetLength() genelde çizim birimi (örn: mm) dönebilir. Şimdilik m olarak varsayalım
-            // veya mm ise 1000'e bölelim. Standardımız genelde metredir.
-            // (PipeEntity hesaplarında length m olarak kullanılır, FlowCalculationService'de vb.)
-            
+            /*
+               NE/NEDEN — GERÇEK HATA (bu turda bulundu): Bu satır önceden `p.Length`'i (mm
+               cinsinden, dünya-koordinat mesafesi) HİÇ dönüştürmeden "m" etiketiyle
+               gösteriyordu — aynı dosyadaki kanal (Kanal) grubu ise doğru şekilde /1000.0
+               uyguluyordu (satır ~117), ve uygulamadaki HER DİĞER servis (PipeCostService,
+               PressureDropService, HydraulicReportService, CalculationTableService,
+               RealTimeCostService, SelectionBomService, vb. — 15+ çağrı yeri) pipe.Length'i
+               "mm → m" için /1000.0 ile böler. Bu satır tek istisnaydı: metraj raporunda
+               her boru kalemi GERÇEK uzunluğunun 1000 KATI olarak görünüyordu (örn. 25m'lik
+               bir hat "25000 m" yazıyordu).
+            */
+            double totalLength = group.Sum(p => p.Length) / 1000.0;
+
             bomList.Add(new BomItem
             {
                 Category = "Boru",

@@ -68,17 +68,22 @@
             <!-- Import Seçenekleri -->
             <GroupBox Grid.Column="1" Header="Import Seçenekleri" Foreground="#7AA0CC" BorderBrush="#252836" Padding="8" Margin="4,0,0,0">
                 <StackPanel>
-                    <TextBlock Text="Ölçek Dönüşümü:" Foreground="#858899" FontSize="11" Margin="0,0,0,6"/>
+                    <!-- NE/NEDEN — GERÇEK HATA (bu turda bulundu): AfneyCAD'in dünya birimi
+                         milimetredir (uygulama genelinde 15+ servis pipe.Length'i mm→m için
+                         /1000 ile böler). Bu etiketler önceden "dünya birimi metre" varsayımıyla
+                         yazılmıştı — "Milimetre" seçildiğinde geometri yanlışlıkla 1000 kat
+                         küçülüyordu. Artık her seçenek gerçekten mm dünyasına dönüştürüyor. -->
+                    <TextBlock Text="Kaynak Dosyanın Ölçü Birimi:" Foreground="#858899" FontSize="11" Margin="0,0,0,6"/>
                     <RadioButton x:Name="RbAutoScale" Content="Otomatik Algıla" Foreground="#D4D6E8" IsChecked="True" Margin="0,0,0,4" GroupName="Scale"/>
-                    <RadioButton x:Name="RbMetre" Content="Metre (ölçekleme yok)" Foreground="#D4D6E8" Margin="0,0,0,4" GroupName="Scale"/>
-                    <RadioButton x:Name="RbMilimetre" Content="Milimetre (×0.001)" Foreground="#D4D6E8" Margin="0,0,0,4" GroupName="Scale"/>
-                    <RadioButton x:Name="RbSantimetre" Content="Santimetre (×0.01)" Foreground="#D4D6E8" Margin="0,0,0,4" GroupName="Scale"/>
+                    <RadioButton x:Name="RbMilimetre" Content="Milimetre (ölçekleme yok — AfneyCAD'in kendi birimi)" Foreground="#D4D6E8" Margin="0,0,0,4" GroupName="Scale"/>
+                    <RadioButton x:Name="RbSantimetre" Content="Santimetre (×10)" Foreground="#D4D6E8" Margin="0,0,0,4" GroupName="Scale"/>
+                    <RadioButton x:Name="RbMetre" Content="Metre (×1000)" Foreground="#D4D6E8" Margin="0,0,0,4" GroupName="Scale"/>
 
                     <Separator Background="#252836" Margin="0,8"/>
                     <TextBlock Text="Temizleme:" Foreground="#858899" FontSize="11" Margin="0,0,0,6"/>
                     <CheckBox x:Name="ChkFlattenZ" Content="Z koordinatlarını sıfırla (2D)" Foreground="#D4D6E8" IsChecked="True" Margin="0,0,0,4"/>
                     <CheckBox x:Name="ChkRemoveOutliers" Content="Aşırı uzak nesneleri kaldır" Foreground="#D4D6E8" IsChecked="True" Margin="0,0,0,4"/>
-                    <CheckBox x:Name="ChkRemoveShortLines" Content="Çok kısa çizgileri kaldır (&lt;0.01)" Foreground="#D4D6E8" IsChecked="True" Margin="0,0,0,4"/>
+                    <CheckBox x:Name="ChkRemoveShortLines" Content="Çok kısa çizgileri kaldır (&lt;10mm)" Foreground="#D4D6E8" IsChecked="True" Margin="0,0,0,4"/>
                     <CheckBox x:Name="ChkExplodeBlocks" Content="Blokları patlat (explode)" Foreground="#D4D6E8" IsChecked="True" Margin="0,0,0,4"/>
 
                     <Separator Background="#252836" Margin="0,8"/>
