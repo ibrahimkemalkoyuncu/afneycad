@@ -341,7 +341,15 @@ Bu bölüm, yukarıdaki self-assessment tablolarının aksine, **gerçek kod oku
 Kullanıcı yönü netleştirdi: kalan uzun kuyruk yerine önce (1) mimari DWG aktarımı/tanıma, sonra (2) otomatik tesisat yerleşimi/rotalama önceliklendirilsin. Bu odak, önceki "erişilebilir mi" denetiminin KAÇIRDIĞI iki gerçek doğruluk hatasını buldu:
 
 - ~~DWG import ölçek dönüşümü ters yönlüydü~~ → **Tamamlandı.** AfneyCAD dünya birimi mm iken `DwgImportDialog`'un "Metre"/"Milimetre" etiketleri metre varsayımıyla yazılmıştı — mm cinsi (Türkiye'de en yaygın) bir dosya "Milimetre" seçilince geometri 1000 kat küçülüyordu. Düzeltildi + `BomService`'in boru metrajı satırındaki eksik mm→m dönüşümü + `DwgImportDialog`'un kozmetik (okunmayan) temizleme onay kutuları + eski `LoadDwgEntities`'in etkisiz kısa-çizgi eşiği aynı turda düzeltildi.
-- ~~`AutoRouteService` sadece İngilizce katman adlarını (`BUILD`/`WALL`) tanıyordu~~ → **Tamamlandı.** Türkçe katmanlı (`DUVAR`/`MIMARI` vb.) gerçek projelerde otomatik rota motoru SIFIR engel buluyor, duvarların içinden geçiyordu. Artık canonical `ArchitecturalRecognitionService.RecognizeObstacles()` kullanıyor. Komşu servisler (`AutoBranchingService`, `AutoLayoutService`, `PipingPathfinderService`, `WallParallelRoutingService`) denetlenip sağlam olduğu teyit edildi — aynı hatayı taşımıyorlardı.
+- ~~`AutoRouteService` sadece İngilizce katman adlarını (`BUILD`/`WALL`) tanıyordu~~ → **Tamamlandı.** Türkçe katmanlı (`DUVAR`/`MIMARI` vb.) gerçek projelerde otomatik rota motoru SIFIR engel buluyor, duvarların içinden geçiyordu. Artık canonical `ArchitecturalRecognitionService.RecognizeObstacles()` kullanıyor. Komşu servisler (`AutoBranchingService`, `AutoLayoutService`, `PipingPathfinderService`, `WallParallelRoutingService`) denetlenip sağlam olduğu teyit edildi — aynı hatayı taşımıyorlardı. Ek olarak `AutoRouteService` her çağrıda sıfırdan tarama yapmak yerine artık paylaşılan `MechanicalKernel.ArchitecturalObstacles` listesini kullanıyor (`commit f5f29e5`) ve A* motoruna hafif bir grid-hash engel indeksi eklendi (`commit e4726ec`, büyük binalarda performans).
+
+### Güncelleme (madde 73) — Kullanıcının önerdiği 5 maddelik liste "sırayla" tamamlanıyor
+
+Kullanıcının onayladığı sıra: (1) AutoRouteService performansı, (2) raporlama/çıktı kalitesi, (3) çok katlı bina kalan yetenekleri, (4) uçtan uca entegrasyon testi, (5) hesap motorlarının standart uygunluk derinliği.
+
+- ~~(1) AutoRouteService performansı~~ → **Tamamlandı** (yukarıda, `commit e4726ec`).
+- ~~(2) Raporlama/çıktı kalitesi~~ → **Denetlendi, sağlam bulundu.** `HydraulicReportService` (birim dönüşümleri, TS 1258/EN 12056 referansları, ihlal vurgusu, gerçek dosya+tarayıcı açma akışı) incelendi — ek düzeltme gerekmedi.
+- ~~(3) Çok katlı bina kalan yetenekleri~~ → **Tamamlandı (`commit 5f923f7`).** `ReorderLevel` artık `LevelManager.ReorderLevels` ile iç listeyi gerçekten senkronize ediyor (Order yeniden numaralandırılıyor) ve bu turda İKİNCİ bir gerçek hata bulundu: yeniden sıralama sonrası taban kotu, taşınan katın eski kotundan rastgele kayıyordu — artık orijinal en düşük kottan sabit başlıyor. `MultiStoryManagerDialog`'a "▲"/"▼" butonları eklendi. `GenerateSectionView` için yeni `GenerateSectionViewCommand` (3 tıklamalı viewport akışı) ribbon'a "Kesit Oluştur" olarak bağlandı.
 
 ### Hâlâ açık (bilinçli olarak ertelenen veya kısmi bırakılan)
 
