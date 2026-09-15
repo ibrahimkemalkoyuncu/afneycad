@@ -40,16 +40,33 @@ public class FlowCalculationService
        NE: Bina Katsayılarını Getir (GetCoefficients)
        NEDEN: Bina tipine göre (Otel, Hastane, Konut) akış hesap formülündeki a, b ve c katsayılarını standartlardan (TS 1258) seçmek için.
     */
+    /*
+       NE/NEDEN — GERÇEK HATA (bu turda bulundu, kullanıcının onayladığı "standart uygunluk
+       derinliği" denetiminde): DIN 1988-300'ün gerçek Tablo 1'i (Konstanten für den
+       Spitzendurchfluss — IKZ-Fachplaner Ağustos 2012, Geberit ürün yönetimi, formül
+       örnekleriyle çapraz doğrulandı: V̇S = a·(ΣV̇R)^b − c) şu değerleri veriyor:
+       Wohngebäude (Konut) a=1.48 b=0.19 c=0.94 · Bettenhaus/Krankenhaus (Hastane) a=0.75
+       b=0.44 c=0.18 · Hotel a=0.70 b=0.48 c=0.13 · Schule/Verwaltungsgebäude (Okul VE Ofis —
+       standart bu ikisini TEK kategori olarak veriyor, ayrı değer yok) a=0.91 b=0.31 c=0.38.
+       Koddaki değerler sadece Hotel için doğruydu (0.7/0.48/0.13 — bire bir eşleşiyor, demek
+       ki başlangıçta gerçekten DIN 1988-300'e bakılarak yazılmış); Residential/Hospital/
+       Office/School değerleri YANLIŞTI. En kritik etki Residential'da: b=0.45 (yanlış) ile
+       b=0.19 (gerçek) kökten farklı bir eğri şekli üretiyor — örn. ΣLU=5 l/s'te hesaplanan
+       pik debi gerçek değerden ~%19 daha yüksek çıkıyordu (çoğu proje varsayılan bina tipi
+       Residential olduğu için bu en yaygın senaryoyu etkiliyordu). Industrial/PublicArea için
+       DIN 1988-300'de ayrı bir kategori yok — a=1,b=0.5,c=0 (muhafazakâr/basit yaklaşım)
+       korunuyor.
+    */
     private (double a, double b, double c) GetCoefficients()
     {
         return CurrentBuildingType switch
         {
-            Enums.BuildingType.Residential => (0.682, 0.45, 0.14),
-            Enums.BuildingType.Hotel => (0.7, 0.48, 0.13),
-            Enums.BuildingType.Hospital => (1.0, 0.5, 0),
-            Enums.BuildingType.Office => (0.6, 0.5, 0.1),
-            Enums.BuildingType.School => (0.8, 0.45, 0),
-            _ => (1.0, 0.5, 0) // Industrial / Public
+            Enums.BuildingType.Residential => (1.48, 0.19, 0.94),
+            Enums.BuildingType.Hotel => (0.70, 0.48, 0.13),
+            Enums.BuildingType.Hospital => (0.75, 0.44, 0.18),
+            Enums.BuildingType.Office => (0.91, 0.31, 0.38),
+            Enums.BuildingType.School => (0.91, 0.31, 0.38),
+            _ => (1.0, 0.5, 0) // Industrial / Public — DIN 1988-300'de ayrı kategori yok
         };
     }
 

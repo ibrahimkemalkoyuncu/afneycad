@@ -149,15 +149,15 @@ public class PortEngineeringTests
 
         // 3. Hesaplama
         var calcService = new FlowCalculationService(graph);
-        // Bina tipi konut (default) -> a=0.682, b=0.45, c=0.14
+        // Bina tipi konut (default) -> DIN 1988-300 Tablo 1: a=1.48, b=0.19, c=0.94
         calcService.CalculateSystemFlow(entities);
 
         // 4. Doğrulama
         // Pipe, LoadNode'daki 5.0 LU yükü taşımalıdır
         Assert.Equal(5.0, pipe.TotalFixtureUnits);
         Assert.Equal(5.0, riser.TotalFixtureUnits);
-        
-        // Debi kontrolü: Q = 0.682 * (5.0^0.45) - 0.14 ~= 1.26 l/s
+
+        // Debi kontrolü: Q = 1.48 * (5.0^0.19) - 0.94 ~= 1.07 l/s
         Assert.True(pipe.FlowRate > 0, "Debi sıfırdan büyük olmalı");
     }
 
