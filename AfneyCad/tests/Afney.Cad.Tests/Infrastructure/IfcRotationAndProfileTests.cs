@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Infrastructure.Import;
 using Xunit;
 
@@ -27,6 +29,21 @@ public class IfcRotationAndProfileTests
         string path = Path.Combine(Path.GetTempPath(), $"afneycad_test_{Guid.NewGuid():N}.ifc");
         File.WriteAllText(path, content);
         return path;
+    }
+
+    /*
+       NE/NEDEN: Duvar importu artık tel-kafes LineEntity yerine gerçek bir B-Rep SolidEntity
+       üretiyor (bkz. IfcImportService.BuildExtrudedSolid). Bu yardımcı, Solid'in kenarlarından
+       (GetEdges) aynı (start,end) segment listesini üretip eski LineEntity tabanlı
+       doğrulamaları aynen koruyor.
+    */
+    private static List<(Vector3D Start, Vector3D End)> GetSolidEdgeSegments(CadDatabase db, string layer)
+    {
+        return db.GetAllEntities().OfType<SolidEntity>()
+            .Where(s => s.Layer == layer)
+            .SelectMany(s => s.Solid.GetEdges())
+            .Select(e => (e.StartVertex.Position, e.EndVertex.Position))
+            .ToList();
     }
 
     // 45° döndürülmüş, 200x1000mm kesitli, 2700mm yüksekliğinde bir duvar.
@@ -109,15 +126,15 @@ public class IfcRotationAndProfileTests
             Assert.True(result.Success, string.Join("; ", result.Errors));
             Assert.Equal(1, result.WallCount);
 
-            var lines = db.GetAllEntities().OfType<LineEntity>().Where(l => l.Layer == "ARCH-WALL").ToList();
-            Assert.Equal(12, lines.Count); // dikdörtgen kesit → tel-kafes kutu
+            var edges = GetSolidEdgeSegments(db, "ARCH-WALL");
+            Assert.Equal(12, edges.Count); // dikdörtgen kesit → 12 kenarlı kutu
 
             // ESKİ DAVRANIŞTA duvarın uzunluk ekseni hep dünya-X yönünde (Y=0) olurdu.
             // 45° döndürülmüş bir duvarda, X boyunca uzanan hiçbir kenar OLMAMALI —
             // en az bir köşe noktası hem X hem Y'de belirgin şekilde ilerlemiş olmalı.
-            bool anyDiagonalPoint = lines.Any(l =>
-                (l.StartPoint.X > 500 && l.StartPoint.Y > 500) ||
-                (l.EndPoint.X > 500 && l.EndPoint.Y > 500));
+            bool anyDiagonalPoint = edges.Any(e =>
+                (e.Start.X > 500 && e.Start.Y > 500) ||
+                (e.End.X > 500 && e.End.Y > 500));
             Assert.True(anyDiagonalPoint, "Duvar 45° döndürülmüş olmalıydı ama tüm noktalar eksene paralel görünüyor.");
         }
         finally
@@ -138,11 +155,11 @@ public class IfcRotationAndProfileTests
             var result = svc.Import(path, new IfcImportOptions { ImportWalls = true, ImportSlabs = false, ImportWindows = false, ImportDoors = false });
             Assert.True(result.Success, string.Join("; ", result.Errors));
 
-            var lines = db.GetAllEntities().OfType<LineEntity>().Where(l => l.Layer == "ARCH-WALL").ToList();
+            var edges = GetSolidEdgeSegments(db, "ARCH-WALL");
 
-            // Üçgen (3 köşe) → 3 kenar × (alt+üst+dikey) = 9 çizgi.
+            // Üçgen (3 köşe) → 3 kenar × (alt+üst+dikey) = 9 kenar.
             // ESKİ DAVRANIŞTA bu her zaman 12 (varsayılan dikdörtgen kutu) olurdu.
-            Assert.Equal(9, lines.Count);
+            Assert.Equal(9, edges.Count);
         }
         finally
         {
@@ -162,14 +179,14 @@ public class IfcRotationAndProfileTests
             var result = svc.Import(path, new IfcImportOptions { ImportWalls = true, ImportSlabs = false, ImportWindows = false, ImportDoors = false });
             Assert.True(result.Success, string.Join("; ", result.Errors));
 
-            var lines = db.GetAllEntities().OfType<LineEntity>().Where(l => l.Layer == "ARCH-WALL").ToList();
+            var edges = GetSolidEdgeSegments(db, "ARCH-WALL");
 
-            // 16 kenarlı daire yaklaşımı → 16 × 3 = 48 çizgi (eskiden hep 12/dikdörtgen olurdu).
-            Assert.Equal(48, lines.Count);
+            // 16 kenarlı daire yaklaşımı → 16 × 3 = 48 kenar (eskiden hep 12/dikdörtgen olurdu).
+            Assert.Equal(48, edges.Count);
 
             // Merkezden en uzak nokta yaklaşık 500mm (yarıçap) olmalı.
-            double maxDistFromOrigin = lines
-                .SelectMany(l => new[] { l.StartPoint, l.EndPoint })
+            double maxDistFromOrigin = edges
+                .SelectMany(e => new[] { e.Start, e.End })
                 .Max(pt => Math.Sqrt(pt.X * pt.X + pt.Y * pt.Y));
             Assert.InRange(maxDistFromOrigin, 490, 510);
         }

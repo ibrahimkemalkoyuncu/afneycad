@@ -987,14 +987,26 @@ public class IfcImportService
                 {
                     // NE/NEDEN: Yay/kavisli duvar ekseni bulundu — tek düz kutu yerine,
                     // yay boyunca art arda dizilmiş düz duvar segmentleri (her biri kendi
-                    // yönünde ekstrüde edilmiş kutu tel-kafesi) çiziliyor.
-                    foreach (var line in MakeCurvedWallWireframe(axisPts, origin, rot, w, height, LayerWall, ColorWall))
-                        yield return line;
+                    // yönünde ekstrüde edilmiş bir Solid) üretiliyor.
+                    var worldPts = axisPts.Select(pt => RotateAndTranslate(origin, pt.X, pt.Y, rot, pt.Z)).ToList();
+                    double half = w / 2.0;
+                    for (int i = 0; i < worldPts.Count - 1; i++)
+                    {
+                        var a = worldPts[i];
+                        var b = worldPts[i + 1];
+                        var dir = b - a;
+                        double len = dir.Length();
+                        if (len < 1e-6) continue;
+
+                        var norm = new Vector3D(-dir.Y / len, dir.X / len, 0);
+                        var segProfile = new List<Vector3D> { a - norm * half, a + norm * half, b + norm * half, b - norm * half };
+                        yield return BuildExtrudedSolid(segProfile, height, LayerWall, ColorWall, $"Wall_{p.Id}_{i}");
+                    }
                 }
                 else if (p.OutlinePoints is { Count: >= 3 } outline)
                 {
-                    foreach (var line in MakeExtrudedPolygonWireframe(outline, origin, rot, height, LayerWall, ColorWall))
-                        yield return line;
+                    var worldProfile = outline.Select(pt => RotateAndTranslate(origin, pt.X, pt.Y, rot)).ToList();
+                    yield return BuildExtrudedSolid(worldProfile, height, LayerWall, ColorWall, $"Wall_{p.Id}");
                 }
                 else
                 {
@@ -1002,8 +1014,7 @@ public class IfcImportService
                     var b2 = RotateAndTranslate(origin, d, 0, rot);
                     var b3 = RotateAndTranslate(origin, d, w, rot);
                     var b4 = RotateAndTranslate(origin, 0, w, rot);
-                    foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, height, LayerWall, ColorWall))
-                        yield return line;
+                    yield return BuildExtrudedSolid([b1, b2, b3, b4], height, LayerWall, ColorWall, $"Wall_{p.Id}");
                 }
                 break;
             }
@@ -1013,8 +1024,8 @@ public class IfcImportService
                 double thickness = p.Height > 0 ? p.Height : 200;
                 if (p.OutlinePoints is { Count: >= 3 } outline)
                 {
-                    foreach (var line in MakeExtrudedPolygonWireframe(outline, origin, rot, thickness, LayerSlab, ColorSlab))
-                        yield return line;
+                    var worldProfile = outline.Select(pt => RotateAndTranslate(origin, pt.X, pt.Y, rot)).ToList();
+                    yield return BuildExtrudedSolid(worldProfile, thickness, LayerSlab, ColorSlab, $"Slab_{p.Id}");
                 }
                 else
                 {
@@ -1022,8 +1033,7 @@ public class IfcImportService
                     var b2 = RotateAndTranslate(origin, w, 0, rot);
                     var b3 = RotateAndTranslate(origin, w, d, rot);
                     var b4 = RotateAndTranslate(origin, 0, d, rot);
-                    foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, thickness, LayerSlab, ColorSlab))
-                        yield return line;
+                    yield return BuildExtrudedSolid([b1, b2, b3, b4], thickness, LayerSlab, ColorSlab, $"Slab_{p.Id}");
                 }
                 break;
             }
@@ -1038,8 +1048,7 @@ public class IfcImportService
                 var b2 = RotateAndTranslate(origin, ww, -25, rot, sillHeight);
                 var b3 = RotateAndTranslate(origin, ww,  25, rot, sillHeight);
                 var b4 = RotateAndTranslate(origin, 0,   25, rot, sillHeight);
-                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, winHeight, LayerWindow, ColorWindow))
-                    yield return line;
+                yield return BuildExtrudedSolid([b1, b2, b3, b4], winHeight, LayerWindow, ColorWindow, $"Window_{p.Id}");
                 break;
             }
             case "IFCDOOR":
@@ -1051,8 +1060,7 @@ public class IfcImportService
                 var b2 = RotateAndTranslate(origin, dw, -25, rot);
                 var b3 = RotateAndTranslate(origin, dw,  25, rot);
                 var b4 = RotateAndTranslate(origin, 0,   25, rot);
-                foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, doorHeight, LayerDoor, ColorDoor))
-                    yield return line;
+                yield return BuildExtrudedSolid([b1, b2, b3, b4], doorHeight, LayerDoor, ColorDoor, $"Door_{p.Id}");
 
                 // Açılış yönünü gösteren kapı yayı (plan görünümünde, zeminde)
                 var swingStart = RotateAndTranslate(origin, dw, 0, rot);
@@ -1242,61 +1250,6 @@ public class IfcImportService
         return new Vector3D(origin.X + rx, origin.Y + ry, origin.Z + localZ);
     }
 
-    /*
-       NE: Keyfi Poligon Ekstrüzyonu (MakeExtrudedPolygonWireframe)
-       NEDEN: MakeExtrudedBoxWireframe sadece 4 köşeli dikdörtgenler içindi.
-              IFCARBITRARYCLOSEDPROFILEDEF/IFCCIRCLEPROFILEDEF'ten gelen N köşeli
-              (keyfi çokgen veya daire yaklaşımı) kesitleri de aynı mantıkla (alt döngü +
-              üst döngü + dikey kenarlar) ekstrüde etmek için genelleştirilmiş hali.
-    */
-    private static IEnumerable<LineEntity> MakeExtrudedPolygonWireframe(
-        List<Vector3D> localOutline, Vector3D origin, double rotationRad, double height, string layer, uint color)
-    {
-        var bottom = localOutline.Select(pt => RotateAndTranslate(origin, pt.X, pt.Y, rotationRad)).ToList();
-        var top = bottom.Select(b => new Vector3D(b.X, b.Y, b.Z + height)).ToList();
-
-        int n = bottom.Count;
-        for (int i = 0; i < n; i++)
-        {
-            int j = (i + 1) % n;
-            yield return MakeLine(bottom[i], bottom[j], layer, color); // alt döngü
-            yield return MakeLine(top[i], top[j], layer, color);       // üst döngü
-            yield return MakeLine(bottom[i], top[i], layer, color);    // dikey kenar
-        }
-    }
-
-    /*
-       NE: Kavisli Duvar Tel-Kafesi (MakeCurvedWallWireframe)
-       NEDEN: CurvedAxisPoints (tessellate edilmiş yay noktaları, yerel koordinatlarda)
-              önce dünya koordinatına çevrilir, sonra ardışık her nokta çifti kendi yönünde
-              (duvar kalınlığı kadar ötelenmiş) bir MakeExtrudedBoxWireframe kutusu olarak
-              çizilir — yay boyunca art arda dizilmiş düz duvar segmentleri zinciri.
-    */
-    private static IEnumerable<LineEntity> MakeCurvedWallWireframe(
-        List<Vector3D> localAxisPoints, Vector3D origin, double rotationRad, double thickness, double height, string layer, uint color)
-    {
-        var worldPts = localAxisPoints.Select(pt => RotateAndTranslate(origin, pt.X, pt.Y, rotationRad, pt.Z)).ToList();
-        double half = thickness / 2.0;
-
-        for (int i = 0; i < worldPts.Count - 1; i++)
-        {
-            var a = worldPts[i];
-            var b = worldPts[i + 1];
-            var dir = b - a;
-            double len = dir.Length();
-            if (len < 1e-6) continue;
-
-            var norm = new Vector3D(-dir.Y / len, dir.X / len, 0);
-            var b1 = a - norm * half;
-            var b2 = a + norm * half;
-            var b3 = b + norm * half;
-            var b4 = b - norm * half;
-
-            foreach (var line in MakeExtrudedBoxWireframe(b1, b2, b3, b4, height, layer, color))
-                yield return line;
-        }
-    }
-
     /// <summary>Dairesel kesiti (IfcCircleProfileDef) N kenarlı poligon olarak yaklaşıklar (yerel koordinatlarda, merkez=orijin).</summary>
     private static List<Vector3D> BuildCirclePolygon(double radius, int segments)
     {
@@ -1309,44 +1262,28 @@ public class IfcImportService
         return pts;
     }
 
-    /*
-       NE: 3D Kutu Tel-Kafesi Ekstrüzyonu (MakeExtrudedBoxWireframe)
-       NEDEN: b1..b4 (Z=taban) tabanlı bir dikdörtgeni, verilen yükseklik kadar +Z yönünde
-              ekstrüde ederek gerçek bir 3D kutu tel-kafesi (12 kenar: alt döngü + üst döngü +
-              4 dikey kenar) üretir. AfneyCAD'in render motoru tam bir B-Rep/solid-mesh motoru
-              olmadığı için (SkiaSharp tabanlı 2D/izometrik çizim), "gerçek 3D geometri" burada
-              doğru Z koordinatlarına sahip bir tel-kafes anlamına gelir — 3D görünümde ve
-              izometrik/kesit çıktılarında elemanın gerçek yüksekliğini doğru gösterir.
-    */
-    private static IEnumerable<LineEntity> MakeExtrudedBoxWireframe(
-        Vector3D b1, Vector3D b2, Vector3D b3, Vector3D b4, double height, string layer, uint color)
-    {
-        var t1 = new Vector3D(b1.X, b1.Y, b1.Z + height);
-        var t2 = new Vector3D(b2.X, b2.Y, b2.Z + height);
-        var t3 = new Vector3D(b3.X, b3.Y, b3.Z + height);
-        var t4 = new Vector3D(b4.X, b4.Y, b4.Z + height);
-
-        // Alt döngü
-        yield return MakeLine(b1, b2, layer, color);
-        yield return MakeLine(b2, b3, layer, color);
-        yield return MakeLine(b3, b4, layer, color);
-        yield return MakeLine(b4, b1, layer, color);
-
-        // Üst döngü
-        yield return MakeLine(t1, t2, layer, color);
-        yield return MakeLine(t2, t3, layer, color);
-        yield return MakeLine(t3, t4, layer, color);
-        yield return MakeLine(t4, t1, layer, color);
-
-        // Dikey kenarlar
-        yield return MakeLine(b1, t1, layer, color);
-        yield return MakeLine(b2, t2, layer, color);
-        yield return MakeLine(b3, t3, layer, color);
-        yield return MakeLine(b4, t4, layer, color);
-    }
-
     private static LineEntity MakeLine(Vector3D start, Vector3D end, string layer, uint color) =>
         new(start, end) { Layer = layer, Color = color };
+
+    /*
+       NE/NEDEN — GERÇEK BOŞLUK (bu turda bulundu, "4M FineSANI karşılaştırma raporu"nun
+       kendi bulgusu üzerine): IFCWALL/IFCSLAB/IFCWINDOW/IFCDOOR (ve kavisli duvar segmentleri)
+       sadece MakeExtrudedBoxWireframe/MakeExtrudedPolygonWireframe ile 12-kenarlı bir tel-kafes
+       (LineEntity listesi) üretiyordu — üstteki eski yorum bunu "render motoru tam bir B-Rep
+       motoru olmadığı için" diye açıklıyordu, ama bu artık DOĞRU DEĞİL: `SolidEntity` +
+       `BRepTessellator` + Direct3D gölgeli render zaten var (CSG BOX/UNION/SUBTRACT/INTERSECT
+       komutları için kurulmuştu). Sonuç: DWG/DXF'ten gelen borular/kanallar 3D'de gölgeli
+       görünürken, IFC'den gelen mimari (duvar/döşeme/pencere/kapı) SADECE tel-kafes kalıyordu.
+       Artık AYNI `BRepBuilder.ExtrudePolygon` + `SolidEntity` deseni (SolidBoxCommand ile
+       birebir aynı) kullanılıyor — profil sarım yönü serbest (ExtrudePolygon kendi düzeltiyor),
+       tek bir SolidEntity üretiliyor. `SolidEntity.Draw()` zaten TÜM kenarları çizdiği için
+       2D/plan görünümü DEĞİŞMİYOR (aynı görünüm) — sadece 3D sekmesinde artık gölgeli.
+    */
+    private static SolidEntity BuildExtrudedSolid(List<Vector3D> profile, double height, string layer, uint color, string name)
+    {
+        var solid = BRepBuilder.ExtrudePolygon(profile, new Vector3D(0, 0, height), name);
+        return new SolidEntity(solid) { Layer = layer, Color = color };
+    }
 
     private void EnsureLayers()
     {

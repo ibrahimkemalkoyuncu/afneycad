@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
+using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Infrastructure.Import;
 using Xunit;
 
@@ -62,6 +64,22 @@ public class IfcImportExtrusionTests
         return path;
     }
 
+    /*
+       NE/NEDEN: Duvar/döşeme/pencere/kapı importu artık tel-kafes LineEntity yerine gerçek
+       bir B-Rep SolidEntity üretiyor (bkz. IfcImportService.BuildExtrudedSolid — "4M FineSANI
+       karşılaştırma raporu"nun IFC elemanlarının 3D'de tel-kafes kaldığı bulgusunun
+       düzeltmesi). Bu testler artık Solid'in kenarlarından (GetEdges) aynı (start,end)
+       segment listesini üretip eski LineEntity tabanlı doğrulamaları aynen koruyor.
+    */
+    private static List<(Vector3D Start, Vector3D End)> GetSolidEdgeSegments(CadDatabase db, string layer)
+    {
+        return db.GetAllEntities().OfType<SolidEntity>()
+            .Where(s => s.Layer == layer)
+            .SelectMany(s => s.Solid.GetEdges())
+            .Select(e => (e.StartVertex.Position, e.EndVertex.Position))
+            .ToList();
+    }
+
     [Fact]
     public void Import_WallsGetRealHeightExtrusion_NotFlatAtZZero()
     {
@@ -76,14 +94,14 @@ public class IfcImportExtrusionTests
             Assert.True(result.Success, string.Join("; ", result.Errors));
             Assert.Equal(2, result.WallCount);
 
-            var lines = db.GetAllEntities().OfType<LineEntity>().Where(l => l.Layer == "ARCH-WALL").ToList();
+            var edges = GetSolidEdgeSegments(db, "ARCH-WALL");
 
-            // Her duvar 12 kenarlı tam bir 3D kutu tel-kafesi üretmeli (2 duvar × 12 = 24).
-            Assert.Equal(24, lines.Count);
+            // Her duvar 12 kenarlı tam bir 3D kutu (Solid) üretmeli (2 duvar × 12 = 24).
+            Assert.Equal(24, edges.Count);
 
             // ESKİ DAVRANIŞTA tüm noktalar Z=0'daydı (düz/flat). Artık gerçek yükseklikte
-            // (üst döngü + dikey kenarlar) Z>0 noktalar olmalı.
-            Assert.Contains(lines, l => l.StartPoint.Z > 0 || l.EndPoint.Z > 0);
+            // (üst yüz + dikey kenarlar) Z>0 noktalar olmalı.
+            Assert.Contains(edges, e => e.Start.Z > 0 || e.End.Z > 0);
         }
         finally
         {
@@ -102,14 +120,14 @@ public class IfcImportExtrusionTests
         {
             svc.Import(path, new IfcImportOptions { ImportWalls = true, ImportSlabs = false, ImportWindows = false, ImportDoors = false });
 
-            var lines = db.GetAllEntities().OfType<LineEntity>().Where(l => l.Layer == "ARCH-WALL").ToList();
+            var edges = GetSolidEdgeSegments(db, "ARCH-WALL");
 
-            // Wall1'in tel-kafesindeki maksimum Z (yüksekliği) 2700 olmalı.
-            var wall1TopZ = lines.Where(l => l.StartPoint.X < 5000 && l.EndPoint.X < 5000)
-                                  .SelectMany(l => new[] { l.StartPoint.Z, l.EndPoint.Z }).Max();
+            // Wall1'in (Solid'inin) maksimum Z'si (yüksekliği) 2700 olmalı.
+            var wall1TopZ = edges.Where(e => e.Start.X < 5000 && e.End.X < 5000)
+                                  .SelectMany(e => new[] { e.Start.Z, e.End.Z }).Max();
             // Wall2'nin (origin X=5000'den başlayan) maksimum Z'si 3500 olmalı.
-            var wall2TopZ = lines.Where(l => l.StartPoint.X >= 5000 || l.EndPoint.X >= 5000)
-                                  .SelectMany(l => new[] { l.StartPoint.Z, l.EndPoint.Z }).Max();
+            var wall2TopZ = edges.Where(e => e.Start.X >= 5000 || e.End.X >= 5000)
+                                  .SelectMany(e => new[] { e.Start.Z, e.End.Z }).Max();
 
             Assert.Equal(2700, wall1TopZ, precision: 1);
             Assert.Equal(3500, wall2TopZ, precision: 1);

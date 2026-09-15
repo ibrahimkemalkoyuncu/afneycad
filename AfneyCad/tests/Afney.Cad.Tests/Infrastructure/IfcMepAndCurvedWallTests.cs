@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Afney.Cad.Database.Core;
@@ -29,6 +30,21 @@ public class IfcMepAndCurvedWallTests
         string path = Path.Combine(Path.GetTempPath(), $"afneycad_test_{Guid.NewGuid():N}.ifc");
         File.WriteAllText(path, content);
         return path;
+    }
+
+    /*
+       NE/NEDEN: Duvar importu artık tel-kafes LineEntity yerine gerçek bir B-Rep SolidEntity
+       üretiyor (bkz. IfcImportService.BuildExtrudedSolid). Bu yardımcı, Solid'in kenarlarından
+       (GetEdges) aynı (start,end) segment listesini üretip eski LineEntity tabanlı
+       doğrulamaları aynen koruyor.
+    */
+    private static List<(Vector3D Start, Vector3D End)> GetSolidEdgeSegments(CadDatabase db, string layer)
+    {
+        return db.GetAllEntities().OfType<SolidEntity>()
+            .Where(s => s.Layer == layer)
+            .SelectMany(s => s.Solid.GetEdges())
+            .Select(e => (e.StartVertex.Position, e.EndVertex.Position))
+            .ToList();
     }
 
     // Dünya-X ekseninde uzanan, 100mm yarıçaplı (200mm çaplı), 4000mm uzunluğunda bir boru.
@@ -211,16 +227,16 @@ public class IfcMepAndCurvedWallTests
             Assert.True(result.Success, string.Join("; ", result.Errors));
             Assert.Equal(1, result.WallCount);
 
-            var lines = db.GetAllEntities().OfType<LineEntity>().Where(l => l.Layer == "ARCH-WALL").ToList();
+            var edges = GetSolidEdgeSegments(db, "ARCH-WALL");
 
-            // 16 segmentlik tessellation → 16 × 12 kenar (her segment kendi kutu tel-kafesi) = 192.
+            // 16 segmentlik tessellation → 16 × 12 kenar (her segment kendi kutu Solid'i) = 192.
             // ESKİ DAVRANIŞTA bu her zaman 12 (tek düz kutu) olurdu.
-            Assert.Equal(192, lines.Count);
+            Assert.Equal(192, edges.Count);
 
             // Çeyrek daire (0°→90°, merkez (1000,0), yarıçap 2000): başlangıç noktası (3000,0),
             // bitiş noktası (1000,2000) civarında. Düz bir çizgi olsaydı ara noktalar bu ikisini
             // birleştiren doğru üzerinde kalırdı — yay üzerindeki noktalar bu doğrudan sapmalı.
-            var allPoints = lines.SelectMany(l => new[] { l.StartPoint, l.EndPoint }).ToList();
+            var allPoints = edges.SelectMany(e => new[] { e.Start, e.End }).ToList();
 
             // Yayın en "dışarı" noktası (45°) yaklaşık (1000+2000*cos45, 2000*sin45) = (2414,1414) civarında olmalı.
             bool anyMidArcPoint = allPoints.Any(p =>
