@@ -3456,3 +3456,27 @@ Kullanıcı bu noktada denetim raporunun kalan uzun kuyruğunu bırakıp yönü 
 **Doğrulama:** Her commit için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **715/715 test başarılı**, regresyon yok.
 
 **Ek düzeltme (`commit f5f29e5`):** Madde 72'deki `AutoRouteService` düzeltmesi Türkçe katman tanıma sorununu çözerken yeni bir tutarsızlık ekledi — her çağrıda sıfırdan `ArchitecturalRecognitionService` taraması yapıyordu, oysa uygulamanın geri kalanı (`PipingPathfinderService`, `AutoLayoutService`, `DomainGuardService`) hepsi TEK paylaşılan `MechanicalKernel.ArchitecturalObstacles` listesini kullanıyor. Bu hem performans israfıydı (her manuel boru tıklamasında tam tarama) hem de tutarsızlık riskiydi (kullanıcının BIM düzenlemeleri bu servise yansımazdı). `AutoRouteService` artık opsiyonel paylaşılan listeyi kabul ediyor; `RoutePipeCommand`/`AutoRouteDialog` artık `_kernel.ArchitecturalObstacles`'ı geçiyor. 715/715 test geçti.
+
+---
+
+### 74. FineSANI Karşılaştırma Raporu — Kullanıcı Onaylı 7 Maddelik Liste Sırayla Tamamlandı
+
+Madde 73'ün 5 önerisi kullanıcı tarafından onaylandıktan sonra, FineSANI karşılaştırma raporu güncellenip sunuldu ve kullanıcı raporun kendi "hâlâ açık" kalemlerinden **7 maddelik yeni bir liste** onayladı — hepsi sırayla tamamlandı (5. ve 6. maddeler kullanıcının 2026-09-05 tarihli önceki kararıyla zaten bilinçli ertelenmiş olduğu için kullanıcı onayıyla listeden çıkarıldı).
+
+**1) DIN 1988-300 debi katsayıları yanlıştı (`commit 80b9603`) — EN KRİTİK BULGU:** Web araştırmasıyla (IKZ-Fachplaner, Ağustos 2012, Geberit ürün yönetimi — DIN 1988-300'ün gerçek Tablo 1'i) `FlowCalculationService.GetCoefficients()`'in bina tipine göre a/b/c katsayıları karşılaştırıldı. Sadece Hotel doğruydu (0.70/0.48/0.13); **Residential (konut — varsayılan bina tipi) dahil Hospital/Office/School YANLIŞTI.** Residential'da yanlış b=0.45 (gerçek: 0.19) kökten farklı bir eğri şekli üretiyordu — ΣLU=5 l/s'te hesaplanan pik debi gerçek değerden ~%19 daha yüksek çıkıyordu. Çoğu proje varsayılan bina tipi Residential olduğu için bu **en yaygın senaryoyu** etkiliyordu. Düzeltildi + standardın kendi yayınlanmış örnek hesabını kilitleyen 5 vakalık yeni test eklendi.
+
+**2) HVAC eksik modülleri (VAV/CAV, bobin/filtre seçimi, esnek bağlantı) — araştırma+plan (kullanıcı tercihi, kod yazılmadı):** Kod tabanında sıfır referans doğrulandı (gerçek boşluk). AHRI 880 (VAV/CAV), AHRI 410 (bobin), ISO 16890 (filtre), SMACNA (esnek bağlantı) standartları araştırılıp her modül için gerekli parametreler ve önerilen uygulama sırası (esnek bağlantı → filtre → bobin → CAV → VAV) belgelendi.
+
+**3) IFC mimari elemanları 3D'de tel-kafes kalıyordu (`commit fab8319`):** `IFCWALL`/`IFCSLAB`/`IFCWINDOW`/`IFCDOOR` (+ kavisli duvar segmentleri) sadece 12-kenarlı bir tel-kafes (`LineEntity` listesi) üretiyordu. Bu davranışın eski gerekçesi ("render motoru tam bir B-Rep motoru değil") artık doğru değildi — `SolidEntity`+`BRepTessellator`+Direct3D gölgeli render zaten CSG komutları için kurulmuştu. Artık `SolidBoxCommand` ile birebir aynı desen (`BRepBuilder.ExtrudePolygon`+`SolidEntity`) kullanılıyor — 2D görünüm değişmedi, 3D'de artık gölgeli. 3 test dosyası güncellendi.
+
+**4) Fan seçimi kütüphanesi "50+ model" iddiası — doğrulandı, YANLIŞ çıktı:** `FanSelectionService.FanCatalog` sayıldı — tam **17 model** (5 üretici, gerçekçi ve tutarlı veriler). "50+" rakamı kodda/UI'da hiçbir yerde iddia edilmiyor, eski bir pazarlama belgesinden kalma abartı. Kod değişikliği gerekmedi.
+
+**5-6) Çoklu-kullanıcı bulut işbirliği / Mobil canlı görüntüleme — kullanıcı kararıyla listeden çıkarıldı** (2026-09-05 tarihli önceki "bilinçli ertelendi" kararı geçerliliğini korudu).
+
+**7) CSG Solid'lerde 3D grip-düzenleme (`commit dad8a61`):** Genel vertex-sürükleme hâlâ riskli (Solid.IsValid() manifold bütünlüğünü bozabilir) — ama veritabanındaki TÜM `SolidEntity`'ler (BOX komutu + IFC importu) sadece kutu/prizma şekiller. Dar ve güvenli bir MVP eklendi: `TryGetAxisAlignedBox` gerçekten eksene-hizalı bir kutu mu diye tespit eder, öyleyse 6 yüz-merkezi grip sunulur; sürükleme sadece ilgili eksende (karşı yüzü sabit tutarak) ölçekler — topoloji hiç değişmediği için `IsValid()` riski yok. Döndürülmüş/kutu-olmayan Solid'lerde grip listesi güvenle boş kalır. 7 yeni test.
+
+**Test sayısı:** 717 → **729** (+5 DIN katsayı + 7 grip testi, 4 IFC testi LineEntity→SolidEntity'ye güncellendi).
+
+**Doğrulama:** Her commit için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **729/729 test başarılı**, regresyon yok.
+
+FineSANI karşılaştırma raporu bu 7 maddeyle güncellenip tekrar yayınlandı: https://claude.ai/artifact/JLtuQ5SLzDnS374uUGSGNn

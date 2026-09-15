@@ -350,9 +350,25 @@ Kullanıcının onayladığı sıra: (1) AutoRouteService performansı, (2) rapo
 - ~~(1) AutoRouteService performansı~~ → **Tamamlandı** (yukarıda, `commit e4726ec`).
 - ~~(2) Raporlama/çıktı kalitesi~~ → **Denetlendi, sağlam bulundu.** `HydraulicReportService` (birim dönüşümleri, TS 1258/EN 12056 referansları, ihlal vurgusu, gerçek dosya+tarayıcı açma akışı) incelendi — ek düzeltme gerekmedi.
 - ~~(3) Çok katlı bina kalan yetenekleri~~ → **Tamamlandı (`commit 5f923f7`).** `ReorderLevel` artık `LevelManager.ReorderLevels` ile iç listeyi gerçekten senkronize ediyor (Order yeniden numaralandırılıyor) ve bu turda İKİNCİ bir gerçek hata bulundu: yeniden sıralama sonrası taban kotu, taşınan katın eski kotundan rastgele kayıyordu — artık orijinal en düşük kottan sabit başlıyor. `MultiStoryManagerDialog`'a "▲"/"▼" butonları eklendi. `GenerateSectionView` için yeni `GenerateSectionViewCommand` (3 tıklamalı viewport akışı) ribbon'a "Kesit Oluştur" olarak bağlandı.
+- ~~(4) Uçtan uca entegrasyon testi~~ → **Tamamlandı (`commit d9efb62`).** Türkçe katmanlı duvar → tanıma → duvardan kaçınan otomatik rota → doğru mm→m metraj zincirini tek bir testte kilitleyen `CoreWorkflowIntegrationTests` eklendi.
+- ~~(5) Hesap motorlarının standart derinliği~~ → **Kısmen tamamlandı → sonra tam kapatıldı (madde 74, `commit 80b9603`).** `PressureDropService` yapısal olarak doğrulandı (ek düzeltme gerekmedi). `FlowCalculationService.GetCoefficients()`'in DIN 1988-300 katsayıları ise GERÇEKTEN yanlış çıktı — bkz. madde 74.
+
+### Güncelleme (madde 74) — FineSANI raporunun kendi "hâlâ açık" kalemlerinden 7 maddelik liste sırayla tamamlandı
+
+- ~~DIN 1988-300 debi katsayıları (a/b/c) yanlıştı~~ → **Tamamlandı, EN KRİTİK BULGU (`commit 80b9603`).** Residential (varsayılan bina tipi) dahil Hospital/Office/School'un katsayıları gerçek DIN 1988-300 Tablo 1'inden farklıydı — Residential'da pik debi ~%19 fazla hesaplanıyordu, en yaygın senaryoyu etkiliyordu. Düzeltildi + standardın kendi yayınlanmış örneğini kilitleyen test eklendi.
+- HVAC eksik modülleri (VAV/CAV, bobin/filtre, esnek bağlantı) → **Araştırma+plan (kullanıcı tercihi).** Kod tabanında sıfır referans doğrulandı; standartlar (AHRI 880/410, ISO 16890, SMACNA) ve önerilen uygulama sırası belgelendi, kodlama başlamadı.
+- ~~IFC mimari elemanları 3D'de tel-kafes kalıyordu~~ → **Tamamlandı (`commit fab8319`).** Duvar/döşeme/pencere/kapı artık `SolidEntity` (gerçek B-Rep) üretiyor, `SolidBoxCommand` ile aynı desen — 3D'de artık gölgeli render.
+- Fan seçimi "50+ model" iddiası → **Doğrulandı, YANLIŞ çıktı.** Kataloğu 17 model (kod/UI'da "50+" iddiası hiç yok, eski pazarlama abartısı). Kod değişikliği gerekmedi.
+- Çoklu-kullanıcı bulut işbirliği / Mobil canlı görüntüleme → **Kullanıcı kararıyla listeden çıkarıldı** (2026-09-05 tarihli önceki erteleme kararı geçerli).
+- ~~CSG Solid'lerde 3D grip-düzenleme~~ → **Tamamlandı, dar+güvenli MVP (`commit dad8a61`).** Sadece gerçekten eksene-hizalı kutu-şeklindeki `SolidEntity`'ler için 6 yüz-merkezi resize grip'i — topoloji hiç değişmediği için `Solid.IsValid()` riski yok.
+
+**Test sayısı:** 717 → 729. **Doğrulama:** Her commit `dotnet build` (0 hata) + `dotnet test` (**729/729** başarılı, regresyon yok).
 
 ### Hâlâ açık (bilinçli olarak ertelenen veya kısmi bırakılan)
 
 - Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).
-- `MultiStoryEnhancementService`'in `ReorderLevel`/`GenerateSectionView`/`AnalyzePressureZones` yetenekleri hâlâ hiçbir ekrana bağlanmadı (gerekçeler yukarıda).
+- `MultiStoryEnhancementService`'in `AnalyzePressureZones` yeteneği hâlâ hiçbir ekrana bağlanmadı — zaten canlı `PressureZoneDialog` olduğu için bilinçli (bkz. madde 65). (`ReorderLevel`/`GenerateSectionView` artık bağlandı, bkz. madde 73.)
+- HVAC'ın VAV/CAV kutuları, bobin/filtre seçimi, esnek bağlantı modülleri — sadece araştırma+plan var, kodlama henüz başlamadı (bkz. madde 74).
+- Çoklu-kullanıcı bulut işbirliği ve mobil canlı görüntüleme — gerçek sunucu altyapısı gerektiriyor, kullanıcı kararıyla bilinçli ertelendi.
+- Genel CSG Solid grip-düzenleme (döndürülmüş kutular, boolean sonucu/karmaşık profilli Solid'ler) — sadece eksene-hizalı kutu alt-kümesi kapatıldı (bkz. madde 74); genel vertex-sürükleme hâlâ riskli olduğu için bilinçli kapsam dışı.
 - Bu belgenin Session #30-37 arası diğer tüm "10/10" iddiaları (boyutlandırma, hatch, komut satırı, 3D görünüm vb.) — Session #75 denetiminin kapsamına HİÇ girmedi, ne doğrulandı ne çürütüldü.
