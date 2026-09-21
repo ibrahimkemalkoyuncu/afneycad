@@ -1,0 +1,131 @@
+<Window x:Class="Afney.Cad.Presentation.Dialogs.DuctEquipmentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kanal Ekipmanı — Esnek / Filtre / Bobin / CAV / VAV" Height="640" Width="620"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#1E1E2E" Foreground="White">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Style TargetType="RadioButton"><Setter Property="Foreground" Value="White"/><Setter Property="Margin" Value="0,0,14,4"/></Style>
+        <Style TargetType="CheckBox"><Setter Property="Foreground" Value="White"/><Setter Property="Margin" Value="0,4,0,0"/></Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D3F"/><Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555"/><Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="FieldRow" TargetType="Grid"><Setter Property="Margin" Value="0,3"/></Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <WrapPanel Grid.Row="0" Margin="0,0,0,10">
+            <RadioButton x:Name="RbFlex" Content="Esnek bağlantı" GroupName="Type" IsChecked="True" Checked="OnTypeChanged"/>
+            <RadioButton x:Name="RbFilter" Content="Filtre (ISO 16890)" GroupName="Type" Checked="OnTypeChanged"/>
+            <RadioButton x:Name="RbHeat" Content="Isıtma bobini" GroupName="Type" Checked="OnTypeChanged"/>
+            <RadioButton x:Name="RbCool" Content="Soğutma bobini" GroupName="Type" Checked="OnTypeChanged"/>
+            <RadioButton x:Name="RbCav" Content="CAV kutusu" GroupName="Type" Checked="OnTypeChanged"/>
+            <RadioButton x:Name="RbVav" Content="VAV kutusu" GroupName="Type" Checked="OnTypeChanged"/>
+        </WrapPanel>
+
+        <Grid Grid.Row="1" Style="{StaticResource FieldRow}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <TextBlock Text="Kanal çapı (mm):"/>
+            <TextBox x:Name="TxtDiameter" Grid.Column="1" Text="250"/>
+            <TextBlock Grid.Column="2" Text="Tasarım debisi (m³/h):" Margin="16,0,0,0"/>
+            <TextBox x:Name="TxtFlow" Grid.Column="3" Text="2000"/>
+        </Grid>
+
+        <StackPanel Grid.Row="2" x:Name="PanelFlex">
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Bağlantı uzunluğu (mm):"/>
+                <TextBox x:Name="TxtFlexLength" Grid.Column="1" Text="300"/>
+            </Grid>
+            <CheckBox x:Name="ChkStrictFlex" Content="Katı yerel sınır (5 ft) uygula — varsayılan IMC 603.6.2: 14 ft"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" x:Name="PanelFilter" Visibility="Collapsed">
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Dış hava kategorisi ODA (1–3):"/>
+                <TextBox x:Name="TxtOda" Grid.Column="1" Text="2"/>
+                <TextBlock Grid.Column="2" Text="Besleme kategorisi SUP (1–5):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtSup" Grid.Column="3" Text="2"/>
+            </Grid>
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Kademe verimleri % (virgülle):"/>
+                <TextBox x:Name="TxtStages" Grid.Column="1" Text="60, 70"/>
+            </Grid>
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Yüz hızı (m/s):"/>
+                <TextBox x:Name="TxtFilterVel" Grid.Column="1" Text="2.5"/>
+                <TextBlock Grid.Column="2" Text="Filtre Δp — üretici (Pa):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtFilterDp" Grid.Column="3" Text="0"/>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" x:Name="PanelCoil" Visibility="Collapsed">
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Hava giriş sıcaklığı (°C):"/>
+                <TextBox x:Name="TxtAirIn" Grid.Column="1" Text="5"/>
+                <TextBlock Grid.Column="2" Text="Hava çıkış sıcaklığı (°C):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtAirOut" Grid.Column="3" Text="30"/>
+            </Grid>
+            <Grid x:Name="RowRh" Style="{StaticResource FieldRow}" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Giriş bağıl nem (%):"/>
+                <TextBox x:Name="TxtRhIn" Grid.Column="1" Text="50"/>
+                <TextBlock Grid.Column="2" Text="Çıkış bağıl nem (%):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtRhOut" Grid.Column="3" Text="90"/>
+            </Grid>
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Su gidiş sıcaklığı (°C):"/>
+                <TextBox x:Name="TxtWaterIn" Grid.Column="1" Text="80"/>
+                <TextBlock Grid.Column="2" Text="Su dönüş sıcaklığı (°C):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtWaterOut" Grid.Column="3" Text="60"/>
+            </Grid>
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Yüz hızı (m/s):"/>
+                <TextBox x:Name="TxtCoilVel" Grid.Column="1" Text="3.0"/>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" x:Name="PanelBox" Visibility="Collapsed">
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Min. taze hava (m³/h):"/>
+                <TextBox x:Name="TxtMinOa" Grid.Column="1" Text="0"/>
+                <TextBlock Grid.Column="2" Text="Maks. giriş hızı (m/s):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtMaxInletVel" Grid.Column="3" Text="8"/>
+            </Grid>
+            <Grid Style="{StaticResource FieldRow}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Reheat: soğuk besleme (°C):"/>
+                <TextBox x:Name="TxtColdSupply" Grid.Column="1" Text=""/>
+                <TextBlock Grid.Column="2" Text="Reheat: çıkış sıcaklığı (°C):" Margin="16,0,0,0"/>
+                <TextBox x:Name="TxtReheatOut" Grid.Column="3" Text=""/>
+            </Grid>
+            <TextBlock Text="Reheat alanları boş bırakılırsa reheat yükü hesaplanmaz." Foreground="#9A9CB0" FontSize="11" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <TextBox x:Name="TxtResult" Grid.Row="3" Margin="0,12,0,8" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Height="Auto" FontFamily="Consolas" FontSize="12"/>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Hesapla" Width="100" Height="30" Margin="0,0,8,0" Click="OnCalculate_Click"/>
+            <Button x:Name="BtnPlace" Content="Yerleştir…" Width="110" Height="30" Margin="0,0,8,0" Click="OnPlace_Click"/>
+            <Button Content="İptal" Width="80" Height="30" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

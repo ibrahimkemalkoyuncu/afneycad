@@ -162,6 +162,31 @@ public class BomService
             });
         }
 
+        // 8. Kanal ekipmanları (esnek bağlantı/filtre/bobin/CAV/VAV)
+        var equipmentGroups = entities.OfType<DuctEquipmentEntity>()
+            .GroupBy(e => new { e.EquipmentType, Diameter = Math.Round(e.InnerDiameter) });
+
+        foreach (var group in equipmentGroups)
+        {
+            var first = group.First();
+            string detail = group.Key.EquipmentType switch
+            {
+                Enums.DuctEquipmentType.FlexConnector => $"L={first.Size:F0} mm",
+                Enums.DuctEquipmentType.Filter => first.FilterClass,
+                Enums.DuctEquipmentType.HeatingCoil or Enums.DuctEquipmentType.CoolingCoil => $"{first.CapacityKw:F1} kW",
+                _ => $"{first.MinFlowM3h:F0}–{first.AirFlowM3h:F0} m³/h"
+            };
+
+            bomList.Add(new BomItem
+            {
+                Category = "Kanal Ekipmanı",
+                Description = $"{group.Key.EquipmentType} DN{group.Key.Diameter:F0} ({detail})".Replace(" ()", ""),
+                Material = "-",
+                Quantity = group.Count(),
+                Unit = "Adet"
+            });
+        }
+
         return bomList.OrderBy(b => b.Category).ThenBy(b => b.Description).ToList();
     }
 }

@@ -49,7 +49,7 @@ public class BillOfMaterialsService
 
         var fittings = _database.GetAllEntities().OfType<MechanicalEntity>()
             .Where(e => e is ElbowEntity || e is TeeEntity || e is Valve || e is ValveEntity
-                     || e is DamperEntity || e is AirTerminalEntity)
+                     || e is DamperEntity || e is AirTerminalEntity || e is DuctEquipmentEntity)
             .GroupBy(e => new { Type = e.GetType().Name, e.InnerDiameter })
             .ToList();
 
@@ -208,6 +208,7 @@ public class BillOfMaterialsService
                                      ? $"{d.DamperType} Damper DN{diameter:F0} ({d.FireRatingMin}dk)"
                                      : $"{d.DamperType} Damper DN{diameter:F0}",
             AirTerminalEntity t  => $"{t.TerminalType} {t.Width:F0}x{t.Height:F0} ({t.AirFlowM3h:F0} m³/h)",
+            DuctEquipmentEntity q => $"{q.EquipmentType} DN{diameter:F0}",
             _                    => $"{diameter}mm {e.GetType().Name}"
         };
     }

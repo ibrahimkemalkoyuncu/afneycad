@@ -231,6 +231,19 @@ namespace Afney.Cad.Presentation
             cmd.Start();
         }
 
+        private void OnPlaceDuctEquipmentCommand(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Dialogs.DuctEquipmentDialog { Owner = this };
+            if (dlg.ShowDialog() != true || dlg.Prototype == null) return;
+
+            var cmd = new PlaceDuctEquipmentCommand(_database, _history.TransactionManager, dlg.Prototype);
+            cmd.OnFeedback += msg => StatusText.Text = msg;
+            cmd.OnEntityPlaced += entity => Viewport.InvalidateViewport();
+            cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
+            Viewport.SetActiveCommand(cmd);
+            cmd.Start();
+        }
+
         private void SyncMechanicalSettings(RoutePipeCommand? cmd = null)
         {
             if (Viewport == null) return;

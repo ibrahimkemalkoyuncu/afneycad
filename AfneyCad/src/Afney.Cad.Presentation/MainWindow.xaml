@@ -780,6 +780,12 @@
                                                             <TextBlock Text="Damper Yerleştir" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
+                                                    <Button Click="OnPlaceDuctEquipmentCommand" Style="{StaticResource RbnBtn}" ToolTip="Esnek bağlantı / filtre (ISO 16890) / ısıtma-soğutma bobini / CAV-VAV kutusu — hesapla ve kanal hattına yerleştir">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Path Data="{StaticResource Ico.Rectangle}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Kanal Ekipmanı" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button Click="OnSilencerSelection" Style="{StaticResource RbnBtn}" ToolTip="Susturucu seçimi (ASHRAE Ch.48 / ISO 7235)">
                                                         <StackPanel Orientation="Horizontal">
                                                             <Path Data="{StaticResource Ico.VolumeHigh}" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Width="13" Height="13" Margin="0,0,6,0" Stretch="Uniform" VerticalAlignment="Center"/>
