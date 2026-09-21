@@ -356,7 +356,7 @@ Kullanıcının onayladığı sıra: (1) AutoRouteService performansı, (2) rapo
 ### Güncelleme (madde 74) — FineSANI raporunun kendi "hâlâ açık" kalemlerinden 7 maddelik liste sırayla tamamlandı
 
 - ~~DIN 1988-300 debi katsayıları (a/b/c) yanlıştı~~ → **Tamamlandı, EN KRİTİK BULGU (`commit 80b9603`).** Residential (varsayılan bina tipi) dahil Hospital/Office/School'un katsayıları gerçek DIN 1988-300 Tablo 1'inden farklıydı — Residential'da pik debi ~%19 fazla hesaplanıyordu, en yaygın senaryoyu etkiliyordu. Düzeltildi + standardın kendi yayınlanmış örneğini kilitleyen test eklendi.
-- HVAC eksik modülleri (VAV/CAV, bobin/filtre, esnek bağlantı) → **Araştırma+plan (kullanıcı tercihi).** Kod tabanında sıfır referans doğrulandı; standartlar (AHRI 880/410, ISO 16890, SMACNA) ve önerilen uygulama sırası belgelendi, kodlama başlamadı.
+- HVAC eksik modülleri (VAV/CAV, bobin/filtre, esnek bağlantı) → **Araştırma+plan, sonradan kodlandı (madde 75).** Kod tabanında sıfır referans doğrulandı; plan bu turda uygulandı.
 - ~~IFC mimari elemanları 3D'de tel-kafes kalıyordu~~ → **Tamamlandı (`commit fab8319`).** Duvar/döşeme/pencere/kapı artık `SolidEntity` (gerçek B-Rep) üretiyor, `SolidBoxCommand` ile aynı desen — 3D'de artık gölgeli render.
 - Fan seçimi "50+ model" iddiası → **Doğrulandı, YANLIŞ çıktı.** Kataloğu 17 model (kod/UI'da "50+" iddiası hiç yok, eski pazarlama abartısı). Kod değişikliği gerekmedi.
 - Çoklu-kullanıcı bulut işbirliği / Mobil canlı görüntüleme → **Kullanıcı kararıyla listeden çıkarıldı** (2026-09-05 tarihli önceki erteleme kararı geçerli).
@@ -368,7 +368,7 @@ Kullanıcının onayladığı sıra: (1) AutoRouteService performansı, (2) rapo
 
 - Pis su (`WasteWaterDesignDialog`/`WasteWaterCalcSheetDialog`) ve Sprinkler (`SprinklerDesignDialog`/`FireFightingDialog`) için sadece **geçiş köprüsü** var — veri modelleri hâlâ ayrı (farklı hesap motorları/standartları olduğu için bilinçli, bkz. madde 65).
 - `MultiStoryEnhancementService`'in `AnalyzePressureZones` yeteneği hâlâ hiçbir ekrana bağlanmadı — zaten canlı `PressureZoneDialog` olduğu için bilinçli (bkz. madde 65). (`ReorderLevel`/`GenerateSectionView` artık bağlandı, bkz. madde 73.)
-- HVAC'ın VAV/CAV kutuları, bobin/filtre seçimi, esnek bağlantı modülleri — sadece araştırma+plan var, kodlama henüz başlamadı (bkz. madde 74).
+- ~~HVAC'ın VAV/CAV kutuları, bobin/filtre seçimi, esnek bağlantı modülleri~~ → **Eklendi (madde 75, `commit 8557341`).** Kalan: "Kanal Ekipmanı" diyaloğunun arayüzde elle denenmesi, üretici model kataloğu, resmi poz numaraları.
 - Çoklu-kullanıcı bulut işbirliği ve mobil canlı görüntüleme — gerçek sunucu altyapısı gerektiriyor, kullanıcı kararıyla bilinçli ertelendi.
 - Genel CSG Solid grip-düzenleme (döndürülmüş kutular, boolean sonucu/karmaşık profilli Solid'ler) — sadece eksene-hizalı kutu alt-kümesi kapatıldı (bkz. madde 74); genel vertex-sürükleme hâlâ riskli olduğu için bilinçli kapsam dışı.
 - Bu belgenin Session #30-37 arası diğer tüm "10/10" iddiaları (boyutlandırma, hatch, komut satırı, 3D görünüm vb.) — Session #75 denetiminin kapsamına HİÇ girmedi, ne doğrulandı ne çürütüldü.

@@ -3480,3 +3480,21 @@ Madde 73'ün 5 önerisi kullanıcı tarafından onaylandıktan sonra, FineSANI k
 **Doğrulama:** Her commit için `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **729/729 test başarılı**, regresyon yok.
 
 FineSANI karşılaştırma raporu bu 7 maddeyle güncellenip tekrar yayınlandı: https://claude.ai/artifact/JLtuQ5SLzDnS374uUGSGNn
+
+---
+
+### 75. HVAC Kanal Ekipmanları — Esnek Bağlantı, Filtre, Bobin, CAV/VAV (`commit 8557341`)
+
+Madde 74'te yalnızca araştırma+plan olarak bırakılan HVAC modülleri kodlandı. Beş ekipman tipi için tek `DuctEquipmentEntity` (2 portlu, `DamperEntity` deseni), tip başına saf hesap servisi, `PlaceDuctEquipmentCommand` (kanal hattını böler, tek Ctrl+Z ile geri alınır), BOM entegrasyonu ve ribbon'da **"Kanal Ekipmanı"** diyaloğu (komut satırı: `kanalekipman`, `ekipman`, `de`).
+
+Sayısal kurallar birincil kaynaktan doğrulandı:
+- **Filtre:** Eurovent Rec. 4/23 (2022) Tablo 3 — ODA×SUP'a göre minimum ePM verimi (15 hücrenin tamamı testle kilitli), ilk kademe ePM10 ≥ %50, nemlendirici sonrası ePM2,5 ≥ %65, kümülatif verim formülü.
+- **Bobin:** ASHRAE soğutma yüz hızı 2,0–2,5 m/s (sınır 2,8), ısıtma tipik 3–4 m/s; toplam/duyulur/gizli yük mevcut `PsychrometricService` ile.
+- **VAV:** minimum debi = max(zirvenin %30'u, min. taze hava, yönetmelik) — ASHRAE 90.1 G3.1.3.13 / 6.5.2.1.
+- **Esnek bağlantı:** IMC 603.6.2 — bağlantı elemanı ≤ 14 ft.
+
+Kaynağı bulunamayan iki değer (esnek kanal pürüzlülüğü 3,0 mm, VAV maks. giriş hızı 8 m/s) koda "tasarım varsayımı" olarak işaretli ve ayarlanabilir. BOM'da poz numarası uydurulmadı (mevcut "Set-Poz" geri dönüşü).
+
+**Sınırlar:** Diyalog ve ribbon düğmesi derlendi ama arayüzde elle denenmedi. Üretici model kataloğu yok (servisler hesap yapıyor, ürün önermiyor).
+
+**Test sayısı:** 729 → **770** (+41). **Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`: 770/770.
