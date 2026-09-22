@@ -462,7 +462,7 @@ public class DwgImportService
                             int segments = 32;
                             double majorLen = Math.Sqrt(ellipseEdge.MajorAxisEndPoint.X * ellipseEdge.MajorAxisEndPoint.X + ellipseEdge.MajorAxisEndPoint.Y * ellipseEdge.MajorAxisEndPoint.Y);
                             if (majorLen < 1e-9) majorLen = 1;
-                            double minorLen = majorLen * ellipseEdge.MinorToMajorRatio;
+                            double minorLen = majorLen * ellipseEdge.RadiusRatio;
                             double majorAngle = Math.Atan2(ellipseEdge.MajorAxisEndPoint.Y, ellipseEdge.MajorAxisEndPoint.X);
                             var ellipsePoints = new List<Vector3D>();
                             for (int i = 0; i <= segments; i++)

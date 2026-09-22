@@ -124,7 +124,19 @@ public class DxfWriterService
         sb.AppendLine("  0");
         sb.AppendLine("ENDTAB");
 
-        // LAYER table
+        /*
+           NE/NEDEN — GERÇEK HATA (ACadSharp 3.4.2→3.8.0 yükseltmesinde bulundu): CadDatabase
+           constructor'ı HER ZAMAN bir "0" katmanı oluşturur (bkz. CadDatabase.cs — _layers.
+           TryAdd("0", ...)), yani _database.GetLayers() zaten her durumda "0"ı içerir. Ama bu
+           metod döngüden SONRA koşulsuz bir "Varsayılan 0 katmanı" bloğu daha yazıyordu — LAYER
+           tablosunda "0" adında İKİ ayrı kayıt (ve yanlış 70-grubu sayısı: gerçek kayıt sayısı
+           layers.Count+1 iken deklare edilen 70-grubu değeri layers.Count kalıyordu). Eski
+           ACadSharp okuyucusu (3.4.2) bunu sessizce tolere ediyordu (muhtemelen dictionary'de
+           son kaydı sessizce üstüne yazıyordu); 3.8.0'daki okuyucu artık ArgumentException
+           ("An item with the same key has already been added") fırlatıyor — AfneyCAD'in
+           dışa aktardığı HER TEK DXF dosyası teknik olarak baştan beri hatalıydı, sadece
+           lenient okuyucular fark ettirmiyordu. Artık sadece GetLayers() listesi yazılıyor.
+        */
         var layers = _database.GetLayers().ToList();
         sb.AppendLine("  0");
         sb.AppendLine("TABLE");
@@ -142,14 +154,6 @@ public class DxfWriterService
             Group(sb, 62, (layer.IsVisible ? aciColor : -aciColor).ToString());
             Group(sb, 6,  "CONTINUOUS");
         }
-
-        // Default layer "0"
-        sb.AppendLine("  0");
-        sb.AppendLine("LAYER");
-        Group(sb, 2,  "0");
-        Group(sb, 70, "0");
-        Group(sb, 62, "7");
-        Group(sb, 6,  "CONTINUOUS");
 
         sb.AppendLine("  0");
         sb.AppendLine("ENDTAB");
