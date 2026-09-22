@@ -3498,3 +3498,22 @@ Kaynağı bulunamayan iki değer (esnek kanal pürüzlülüğü 3,0 mm, VAV maks
 **Sınırlar:** Diyalog ve ribbon düğmesi derlendi ama arayüzde elle denenmedi. Üretici model kataloğu yok (servisler hesap yapıyor, ürün önermiyor).
 
 **Test sayısı:** 729 → **770** (+41). **Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`: 770/770.
+
+---
+
+### 76. Dış Kaynak Taraması (ACadSharp/ixmilia-dxf/FreeCAD/FreeCAD-HVAC) — ACadSharp Yükseltmesi + Gerçek DXF Hatası (`commit 0909958`)
+
+Kullanıcının verdiği 4 GitHub kaynağı araştırıldı:
+- **FreeCAD-HVAC:** Erken aşama prototip (boyutlandırma yok, standart referansı yok, 9 yıldız). AfneyCAD'in madde 75'te eklenen `AirFilterSelectionService`/`AirCoilSelectionService`/`VavCavBoxService`'i zaten ondan ileride — alınacak bir şey yok.
+- **ixmilia/dxf:** Sadece DXF (DWG yok); ACadSharp zaten ikisini de kapsıyor. Referans olarak değerli ama entegrasyon/geçiş gerekmiyor.
+- **FreeCAD (kernel):** OpenCASCADE tabanlı C++ kernel — mimari olarak entegre edilebilir ölçekte değil, incelenmedi.
+- **ACadSharp:** Somut kazanım burada — proje 3.4.2 kullanıyordu, güncel sürüm 3.8.0. Changelog'da gerçek DWG okuyucu hata düzeltmeleri (header/hatch/dimension/binary ayrıştırma), yeni `DimensionArc` desteği, ve 3DSOLID/REGION/BODY'nin ACIS gövdesini DXF/DWG'den okuma desteği vardı.
+
+**Yapılanlar:**
+1. ACadSharp 3.4.2 → 3.8.0 yükseltildi. Tek API kırılması: `Hatch.BoundaryPath.Ellipse.MinorToMajorRatio` → `RadiusRatio` olarak yeniden adlandırılmış, `DwgImportService`'te düzeltildi.
+2. Yükseltme, önceden gizli kalmış **gerçek bir hatayı** ortaya çıkardı: `DxfWriterService.WriteTables`, `CadDatabase`'in constructor'da her zaman oluşturduğu "0" katmanını (`GetLayers()` zaten içeriyor) koşulsuz olarak BİR KEZ DAHA yazıyordu — LAYER tablosunda "0" adında iki kayıt + yanlış 70-grubu sayısı. **AfneyCAD'in dışa aktardığı her DXF dosyası baştan beri bu hatayı taşıyordu**; eski ACadSharp okuyucusu sessizce tolere ediyordu, 3.8.0'daki okuyucu artık "duplicate key" hatası fırlatıyor. Koşulsuz blok kaldırıldı — artık hem kendi içe aktarımımızla hem (teorik olarak) daha sıkı üçüncü taraf okuyucularla uyumlu.
+3. **3DSOLID/ACIS "gerçek katı içe aktarma" fırsatı araştırıldı, KULLANILAMAZ bulundu:** ACadSharp'ın yeni desteği ACIS SAT verisini sadece ham `byte[]`/metin olarak round-trip için okuyor — gerçek geometriye (vertex/face/B-Rep) hiç çözmüyor. Kullanılabilir olması için ayrı, büyük bir ACIS SAT ayrıştırıcı yazmak gerekir; bu turda kapsam dışı bırakıldı (varsayımla ilerlemek yerine reflection ile doğrulanıp vazgeçildi).
+
+**Test sayısı:** 770 (değişmedi — regresyon testi gerektirmeyen bir bağımlılık yükseltmesi + gerçek bir yazıcı hatası düzeltmesiydi, mevcut testler zaten bunu kapsıyordu).
+
+**Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **770/770 test başarılı**, regresyon yok.
