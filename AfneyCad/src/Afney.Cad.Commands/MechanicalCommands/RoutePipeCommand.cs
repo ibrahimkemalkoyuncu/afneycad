@@ -72,7 +72,11 @@ public class RoutePipeCommand : ICadCommand
         _routingEngine.SetSlope(slope);
 
         // Standartlardan boru detaylarını al (Mebrure Hanım'ın kütüphanesi)
-        var standard = _kernel.PipeStandards.GetStandard(material, "TS EN 12056"); 
+        // MÜHENDİSLİK: Önceden standart adı "TS EN 12056" olarak sabit kodluydu — sadece PVC
+        // (atık su) bu standart altında kayıtlı olduğundan, PPRC (DIN 1988) ve Steel (DIN 2440)
+        // için arama HER ZAMAN null dönüyordu ve boru çapı gerçek et kalınlığına göre hiç
+        // düzeltilmiyordu. Artık malzeme adına göre (standart adından bağımsız) aranıyor.
+        var standard = _kernel.PipeStandards.GetStandardForMaterial(material);
         if (standard != null)
         {
             var def = standard.GetBySize(diameter);

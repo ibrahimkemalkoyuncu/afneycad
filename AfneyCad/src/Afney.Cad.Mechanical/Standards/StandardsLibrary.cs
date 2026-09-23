@@ -47,11 +47,44 @@ public class StandardsLibrary
             new PipeDefinition(63, 63, 10.5)
         });
         _standards.Add(pprc);
+
+        /*
+           MÜHENDİSLİK: RoutePipeCommand.SetSettings, Yangın ve Gaz sistemleri için "Steel"
+           malzemesini gönderiyordu ama burada hiç kayıt yoktu — GetStandard() her zaman null
+           dönüyor, boru çapı gerçek et kalınlığına göre hiç düzeltilmiyordu. DIN 2440 / TS 301
+           galvanizli çelik boru (orta seri) standart dış çap/et kalınlığı değerleri eklendi.
+        */
+        var steel = new PipeStandard { Material = "Steel", StandardName = "DIN 2440" };
+        steel.AvailableSizes.AddRange(new[] {
+            new PipeDefinition(15, 21.3, 2.65),
+            new PipeDefinition(20, 26.9, 2.65),
+            new PipeDefinition(25, 33.7, 3.25),
+            new PipeDefinition(32, 42.4, 3.25),
+            new PipeDefinition(40, 48.3, 3.25),
+            new PipeDefinition(50, 60.3, 3.65),
+            new PipeDefinition(65, 76.1, 3.65),
+            new PipeDefinition(80, 88.9, 4.05),
+            new PipeDefinition(100, 114.3, 4.50)
+        });
+        _standards.Add(steel);
     }
 
     public PipeStandard? GetStandard(string material, string standardName)
     {
         return _standards.FirstOrDefault(s => s.Material == material && s.StandardName == standardName);
+    }
+
+    /*
+       NE: Malzemeye Göre Standart Bul (GetStandardForMaterial)
+       NEDEN: RoutePipeCommand.SetSettings gibi çağıranlar standart adını (TS EN 12056/DIN 1988/
+              DIN 2440) bilmek zorunda kalmadan, sadece malzeme adıyla (PPRC/PVC/Steel) doğru
+              standardı bulabilsin diye — önceden çağıran taraf standart adını YANLIŞ sabit
+              kodluyordu (her malzeme için "TS EN 12056"), bu da PVC dışındaki malzemelerde
+              arama hep null dönmesine yol açıyordu.
+    */
+    public PipeStandard? GetStandardForMaterial(string material)
+    {
+        return _standards.FirstOrDefault(s => s.Material == material);
     }
 
     public IEnumerable<PipeStandard> GetAllStandards() => _standards;
