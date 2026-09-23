@@ -152,31 +152,73 @@ public class ExtendCommand : ICadCommand
                 continue;
             }
 
+            // MÜHENDİSLİK: Önceden LwPolyline bir Extend SINIRI olarak hiç desteklenmiyordu —
+            // (Trim'de olduğu gibi) bu switch'te case yoktu. ExtendPolyline zaten polyline'ın
+            // KENDİSİNİ uzatabiliyordu ama bir çizgi/boru polyline'a kadar uzatılamıyordu.
+            // Artık polyline'ın her ardışık segmenti ayrı bir doğrusal sınır gibi taranıyor.
+            if (ent is LwPolylineEntity boundaryPoly)
+            {
+                var pverts = boundaryPoly.Vertices;
+                if (pverts == null || pverts.Count < 2) continue;
+                int segCount = boundaryPoly.IsClosed ? pverts.Count : pverts.Count - 1;
+                for (int si = 0; si < segCount; si++)
+                {
+                    var segA = pverts[si];
+                    var segB = pverts[(si + 1) % pverts.Count];
+                    if (TryIntersectRaySegment(rayOrigin, rayDir, segA, segB, out double segT, out Vector3D segPoint) && segT < minT)
+                    {
+                        minT = segT;
+                        bestIntersection = segPoint;
+                    }
+                }
+                continue;
+            }
+
             Vector3D oA, oB;
             if (ent is LineEntity l) { oA = l.StartPoint; oB = l.EndPoint; }
             else if (ent is PipeEntity p2) { oA = p2.StartPoint; oB = p2.EndPoint; }
             else if (ent is DuctEntity d2) { oA = d2.StartPoint; oB = d2.EndPoint; }
             else continue;
 
-            double dx1 = rayDir.X, dy1 = rayDir.Y;
-            double x1 = rayOrigin.X, y1 = rayOrigin.Y;
-            double dx3 = oB.X - oA.X, dy3 = oB.Y - oA.Y;
-            double x3 = oA.X, y3 = oA.Y;
-
-            double det = dx1 * dy3 - dy1 * dx3;
-            if (Math.Abs(det) < 1e-9) continue;
-
-            double t = ((x3 - x1) * dy3 - (y3 - y1) * dx3) / det;
-            double u = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / det;
-
-            if (t > 0.0001 && t < minT && u >= 0 && u <= 1)
+            if (TryIntersectRaySegment(rayOrigin, rayDir, oA, oB, out double t, out Vector3D point2) && t < minT)
             {
                 minT = t;
-                bestIntersection = new Vector3D(x1 + t * dx1, y1 + t * dy1, 0);
+                bestIntersection = point2;
             }
         }
 
         return bestIntersection;
+    }
+
+    /*
+       NE: Işın-Segment Kesişimi (TryIntersectRaySegment)
+       NEDEN: FindNearestBoundaryAlongRay'de Line/Pipe/Duct ve LwPolyline-segment sınırları için
+              aynı ışın-doğru parçası kesişim matematiği tekrar tekrar yazılmasın diye ortak
+              yardımcıya çıkarıldı.
+    */
+    private static bool TryIntersectRaySegment(Vector3D rayOrigin, Vector3D rayDir, Vector3D segA, Vector3D segB, out double t, out Vector3D point)
+    {
+        t = double.MaxValue;
+        point = default;
+
+        double dx1 = rayDir.X, dy1 = rayDir.Y;
+        double x1 = rayOrigin.X, y1 = rayOrigin.Y;
+        double dx3 = segB.X - segA.X, dy3 = segB.Y - segA.Y;
+        double x3 = segA.X, y3 = segA.Y;
+
+        double det = dx1 * dy3 - dy1 * dx3;
+        if (Math.Abs(det) < 1e-9) return false;
+
+        double rt = ((x3 - x1) * dy3 - (y3 - y1) * dx3) / det;
+        double u = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / det;
+
+        if (rt > 0.0001 && u >= 0 && u <= 1)
+        {
+            t = rt;
+            point = new Vector3D(x1 + rt * dx1, y1 + rt * dy1, 0);
+            return true;
+        }
+        return false;
     }
 
     private void ExtendLinear(CadEntity targetEntity, Vector3D point, List<CadEntity> allEntities)
@@ -257,6 +299,7 @@ public class ExtendCommand : ICadCommand
                 CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, c2.Center, c2.Radius),
                 ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, a2.Center, a2.Radius)
                     .Where(ip => TrimCommand.IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
+                LwPolylineEntity boundaryPoly => TrimCommand.IntersectPolylineWithCircle(boundaryPoly, arc.Center, arc.Radius),
                 _ => Enumerable.Empty<Vector3D>()
             };
 

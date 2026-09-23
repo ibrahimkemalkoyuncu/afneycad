@@ -132,6 +132,28 @@ public class TrimCommand : ICadCommand
                 }
                 continue;
             }
+            else if (ent is LwPolylineEntity boundaryPoly)
+            {
+                // MÜHENDİSLİK: Önceden LwPolyline bir Trim/Extend SINIRI olarak hiç desteklenmiyordu
+                // (bu switch'te case yoktu, else continue ile atlanıyordu) — bir çizgi/boru polyline'a
+                // kadar budanamıyor/uzatılamıyordu, oysa TrimPolyline (aşağıda) polyline'ın KENDİSİNİ
+                // diğer entity'lere göre budayabiliyordu. Artık polyline'ın her ardışık segmenti ayrı
+                // bir doğrusal sınır gibi taranıyor.
+                var verts = boundaryPoly.Vertices;
+                if (verts == null || verts.Count < 2) continue;
+                int segCount = boundaryPoly.IsClosed ? verts.Count : verts.Count - 1;
+                for (int si = 0; si < segCount; si++)
+                {
+                    var segA = verts[si];
+                    var segB = verts[(si + 1) % verts.Count];
+                    if (GeomUtils.DoSegmentsIntersect(tA, tB, segA, segB, out Vector3D polyIp))
+                    {
+                        double t = GetTParameter(tA, tB, polyIp);
+                        if (t > 0.0001 && t < 0.9999) intersections.Add(t);
+                    }
+                }
+                continue;
+            }
             else continue;
 
             if (GeomUtils.DoSegmentsIntersect(tA, tB, oA, oB, out Vector3D lineIp))
@@ -194,6 +216,7 @@ public class TrimCommand : ICadCommand
                 CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(circle.Center, circle.Radius, c2.Center, c2.Radius),
                 ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(circle.Center, circle.Radius, a2.Center, a2.Radius)
                     .Where(ip => IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
+                LwPolylineEntity boundaryPoly => IntersectPolylineWithCircle(boundaryPoly, circle.Center, circle.Radius),
                 _ => Enumerable.Empty<Vector3D>()
             };
 
@@ -259,6 +282,7 @@ public class TrimCommand : ICadCommand
                 CircleEntity c2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, c2.Center, c2.Radius),
                 ArcEntity a2 => GeomUtils.GetIntersectionsCircleCircle(arc.Center, arc.Radius, a2.Center, a2.Radius)
                     .Where(ip => IsAngleWithinArc(GeomUtils.AngleOf(a2.Center, ip), a2.StartAngle, a2.EndAngle)),
+                LwPolylineEntity boundaryPoly => IntersectPolylineWithCircle(boundaryPoly, arc.Center, arc.Radius),
                 _ => Enumerable.Empty<Vector3D>()
             };
 
@@ -293,6 +317,28 @@ public class TrimCommand : ICadCommand
 
         _transactionManager.Submit(composite);
         OnFeedback?.Invoke("TRIM: Yay budandı.");
+    }
+
+    /*
+       NE: Polyline-Çember Kesişimi (IntersectPolylineWithCircle)
+       NEDEN: TrimCircle/TrimArc'ın switch'inde LwPolyline hiç desteklenmiyordu (Circle/Arc bir
+              polyline sınırına göre budanamıyordu). GetIntersectionsLineCircle zaten segment
+              bazında (t∈[0,1] clamp'li) çalıştığından, polyline'ın her ardışık segmenti bu
+              fonksiyona ayrı ayrı verilip sonuçlar birleştiriliyor.
+    */
+    internal static IEnumerable<Vector3D> IntersectPolylineWithCircle(LwPolylineEntity poly, Vector3D center, double radius)
+    {
+        var verts = poly.Vertices;
+        if (verts == null || verts.Count < 2) yield break;
+
+        int segCount = poly.IsClosed ? verts.Count : verts.Count - 1;
+        for (int i = 0; i < segCount; i++)
+        {
+            var a = verts[i];
+            var b = verts[(i + 1) % verts.Count];
+            foreach (var ip in GeomUtils.GetIntersectionsLineCircle(a, b, center, radius))
+                yield return ip;
+        }
     }
 
     // ── LWPOLYLINE (Tıklanan segment, Line ile aynı t∈[0,1] mantığıyla budanır) ──

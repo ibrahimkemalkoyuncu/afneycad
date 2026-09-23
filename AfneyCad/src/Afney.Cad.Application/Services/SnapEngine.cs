@@ -1,5 +1,6 @@
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Abstractions;
+using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 
 namespace Afney.Cad.Application.Services;
@@ -125,6 +126,34 @@ public class SnapEngine
     */
     private SnapPoint? CalculatePerpendicularSnap(CadEntity entity, Vector3D cursor, Vector3D lastPoint)
     {
+        // MÜHENDİSLİK: Önceden çok-köşeli (LwPolyline) entity'lerde her zaman entity.GetSnapPoints()'in
+        // İLK İKİ Endpoint'i (yani sadece ilk segment) kullanılıyordu — imleç polyline'ın 3., 4., vb.
+        // segmentine yakın olsa bile diklik hep birinci segmente göre hesaplanıyordu, geometrik olarak
+        // yanlış sonuç veriyordu. Artık çok köşeli entity'lerde TÜM ardışık segmentler taranıp, imlece
+        // en yakın izdüşümü veren segment seçiliyor. Line/Pipe gibi tam olarak 2 uç noktalı entity'ler
+        // için davranış değişmedi (tek segment zaten tek seçenek).
+        if (entity is LwPolylineEntity poly && poly.Vertices.Count >= 2)
+        {
+            Vector3D? bestPerp = null;
+            double bestDist = double.MaxValue;
+
+            int segmentCount = poly.IsClosed ? poly.Vertices.Count : poly.Vertices.Count - 1;
+            for (int i = 0; i < segmentCount; i++)
+            {
+                var s = poly.Vertices[i];
+                var e = poly.Vertices[(i + 1) % poly.Vertices.Count];
+                var perp = GetPerpendicularPoint(lastPoint, s, e);
+                double dist = cursor.DistanceTo(perp);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestPerp = perp;
+                }
+            }
+
+            return bestPerp.HasValue ? new SnapPoint(bestPerp.Value, SnapPointType.Perpendicular) : null;
+        }
+
         var snaps = entity.GetSnapPoints().ToList();
         var endPoints = snaps.Where(s => s.Type == SnapPointType.Endpoint).ToList();
 
