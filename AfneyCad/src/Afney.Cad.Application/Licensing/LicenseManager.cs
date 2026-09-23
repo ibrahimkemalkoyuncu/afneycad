@@ -59,11 +59,16 @@ public class LicenseManager
         if (string.IsNullOrWhiteSpace(key)) return LicenseStatus.Invalid;
         key = key.Trim().ToUpperInvariant();
 
-        // 1. Statik Demo Key (Geliştirici Erişimi İçin)
+#if DEBUG
+        // MÜHENDİSLİK: Statik demo key önceden Release derlemesinde de HER ZAMAN geçerliydi —
+        // yani üründe her kullanıcı bu sabit metni yazarak tam lisanslı erişim elde edebiliyordu.
+        // Artık sadece geliştirme (DEBUG) derlemelerinde çalışıyor; müşteriye giden Release EXE'de
+        // bu kod yolu derlemeye hiç dahil edilmiyor.
         if (key.Equals("AFNEY-2026-ENTP-DEMO", StringComparison.OrdinalIgnoreCase))
             return LicenseStatus.Valid;
+#endif
 
-        // 2. Format Kontrolü (AFNEY-XXXX-XXXX-XXXX)
+        // Format Kontrolü (AFNEY-XXXX-XXXX-XXXXXXXX)
         var parts = key.Split('-');
         if (parts.Length != 4 || parts[0] != "AFNEY") return LicenseStatus.Invalid;
 
@@ -71,15 +76,25 @@ public class LicenseManager
         string serial = parts[2];
         string checksum = parts[3];
 
-        if (customerId.Length != 4 || serial.Length != 4 || checksum.Length != 4)
+        if (customerId.Length != 4 || serial.Length != 4 || checksum.Length != ChecksumLength)
             return LicenseStatus.Invalid;
 
         string expectedChecksum = ComputeChecksum(customerId, serial);
         return checksum == expectedChecksum ? LicenseStatus.Valid : LicenseStatus.Invalid;
     }
 
+    /*
+       MÜHENDİSLİK: Checksum önceden HMAC-SHA256 çıktısının sadece İLK 4 HEX KARAKTERİNE
+       (16 bit → 65.536 olasılık) kesiliyordu — algoritma/salt hiç bilinmese bile, ValidateKey()'e
+       karşı düz kaba kuvvet (brute force) ile saniyeler içinde geçerli bir anahtar bulunabilirdi.
+       Artık 8 hex karaktere (32 bit → ~4.3 milyar olasılık) çıkarıldı. NOT: Bu, daha önce
+       üretilmiş/dağıtılmış lisans anahtarlarını GEÇERSİZ KILAR (bilinçli, onaylanmış format
+       değişikliği — henüz gerçek müşteriye anahtar dağıtılmadığı varsayımıyla).
+    */
+    private const int ChecksumLength = 8;
+
     /// <summary>
-    /// HMAC-SHA256 tabanlı checksum: müşteri kodu + seri numarası üzerinden 4 haneli doğrulama bloğu üretir.
+    /// HMAC-SHA256 tabanlı checksum: müşteri kodu + seri numarası üzerinden doğrulama bloğu üretir.
     /// </summary>
     private static string ComputeChecksum(string customerId, string serial)
     {
@@ -88,13 +103,18 @@ public class LicenseManager
 
         using var hmac = new HMACSHA256(saltBytes);
         byte[] hash = hmac.ComputeHash(payload);
-        return Convert.ToHexString(hash).Substring(0, 4);
+        return Convert.ToHexString(hash).Substring(0, ChecksumLength);
     }
 
-    /// <summary>
-    /// Belirli bir müşteri için geçerli bir lisans anahtarı üretir (satış/aktivasyon aracı tarafından kullanılır).
-    /// </summary>
-    public static string GenerateKey(string customerId, string? serial = null)
+    /*
+       MÜHENDİSLİK: Önceden `public` idi ve anahtar üretme algoritması, doğrulama koduyla AYNI
+       müşteri-taraflı assembly'de (Afney.Cad.Application.dll) sevk ediliyordu — herhangi bir
+       kullanıcı decompiler'a ihtiyaç duymadan reflection ile doğrudan çağırıp kendi lisansını
+       üretebilirdi. Artık `internal` — sadece bu assembly içinden ve InternalsVisibleTo ile
+       yetkilendirilen ayrı, müşteriye sevk EDİLMEYEN Afney.Cad.LicenseTool konsol aracından
+       erişilebiliyor (bkz. tools/Afney.Cad.LicenseTool).
+    */
+    internal static string GenerateKey(string customerId, string? serial = null)
     {
         customerId = customerId.Trim().ToUpperInvariant().PadLeft(4, '0');
         if (customerId.Length > 4) customerId = customerId[..4];
