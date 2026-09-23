@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.IO;
+using Afney.Cad.Infrastructure.IO;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Annotation;
@@ -136,7 +137,10 @@ public class IfcExportService
         _sb.AppendLine("ENDSEC;");
         _sb.AppendLine("END-ISO-10303-21;");
 
-        File.WriteAllText(filePath, _sb.ToString());
+        // MÜHENDİSLİK: Atomik yazma (bkz. AtomicFile) — encoding, File.WriteAllText(path, content)
+        // overload'ının .NET varsayılanıyla (BOM'suz UTF-8) birebir aynı tutuldu; davranış değişmedi,
+        // sadece yazma sırasında bir hata olursa önceki geçerli IFC dosyasının korunması eklendi.
+        AtomicFile.WriteAllText(filePath, _sb.ToString(), new UTF8Encoding(false));
     }
 
     private int ExportPipe(PipeEntity pipe)

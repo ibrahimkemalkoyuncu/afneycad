@@ -1,5 +1,6 @@
 using ACadSharp.IO;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Infrastructure.IO;
 
 namespace Afney.Cad.Infrastructure.Export;
 
@@ -22,8 +23,16 @@ public class DwgExportService
     public IReadOnlyList<string> WriteToFile(string filePath)
     {
         var doc = AcadSharpDocumentBuilder.Build(_database, out var skippedEntities);
-        using var writer = new DwgWriter(filePath, doc);
-        writer.Write();
+
+        // MÜHENDİSLİK: Atomik yazma — DwgWriter geçici bir dosyaya yazdırılır, tamamlandıktan
+        // sonra tek bir dosya sistemi işlemiyle hedef yola taşınır (bkz. AtomicFile). Yazma
+        // sırasında bir hata olursa kullanıcının önceki geçerli DWG dosyası bozulmadan kalır.
+        AtomicFile.WriteVia(filePath, tempPath =>
+        {
+            using var writer = new DwgWriter(tempPath, doc);
+            writer.Write();
+        });
+
         return skippedEntities;
     }
 }

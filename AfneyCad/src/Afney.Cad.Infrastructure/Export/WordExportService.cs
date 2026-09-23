@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Infrastructure.IO;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
 using Afney.Cad.Mechanical.Services;
@@ -30,18 +31,24 @@ public class WordExportService
         string projectName = "AfneyCAD Projesi",
         string engineer    = "")
     {
-        using var doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
-        var mainPart = doc.AddMainDocumentPart();
-        mainPart.Document = new Document();
-        var body = mainPart.Document.AppendChild(new Body());
+        // MÜHENDİSLİK: Atomik yazma (bkz. AtomicFile) — OpenXml paketi geçici bir dosyaya
+        // yazdırılır, using bloğu (Dispose→gerçek diske flush) tamamlandıktan sonra hedef yola
+        // atomik taşınır; yazma sırasında bir hata önceki geçerli .docx dosyasını bozmaz.
+        AtomicFile.WriteVia(filePath, tempPath =>
+        {
+            using var doc = WordprocessingDocument.Create(tempPath, WordprocessingDocumentType.Document);
+            var mainPart = doc.AddMainDocumentPart();
+            mainPart.Document = new Document();
+            var body = mainPart.Document.AppendChild(new Body());
 
-        AddTitle(body, "AfneyCAD — Proje Hesap Raporu");
-        AddSummarySection(body, projectName, engineer);
-        AddBomSection(body);
-        if (wasteResult is not null) AddWasteWaterSection(body, wasteResult);
-        if (rainResult  is not null) AddRainWaterSection(body, rainResult);
+            AddTitle(body, "AfneyCAD — Proje Hesap Raporu");
+            AddSummarySection(body, projectName, engineer);
+            AddBomSection(body);
+            if (wasteResult is not null) AddWasteWaterSection(body, wasteResult);
+            if (rainResult  is not null) AddRainWaterSection(body, rainResult);
 
-        mainPart.Document.Save();
+            mainPart.Document.Save();
+        });
     }
 
     // ── 1. Başlık ────────────────────────────────────────────────────────────

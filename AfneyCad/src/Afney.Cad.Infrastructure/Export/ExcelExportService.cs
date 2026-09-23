@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using ClosedXML.Excel;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Infrastructure.IO;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
 using Afney.Cad.Mechanical.Services;
@@ -46,7 +47,10 @@ public class ExcelExportService
         if (wasteResult is not null) AddWasteWaterSheet(wb, wasteResult);
         if (rainResult  is not null) AddRainWaterSheet(wb, rainResult);
 
-        wb.SaveAs(filePath);
+        // MÜHENDİSLİK: Atomik yazma (bkz. AtomicFile) — ClosedXML geçici bir dosyaya kaydettirilir,
+        // başarılı olursa hedef yola atomik taşınır; yazma sırasında bir hata önceki geçerli
+        // .xlsx dosyasını bozmaz.
+        AtomicFile.WriteVia(filePath, tempPath => wb.SaveAs(tempPath));
     }
 
     // ── 1. Özet Sayfası ───────────────────────────────────────────────────────

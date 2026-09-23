@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Infrastructure.IO;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Domain.Entities.Annotation;
@@ -56,7 +57,9 @@ public class DxfWriterService
         var dimBlocks = WriteBlocksSection(sb, entities);
         WriteEntities(sb, entities, dimBlocks);
         WriteFooter(sb);
-        File.WriteAllText(filePath, sb.ToString(), Encoding.ASCII);
+        // MÜHENDİSLİK: Atomik yazma — temp dosya + rename (bkz. AtomicFile). Yazma sırasında
+        // bir çökme/disk hatası olursa kullanıcının önceki geçerli DXF dosyası bozulmadan kalır.
+        AtomicFile.WriteAllText(filePath, sb.ToString(), Encoding.ASCII);
     }
 
     /*
@@ -72,7 +75,7 @@ public class DxfWriterService
         var dimBlocks = WriteBlocksSection(sb, list);
         WriteEntities(sb, list, dimBlocks);
         WriteFooter(sb);
-        File.WriteAllText(filePath, sb.ToString(), Encoding.ASCII);
+        AtomicFile.WriteAllText(filePath, sb.ToString(), Encoding.ASCII);
     }
 
     // ── HEADER ──────────────────────────────────────────────────────────────────
