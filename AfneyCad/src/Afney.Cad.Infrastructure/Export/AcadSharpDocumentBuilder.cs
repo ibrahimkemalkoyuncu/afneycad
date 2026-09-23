@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using ACadSharp;
 using ACadSharp.Entities;
 using ACadSharp.Tables;
@@ -21,7 +23,20 @@ namespace Afney.Cad.Infrastructure.Export;
 // dışı kalmaz.
 public static class AcadSharpDocumentBuilder
 {
-    public static CadDocument Build(CadDatabase database)
+    public static CadDocument Build(CadDatabase database) => Build(database, out _);
+
+    /*
+       NE: CadDatabase → ACadSharp.CadDocument (Atlanan Entity Raporuyla)
+       NEDEN: ToAcad() switch'i yalnızca 6 entity tipini (Line/Circle/Arc/Text/Polyline/Pipe)
+              destekliyor — Spline/Hatch/Dimension/Solid/çoğu MEP fitting'i (Elbow/Tee/Duct/
+              Wall/Room vb.) eşleşmeyip `null` dönüyor ve `continue` ile HİÇBİR UYARI OLMADAN
+              atlanıyordu. Kullanıcı DWG/DXF'i gerçek AutoCAD'de açtığında nesnelerin neden
+              eksik olduğunu asla öğrenemiyordu. Artık atlanan her entity tipi ve adedi
+              toplanıp çağırana (bkz. DwgExportService) döndürülüyor; UI katmanı bunu
+              kullanıcıya gösterebilir. Dönüştürme mantığının kendisi DEĞİŞMEDİ — sadece
+              görünürlük eklendi.
+    */
+    public static CadDocument Build(CadDatabase database, out IReadOnlyList<string> skippedEntitySummary)
     {
         var doc = new CadDocument();
 
@@ -49,10 +64,17 @@ public static class AcadSharpDocumentBuilder
             doc.Layers.Add(acadLayer);
         }
 
+        var skippedCounts = new Dictionary<string, int>();
+
         foreach (var entity in database.GetAllEntities())
         {
             var acEnt = ToAcad(entity);
-            if (acEnt is null) continue;
+            if (acEnt is null)
+            {
+                string typeName = entity.GetType().Name;
+                skippedCounts[typeName] = skippedCounts.TryGetValue(typeName, out int n) ? n + 1 : 1;
+                continue;
+            }
 
             string ln = string.IsNullOrEmpty(entity.Layer) ? "0" : entity.Layer;
             if (!doc.Layers.Contains(ln)) doc.Layers.Add(new Layer(ln));
@@ -61,6 +83,11 @@ public static class AcadSharpDocumentBuilder
 
             doc.ModelSpace.Entities.Add(acEnt);
         }
+
+        skippedEntitySummary = skippedCounts
+            .OrderByDescending(kv => kv.Value)
+            .Select(kv => $"{kv.Key} ({kv.Value} adet)")
+            .ToList();
 
         return doc;
     }

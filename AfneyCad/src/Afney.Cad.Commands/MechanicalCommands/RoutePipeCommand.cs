@@ -171,11 +171,15 @@ public class RoutePipeCommand : ICadCommand
     private void StartBranching(PipeEntity target, Vector3D branchPoint)
     {
         var entities = _routingEngine.StartBranch(target, branchPoint);
-        
-        // Eski boruyu sil
-        // Not: RemoveEntity çağrısı MainWindow tarafından yönetilmeli veya veritabanı olayları ile senkronize olmalı.
-        // Burada direkt veritabanından siliyoruz, Undo/Redo için bunu CommandHistory'e bildirmek gerekir ama şimdilik direct call.
-        _database.RemoveEntity(target.Id); 
+
+        // MÜHENDİSLİK: Önceden burada _database.RemoveEntity(target.Id) DOĞRUDAN çağrılıyordu —
+        // TransactionManager'ı tamamen atlayarak (RegisterNewEntity'nin AddEntity için kullandığı
+        // OnEntityPlaced desenine karşın). Sonuç: branşman sonrası Undo, yeni eklenen boru/T-parçasını
+        // geri alıyordu ama silinen ESKİ boruyu GERİ GETİRMİYORDU — kalıcı veri kaybı. Artık
+        // RegisterNewEntity ile simetrik olarak sadece event fırlatılıyor; MainWindow bunu
+        // (OnEntityPlaced'daki AddEntityOperation ile aynı desende) RemoveEntityOperation olarak
+        // TransactionManager'a gönderiyor, böylece tek bir tıkla oluşan branşman işlemi baştan
+        // sona geri alınabilir hale geliyor.
         OnEntityRemoved?.Invoke(target);
 
         // Yeni parçaları ekle

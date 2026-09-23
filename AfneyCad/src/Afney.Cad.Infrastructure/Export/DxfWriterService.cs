@@ -521,7 +521,39 @@ public class DxfWriterService
     private static void Group(StringBuilder sb, int code, string value)
     {
         sb.AppendLine($"{code,3}");
-        sb.AppendLine(value);
+        sb.AppendLine(EscapeNonAscii(value));
+    }
+
+    /*
+       NE: ASCII-Dışı Karakterleri \U+XXXX Olarak Kaç (EscapeNonAscii)
+       NEDEN: DXF R12 (AC1009) ASCII formatı Türkçe karakterleri (Ş,ı,İ,ğ,Ü,ö,ç vb.)
+              doğrudan taşıyamaz — önceden dosya Encoding.ASCII ile yazılıyordu ve .NET
+              bu encoding'de ASCII-dışı her karakteri sessizce '?' ile değiştiriyordu,
+              yani her Türkçe metin (TEXT/DIMENSION/layer adı) export'ta bozuluyordu.
+              Bunun yerine AutoCAD'in kendi \U+XXXX unicode kaçış biçimini kullanıyoruz
+              (bu proje DWG import'ta CleanMText ile zaten aynı biçimi çözüyor), böylece
+              dosya hâlâ saf ASCII kalıp gerçek AutoCAD/LibreCAD/BricsCAD ile uyumlu olur
+              ve hiçbir karakter kaybolmaz.
+    */
+    private static string EscapeNonAscii(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        bool hasNonAscii = false;
+        foreach (char c in value)
+        {
+            if (c > 127) { hasNonAscii = true; break; }
+        }
+        if (!hasNonAscii) return value;
+
+        var sb = new StringBuilder(value.Length + 8);
+        foreach (char c in value)
+        {
+            if (c > 127)
+                sb.Append("\\U+").Append(((int)c).ToString("X4"));
+            else
+                sb.Append(c);
+        }
+        return sb.ToString();
     }
 
     private static void GroupXYZ(StringBuilder sb, int gx, int gy, int gz, Vector3D v)

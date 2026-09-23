@@ -15,7 +15,6 @@ public class RotateCommand : ICadCommand
     private readonly List<CadEntity> _entitiesToRotate;
     
     private Vector3D? _centerPoint;
-    private double _currentAngle; // Relative or absolute?
     private Vector3D _currentMousePos;
     
     // Ghost
@@ -86,7 +85,12 @@ public class RotateCommand : ICadCommand
             var composite = new CompositeOperation("Rotate Entities");
 
             // Undo Matrix
-            var rInv = Matrix4x4.RotationZ(-_currentAngle);
+            // MÜHENDİSLİK: Önceden burada _currentAngle (son OnPointerMoved'daki AÇI) kullanılıyordu,
+            // asıl tıklamadan hesaplanan "angle" değil — snap/dinamik giriş nedeniyle son fare hareketi
+            // ile gerçek tıklama noktası farklıysa, kayıtlı ters dönüşüm uygulanan dönüşü tam tersine
+            // çevirmiyordu ve Undo sonrası nesneler hafifçe yanlış açıda kalıyordu. Artık gerçek
+            // tıklamadan hesaplanan "angle" kullanılıyor.
+            var rInv = Matrix4x4.RotationZ(-angle);
             var combinedInv = t2 * rInv * t1;
 
             foreach (var ent in _entitiesToRotate)
@@ -111,8 +115,7 @@ public class RotateCommand : ICadCommand
         if (_centerPoint != null)
         {
             double angle = CalculateAngle(_centerPoint.Value, point);
-            _currentAngle = angle;
-            
+
             // Update ghosts
             // Re-clone from source to avoid accumulation errors
             _ghosts = _entitiesToRotate.Select(e => e.Clone()).ToList();

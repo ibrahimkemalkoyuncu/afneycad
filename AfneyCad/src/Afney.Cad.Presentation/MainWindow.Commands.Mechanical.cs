@@ -185,6 +185,10 @@ namespace Afney.Cad.Presentation
 
             cmd.OnFeedback += msg => StatusText.Text = msg;
             cmd.OnEntityPlaced += entity => _history.TransactionManager.Submit(new AddEntityOperation(_database, entity));
+            // MÜHENDİSLİK: StartBranching artık eski boruyu doğrudan silmiyor, sadece OnEntityRemoved
+            // fırlatıyor (bkz. RoutePipeCommand.cs) — Undo/Redo tutarlılığı için OnEntityPlaced ile
+            // simetrik olarak burada RemoveEntityOperation'a sarılıp TransactionManager'a gönderiliyor.
+            cmd.OnEntityRemoved += entity => _history.TransactionManager.Submit(new RemoveEntityOperation(_database, entity));
             cmd.OnCompleted += () => { Viewport.SetActiveCommand(null); StatusText.Text = "Ready"; };
             Viewport.SetActiveCommand(cmd);
             cmd.Start();

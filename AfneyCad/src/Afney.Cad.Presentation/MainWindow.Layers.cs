@@ -153,11 +153,33 @@ namespace Afney.Cad.Presentation
             }
         }
 
+        /*
+           NE: Sekme Kapatma (OnCloseTab_Click) — Kaydedilmemiş Değişiklik Onayı
+           NEDEN: Önceden ctx.IsModified hiç kontrol edilmiyordu — kaydedilmemiş bir çizim
+                  tek tıkla, hiçbir uyarı olmadan geri dönüşsüz şekilde kapanıyordu. Artık
+                  IsModified true ise AutoCAD tarzı Kaydet/Kaydetme/İptal seçimi sunuluyor.
+        */
         private void OnCloseTab_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is TabItem tab)
             {
                 var ctx = tab.Tag as CadDocumentContext;
+
+                if (ctx != null && ctx.IsModified)
+                {
+                    var result = MessageBox.Show(
+                        $"\"{ctx.ProjectName}\" sekmesinde kaydedilmemiş değişiklikler var.\n\nKapatmadan önce kaydetmek ister misiniz?",
+                        "Kaydedilmemiş Değişiklikler",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.Cancel) return;
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        if (!TrySaveDocumentContext(ctx)) return; // Kaydetme başarısız/iptal edildi → sekmeyi kapatma
+                    }
+                }
 
                 DocumentTabs.Items.Remove(tab);
                 if (ctx != null)
@@ -170,6 +192,49 @@ namespace Afney.Cad.Presentation
                 {
                     CreateNewDocument("Boş Proje");
                 }
+            }
+        }
+
+        /*
+           NE: Belirli Bir Doküman Bağlamını Kaydet (TrySaveDocumentContext)
+           NEDEN: SaveToFile/SaveAs akışları ambient _activeContext/_database üzerinden
+                  çalışıyor — kapatılan sekme aktif sekme olmayabileceğinden, kaydetme
+                  süresince bağlamı geçici olarak değiştirip sonra eski hâline döndürüyoruz.
+        */
+        private bool TrySaveDocumentContext(CadDocumentContext ctx)
+        {
+            var previousActive = _activeContext;
+            _activeContext = ctx;
+            try
+            {
+                string filePath = ctx.FilePath;
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    var dlg = new Microsoft.Win32.SaveFileDialog
+                    {
+                        Title = "Farklı Kaydet",
+                        Filter = "AutoCAD DWG (*.dwg)|*.dwg|DXF Dosyası (*.dxf)|*.dxf",
+                        FileName = ctx.ProjectName,
+                        DefaultExt = ".dwg"
+                    };
+                    if (dlg.ShowDialog() != true) return false; // Kullanıcı iptal etti
+                    filePath = dlg.FileName;
+                    ctx.FilePath = filePath;
+                }
+
+                SaveToFile(filePath);
+                ctx.IsModified = false;
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                Serilog.Log.Error(ex, "Sekme kapatılırken kaydetme hatası");
+                MessageBox.Show($"Kaydetme hatası: {ex.Message}\nSekme kapatılmadı.", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            finally
+            {
+                _activeContext = previousActive;
             }
         }
 

@@ -519,6 +519,8 @@ namespace Afney.Cad.Presentation
                 if (btn != null) btn.IsEnabled = false;
                 StatusText.Text = "Dışa aktarılıyor... Lütfen bekleyin.";
 
+                IReadOnlyList<string>? skippedEntities = null;
+
                 // UI donmasını önlemek için ağır işlemi arka plana at (DWG import ile aynı desen)
                 await System.Threading.Tasks.Task.Run(() =>
                 {
@@ -530,13 +532,28 @@ namespace Afney.Cad.Presentation
                     else
                     {
                         var dwg = new DwgExportService(_database);
-                        dwg.WriteToFile(dlg.FileName);
+                        skippedEntities = dwg.WriteToFile(dlg.FileName);
                     }
                 });
 
                 StatusText.Text = $"Kaydedildi: {Path.GetFileName(dlg.FileName)}";
-                MessageBox.Show($"Dosya başarıyla kaydedildi:\n{dlg.FileName}", "Kaydet",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // MÜHENDİSLİK: AcadSharpDocumentBuilder sadece 6 entity tipini destekliyor (Spline/
+                // Hatch/Dimension/Solid/MEP fitting'leri dışlanıyor) — önceden bu sessizce oluyordu,
+                // kullanıcı dosyayı gerçek AutoCAD'de açana kadar veri kaybını fark etmiyordu.
+                if (skippedEntities != null && skippedEntities.Count > 0)
+                {
+                    MessageBox.Show(
+                        $"Dosya kaydedildi ancak bazı nesne türleri DWG formatına aktarılamadı ve dışlandı:\n\n" +
+                        string.Join("\n", skippedEntities) +
+                        "\n\nBu nesneler dışa aktarılan dosyada GÖRÜNMEYECEK. Orijinal AfneyCAD projesini de saklamanız önerilir.",
+                        "Kısmi Dışa Aktarım", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else
+                {
+                    MessageBox.Show($"Dosya başarıyla kaydedildi:\n{dlg.FileName}", "Kaydet",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {

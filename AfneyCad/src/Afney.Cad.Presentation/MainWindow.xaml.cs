@@ -15,6 +15,7 @@ namespace Afney.Cad.Presentation
         private System.Collections.ObjectModel.ObservableCollection<CadDocumentContext> _documents = new System.Collections.ObjectModel.ObservableCollection<CadDocumentContext>();
         private CadDocumentContext? _activeContext;
         private Afney.Cad.Presentation.Services.AutoSaveService? _autoSaveService;
+        private CadDatabase? _autoSaveBoundDatabase;
         private Action? _lastRepeatableCommand;
         private readonly Afney.Cad.Mechanical.Services.PressureMapService _pressureMapService = new();
         private readonly Afney.Cad.Mechanical.Services.ClashHighlightService _clashHighlightService = new();
@@ -73,16 +74,7 @@ namespace Afney.Cad.Presentation
             CheckCrashRecovery();
             MarkSessionActive();
 
-            _autoSaveService = new Afney.Cad.Presentation.Services.AutoSaveService(ActiveContext.Database, TimeSpan.FromMinutes(5));
-            _autoSaveService.OnAutoSaveCompleted += (path) =>
-            {
-                Dispatcher.Invoke(() => StatusText.Text = $"Otomatik Kayıt: {DateTime.Now:HH:mm} ({System.IO.Path.GetFileName(path)})");
-            };
-            _autoSaveService.OnAutoSaveFailed += (ex) =>
-            {
-                Dispatcher.Invoke(() => StatusText.Text = $"Otomatik Kayıt Hatası: {ex.Message}");
-            };
-            _autoSaveService.Start();
+            RebindAutoSave(ActiveContext.Database);
 
             this.Closing += MainWindow_Closing;
             ApplyUserSettings();
@@ -107,6 +99,13 @@ namespace Afney.Cad.Presentation
             ctx.Database.EntityAdded += ctx.MechanicalKernel.OnEntityAddedToDatabase;
             ctx.Database.EntityRemoved += ctx.MechanicalKernel.OnEntityRemovedFromDatabase;
             ctx.Database.EntityUpdated += ctx.MechanicalKernel.OnEntityUpdatedInDatabase;
+
+            // MÜHENDİSLİK: CadDocumentContext.IsModified daha önce hiçbir yerde true'ya
+            // set edilmiyordu (yalnızca kaydetme sonrası false'a çekiliyordu) — "kaydedilmemiş
+            // değişiklik" durumu asla tespit edilemiyordu. Entity mutasyonlarını dinleyerek işaretliyoruz.
+            ctx.Database.EntityAdded += _ => ctx.IsModified = true;
+            ctx.Database.EntityRemoved += _ => ctx.IsModified = true;
+            ctx.Database.EntityUpdated += _ => ctx.IsModified = true;
 
             ctx.MechanicalKernel.OnRequestAddEntity += (entity) => ctx.History.TransactionManager.Submit(new AddEntityOperation(ctx.Database, entity));
             ctx.MechanicalKernel.OnRequestDeleteEntity += (entity) => ctx.History.TransactionManager.Submit(new RemoveEntityOperation(ctx.Database, entity));
@@ -185,8 +184,69 @@ namespace Afney.Cad.Presentation
             return viewport;
         }
 
+        /*
+           NE: AutoSaveService'i Aktif Sekmenin Veritabanına Bağla (RebindAutoSave)
+           NEDEN: Önceden AutoSaveService yalnızca ctor'da BİR KEZ ilk sekmenin veritabanına
+                  bağlanıyordu — kullanıcı yeni sekme açtığında veya sekme değiştirdiğinde
+                  otomatik kayıt hâlâ ilk (belki artık kapatılmış/disposed) veritabanını
+                  yazmaya devam ediyordu; diğer tüm sekmeler çökme kurtarmasından tamamen
+                  mahrumdu. OnTabChanged her aktif sekme değişiminde bunu çağırır.
+        */
+        private void RebindAutoSave(CadDatabase database)
+        {
+            if (ReferenceEquals(_autoSaveBoundDatabase, database)) return; // Zaten bu veritabanına bağlı
+
+            _autoSaveService?.Stop();
+            _autoSaveService?.Dispose();
+
+            _autoSaveService = new Afney.Cad.Presentation.Services.AutoSaveService(database, TimeSpan.FromMinutes(5));
+            _autoSaveService.OnAutoSaveCompleted += (path) =>
+            {
+                Dispatcher.Invoke(() => StatusText.Text = $"Otomatik Kayıt: {DateTime.Now:HH:mm} ({System.IO.Path.GetFileName(path)})");
+            };
+            _autoSaveService.OnAutoSaveFailed += (ex) =>
+            {
+                Dispatcher.Invoke(() => StatusText.Text = $"Otomatik Kayıt Hatası: {ex.Message}");
+            };
+            _autoSaveService.Start();
+            _autoSaveBoundDatabase = database;
+        }
+
+        /*
+           NE: Uygulama Kapanışında Kaydedilmemiş Değişiklik Kontrolü
+           NEDEN: OnCloseTab_Click tek sekme kapatmada IsModified kontrolü yapıyor ama
+                  pencere doğrudan (X butonu/Alt+F4) kapatılırsa bu kontrolden hiç geçmeden
+                  tüm sekmeler sessizce kapanıyordu. Her değiştirilmiş sekme için aynı
+                  Kaydet/Kaydetme/İptal akışı burada da uygulanıyor; İptal tüm kapanışı durdurur.
+        */
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            foreach (var ctx in _documents.ToList())
+            {
+                if (!ctx.IsModified) continue;
+
+                var result = MessageBox.Show(
+                    $"\"{ctx.ProjectName}\" sekmesinde kaydedilmemiş değişiklikler var.\n\nUygulamayı kapatmadan önce kaydetmek ister misiniz?",
+                    "Kaydedilmemiş Değişiklikler",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    if (!TrySaveDocumentContext(ctx))
+                    {
+                        e.Cancel = true; // Kaydetme başarısız/iptal edildi → kapanışı durdur
+                        return;
+                    }
+                }
+            }
+
             _autoSaveService?.Stop();
             _userSettings.Settings.WindowMaximized = WindowState == WindowState.Maximized;
             _userSettings.Settings.LeftPanelVisible = LeftPanelBorder.Visibility == Visibility.Visible;
@@ -500,6 +560,8 @@ namespace Afney.Cad.Presentation
                 LayerPanel.RefreshLayers(ctx.Database);
                 LayerPanel.SyncHiddenLayers(ctx.Viewport.HiddenLayers);
                 RefreshActiveLayerCombo(ctx.Database);
+
+                RebindAutoSave(ctx.Database);
             }
         }
 

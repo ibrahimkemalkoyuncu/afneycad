@@ -57,6 +57,23 @@ public class SelectionManager
     }
 
     /*
+       NE: Kilitli/Dondurulmuş Katman Kontrolü (IsSelectable)
+       NEDEN: Önceden katman Kilitli (IsLocked) veya Dondurulmuş (IsFrozen) olsa bile
+              entity tek tıkla, pencere/crossing seçimiyle ve Tab-cycle ile seçilebiliyor,
+              ardından grip ile sürüklenebiliyordu — "kilitleme" kullanıcı arayüzünde bir
+              işe yaramıyordu (yalnızca görünürlük anahtarı HiddenLayers etkiliydi).
+              Grip sürükleme yalnızca zaten SEÇİLİ entity'ler üzerinde çalıştığından,
+              seçime giriş noktasını burada engellemek grip düzenlemeyi de dolaylı olarak
+              korur.
+    */
+    private bool IsSelectable(CadEntity entity)
+    {
+        if (string.IsNullOrEmpty(entity.Layer)) return true;
+        var layer = _database.GetLayer(entity.Layer);
+        return !layer.IsLocked && !layer.IsFrozen;
+    }
+
+    /*
         NE: Seçili Entity Sayısı
     */
     public int SelectedCount => _selectedEntityIds.Count;
@@ -80,7 +97,7 @@ public class SelectionManager
     */
     public void AddToSelection(CadEntity entity)
     {
-        if (!_selectedEntityIds.Contains(entity.Id))
+        if (!_selectedEntityIds.Contains(entity.Id) && IsSelectable(entity))
         {
             _selectedEntityIds.Add(entity.Id);
             _selectedEntityCache[entity.Id] = entity;
@@ -106,7 +123,7 @@ public class SelectionManager
 
         foreach (var entity in entities)
         {
-            if (!_selectedEntityIds.Contains(entity.Id))
+            if (!_selectedEntityIds.Contains(entity.Id) && IsSelectable(entity))
             {
                 _selectedEntityIds.Add(entity.Id);
                 _selectedEntityCache[entity.Id] = entity; // Cache'e ekle
@@ -136,7 +153,7 @@ public class SelectionManager
 
         foreach (var entity in entities)
         {
-            if (!_selectedEntityIds.Contains(entity.Id))
+            if (!_selectedEntityIds.Contains(entity.Id) && IsSelectable(entity))
             {
                 _selectedEntityIds.Add(entity.Id);
                 _selectedEntityCache[entity.Id] = entity; // Cache'e ekle
@@ -164,9 +181,11 @@ public class SelectionManager
         }
         else
         {
-            _selectedEntityIds.Add(entityId);
-            // Cache'e ekle - ancak önce entity'yi bul
             var entity = _database.GetEntity(entityId);
+            if (entity != null && !IsSelectable(entity)) return;
+
+            _selectedEntityIds.Add(entityId);
+            // Cache'e ekle
             if (entity != null)
             {
                 _selectedEntityCache[entityId] = entity;
