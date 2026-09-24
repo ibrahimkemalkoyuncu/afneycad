@@ -68,7 +68,7 @@ public class OffsetCommand : ICadCommand
             foreach (var ent in _ghostEntities)
             {
                 // Clone yapılmış olanları temiz (gri) renginden orijinal rengine çevirelim
-                ent.Color = _entitiesToOffset.FirstOrDefault(o => o.Layer == ent.Layer)?.Color ?? 0xFFFFFFFF;
+                ent.Color = _sourceColors.TryGetValue(ent, out var srcColor) ? srcColor : 0xFFFFFFFF;
                 composite.Add(new AddEntityOperation(_database, ent));
             }
 
@@ -93,7 +93,8 @@ public class OffsetCommand : ICadCommand
     private void UpdateGhosts(Vector3D targetPoint)
     {
          _ghostEntities = new List<CadEntity>();
-         
+         _sourceColors.Clear();
+
          foreach (var ent in _entitiesToOffset)
          {
              var clone = ent.Clone();
@@ -119,19 +120,19 @@ public class OffsetCommand : ICadCommand
                  var offsetPoly = OffsetPolyline(poly, targetPoint);
                  if (offsetPoly == null) continue;
                  offsetPoly.Color = 0xFFAAAAAA;
-                 _ghostEntities.Add(offsetPoly);
+                 AddGhost(offsetPoly, ent);
                  continue;
              }
              else if (ent is CircleEntity circle)
              {
                  // Çember offset: yeni yarıçap = merkezden hedef noktaya olan mesafe.
                  // Dışarı tıklarsa büyür, içeri tıklarsa küçülür — Line offset'teki "hedefe doğru ötele" mantığıyla tutarlı.
-                 _ghostEntities.Add(new CircleEntity(circle.Center, targetPoint.DistanceTo(circle.Center)) { Color = 0xFFAAAAAA, Layer = circle.Layer });
+                 AddGhost(new CircleEntity(circle.Center, targetPoint.DistanceTo(circle.Center)) { Color = 0xFFAAAAAA, Layer = circle.Layer }, ent);
                  continue;
              }
              else if (ent is ArcEntity arc)
              {
-                 _ghostEntities.Add(new ArcEntity(arc.Center, targetPoint.DistanceTo(arc.Center), arc.StartAngle, arc.EndAngle) { Color = 0xFFAAAAAA, Layer = arc.Layer });
+                 AddGhost(new ArcEntity(arc.Center, targetPoint.DistanceTo(arc.Center), arc.StartAngle, arc.EndAngle) { Color = 0xFFAAAAAA, Layer = arc.Layer }, ent);
                  continue;
              }
              else
@@ -139,8 +140,18 @@ public class OffsetCommand : ICadCommand
                  continue; // Şimdilik desteklemeyenleri silme ama offsetlemesin de
              }
 
-             _ghostEntities.Add(clone);
+             AddGhost(clone, ent);
          }
+    }
+
+    // Ghost'un kaynağının GERÇEK rengini saklar — commit'te katman adına göre tahmin etmek,
+    // aynı katmanda farklı renkli nesneler seçiliyse yanlış rengi uyguluyordu.
+    private readonly Dictionary<CadEntity, uint> _sourceColors = new();
+
+    private void AddGhost(CadEntity ghost, CadEntity source)
+    {
+        _ghostEntities!.Add(ghost);
+        _sourceColors[ghost] = source.Color;
     }
 
     /*

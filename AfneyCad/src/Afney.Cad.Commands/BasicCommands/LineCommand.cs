@@ -56,6 +56,14 @@ public class LineCommand : ICadCommand
         }
         else
         {
+            // Aynı noktaya çift tıklama sıfır uzunluklu çizgi yaratıyordu (CircleCommand'ın
+            // sıfır yarıçap koruması burada yoktu) — veritabanına ve geri alma yığınına girmesin.
+            if (_startPoint.Value.DistanceTo(point) < 1e-6)
+            {
+                OnFeedback?.Invoke("LINE: Bitiş noktası başlangıçla aynı — farklı bir nokta belirtin.");
+                return;
+            }
+
             // İkinci nokta tıklandı -> Çizgiyi Kalıcı Yap (TRANSACTION İLE)
             var permanentLine = new LineEntity(_startPoint.Value, point) 
             { 

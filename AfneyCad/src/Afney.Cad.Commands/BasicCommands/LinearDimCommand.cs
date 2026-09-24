@@ -61,6 +61,12 @@ public class LinearDimCommand : ICadCommand, IDimensionOverridable
         }
         else if (_p2 == null)
         {
+            // Aynı iki noktadan sıfır uzunluklu ölçü üretilmesini engelle.
+            if (_p1.Value.DistanceTo(point) < 1e-6)
+            {
+                OnFeedback?.Invoke("DIMLINEAR: İkinci nokta birinciyle aynı — farklı bir nokta seçin.");
+                return;
+            }
             _p2    = point;
             _ghost = new DimensionEntity(_p1.Value, point, point, DimensionType.Linear);
             DimensionStyleApplier.Apply(_ghost, _style);

@@ -41,6 +41,9 @@ public class PolylineCommand : ICadCommand
     */
     public void OnPointerPressed(Vector3D point)
     {
+        // Çift tıklama son köşeyle çakışan bir nokta ekleyip sıfır uzunluklu segment üretiyordu.
+        if (_vertices.Count > 0 && _vertices[^1].DistanceTo(point) < 1e-6) return;
+
         _vertices.Add(point);
 
         if (_vertices.Count == 1)

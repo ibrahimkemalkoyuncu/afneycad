@@ -42,6 +42,14 @@ public class ThermalExpansionService
     {
         double Δv     = SpecificVolumeDiff(TempCold, TempHot);
         double Vpre   = StaticHeadM / 10.0 + 0.2;                  // P_pre (bar)
+
+        // Emniyet valfi basıncı ön dolum basıncından büyük olmalı; aksi halde payda ≤ 0 olur ve
+        // negatif/sonsuz tank hacmi sessizce üretilirdi (yüksek statik yükseklik + düşük valf basıncı).
+        if (MaxPressureBar - Vpre <= 1e-6)
+            throw new InvalidOperationException(
+                $"Emniyet valfi açılış basıncı ({MaxPressureBar:0.##} bar), ön dolum basıncından ({Vpre:0.##} bar) büyük olmalıdır. " +
+                "Valf basıncını artırın veya statik yüksekliği kontrol edin.");
+
         double n      = (MaxPressureBar + 1.0) / (MaxPressureBar - Vpre);
         double Ve     = SystemVolumeL * Δv;
         double Vtank  = Ve * n;

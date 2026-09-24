@@ -78,9 +78,23 @@ public class BlockReferenceEntity : CadEntity
 
     public override void Transform(Matrix4x4 matrix)
     {
+        // MÜHENDİSLİK: Önceden sadece Position dönüştürülüyordu — ROTATE/SCALE komutları
+        // (TransformEntityOperation → Transform) bloğun konumunu döndürüyor/ölçekliyor ama
+        // görsel dönüşünü/ölçeğini (Rotation/Scale) hiç değiştirmiyordu; blok olduğu açıda kalıyordu.
+        // Bloğun modeli tek tip ölçek + Z ekseni dönüşü olduğundan, matrisin birim X vektörüne
+        // etkisinden ikisi de güvenle çıkarılabilir. (Yansıma/eşitsiz ölçek bu modelde temsil
+        // edilemez; onlarda sadece konum dönüşür — eski davranış.)
+        var origin = matrix.Transform(Vector3D.Zero);
+        var xAxis = matrix.Transform(new Vector3D(1, 0, 0)) - origin;
+        double scaleFactor = xAxis.Length();
+
         Position = matrix.Transform(Position);
-        // Scale ve Rotation matristen ayrıştırılabilir ama kompleks.
-        // Şimdilik sadece pozisyon.
+
+        if (scaleFactor > 1e-9)
+        {
+            Scale *= scaleFactor;
+            Rotation += System.Math.Atan2(xAxis.Y, xAxis.X) * 180.0 / System.Math.PI;
+        }
     }
 
     protected override CadBoundingBox CalculateBoundingBox()

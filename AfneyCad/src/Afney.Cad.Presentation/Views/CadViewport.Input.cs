@@ -670,6 +670,17 @@ namespace Afney.Cad.Presentation.Views;
                     Serilog.Log.Information("❌ Aktif komut iptal edildi");
                 }
 
+                // 1.5. Grip sürükleme sürüyorsa bitir — önceden ESC bu durumu sıfırlamıyordu,
+                // fare tuşu hâlâ basılıyken sonraki her MouseMove nesneyi hareket ettirmeye devam ediyordu.
+                if (_isStretching)
+                {
+                    _isStretching = false;
+                    _activeGripEntity = null;
+                    _activeGripIndex = null;
+                    if (CadCanvas.IsMouseCaptured) CadCanvas.ReleaseMouseCapture();
+                    InvalidateViewport();
+                }
+
                 // 2. Seçim modu aktifse kapat
                 if (_isSelecting)
                 {
