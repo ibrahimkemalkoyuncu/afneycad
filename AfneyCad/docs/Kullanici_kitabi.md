@@ -3517,3 +3517,26 @@ Kullanıcının verdiği 4 GitHub kaynağı araştırıldı:
 **Test sayısı:** 770 (değişmedi — regresyon testi gerektirmeyen bir bağımlılık yükseltmesi + gerçek bir yazıcı hatası düzeltmesiydi, mevcut testler zaten bunu kapsıyordu).
 
 **Doğrulama:** `dotnet build -c Release -m:1` (0 hata) + `dotnet test -c Release --no-build`. **770/770 test başarılı**, regresyon yok.
+
+---
+
+### 77. Tam Kod Denetimi (7 Paralel Tarama) — P0/P1/P2 Düzeltmeleri (`commit b12af87`, `3eca220`, `86bd1ef`, `0e8a0b5`, `e7002ea`, `1baeaa2`)
+
+625 kaynak dosya (~95.000 satır) 7 paralel salt-okunur ajanla tarandı; bulgular koda atıflı doğrulandı. Detay: `docs/10-DEGISIKLIK-GUNLUGU.md`, açık borç: `docs/08-TEKNIK-BORC.md`.
+
+**Kullanıcıyı doğrudan etkileyen değişiklikler:**
+- **DXF'te Türkçe karakter artık korunuyor** (önceden Ş/ı/İ/ğ… `?` oluyordu).
+- **Kilitli/dondurulmuş katmandaki nesneler artık seçilemiyor** (tek tık, pencere/crossing, Tab).
+- **Sekme veya uygulama kapatılırken kaydedilmemiş değişiklik uyarısı** (Kaydet / Kaydetme / İptal). Otomatik kayıt artık aktif sekmeyi kapsıyor.
+- **DWG dışa aktarımında** desteklenmeyen nesne türleri (Spline, Hatch, Ölçü, Solid, çoğu MEP parçası) dosyada olmayacaksa kullanıcıya uyarı gösteriliyor.
+- **Export dosyaları atomik yazılıyor** (DXF/DWG/IFC/Excel/Word): yazma sırasında hata olursa önceki geçerli dosya bozulmuyor.
+- **Undo/Redo:** ROTATE geri alma açısı düzeltildi; boru branşmanı artık tam geri alınabiliyor; çok adımlı işlemler kısmi başarısızlıkta geri sarılıyor.
+- **Trim/Extend:** LwPolyline artık sınır (kesme/uzatma hedefi) olabiliyor. Polyline'da diklik snap'i tüm segmentlere bakıyor.
+- **Boru çizimi:** PPRC (soğuk/sıcak su) ve Çelik (yangın/gaz) için gerçek standart çapları kullanılıyor (önceden yalnız PVC'de çalışıyordu). DIN 2440 çelik boru verisi eklendi.
+- **Bloklar:** ROTATE/SCALE artık bloğun görsel dönüş/ölçeğini de değiştiriyor. Sıfır uzunluklu çizgi/polyline segmenti/ölçü oluşmuyor. ESC grip sürüklemeyi bitiriyor. Genleşme tankında geçersiz basınç girişi hata mesajı veriyor.
+
+**Lisans (DİKKAT — geriye uyumsuz):** Checksum 8 hex karaktere çıkarıldı; **eski lisans anahtarları geçersiz**. Demo anahtar yalnız geliştirme (DEBUG) derlemesinde çalışır. Anahtar üretimi artık ayrı araçta: `tools/Afney.Cad.LicenseTool` (`dotnet run --project tools/Afney.Cad.LicenseTool -- <MüşteriKodu>`).
+
+**Bilinen açık konular:** Grip ile düzenleme geri alınamıyor (TB-01); ölü kod (`CadEngine`, `AdvancedSnapService`) kullanıcı kararıyla korunuyor.
+
+**Test sayısı:** 770 → **785** (+15 regresyon, `tests/Afney.Cad.Tests/Regression`). **Doğrulama:** tam derleme 0 hata, 785/785 test. UI davranışları (kapatma uyarısı, AutoSave, ESC) çalışan uygulamada denenmedi — DOĞRULANMADI.
