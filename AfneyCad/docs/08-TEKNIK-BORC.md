@@ -5,7 +5,8 @@ Durum: 2026-09-24. Her madde denetimde koddan doğrulandı; "UNVERIFIED" işaret
 ## A. Kalıcı ürün riskleri
 | ID | Bulgu | Öncelik |
 |----|-------|---------|
-| TB-01 | **Grip sürükleme geri alınamıyor**: `CadViewport.Input.cs` nesneyi canlı değiştiriyor, `TransactionManager`'a işlemiyor (ESC de eski konumu geri getirmiyor). | P1 |
+| TB-01 | ~~Grip sürükleme geri alınamıyor~~ — **KAPATILDI (AUD-19)**: `GripEditOperation` + `TransactionManager.RecordApplied`; ESC eski konuma döner; bırakınca `UpdateEntity` (indeks + topoloji). UI'da elle denenmedi — DOĞRULANMADI. | ✔ |
+| TB-12 | `CadDatabase.UpdateEntity` → `QuadTree.Remove` güncel (taşınmış) bbox ile arıyor; eski düğümlerde artık girişler kalıyor (işlevsel etkisi yok, bellek şişmesi). | P3 |
 | TB-02 | DWG/DXF export kapsamı dar: `AcadSharpDocumentBuilder` yalnızca Line/Circle/Arc/Text/LwPolyline/Pipe dönüştürüyor (artık kullanıcıya uyarı veriyor ama veri yine de dışlanıyor). DXF yazıcı Spline/Hatch'i yaklaşık (çizgi) yazıyor. | P1 |
 | TB-03 | DWG/IFC importları desteklenmeyen tipleri (3DSOLID, Mesh, MLeader, Table…) uyarısız atıyor; düz `TEXT`'te `\U+` çözülmüyor. | P1 |
 | TB-04 | `LoadDwgEntities` büyük DWG'de UI thread'inde `Parallel.ForEach` çalıştırıyor (donma riski). | P1 |

@@ -68,6 +68,26 @@ public class TransactionManager
     }
 
     /*
+       NE: Zaten Uygulanmış İşlemi Kaydet (RecordApplied)
+       NEDEN: Grip sürükleme gibi etkileşimler nesneyi fare hareketi boyunca CANLI değiştirir;
+              bırakıldığında Submit() çağrılırsa Do() değişikliği ikinci kez uygulardı. Bu metod
+              işlemi Do() çağırmadan doğrudan geri alma yığınına ekler (Redo için Do() hâlâ
+              geçerli olduğundan Undo→Redo döngüsü doğru çalışır).
+    */
+    public void RecordApplied(IOperation operation)
+    {
+        _redoStack.Clear();
+        _undoStack.AddLast(operation);
+
+        while (_undoStack.Count > MaxUndoLevels)
+        {
+            _undoStack.RemoveFirst();
+        }
+
+        StateChanged?.Invoke();
+    }
+
+    /*
        NE: Geri Al (Undo)
        NEDEN: En son yapılan işlemi tersine çevirerek veritabanını bir önceki tutarlı durumuna döndürmek ve işlemi yineleme (Redo) yığınına taşımak için.
     */

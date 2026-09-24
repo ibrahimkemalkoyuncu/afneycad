@@ -1,6 +1,8 @@
 ﻿using Afney.Cad.Application.Services;
 using Afney.Cad.Commands.Abstractions;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Render.Engines;
@@ -8,6 +10,7 @@ using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 using SkiaSharp.Views.WPF;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,6 +28,92 @@ namespace Afney.Cad.Presentation.Views;
     */
     public partial class CadViewport : UserControl, IDisposable
     {
+
+        // ── Grip düzenleme: geri alma desteği ─────────────────────────────────────
+        /*
+           NE: Grip Stretch Geri Alma (GripBefore / GripMoveDeltas / Commit / Cancel)
+           NEDEN: Grip sürükleme nesneleri fare hareketi boyunca CANLI değiştiriyor ama hiçbir
+                  zaman TransactionManager'a işlenmiyordu — düzenleme geri alınamıyor, ESC eski
+                  konuma döndürmüyor, uzamsal indeks ve topoloji güncellenmiyordu. Artık her
+                  değişecek nesnenin ilk grip durumu (veya Move ile taşınanlar için toplam delta)
+                  değişmeden önce kaydediliyor; bırakınca tek bir birleşik "Grip düzenleme"
+                  işlemi olarak (bkz. GripEditOperation) geri alma yığınına ekleniyor.
+        */
+        private readonly Dictionary<CadEntity, List<Vector3D>> _gripBefore = new();
+        private readonly Dictionary<CadEntity, Vector3D> _gripMoveDeltas = new();
+
+        private void CaptureGripState(CadEntity entity)
+        {
+            if (!_gripBefore.ContainsKey(entity))
+                _gripBefore[entity] = entity.GetGripPoints().ToList();
+        }
+
+        private void MoveTracked(CadEntity entity, Vector3D delta)
+        {
+            entity.Move(delta);
+            _gripMoveDeltas[entity] = _gripMoveDeltas.TryGetValue(entity, out var total) ? total + delta : delta;
+        }
+
+        private static bool GripsEqual(IReadOnlyList<Vector3D> a, IReadOnlyList<Vector3D> b)
+        {
+            if (a.Count != b.Count) return false;
+            for (int i = 0; i < a.Count; i++)
+                if (a[i].DistanceTo(b[i]) > 1e-9) return false;
+            return true;
+        }
+
+        private void ResetGripTracking()
+        {
+            _gripBefore.Clear();
+            _gripMoveDeltas.Clear();
+        }
+
+        private void CommitGripStretch()
+        {
+            var db = _database;
+            if (db == null) { ResetGripTracking(); return; }
+
+            var composite = new CompositeOperation("Grip düzenleme");
+            var touched = new List<CadEntity>();
+
+            foreach (var (entity, before) in _gripBefore)
+            {
+                var after = entity.GetGripPoints().ToList();
+                if (GripsEqual(before, after)) continue;
+                composite.Add(new GripEditOperation(entity, before, after, db));
+                touched.Add(entity);
+            }
+
+            foreach (var (entity, delta) in _gripMoveDeltas)
+            {
+                if (delta.Length() <= 1e-9) continue;
+                composite.Add(new MoveEntityOperation(entity, delta, db));
+                touched.Add(entity);
+            }
+
+            if (touched.Count > 0)
+            {
+                // Nesneler canlı değiştirildi ama indekse/topolojiye yansıtılmadı — şimdi yansıt.
+                foreach (var entity in touched.Distinct())
+                    db.UpdateEntity(entity);
+
+                db.TransactionManager.RecordApplied(composite);
+            }
+
+            ResetGripTracking();
+        }
+
+        private void CancelGripStretch()
+        {
+            foreach (var (entity, before) in _gripBefore)
+                for (int i = 0; i < before.Count; i++)
+                    entity.MoveGripPointAt(i, before[i]);
+
+            foreach (var (entity, delta) in _gripMoveDeltas)
+                entity.Move(-delta);
+
+            ResetGripTracking();
+        }
 
         /*
            NE: Fare Basılma Olayı (MouseDown)
@@ -101,6 +190,9 @@ namespace Afney.Cad.Presentation.Views;
                                     _activeGripEntity = entity;
                                     _activeGripIndex = i;
                                     _isStretching = true;
+                                    _gripBefore.Clear();
+                                    _gripMoveDeltas.Clear();
+                                    CaptureGripState(entity);
                                     CadCanvas.CaptureMouse();
                                     return; // Seçim kutusu oluşturma
                                 }
@@ -284,7 +376,7 @@ namespace Afney.Cad.Presentation.Views;
                                 if (connectedEntity != null)
                                 {
                                     // Dirseği veya T-Parçasını taşı (Tüm nesne kayar)
-                                    connectedEntity.Move(delta);
+                                    MoveTracked(connectedEntity, delta);
 
                                     // Dirsek/T-Parçasının DİĞER portlarına bağlı boruları bul ve onların ilgili uçlarını esnet
                                     var connectedNode = graph.GetNode(connectedEntityId);
@@ -304,6 +396,7 @@ namespace Afney.Cad.Presentation.Views;
                                                         var otherPort = otherNode.Ports.FirstOrDefault(p => p.ConnectedEntityId == connectedEntityId);
                                                         if (otherPort != null)
                                                         {
+                                                            CaptureGripState(otherPipe);
                                                             if (otherPort.Name == "Start")
                                                                 otherPipe.MoveGripPointAt(0, newPos);
                                                             else if (otherPort.Name == "End")
@@ -483,6 +576,7 @@ namespace Afney.Cad.Presentation.Views;
                 {
                     if (_isStretching)
                     {
+                        CommitGripStretch();
                         _isStretching = false;
                         _activeGripEntity = null;
                         _activeGripIndex = null;
@@ -670,10 +764,12 @@ namespace Afney.Cad.Presentation.Views;
                     Serilog.Log.Information("❌ Aktif komut iptal edildi");
                 }
 
-                // 1.5. Grip sürükleme sürüyorsa bitir — önceden ESC bu durumu sıfırlamıyordu,
-                // fare tuşu hâlâ basılıyken sonraki her MouseMove nesneyi hareket ettirmeye devam ediyordu.
+                // 1.5. Grip sürükleme sürüyorsa İPTAL et ve nesneleri ilk konumuna döndür — önceden ESC
+                // bu durumu sıfırlamıyordu, fare tuşu hâlâ basılıyken sonraki her MouseMove nesneyi
+                // hareket ettirmeye devam ediyordu (ve nesne yarım stretch'te kalıyordu).
                 if (_isStretching)
                 {
+                    CancelGripStretch();
                     _isStretching = false;
                     _activeGripEntity = null;
                     _activeGripIndex = null;

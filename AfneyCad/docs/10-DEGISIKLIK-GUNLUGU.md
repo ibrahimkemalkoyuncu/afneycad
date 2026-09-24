@@ -39,3 +39,9 @@ Her satır: Özellik ID — Problem — Değişiklik — Test — Risk. Tüm der
 ## Bilinçli olarak dokunulmayanlar
 - `CadEngine.cs`, `AdvancedSnapService.cs` — doğrulanmış ölü kod; kullanıcı silmeyi reddetti.
 - Bkz. `08-TEKNIK-BORC.md`.
+
+## P2 devamı (2026-09-24)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-19 | Grip düzenleme geri alınamıyordu; sürükleme `UpdateEntity` çağırmadığından uzamsal indeks/topoloji güncellenmiyordu; ESC nesneyi yarım stretch'te bırakıyordu | `GripEditOperation` (yeni), `TransactionManager.RecordApplied` (yeni), `CadViewport.Input.cs` (durum yakalama, bırakınca tek birleşik işlem, ESC'de geri dönüş; bağlı dirsek/komşu boru dahil) | `GripEdit_RecordApplied_…`, `GripEdit_UpdateEntity_…` (787/787). Arayüzde elle denenmedi — **DOĞRULANMADI** |

@@ -231,6 +231,48 @@ public class AuditFixesRegressionTests
         Assert.Equal(100.0, Math.Max(remaining[0].StartPoint.X, remaining[0].EndPoint.X), 3);
     }
 
+    // ── Grip düzenleme geri alma ─────────────────────────────────────────────────
+
+    [Fact]
+    public void GripEdit_RecordApplied_DoesNotReapply_AndUndoRedoRoundTrips()
+    {
+        var db = new CadDatabase();
+        var line = new LineEntity(new Vector3D(0, 0, 0), new Vector3D(10, 0, 0));
+        db.AddEntity(line);
+
+        var before = line.GetGripPoints().ToList();
+        line.MoveGripPointAt(1, new Vector3D(20, 5, 0));          // canlı sürükleme
+        var after = line.GetGripPoints().ToList();
+
+        db.TransactionManager.RecordApplied(
+            new Afney.Cad.Database.Transactions.Operations.GripEditOperation(line, before, after, db));
+
+        Assert.Equal(20.0, line.EndPoint.X, 6);                    // Do() tekrar uygulanmadı
+        Assert.True(db.TransactionManager.CanUndo);
+
+        db.TransactionManager.Undo();
+        Assert.Equal(10.0, line.EndPoint.X, 6);
+        Assert.Equal(0.0, line.EndPoint.Y, 6);
+
+        db.TransactionManager.Redo();
+        Assert.Equal(20.0, line.EndPoint.X, 6);
+        Assert.Equal(5.0, line.EndPoint.Y, 6);
+    }
+
+    [Fact]
+    public void GripEdit_UpdateEntity_MakesEntityFindableAtNewLocation()
+    {
+        var db = new CadDatabase();
+        var line = new LineEntity(new Vector3D(0, 0, 0), new Vector3D(10, 0, 0));
+        db.AddEntity(line);
+
+        line.MoveGripPointAt(1, new Vector3D(500, 500, 0));
+        db.UpdateEntity(line);
+
+        var hits = db.QueryEntities(new CadBoundingBox(new Vector3D(450, 450, -1), new Vector3D(550, 550, 1)));
+        Assert.Contains(line, hits);
+    }
+
     // ── Sıfır uzunluklu çizgi engeli ─────────────────────────────────────────────
 
     [Fact]
