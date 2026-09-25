@@ -56,7 +56,7 @@ namespace Afney.Cad.Presentation
 
         private void OnValveLibrary(object sender, RoutedEventArgs e)
         {
-            try { new ValveLibraryDialog(_database) { Owner = this }.ShowDialog(); Viewport.InvalidateViewport(); }
+            try { new ValveLibraryDialog(_database, _history.TransactionManager) { Owner = this }.ShowDialog(); Viewport.InvalidateViewport(); }
             catch (Exception ex) { MessageBox.Show($"Vana kütüphanesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

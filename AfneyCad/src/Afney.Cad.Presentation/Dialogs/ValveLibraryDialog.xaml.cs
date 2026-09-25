@@ -5,6 +5,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Services;
@@ -16,11 +18,13 @@ public partial class ValveLibraryDialog
 {
     private readonly ValveLibraryService _service;
     private readonly CadDatabase? _database;
+    private readonly TransactionManager? _transactionManager;
 
-    public ValveLibraryDialog(CadDatabase? database = null)
+    public ValveLibraryDialog(CadDatabase? database = null, TransactionManager? transactionManager = null)
     {
         InitializeComponent();
         _database = database;
+        _transactionManager = transactionManager;
         _service  = new ValveLibraryService();
         LoadValves();
     }
@@ -76,6 +80,8 @@ public partial class ValveLibraryDialog
             Layer    = "VANA"
         };
 
+        var ops = new CompositeOperation("Vana yerleştir");
+
         // Boru snap — 500mm yarıçapında en yakın boru aranır
         const double SnapTol = 500.0;
         var allPipes = _database.GetAllEntities().OfType<PipeEntity>().ToList();
@@ -109,12 +115,12 @@ public partial class ValveLibraryDialog
                 double tOut = Math.Clamp(t + half / pipeLen, 0.0, 1.0);
 
                 if (tIn > 0.001)
-                    _database.AddEntity(ClonePipe(nearest, nearest.StartPoint, nearest.StartPoint + dir * tIn));
+                    ops.Add(new AddEntityOperation(_database, ClonePipe(nearest, nearest.StartPoint, nearest.StartPoint + dir * tIn)));
 
                 if (tOut < 0.999)
-                    _database.AddEntity(ClonePipe(nearest, nearest.StartPoint + dir * tOut, nearest.EndPoint));
+                    ops.Add(new AddEntityOperation(_database, ClonePipe(nearest, nearest.StartPoint + dir * tOut, nearest.EndPoint)));
 
-                _database.RemoveEntity(nearest.Id);
+                ops.Add(new RemoveEntityOperation(_database, nearest));
                 TxtStatus.Text = $"✓ {def.NameTR} yerleştirildi — boru bölündü.";
             }
             else
@@ -127,7 +133,15 @@ public partial class ValveLibraryDialog
             TxtStatus.Text = $"✓ {def.NameTR} yerleştirildi (serbest konum).";
         }
 
-        _database.AddEntity(valve);
+        ops.Add(new AddEntityOperation(_database, valve));
+
+        // MÜHENDİSLİK: Önceden boru bölme (2 ekleme + 1 silme) ve vana ekleme DOĞRUDAN veritabanına
+        // yapılıyordu — mevcut boruyu silen bir işlem geri alınamıyordu. Artık tek bir birleşik
+        // işlem olarak TransactionManager'a gidiyor (tek Undo hepsini geri alır).
+        if (_transactionManager != null)
+            _transactionManager.Submit(ops);
+        else
+            ops.Do();
 
         // Sonraki yerleştirme için Y ötele
         if (double.TryParse(TxtY.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double yVal))

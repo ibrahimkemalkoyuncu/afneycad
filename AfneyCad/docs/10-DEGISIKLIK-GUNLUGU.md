@@ -45,3 +45,5 @@ Her satır: Özellik ID — Problem — Değişiklik — Test — Risk. Tüm der
 | ID | Problem | Değişiklik | Test |
 |----|---------|------------|------|
 | AUD-19 | Grip düzenleme geri alınamıyordu; sürükleme `UpdateEntity` çağırmadığından uzamsal indeks/topoloji güncellenmiyordu; ESC nesneyi yarım stretch'te bırakıyordu | `GripEditOperation` (yeni), `TransactionManager.RecordApplied` (yeni), `CadViewport.Input.cs` (durum yakalama, bırakınca tek birleşik işlem, ESC'de geri dönüş; bağlı dirsek/komşu boru dahil) | `GripEdit_RecordApplied_…`, `GripEdit_UpdateEntity_…` (787/787). Arayüzde elle denenmedi — **DOĞRULANMADI** |
+
+| AUD-20 | `ValveLibraryDialog` vana yerleştirirken mevcut boruyu bölüp siliyordu (2 ekleme + 1 silme + vana) doğrudan veritabanına — geri alınamıyordu | Dialog `TransactionManager` alıyor; tüm adımlar tek `CompositeOperation` ("Vana yerleştir"); çağıran `OnValveLibrary` güncellendi | Derleme + 787/787; arayüzde elle denenmedi — **DOĞRULANMADI** |
