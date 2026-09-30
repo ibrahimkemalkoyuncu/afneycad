@@ -55,3 +55,12 @@ Her satır: Özellik ID — Problem — Değişiklik — Test — Risk. Tüm der
 | AUD-20 | `SaveToFile` kaydetmeden önce hedef dosyayı hiç yedeklemiyordu. Gerçekte tekrarlanan olay: sert kapatma (force-kill) sonrası kalıntı `.session.lock` → `CheckCrashRecovery` modal diyaloğu → eski/neredeyse-boş bir otomatik kayıt etkin belgeye yüklendi → Kaydet'e basıldı → kullanıcının 1.3MB'lık gerçek mimari projesi (`ornek_proje.dwg`) 8KB'a düştü. `.bak` dosyasından (AutoCAD'in kendi yedeği, dokunulmamış) tam kurtarılabilirlik salt-okunur test edilerek doğrulandı (42.163 entity, 43 katman). | Yeni `Afney.Cad.Infrastructure.IO.FileBackup.BackupBeforeOverwrite` — kaydetmeden önce mevcut dosyayı AutoCAD'in `.bak` kuralıyla yedekler; `MainWindow.FileOps.SaveToFile` bunu çağırıyor | `FileBackup_*` (3 test, 790/790) |
 
 Not: Gerçek kullanıcı dosyası (`ornek_proje.dwg`) bu oturumda onaylı kurtarma bekliyor — bkz. TB-14.
+
+## TB-09 doğrulama tamamlandı (2026-09-30)
+
+31 MechanicalCommands + 35 BasicCommands dosyası tarandı — RoutePipeCommand dışında
+TransactionManager'ı atlayan başka bir undo-bypass bulunmadı. RouteDuct/RiserPipe'ta
+branşman/split mantığı hiç yok (risk kapsamı dışı). Room/Mahal komutlarının tümü
+callback zinciriyle doğru şekilde Submit ediyor. Tek bulgu (`ExecuteCommand`'ın ulaşılamaz
+"MAHAL" dalındaki boş callback) canlı kod yolunda değil, dokunulmadı. Kod değişikliği yok,
+sadece doğrulama — bkz. TB-09.
