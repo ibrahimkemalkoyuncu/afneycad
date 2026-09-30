@@ -5,6 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
+using Afney.Cad.Domain.Abstractions;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Domain.Tables;
 using Afney.Cad.Geometry.Primitives;
@@ -26,6 +29,7 @@ public partial class LayoutSheetDialog : Window
     }
 
     private readonly CadDatabase _database;
+    private readonly TransactionManager? _transactionManager;
     private readonly SheetIndexService? _sheetIndex;
     private readonly FloorSnapshotService _svc = new();
     private List<FloorSnapshotService.SnapshotInfo> _snapshots = [];
@@ -42,12 +46,33 @@ public partial class LayoutSheetDialog : Window
               buradan eklenen bir pafta hem yanlış sayaçtan numara alıyor hem de
               `.sheetset.json`'a hiç kaydedilmiyordu (kaydet/yükle ile kayboluyordu).
     */
-    public LayoutSheetDialog(CadDatabase database, SheetIndexService? sheetIndex = null)
+    public LayoutSheetDialog(CadDatabase database, SheetIndexService? sheetIndex = null, TransactionManager? transactionManager = null)
     {
         InitializeComponent();
         _database = database;
         _sheetIndex = sheetIndex;
+        _transactionManager = transactionManager;
         Refresh();
+    }
+
+    /*
+       NE: Tek Nesne Ekle/Sil Yardımcıları (Add/RemoveTracked)
+       NEDEN: Bu dialogdaki tüm mutasyonlar (blok yerleştirme, patlatma, referans kaldırma)
+              önceden doğrudan _database üzerinde yapılıyordu — hiçbiri geri alınamıyordu
+              (patlatma özellikle "Bu işlem geri alınamaz" diye UYARIYORDU, çünkü gerçekten
+              öyleydi). Artık TransactionManager varsa üzerinden (geri alınabilir), yoksa
+              (transactionManager verilmeden eski şekilde çağrılırsa) doğrudan uygulanıyor.
+    */
+    private void AddTracked(CadEntity entity)
+    {
+        if (_transactionManager != null) _transactionManager.Submit(new AddEntityOperation(_database, entity));
+        else _database.AddEntity(entity);
+    }
+
+    private void RemoveTracked(CadEntity entity)
+    {
+        if (_transactionManager != null) _transactionManager.Submit(new RemoveEntityOperation(_database, entity));
+        else _database.RemoveEntity(entity.Id);
     }
 
     private void Refresh()
@@ -119,7 +144,7 @@ public partial class LayoutSheetDialog : Window
             Definition = block,
             Scale      = 1.0
         };
-        _database.AddEntity(refEntity);
+        AddTracked(refEntity);
 
         TxtStatus.Text = $"✅ '{info.DisplayName}' paftaya eklendi. Konum: X={x:F0}, Y={y:F0} mm";
         Refresh();
@@ -165,16 +190,32 @@ public partial class LayoutSheetDialog : Window
                    * Matrix4x4.TranslationMatrix(refEntity.Position.X, refEntity.Position.Y, refEntity.Position.Z);
 
         int addedCount = 0;
-        foreach (var src in refEntity.Definition.Entities)
+        if (_transactionManager != null)
         {
-            var clone = src.Clone();
-            clone.Transform(matrix);
-            clone.Layer = "EXPLODED"; // patlatılmış işareti
-            _database.AddEntity(clone);
-            addedCount++;
+            var composite = new CompositeOperation("Blok patlat");
+            foreach (var src in refEntity.Definition.Entities)
+            {
+                var clone = src.Clone();
+                clone.Transform(matrix);
+                clone.Layer = "EXPLODED"; // patlatılmış işareti
+                composite.Add(new AddEntityOperation(_database, clone));
+                addedCount++;
+            }
+            composite.Add(new RemoveEntityOperation(_database, refEntity));
+            _transactionManager.Submit(composite);
         }
-
-        _database.RemoveEntity(refEntity.Id);
+        else
+        {
+            foreach (var src in refEntity.Definition.Entities)
+            {
+                var clone = src.Clone();
+                clone.Transform(matrix);
+                clone.Layer = "EXPLODED";
+                _database.AddEntity(clone);
+                addedCount++;
+            }
+            _database.RemoveEntity(refEntity.Id);
+        }
 
         TxtStatus.Text = $"✅ Patlatma tamamlandı — {addedCount} nesne eklendi. " +
                          "Artık her nesneyi ayrı ayrı düzenleyebilirsiniz.";
@@ -189,7 +230,8 @@ public partial class LayoutSheetDialog : Window
             "Referansı Kaldır", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (ans != MessageBoxResult.Yes) return;
 
-        _database.RemoveEntity(row.Id);
+        var entity = _database.GetEntity(row.Id);
+        if (entity != null) RemoveTracked(entity);
         Refresh();
     }
 
@@ -247,6 +289,7 @@ public partial class LayoutSheetDialog : Window
         const int columns = 2;
 
         int added = 0;
+        var captureComposite = _transactionManager != null ? new CompositeOperation("Tüm katları yakala") : null;
         for (int i = 0; i < floors.Count; i++)
         {
             var floor = floors[i];
@@ -276,10 +319,13 @@ public partial class LayoutSheetDialog : Window
                     Definition = block,
                     Scale = 1.0
                 };
-                _database.AddEntity(refEnt);
+                if (captureComposite != null) captureComposite.Add(new AddEntityOperation(_database, refEnt));
+                else _database.AddEntity(refEnt);
                 added++;
             }
         }
+
+        if (captureComposite != null && added > 0) _transactionManager!.Submit(captureComposite);
 
         TxtStatus.Text = $"✅ {floors.Count} kat snapshot alındı, {added} yeni blok paftaya eklendi.";
         Refresh();
@@ -301,12 +347,15 @@ public partial class LayoutSheetDialog : Window
         }
 
         var ans = MessageBox.Show(
-            $"{refs.Count} blok referansı patlatılacak.\n\n" +
-            "⚠ Bu işlem geri alınamaz. Devam edilsin mi?",
+            $"{refs.Count} blok referansı patlatılacak.\n\nDevam edilsin mi? (Ctrl+Z ile geri alabilirsiniz.)",
             "Tümünü Patlat", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (ans != MessageBoxResult.Yes) return;
 
         int totalAdded = 0;
+        // MÜHENDİSLİK: Önceden bu işlem gerçekten "geri alınamaz"dı (kendi uyarı metni bunu
+        // itiraf ediyordu) — tüm ekleme/silmeler doğrudan _database üzerinde yapılıyordu.
+        // Artık tek bir birleşik işlem olarak TransactionManager'a gidiyor.
+        var explodeAllComposite = _transactionManager != null ? new CompositeOperation("Tümünü patlat") : null;
         foreach (var refEntity in refs)
         {
             if (refEntity.Definition is null) continue;
@@ -324,11 +373,16 @@ public partial class LayoutSheetDialog : Window
                 var clone = src.Clone();
                 clone.Transform(matrix);
                 clone.Layer = "EXPLODED";
-                _database.AddEntity(clone);
+                if (explodeAllComposite != null) explodeAllComposite.Add(new AddEntityOperation(_database, clone));
+                else _database.AddEntity(clone);
                 totalAdded++;
             }
-            _database.RemoveEntity(refEntity.Id);
+
+            if (explodeAllComposite != null) explodeAllComposite.Add(new RemoveEntityOperation(_database, refEntity));
+            else _database.RemoveEntity(refEntity.Id);
         }
+
+        if (explodeAllComposite != null) _transactionManager!.Submit(explodeAllComposite);
 
         TxtStatus.Text = $"✅ {refs.Count} blok patlatıldı — {totalAdded} nesne eklendi.";
         Refresh();

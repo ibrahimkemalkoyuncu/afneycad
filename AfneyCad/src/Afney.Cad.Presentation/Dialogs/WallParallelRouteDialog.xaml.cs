@@ -3,6 +3,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Enums;
@@ -13,6 +15,7 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class WallParallelRouteDialog
 {
         private readonly CadDatabase _database;
+        private readonly TransactionManager? _transactionManager;
         private readonly List<WallParallelRoutingService.WallSegment> _detectedWalls = [];
 
         // View-model for the auto-detect grid
@@ -26,10 +29,11 @@ public partial class WallParallelRouteDialog
             public double LengthM  { get; init; }
         }
 
-        public WallParallelRouteDialog(CadDatabase database)
+        public WallParallelRouteDialog(CadDatabase database, TransactionManager? transactionManager = null)
         {
             InitializeComponent();
             _database = database;
+            _transactionManager = transactionManager;
             PopulateLayerFilter();
         }
 
@@ -166,8 +170,21 @@ public partial class WallParallelRouteDialog
                 var sysType = GetSelectedSystemType();
                 foreach (var pipe in result.Pipes) pipe.SystemType = sysType;
 
-                foreach (var pipe  in result.Pipes)   _database.AddEntity(pipe);
-                foreach (var elbow in result.Elbows)  _database.AddEntity(elbow);
+                // MÜHENDİSLİK: Önceden üretilen boru/dirsek entity'leri doğrudan _database'e
+                // ekleniyordu — otomatik rota geri alınamıyordu. Artık tek bir birleşik işlem
+                // olarak TransactionManager'a gidiyor (tek Undo tüm rotayı geri alır).
+                if (_transactionManager != null)
+                {
+                    var composite = new CompositeOperation("Duvar boyu boru rotalama");
+                    foreach (var pipe in result.Pipes) composite.Add(new AddEntityOperation(_database, pipe));
+                    foreach (var elbow in result.Elbows) composite.Add(new AddEntityOperation(_database, elbow));
+                    _transactionManager.Submit(composite);
+                }
+                else
+                {
+                    foreach (var pipe  in result.Pipes)   _database.AddEntity(pipe);
+                    foreach (var elbow in result.Elbows)  _database.AddEntity(elbow);
+                }
 
                 double totalM = result.TotalLength / 1000.0;
                 StatusText.Text = $"✓ {result.Pipes.Count} boru segmenti | {result.Elbows.Count} dirsek | {totalM:F2} m toplam uzunluk";

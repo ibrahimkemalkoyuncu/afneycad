@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
 using Afney.Cad.Mechanical.Entities;
 using Afney.Cad.Mechanical.Enums;
 using Afney.Cad.Mechanical.Services;
@@ -36,6 +37,7 @@ public partial class WasteWaterCalcSheetDialog : Window
 
     // ── State ─────────────────────────────────────────────────────────────────
     private readonly CadDatabase _database;
+    private readonly TransactionManager? _transactionManager;
     private readonly WasteWaterCalcSheetService _svc = new();
     private WasteWaterCalcSheetService.CalcSheetResult? _lastResult;
     private readonly ObservableCollection<WasteWaterCalcSheetService.CalcRow> _calcRows = [];
@@ -49,10 +51,11 @@ public partial class WasteWaterCalcSheetDialog : Window
     // projectDir: Aktif proje klasörü (opsiyonel). Verilirse ve içinde
     //             "poz_katalog_override.json" bulunursa, birim fiyatlar bu
     //             kullanıcı kataloğundan (built-in üzerine merge) yüklenir.
-    public WasteWaterCalcSheetDialog(CadDatabase database, string? projectDir = null)
+    public WasteWaterCalcSheetDialog(CadDatabase database, string? projectDir = null, TransactionManager? transactionManager = null)
     {
         InitializeComponent();
         _database = database;
+        _transactionManager = transactionManager;
         CalcGrid.ItemsSource = _calcRows;
         BomGrid.ItemsSource  = _bomRows;
         LoadReferenceTable();
@@ -456,7 +459,7 @@ tr:nth-child(even){background:#f9f9f9}
 
     private void UpdateDrawing_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new DrawingUpdateDialog(_database, _lastResult) { Owner = this };
+        var dialog = new DrawingUpdateDialog(_database, _lastResult, _transactionManager) { Owner = this };
         dialog.ShowDialog();
     }
 

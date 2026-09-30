@@ -4,6 +4,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Entities;
@@ -29,13 +31,15 @@ public partial class DrawingUpdateDialog : Window
     }
 
     private readonly CadDatabase _database;
+    private readonly TransactionManager? _transactionManager;
     private readonly WasteWaterCalcSheetService.CalcSheetResult? _calcResult;
 
-    public DrawingUpdateDialog(CadDatabase database, WasteWaterCalcSheetService.CalcSheetResult? calcResult = null)
+    public DrawingUpdateDialog(CadDatabase database, WasteWaterCalcSheetService.CalcSheetResult? calcResult = null, TransactionManager? transactionManager = null)
     {
         InitializeComponent();
         _database   = database;
         _calcResult = calcResult;
+        _transactionManager = transactionManager;
     }
 
     private void AutoPlace_Click(object sender, RoutedEventArgs e)
@@ -58,13 +62,22 @@ public partial class DrawingUpdateDialog : Window
 
     private int PlaceAnnotations(UpdateOptions opts)
     {
+        // MÜHENDİSLİK: Önceden eski etiketlerin silinmesi VE yeni etiketlerin eklenmesi
+        // doğrudan _database üzerinde yapılıyordu — "Otomatik Yerleştir"e her basış geri
+        // alınamaz şekilde önceki etiketleri yok ediyordu. Artık hepsi tek bir birleşik
+        // işlem olarak TransactionManager'a gidiyor (tek Undo tüm güncellemeyi geri alır).
+        var composite = _transactionManager != null ? new CompositeOperation("Boru etiketlerini güncelle") : null;
+
         // Mevcut etiketleri temizle (önceki güncelleme artıkları)
         var oldLabels = _database.GetAllEntities()
             .OfType<TextEntity>()
             .Where(t => t.Style == "WW_ANNOTATION")
             .ToList();
         foreach (var lbl in oldLabels)
-            _database.RemoveEntity(lbl.Id);
+        {
+            if (composite != null) composite.Add(new RemoveEntityOperation(_database, lbl));
+            else _database.RemoveEntity(lbl.Id);
+        }
 
         // Boru filtresi
         var pipes = _database.GetAllEntities()
@@ -130,9 +143,12 @@ public partial class DrawingUpdateDialog : Window
                 Color  = 0xFFFFFFFF // beyaz
             };
 
-            _database.AddEntity(text);
+            if (composite != null) composite.Add(new AddEntityOperation(_database, text));
+            else _database.AddEntity(text);
             count++;
         }
+
+        if (composite != null) _transactionManager!.Submit(composite);
 
         return count;
     }

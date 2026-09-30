@@ -64,3 +64,9 @@ branşman/split mantığı hiç yok (risk kapsamı dışı). Room/Mahal komutlar
 callback zinciriyle doğru şekilde Submit ediyor. Tek bulgu (`ExecuteCommand`'ın ulaşılamaz
 "MAHAL" dalındaki boş callback) canlı kod yolunda değil, dokunulmadı. Kod değişikliği yok,
 sadece doğrulama — bkz. TB-09.
+
+## TB-15 devamı (2026-09-30)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-21 | `XrefManagerDialog` (Attach/Detach), `WallParallelRouteDialog` (otomatik rota), `DrawingUpdateDialog` (etiket sil+ekle), `LayoutSheetDialog` (blok yerleştir/patlat/tümünü patlat/referans kaldır/tüm katları yakala — en riskli olan, `ExplodeAll` kendi UI metninde "geri alınamaz" diye uyarıyordu ve gerçekten öyleydi) doğrudan `_database.AddEntity/RemoveEntity` çağırıyordu. Hepsine opsiyonel `TransactionManager` parametresi eklendi; mutasyonlar `AddEntityOperation`/`RemoveEntityOperation`/`CompositeOperation` ile geri alınabilir hale getirildi. `WasteWaterCalcSheetDialog` da `DrawingUpdateDialog`'a geçirmek için parametre aldı. | Tam çözüm derlemesi (0 hata) + 790/790 mevcut test (regresyon yok). Dialog UI mantığı WPF context gerektirdiği için ayrı unit test eklenmedi — mevcut codebase konvansiyonuyla tutarlı. |

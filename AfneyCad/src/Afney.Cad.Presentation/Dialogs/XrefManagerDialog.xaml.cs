@@ -4,6 +4,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
@@ -13,13 +15,15 @@ namespace Afney.Cad.Presentation.Dialogs;
 public partial class XrefManagerDialog : Window
 {
     private readonly CadDatabase _database;
+    private readonly TransactionManager? _transactionManager;
     private readonly FloorSnapshotService _svc = new();
     private List<FloorSnapshotService.SnapshotInfo> _snapshots = [];
 
-    public XrefManagerDialog(CadDatabase database)
+    public XrefManagerDialog(CadDatabase database, TransactionManager? transactionManager = null)
     {
         InitializeComponent();
         _database = database;
+        _transactionManager = transactionManager;
         Refresh();
     }
 
@@ -61,7 +65,12 @@ public partial class XrefManagerDialog : Window
             Scale      = 1.0
         };
 
-        _database.AddEntity(refEntity);
+        // MÜHENDİSLİK: Önceden doğrudan _database.AddEntity çağrılıyordu — bağlama işlemi
+        // geri alınamıyordu. Artık TransactionManager üzerinden (geri alınabilir) ekleniyor.
+        if (_transactionManager != null)
+            _transactionManager.Submit(new AddEntityOperation(_database, refEntity));
+        else
+            _database.AddEntity(refEntity);
         Refresh();
 
         MessageBox.Show(
@@ -86,8 +95,21 @@ public partial class XrefManagerDialog : Window
             "Ayır", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (ans != MessageBoxResult.Yes) return;
 
-        foreach (var r in refs)
-            _database.RemoveEntity(r.Id);
+        // MÜHENDİSLİK: Önceden her referans doğrudan _database.RemoveEntity ile siliniyordu —
+        // birden fazla referans tek bir geri-alınamaz işlemde kayboluyordu. Artık tek bir
+        // birleşik işlem olarak TransactionManager'a gidiyor (tek Undo hepsini geri getirir).
+        if (_transactionManager != null)
+        {
+            var composite = new CompositeOperation("Xref ayır");
+            foreach (var r in refs)
+                composite.Add(new RemoveEntityOperation(_database, r));
+            _transactionManager.Submit(composite);
+        }
+        else
+        {
+            foreach (var r in refs)
+                _database.RemoveEntity(r.Id);
+        }
 
         Refresh();
     }

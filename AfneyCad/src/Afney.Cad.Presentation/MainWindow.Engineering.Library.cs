@@ -315,7 +315,7 @@ namespace Afney.Cad.Presentation
                 if (!string.IsNullOrWhiteSpace(filePath))
                     projectDir = System.IO.Path.GetDirectoryName(filePath);
 
-                var dlg = new WasteWaterCalcSheetDialog(_database, projectDir) { Owner = this };
+                var dlg = new WasteWaterCalcSheetDialog(_database, projectDir, _history.TransactionManager) { Owner = this };
                 dlg.OpenDesignScreenRequested += () => OnWasteWaterDesign(this, new RoutedEventArgs());
                 dlg.ShowDialog();
             }
@@ -546,7 +546,7 @@ namespace Afney.Cad.Presentation
 
         private void OnXrefManager(object sender, RoutedEventArgs e)
         {
-            try { new XrefManagerDialog(_database) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
+            try { new XrefManagerDialog(_database, _history.TransactionManager) { Owner = this }.ShowDialog(); Viewport.InvalidateVisual(); }
             catch (Exception ex) { MessageBox.Show($"Kat Blok Yöneticisi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

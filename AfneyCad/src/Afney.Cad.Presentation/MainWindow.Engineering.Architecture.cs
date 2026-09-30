@@ -152,7 +152,7 @@ namespace Afney.Cad.Presentation
         {
             try
             {
-                var dialog = new WallParallelRouteDialog(_database) { Owner = this };
+                var dialog = new WallParallelRouteDialog(_database, _history.TransactionManager) { Owner = this };
                 if (dialog.ShowDialog() == true)
                 {
                     Viewport.InvalidateVisual();
