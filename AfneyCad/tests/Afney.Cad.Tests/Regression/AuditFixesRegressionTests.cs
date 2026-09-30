@@ -231,6 +231,67 @@ public class AuditFixesRegressionTests
         Assert.Equal(100.0, Math.Max(remaining[0].StartPoint.X, remaining[0].EndPoint.X), 3);
     }
 
+    // ── Kaydetmeden önce yedekleme (gerçek üretimde bulunan veri kaybı olayı) ───
+
+    [Fact]
+    public void FileBackup_ExistingFile_BackedUpBeforeOverwrite()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"filebackup_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        string target = Path.Combine(dir, "proje.dwg");
+        string backup = Path.Combine(dir, "proje.bak");
+        try
+        {
+            File.WriteAllText(target, "gerçek-içerik-1.3MB-yerine");
+
+            bool result = FileBackup.BackupBeforeOverwrite(target, out var err);
+
+            Assert.True(result);
+            Assert.Null(err);
+            Assert.True(File.Exists(backup));
+            Assert.Equal("gerçek-içerik-1.3MB-yerine", File.ReadAllText(backup));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void FileBackup_NoExistingFile_ReturnsFalseWithoutError()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), $"filebackup_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        string target = Path.Combine(dir, "yeni_proje.dwg");
+        try
+        {
+            bool result = FileBackup.BackupBeforeOverwrite(target, out var err);
+
+            Assert.False(result);
+            Assert.Null(err);
+            Assert.False(File.Exists(Path.ChangeExtension(target, ".bak")));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void FileBackup_SecondSave_OverwritesPreviousBakWithPriorVersion()
+    {
+        // AutoCAD'in kendi kuralıyla tutarlı: .bak her zaman "bir önceki kaydetme" içeriğini taşır.
+        string dir = Path.Combine(Path.GetTempPath(), $"filebackup_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        string target = Path.Combine(dir, "proje.dwg");
+        string backup = Path.Combine(dir, "proje.bak");
+        try
+        {
+            File.WriteAllText(target, "v1");
+            FileBackup.BackupBeforeOverwrite(target, out _);
+            File.WriteAllText(target, "v2"); // "kaydetme" simülasyonu
+
+            FileBackup.BackupBeforeOverwrite(target, out _);
+
+            Assert.Equal("v2", File.ReadAllText(backup)); // v2 kaydedilmeden ÖNCEki hâli yedeklendi
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     // ── Grip düzenleme geri alma ─────────────────────────────────────────────────
 
     [Fact]

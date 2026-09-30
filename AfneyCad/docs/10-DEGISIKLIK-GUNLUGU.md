@@ -47,3 +47,11 @@ Her satır: Özellik ID — Problem — Değişiklik — Test — Risk. Tüm der
 | AUD-19 | Grip düzenleme geri alınamıyordu; sürükleme `UpdateEntity` çağırmadığından uzamsal indeks/topoloji güncellenmiyordu; ESC nesneyi yarım stretch'te bırakıyordu | `GripEditOperation` (yeni), `TransactionManager.RecordApplied` (yeni), `CadViewport.Input.cs` (durum yakalama, bırakınca tek birleşik işlem, ESC'de geri dönüş; bağlı dirsek/komşu boru dahil) | `GripEdit_RecordApplied_…`, `GripEdit_UpdateEntity_…` (787/787). Arayüzde elle denenmedi — **DOĞRULANMADI** |
 
 | AUD-20 | `ValveLibraryDialog` vana yerleştirirken mevcut boruyu bölüp siliyordu (2 ekleme + 1 silme + vana) doğrudan veritabanına — geri alınamıyordu | Dialog `TransactionManager` alıyor; tüm adımlar tek `CompositeOperation` ("Vana yerleştir"); çağıran `OnValveLibrary` güncellendi | Derleme + 787/787; arayüzde elle denenmedi — **DOĞRULANMADI** |
+
+## P0 devamı — gerçek üretim veri kaybı olayı (2026-09-30)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-20 | `SaveToFile` kaydetmeden önce hedef dosyayı hiç yedeklemiyordu. Gerçekte tekrarlanan olay: sert kapatma (force-kill) sonrası kalıntı `.session.lock` → `CheckCrashRecovery` modal diyaloğu → eski/neredeyse-boş bir otomatik kayıt etkin belgeye yüklendi → Kaydet'e basıldı → kullanıcının 1.3MB'lık gerçek mimari projesi (`ornek_proje.dwg`) 8KB'a düştü. `.bak` dosyasından (AutoCAD'in kendi yedeği, dokunulmamış) tam kurtarılabilirlik salt-okunur test edilerek doğrulandı (42.163 entity, 43 katman). | Yeni `Afney.Cad.Infrastructure.IO.FileBackup.BackupBeforeOverwrite` — kaydetmeden önce mevcut dosyayı AutoCAD'in `.bak` kuralıyla yedekler; `MainWindow.FileOps.SaveToFile` bunu çağırıyor | `FileBackup_*` (3 test, 790/790) |
+
+Not: Gerçek kullanıcı dosyası (`ornek_proje.dwg`) bu oturumda onaylı kurtarma bekliyor — bkz. TB-14.

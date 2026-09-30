@@ -7,6 +7,8 @@ Durum: 2026-09-24. Her madde denetimde koddan doğrulandı; "UNVERIFIED" işaret
 |----|-------|---------|
 | TB-01 | ~~Grip sürükleme geri alınamıyor~~ — **KAPATILDI (AUD-19)**: `GripEditOperation` + `TransactionManager.RecordApplied`; ESC eski konuma döner; bırakınca `UpdateEntity` (indeks + topoloji). UI'da elle denenmedi — DOĞRULANMADI. | ✔ |
 | TB-12 | `CadDatabase.UpdateEntity` → `QuadTree.Remove` güncel (taşınmış) bbox ile arıyor; eski düğümlerde artık girişler kalıyor (işlevsel etkisi yok, bellek şişmesi). | P3 |
+| TB-13 | ~~`SaveToFile` kaydetmeden önce hedef dosyayı yedeklemiyordu~~ — **KAPATILDI (AUD-20)**: gerçek üretimde tekrarlanan olay (1.3MB proje 8KB'a düştü — kurtarma akışı + Kaydet kombinasyonu). `FileBackup.BackupBeforeOverwrite` eklendi (AutoCAD `.bak` kuralı). | ✔ |
+| TB-14 | Kurtarma akışı (`CheckCrashRecovery`) modal `MessageBox` ile çalışıyor; sert kapatma (force-kill/görev yöneticisi) sonrası kalıntı `.session.lock` her başlatmada bu diyaloğu tetikliyor — kullanıcı yanlışlıkla eski/boş bir otomatik kaydı etkin belgeye yükleyebilir. TB-13 ile risk azaldı (Kaydet artık yedekliyor) ama diyalog UX'i hâlâ belirsiz ("düzgün kapanmadı" güven aralığı olmadan). | P2 |
 | TB-02 | DWG/DXF export kapsamı dar: `AcadSharpDocumentBuilder` yalnızca Line/Circle/Arc/Text/LwPolyline/Pipe dönüştürüyor (artık kullanıcıya uyarı veriyor ama veri yine de dışlanıyor). DXF yazıcı Spline/Hatch'i yaklaşık (çizgi) yazıyor. | P1 |
 | TB-03 | DWG/IFC importları desteklenmeyen tipleri (3DSOLID, Mesh, MLeader, Table…) uyarısız atıyor; düz `TEXT`'te `\U+` çözülmüyor. | P1 |
 | TB-04 | `LoadDwgEntities` büyük DWG'de UI thread'inde `Parallel.ForEach` çalıştırıyor (donma riski). | P1 |

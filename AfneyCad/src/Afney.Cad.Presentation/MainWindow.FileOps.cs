@@ -360,6 +360,21 @@ namespace Afney.Cad.Presentation
         {
             if (_database == null) return;
 
+            // MÜHENDİSLİK: Önceden kaydetme, mevcut dosyanın üzerine HİÇBİR yedek almadan
+            // doğrudan yazıyordu. AtomicFile (bkz. Infrastructure/IO) yazma sırasında bir ÇÖKME
+            // olursa dosyanın bozulmasını önler, ama uygulama hafızasındaki içerik yanlış/boş
+            // olduğunda (ör. bir kurtarma akışı yanlışlıkla neredeyse-boş bir proje yükleyip
+            // ardından Kaydet'e basılırsa) BAŞARILI bir yazma bile gerçek içeriği kalıcı olarak
+            // yok edebiliyordu — gerçek bir olayda tam olarak bu yaşandı (1.3MB'lık bir mimari
+            // proje 8KB'a düştü). Artık kaydetmeden ÖNCE mevcut dosya AutoCAD'in kendi ".bak"
+            // kuralıyla (aynı ad, .bak uzantısı) yedekleniyor — yedekleme başarısız olursa
+            // sadece loglanır, kaydetme engellenmez (aksi halde geçici bir disk/izin sorunu
+            // kullanıcının çalışmasını kaydetmesini tamamen engellerdi).
+            if (Afney.Cad.Infrastructure.IO.FileBackup.BackupBeforeOverwrite(filePath, out var backupError))
+                Log.Information("[Yedek] Kaydetmeden önce mevcut dosya yedeklendi: {Path}", Path.ChangeExtension(filePath, ".bak"));
+            else if (backupError != null)
+                Log.Warning(backupError, "[Yedek] Kaydetmeden önce yedekleme başarısız oldu — kaydetme yine de devam ediyor.");
+
             if (filePath.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase))
             {
                 var dxf = new DxfWriterService(_database);
