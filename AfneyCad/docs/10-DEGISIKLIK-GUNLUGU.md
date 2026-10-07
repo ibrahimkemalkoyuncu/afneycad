@@ -70,3 +70,11 @@ sadece doğrulama — bkz. TB-09.
 | ID | Problem | Değişiklik | Test |
 |----|---------|------------|------|
 | AUD-21 | `XrefManagerDialog` (Attach/Detach), `WallParallelRouteDialog` (otomatik rota), `DrawingUpdateDialog` (etiket sil+ekle), `LayoutSheetDialog` (blok yerleştir/patlat/tümünü patlat/referans kaldır/tüm katları yakala — en riskli olan, `ExplodeAll` kendi UI metninde "geri alınamaz" diye uyarıyordu ve gerçekten öyleydi) doğrudan `_database.AddEntity/RemoveEntity` çağırıyordu. Hepsine opsiyonel `TransactionManager` parametresi eklendi; mutasyonlar `AddEntityOperation`/`RemoveEntityOperation`/`CompositeOperation` ile geri alınabilir hale getirildi. `WasteWaterCalcSheetDialog` da `DrawingUpdateDialog`'a geçirmek için parametre aldı. | Tam çözüm derlemesi (0 hata) + 790/790 mevcut test (regresyon yok). Dialog UI mantığı WPF context gerektirdiği için ayrı unit test eklenmedi — mevcut codebase konvansiyonuyla tutarlı. |
+
+## TB-15 büyük ölçüde kapatıldı (2026-10-07)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-22 | `MainWindow.Engineering.Reports.OnAutoAnnotate/OnClearAnnotations` doğrudan `_database.AddEntity/RemoveEntity` kullanıyordu; `AutoAnnotationService.ClearAnnotations()` silmeyi kendisi yapıyordu (TransactionManager'a erişimi yok). `FixtureLibraryDialog` (vitrifiye ekleme) de doğrudan ekliyordu. | `AutoAnnotationService`'e geri alınabilir `FindAnnotations()` eklendi (`ClearAnnotations()` geriye dönük uyumlu kaldı). MainWindow artık `CompositeOperation` ile ekliyor/siliyor. `FixtureLibraryDialog` opsiyonel `TransactionManager` alıyor. | `AutoAnnotationService_FindAnnotations_*`, `AutoAnnotationService_ClearAnnotations_*` (792/792) |
+
+Not: `ExportRiserDxf`'teki 3 `db.AddEntity` incelendi — geçici/tek-kullanımlık bir `CadDatabase`'e (canlı belge değil, sadece DXF/DWG export için) yazıyor; undo kapsamı dışı, yanlış pozitifti.

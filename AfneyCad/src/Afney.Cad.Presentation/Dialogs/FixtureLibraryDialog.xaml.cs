@@ -5,6 +5,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Database.Transactions;
+using Afney.Cad.Database.Transactions.Operations;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Mechanical.Services;
 
@@ -14,12 +16,14 @@ namespace Afney.Cad.Presentation.Dialogs
     {
         private readonly FixtureLibraryService _library = new();
         private readonly CadDatabase? _database;
+        private readonly TransactionManager? _transactionManager;
         private FixtureLibraryService.FixtureDefinition? _selected;
 
-        public FixtureLibraryDialog(CadDatabase? database = null)
+        public FixtureLibraryDialog(CadDatabase? database = null, TransactionManager? transactionManager = null)
         {
             InitializeComponent();
             _database = database;
+            _transactionManager = transactionManager;
             LoadFixtures();
         }
 
@@ -78,7 +82,10 @@ namespace Afney.Cad.Presentation.Dialogs
                 var pos = new Vector3D(x, y, 0);
                 var entity = _library.CreateEntity(_selected.Id, pos);
                 entity.Rotation = rotDeg * Math.PI / 180.0;
-                _database.AddEntity(entity);
+                if (_transactionManager != null)
+                    _transactionManager.Submit(new AddEntityOperation(_database, entity));
+                else
+                    _database.AddEntity(entity);
 
                 TxtStatus.Text = $"✓ '{_selected.NameTR}' çizime eklendi ({x:F0}, {y:F0})";
 

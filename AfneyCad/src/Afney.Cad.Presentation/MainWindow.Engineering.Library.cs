@@ -50,7 +50,7 @@ namespace Afney.Cad.Presentation
 
         private void OnFixtureLibrary(object sender, RoutedEventArgs e)
         {
-            try { new FixtureLibraryDialog(_database) { Owner = this }.ShowDialog(); Viewport.InvalidateViewport(); }
+            try { new FixtureLibraryDialog(_database, _history.TransactionManager) { Owner = this }.ShowDialog(); Viewport.InvalidateViewport(); }
             catch (Exception ex) { MessageBox.Show($"Reseptör kütüphanesi hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 

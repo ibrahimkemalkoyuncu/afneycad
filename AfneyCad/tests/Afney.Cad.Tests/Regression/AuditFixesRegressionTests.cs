@@ -334,6 +334,36 @@ public class AuditFixesRegressionTests
         Assert.Contains(line, hits);
     }
 
+    // ── AutoAnnotationService.FindAnnotations (geri alınabilir silme için) ───────
+
+    [Fact]
+    public void AutoAnnotationService_FindAnnotations_DoesNotMutateDatabase()
+    {
+        var db = new CadDatabase();
+        var svc = new AutoAnnotationService(db);
+        var label = new TextEntity("DN100", new Vector3D(0, 0, 0), 10, 0) { Layer = svc.AnnotationLayer };
+        db.AddEntity(label);
+
+        var found = svc.FindAnnotations();
+
+        Assert.Single(found);
+        Assert.Contains(label, found);
+        Assert.Single(db.GetAllEntities()); // hâlâ veritabanında — silinmedi
+    }
+
+    [Fact]
+    public void AutoAnnotationService_ClearAnnotations_StillRemoves_BackwardCompatible()
+    {
+        var db = new CadDatabase();
+        var svc = new AutoAnnotationService(db);
+        db.AddEntity(new TextEntity("DN100", new Vector3D(0, 0, 0), 10, 0) { Layer = svc.AnnotationLayer });
+
+        int removed = svc.ClearAnnotations();
+
+        Assert.Equal(1, removed);
+        Assert.Empty(db.GetAllEntities());
+    }
+
     // ── Sıfır uzunluklu çizgi engeli ─────────────────────────────────────────────
 
     [Fact]

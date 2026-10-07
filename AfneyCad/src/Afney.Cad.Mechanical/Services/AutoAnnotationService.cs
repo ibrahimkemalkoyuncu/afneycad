@@ -206,16 +206,27 @@ public class AutoAnnotationService
     }
 
     /*
-       NE: Mevcut Etiketleri Temizle
+       NE: Mevcut Etiketleri Bul (FindAnnotations)
+       NEDEN: ClearAnnotations() önceden silmeyi KENDİSİ yapıyordu (_database.RemoveEntity) —
+              çağıran taraf TransactionManager üzerinden geri alınabilir şekilde silmek
+              isterse bunu yapamıyordu. Artık liste burada döndürülüyor, silme kararı ve
+              yöntemi çağırana ait (AnnotateAllPipes'ın ekleme için zaten yaptığı gibi).
+    */
+    public List<CadEntity> FindAnnotations() =>
+        _database.GetAllEntities().Where(e => e.Layer == AnnotationLayer).ToList();
+
+    /*
+       NE: Mevcut Etiketleri Temizle (ClearAnnotations)
        NEDEN: Yeniden hesaplama sonrası eski etiketleri silip güncel değerlerle değiştirmek.
+       NOT: Geriye dönük uyumluluk için korundu — TransactionManager'a erişimi olmayan
+            çağıranlar hâlâ doğrudan (geri alınamaz) silme davranışını kullanabilir.
+            Geri alınabilir silme için FindAnnotations() + TransactionManager kullanın.
     */
     public int ClearAnnotations()
     {
-        var annotations = _database.GetAllEntities()
-            .Where(e => e.Layer == AnnotationLayer).ToList();
-        int count = annotations.Count;
+        var annotations = FindAnnotations();
         foreach (var a in annotations) _database.RemoveEntity(a.Id);
-        return count;
+        return annotations.Count;
     }
 
     // Çakışma kontrolü (basit mesafe)

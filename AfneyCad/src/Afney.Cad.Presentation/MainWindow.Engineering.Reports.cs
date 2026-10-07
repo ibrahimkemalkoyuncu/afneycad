@@ -836,7 +836,11 @@ namespace Afney.Cad.Presentation
             {
                 var annotationService = new AutoAnnotationService(_database);
                 var annotations = annotationService.AnnotateAllPipes();
-                foreach (var ann in annotations) _database.AddEntity(ann);
+                // MÜHENDİSLİK: Önceden her etiket doğrudan _database.AddEntity ile ekleniyordu —
+                // "Otomatik Etiketle" geri alınamıyordu. Artık tek birleşik işlem olarak gidiyor.
+                var addComposite = new CompositeOperation("Boru etiketlerini otomatik yerleştir");
+                foreach (var ann in annotations) addComposite.Add(new AddEntityOperation(_database, ann));
+                _history.TransactionManager.Submit(addComposite);
                 Viewport.InvalidateVisual();
                 MessageBox.Show($"{annotations.Count} adet etiket başarıyla yerleştirildi.", "Otomatik Etiketleme", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -848,7 +852,13 @@ namespace Afney.Cad.Presentation
             try
             {
                 var annotationService = new AutoAnnotationService(_database);
-                int count = annotationService.ClearAnnotations();
+                var annotations = annotationService.FindAnnotations();
+                // MÜHENDİSLİK: Önceden ClearAnnotations() kendisi doğrudan siliyordu — geri
+                // alınamıyordu. Artık liste alınıp TransactionManager üzerinden siliniyor.
+                var removeComposite = new CompositeOperation("Boru etiketlerini temizle");
+                foreach (var ann in annotations) removeComposite.Add(new RemoveEntityOperation(_database, ann));
+                if (annotations.Count > 0) _history.TransactionManager.Submit(removeComposite);
+                int count = annotations.Count;
                 Viewport.InvalidateVisual();
                 MessageBox.Show($"{count} adet etiket silindi.", "Etiketler Temizlendi");
             }
