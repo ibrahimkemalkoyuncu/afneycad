@@ -78,3 +78,11 @@ sadece doğrulama — bkz. TB-09.
 | AUD-22 | `MainWindow.Engineering.Reports.OnAutoAnnotate/OnClearAnnotations` doğrudan `_database.AddEntity/RemoveEntity` kullanıyordu; `AutoAnnotationService.ClearAnnotations()` silmeyi kendisi yapıyordu (TransactionManager'a erişimi yok). `FixtureLibraryDialog` (vitrifiye ekleme) de doğrudan ekliyordu. | `AutoAnnotationService`'e geri alınabilir `FindAnnotations()` eklendi (`ClearAnnotations()` geriye dönük uyumlu kaldı). MainWindow artık `CompositeOperation` ile ekliyor/siliyor. `FixtureLibraryDialog` opsiyonel `TransactionManager` alıyor. | `AutoAnnotationService_FindAnnotations_*`, `AutoAnnotationService_ClearAnnotations_*` (792/792) |
 
 Not: `ExportRiserDxf`'teki 3 `db.AddEntity` incelendi — geçici/tek-kullanımlık bir `CadDatabase`'e (canlı belge değil, sadece DXF/DWG export için) yazıyor; undo kapsamı dışı, yanlış pozitifti.
+
+## TB-02 kısmen kapatıldı (2026-10-08)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-23 | `AcadSharpDocumentBuilder.ToAcad()` yalnızca 6 entity tipini (Line/Circle/Arc/Text/LwPolyline/Pipe) destekliyordu; Spline/Hatch/Solid/Duct DWG export'ta tamamen kayboluyordu. | `ToAcad` artık liste döndürüyor (tek→çoklu dönüşüm desteği için). Spline → ACadSharp'ın gerçek `Spline` sınıfı (DXF yazıcının aksine TAM NURBS, yaklaşık değil). Hatch → kapalı sınır polyline (dolgu kapsam dışı, dokümante). Solid → `BRepTessellator` ile üçgenlenip her üçgen bir `Face3D` (DxfWriterService.WriteSolid ile aynı teknik). Duct → Pipe gibi genişlikli polyline. | `Build_SplineHatchSolidDuct_AreNoLongerSkipped`, `Build_Spline_PreservesControlPointCount` (794/794) |
+
+Kalan kapsam dışı: Dimension, Elbow/Tee/Wall/Room gibi MEP fitting'leri — bkz. `08-TEKNIK-BORC.md` TB-02.

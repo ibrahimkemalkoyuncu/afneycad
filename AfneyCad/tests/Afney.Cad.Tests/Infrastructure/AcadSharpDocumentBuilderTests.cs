@@ -3,8 +3,10 @@ using System.Linq;
 using Afney.Cad.Database.Core;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
+using Afney.Cad.Geometry.Topology;
 using Afney.Cad.Infrastructure.Export;
 using Afney.Cad.Infrastructure.Import;
+using Afney.Cad.Mechanical.Entities;
 using Xunit;
 
 namespace Afney.Cad.Tests.Infrastructure;
@@ -64,5 +66,67 @@ public class AcadSharpDocumentBuilderTests
         {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    /*
+       NE: TB-02 — Spline/Hatch/Solid/Duct Artık DWG/DXF Export'tan Dışlanmıyor
+       NEDEN: AcadSharpDocumentBuilder.ToAcad() önceden yalnızca 6 entity tipini
+              (Line/Circle/Arc/Text/LwPolyline/Pipe) destekliyordu; geri kalanı sessizce
+              `skippedEntitySummary`'e düşüyordu. Bu test, bu dört tipin artık GERÇEKTEN
+              ModelSpace'e yazıldığını (ve "atlandı" listesinde olmadığını) doğruluyor.
+    */
+    [Fact]
+    public void Build_SplineHatchSolidDuct_AreNoLongerSkipped()
+    {
+        var db = new CadDatabase();
+
+        var spline = new SplineEntity(new[]
+        {
+            new Vector3D(0, 0, 0), new Vector3D(500, 500, 0),
+            new Vector3D(1000, 0, 0), new Vector3D(1500, 500, 0)
+        });
+        db.AddEntity(spline);
+
+        var hatch = new HatchEntity(new[]
+        {
+            new Vector3D(0, 0, 0), new Vector3D(1000, 0, 0),
+            new Vector3D(1000, 1000, 0), new Vector3D(0, 1000, 0)
+        }, 0xFFFFFFFF);
+        db.AddEntity(hatch);
+
+        var boxSolid = BRepBuilder.ExtrudeBox(Vector3D.Zero, Vector3D.XAxis, Vector3D.YAxis, Vector3D.ZAxis, 1000, 1000, 1000, "TestBox");
+        db.AddEntity(new SolidEntity(boxSolid));
+
+        db.AddEntity(new DuctEntity(new Vector3D(0, 0, 0), new Vector3D(2000, 0, 0), 400, 300));
+
+        var doc = AcadSharpDocumentBuilder.Build(db, out var skipped);
+
+        Assert.DoesNotContain(skipped, s => s.StartsWith("SplineEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("HatchEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("SolidEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("DuctEntity"));
+
+        Assert.Contains(doc.ModelSpace.Entities, e => e is ACadSharp.Entities.Spline);
+        Assert.Contains(doc.ModelSpace.Entities, e => e is ACadSharp.Entities.LwPolyline lw && lw.IsClosed); // Hatch sınırı
+        Assert.Contains(doc.ModelSpace.Entities, e => e is ACadSharp.Entities.LwPolyline lw && !lw.IsClosed); // Duct merkez hattı
+        // Solid bir kutu (6 yüz × 2 üçgen = 12 üçgen) — en az birkaç Face3D üretilmeli.
+        Assert.True(doc.ModelSpace.Entities.Count(e => e is ACadSharp.Entities.Face3D) >= 6);
+    }
+
+    [Fact]
+    public void Build_Spline_PreservesControlPointCount()
+    {
+        var db = new CadDatabase();
+        var spline = new SplineEntity(new[]
+        {
+            new Vector3D(0, 0, 0), new Vector3D(500, 500, 0), new Vector3D(1000, 0, 0)
+        });
+        db.AddEntity(spline);
+
+        var doc = AcadSharpDocumentBuilder.Build(db, out _);
+        var acSpline = Assert.Single(doc.ModelSpace.Entities.OfType<ACadSharp.Entities.Spline>());
+
+        Assert.Equal(spline.ControlPoints.Count, acSpline.ControlPoints.Count);
+        Assert.Equal(spline.Degree, acSpline.Degree);
     }
 }
