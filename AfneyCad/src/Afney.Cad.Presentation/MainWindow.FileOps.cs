@@ -96,7 +96,7 @@ namespace Afney.Cad.Presentation
                 var entities = await System.Threading.Tasks.Task.Run(() => importer.Import(filePath));
 
                 // Geri kalan işlemler UI thread'inde devam edecek (aşağıda)
-                LoadDwgEntities(filePath, entities, stopwatch);
+                LoadDwgEntities(filePath, entities, stopwatch, importer.LastUnsupportedEntityCounts);
             }
             catch (Exception ex)
             {
@@ -105,7 +105,8 @@ namespace Afney.Cad.Presentation
             }
         }
 
-        private void LoadDwgEntities(string filePath, System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity> entities, Stopwatch stopwatch)
+        private void LoadDwgEntities(string filePath, System.Collections.Generic.List<Afney.Cad.Domain.Abstractions.CadEntity> entities, Stopwatch stopwatch,
+            System.Collections.Generic.IReadOnlyDictionary<string, int>? unsupportedEntityCounts = null)
         {
             try
             {
@@ -244,7 +245,28 @@ namespace Afney.Cad.Presentation
 
                 string statusMsg = $"Proje yüklendi: {activeEntities.Count} nesne.";
                 StatusText.Text = statusMsg;
-                MessageBox.Show($"{statusMsg}\nOrtalama çizgi: {avgLen:F2} birim.", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // MÜHENDİSLİK: Önceden desteklenmeyen entity tipleri (3DSOLID, Mesh, MLeader,
+                // Table, Leader, Viewport, Dimension [sadece DXF'te] vb.) hiçbir uyarı olmadan
+                // sessizce atlanıyordu — kullanıcı "mimariyi açamadım" diye şikayet edene kadar
+                // neyin eksik olduğunu asla öğrenemiyordu. Artık import servisleri atlanan her
+                // tipi sayıyor (bkz. DwgImportService/DxfImportService.LastUnsupportedEntityCounts)
+                // ve burada kullanıcıya özetleniyor.
+                if (unsupportedEntityCounts != null && unsupportedEntityCounts.Count > 0)
+                {
+                    string unsupportedList = string.Join("\n", unsupportedEntityCounts
+                        .OrderByDescending(kv => kv.Value)
+                        .Select(kv => $"  • {kv.Key}: {kv.Value} adet"));
+                    MessageBox.Show(
+                        $"{statusMsg}\nOrtalama çizgi: {avgLen:F2} birim.\n\n" +
+                        $"⚠ Bazı nesne türleri desteklenmediği için atlandı:\n{unsupportedList}\n\n" +
+                        "Bu nesneler çizimde GÖRÜNMEYECEK.",
+                        "Kısmi İçe Aktarım", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else
+                {
+                    MessageBox.Show($"{statusMsg}\nOrtalama çizgi: {avgLen:F2} birim.", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {

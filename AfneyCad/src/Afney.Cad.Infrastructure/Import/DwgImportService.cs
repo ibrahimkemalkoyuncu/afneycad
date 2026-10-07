@@ -46,8 +46,20 @@ public class DwgImportService
         InitializeAciPalette();
     }
 
+    /*
+       NE: Desteklenmeyen Entity Tipleri Sayacı (LastUnsupportedEntityCounts)
+       NEDEN: ConvertEntity'nin ana switch'i (3DSOLID/Mesh/MLeader/Table/Leader/Viewport/
+              Ray/XLine/ProxyEntity vb. için) `null` döndüğünde — Dimension/Hatch'in aksine
+              bunlar için ÖZEL bir işleme yolu yoktu — entity hiçbir uyarı olmadan tamamen
+              kayboluyordu. Artık her atlanan tip sayılıp burada tutuluyor; çağıran taraf
+              (MainWindow) import sonrası kullanıcıya özetleyebilir.
+    */
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _unsupportedCounts = new();
+    public IReadOnlyDictionary<string, int> LastUnsupportedEntityCounts => _unsupportedCounts;
+
     public List<CadEntity> ImportDwg(string filePath)
     {
+        _unsupportedCounts.Clear();
         var entities = new List<CadEntity>();
 
         if (!File.Exists(filePath))
@@ -561,6 +573,12 @@ public class DwgImportService
 
             yield return result;
         }
+        else
+        {
+            // Insert/Dimension/Hatch kendi yollarından zaten yield edip çıkıyor (yield break) —
+            // buraya SADECE ana switch'in gerçekten eşleşmediği tipler düşer.
+            _unsupportedCounts.AddOrUpdate(entity.GetType().Name, 1, (_, c) => c + 1);
+        }
     }
 
     private CadEntity MapLine(Line l)
@@ -648,18 +666,32 @@ public class DwgImportService
         return textEntity;
     }
     
+    /*
+       NE: AutoCAD \U+xxxx Unicode Kaçışlarını Çöz (DecodeUnicodeEscapes)
+       NEDEN — GERÇEK HATA: Bu çözümleme önceden sadece CleanMText (yani MTEXT) içinde
+              yapılıyordu. Düz TEXT entity'leri (MapText) hiç bu adımdan geçmiyordu — eski
+              bir AutoCAD çiziminde Türkçe karakter (Ş/Ğ/İ/ı vb.) içeren tek satırlık bir
+              TEXT (MTEXT değil) import edilince ekranda "\U+015E" gibi ham kaçış dizileri
+              görünüyordu. Artık ortak bir metoda çıkarıldı; MapText de MTEXT'in geri kalan
+              (format komutu temizleme) mantığına bulaşmadan SADECE bu adımı uyguluyor.
+    */
+    internal static string DecodeUnicodeEscapes(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        return Regex.Replace(value, @"\\U\+([0-9A-Fa-f]{4})", m =>
+        {
+            int codePoint = Convert.ToInt32(m.Groups[1].Value, 16);
+            return ((char)codePoint).ToString();
+        });
+    }
+
     private string CleanMText(string value)
     {
         if (string.IsNullOrEmpty(value)) return value;
 
         // 0. \U+xxxx AutoCAD Unicode Escape Çözümleme (EN ÖNCELİKLİ)
         // Türkçe karakterler DWG içinde \U+015E (Ş), \U+011E (Ğ) vb. olarak saklanabilir.
-        // Regex: \U+ ile başlayan, 4 hex basamaklı dizileri Unicode char'a çevir.
-        value = Regex.Replace(value, @"\\U\+([0-9A-Fa-f]{4})", m =>
-        {
-            int codePoint = Convert.ToInt32(m.Groups[1].Value, 16);
-            return ((char)codePoint).ToString();
-        });
+        value = DecodeUnicodeEscapes(value);
 
         // 1. Yeni Satır (\P) -> Environment.NewLine
         value = value.Replace("\\P", Environment.NewLine);
@@ -714,7 +746,7 @@ public class DwgImportService
     private CadEntity MapText(ACadSharp.Entities.TextEntity t)
     {
         return new Afney.Cad.Domain.Entities.Basic.TextEntity(
-            t.Value ?? "",
+            DecodeUnicodeEscapes(t.Value ?? ""),
             new Vector3D(t.InsertPoint.X, t.InsertPoint.Y, t.InsertPoint.Z),
             t.Height,
             t.Rotation

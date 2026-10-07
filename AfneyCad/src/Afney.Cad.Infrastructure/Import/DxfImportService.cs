@@ -17,8 +17,20 @@ public class DxfImportService
 {
     private readonly DwgImportService _dwgService = new();
 
+    /*
+       NE: Desteklenmeyen Entity Tipleri Sayacı (LastUnsupportedEntityCounts)
+       NEDEN: ConvertEntityFull'un ana switch'i eşleşmeyen tipler (Dimension dahil — bu
+              dosyada DWG'nin aksine hiç özel işlenmiyor, 3DSOLID/Mesh/MLeader/Table vb. de)
+              için `null` döndüğünde entity hiçbir uyarı olmadan kayboluyordu. Face3D
+              istisna — o entity'ler ConvertEntityFull'un DIŞINDA (BuildSolidsFromFace3D)
+              zaten işlendiği için burada "desteklenmiyor" sayılmamalı.
+    */
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _unsupportedCounts = new();
+    public IReadOnlyDictionary<string, int> LastUnsupportedEntityCounts => _unsupportedCounts;
+
     public List<CadEntity> ImportDxf(string filePath, string targetLayer = "IMPORT")
     {
+        _unsupportedCounts.Clear();
         var entities = new List<CadEntity>();
 
         if (!File.Exists(filePath))
@@ -223,8 +235,11 @@ public class DxfImportService
             Arc a => MapArc(a),
             Circle c => new CircleEntity(new Vector3D(c.Center.X, c.Center.Y, c.Center.Z), c.Radius),
             LwPolyline pl => new LwPolylineEntity(pl.Vertices.Select(v => new Vector3D(v.Location.X, v.Location.Y, 0)).ToList(), pl.IsClosed),
-            MText mt => new Afney.Cad.Domain.Entities.Basic.TextEntity(mt.Value ?? "", new Vector3D(mt.InsertPoint.X, mt.InsertPoint.Y, mt.InsertPoint.Z), mt.Height, mt.Rotation),
-            ACadSharp.Entities.TextEntity t => new Afney.Cad.Domain.Entities.Basic.TextEntity(t.Value ?? "", new Vector3D(t.InsertPoint.X, t.InsertPoint.Y, t.InsertPoint.Z), t.Height, t.Rotation),
+            // MÜHENDİSLİK: Önceden ne MText ne de düz TextEntity burada \U+XXXX (Türkçe karakter)
+            // kaçışlarını çözüyordu — DWG importer'ın (DwgImportService) aksine bu yol hiç
+            // decode adımı içermiyordu. Ortak DecodeUnicodeEscapes ile düzeltildi.
+            MText mt => new Afney.Cad.Domain.Entities.Basic.TextEntity(DwgImportService.DecodeUnicodeEscapes(mt.Value ?? ""), new Vector3D(mt.InsertPoint.X, mt.InsertPoint.Y, mt.InsertPoint.Z), mt.Height, mt.Rotation),
+            ACadSharp.Entities.TextEntity t => new Afney.Cad.Domain.Entities.Basic.TextEntity(DwgImportService.DecodeUnicodeEscapes(t.Value ?? ""), new Vector3D(t.InsertPoint.X, t.InsertPoint.Y, t.InsertPoint.Z), t.Height, t.Rotation),
             ACadSharp.Entities.Ellipse el => MapEllipse(el),
             ACadSharp.Entities.Spline sp => MapSpline(sp),
             ACadSharp.Entities.Point pt => new CircleEntity(new Vector3D(pt.Location.X, pt.Location.Y, pt.Location.Z), 1.0),
@@ -240,6 +255,10 @@ public class DxfImportService
             if (Math.Abs(unitScale - 1.0) > 0.001)
                 result.Transform(Matrix4x4.CreateScale(unitScale, unitScale, unitScale));
             yield return result;
+        }
+        else if (entity is not ACadSharp.Entities.Face3D) // Face3D ayrı yolda (BuildSolidsFromFace3D) işleniyor
+        {
+            _unsupportedCounts.AddOrUpdate(entity.GetType().Name, 1, (_, c) => c + 1);
         }
     }
 

@@ -86,3 +86,11 @@ Not: `ExportRiserDxf`'teki 3 `db.AddEntity` incelendi — geçici/tek-kullanıml
 | AUD-23 | `AcadSharpDocumentBuilder.ToAcad()` yalnızca 6 entity tipini (Line/Circle/Arc/Text/LwPolyline/Pipe) destekliyordu; Spline/Hatch/Solid/Duct DWG export'ta tamamen kayboluyordu. | `ToAcad` artık liste döndürüyor (tek→çoklu dönüşüm desteği için). Spline → ACadSharp'ın gerçek `Spline` sınıfı (DXF yazıcının aksine TAM NURBS, yaklaşık değil). Hatch → kapalı sınır polyline (dolgu kapsam dışı, dokümante). Solid → `BRepTessellator` ile üçgenlenip her üçgen bir `Face3D` (DxfWriterService.WriteSolid ile aynı teknik). Duct → Pipe gibi genişlikli polyline. | `Build_SplineHatchSolidDuct_AreNoLongerSkipped`, `Build_Spline_PreservesControlPointCount` (794/794) |
 
 Kalan kapsam dışı: Dimension, Elbow/Tee/Wall/Room gibi MEP fitting'leri — bkz. `08-TEKNIK-BORC.md` TB-02.
+
+## TB-03 kısmen kapatıldı — DWG/DXF (2026-10-08)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-24 | `DwgImportService`/`DxfImportService`'in ana switch'leri eşleşmeyen tipleri (Mesh/Solid3D/MLeader/Table/Leader/Viewport/Ray/XLine/Dimension[sadece DXF] vb.) hiçbir uyarı olmadan atlıyordu. Düz TEXT entity'lerinde (`\U+XXXX`, eski DWG'lerde Türkçe karakter kaydı) hiç kaçış çözümü yapılmıyordu — sadece MTEXT'te vardı; DXF'te MText dahil HİÇ yoktu. | Her iki servise `LastUnsupportedEntityCounts` (ConcurrentDictionary) eklendi; `CadImporter` bunu aktarıyor; `MainWindow.FileOps.LoadDwgEntities` kullanıcıya "Kısmi İçe Aktarım" uyarısı gösteriyor. `\U+` çözümü `DwgImportService.DecodeUnicodeEscapes` (internal static) olarak ayrıştırıldı — MTEXT'in format-komutu temizliğinden bağımsız; `MapText`'e ve DXF'in hem MText hem TextEntity dallarına uygulandı. | `ImportDwg_PlainTextEntity_DecodesUnicodeEscapes`, `ImportDwg_UnsupportedEntityType_IsCountedNotSilentlyDropped` (796/796) |
+
+Kalan: IFC importu (`IfcImportService`) bu turda denetlenmedi.
