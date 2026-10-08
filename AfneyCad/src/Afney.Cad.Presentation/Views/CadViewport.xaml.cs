@@ -214,6 +214,11 @@ namespace Afney.Cad.Presentation.Views;
         */
         public void Dispose()
         {
+            if (_database != null)
+            {
+                _database.EntityAdded -= OnDatabaseEntityChanged;
+                _database.EntityRemoved -= OnDatabaseEntityChanged;
+            }
             _axisPaint?.Dispose();
             _crosshairPaint?.Dispose();
             _gridMinorPaint?.Dispose();
@@ -255,9 +260,21 @@ namespace Afney.Cad.Presentation.Views;
             _database = database;
             _snapEngine = snapEngine;
             _selectionManager = selectionManager;
-            _database.EntityAdded += (e) => InvalidateViewport();
-            _database.EntityRemoved += (e) => InvalidateViewport();
+            _database.EntityAdded += OnDatabaseEntityChanged;
+            _database.EntityRemoved += OnDatabaseEntityChanged;
         }
+
+        /*
+           NE: TB-05 — Veritabanı Olay Aboneliği Koparma
+           NEDEN: Initialize() önceden isimsiz lambda ile abone oluyordu — Dispose() bu yüzden
+                  aboneliği KOPARAMIYORDU (lambda referansı elde tutulmuyordu). Sekme kapatılıp
+                  CadViewport.Dispose() çağrıldıktan sonra, Database başka bir yerden (örn.
+                  MechanicalKernel, uzun ömürlü bir referans) hâlâ erişilebilir durumda kalırsa,
+                  bu abonelik ölü/Dispose edilmiş viewport'u GC'den koruyup "asılı callback" ve
+                  (SKPaint zaten dispose edildiği için) çöken InvalidateViewport çağrılarına yol
+                  açabilirdi. Artık adlandırılmış metoda abone olunuyor; Dispose() bunu koparıyor.
+        */
+        private void OnDatabaseEntityChanged(CadEntity e) => InvalidateViewport();
 
         public ICadCommand? ActiveCommand => _activeCommand;
 
