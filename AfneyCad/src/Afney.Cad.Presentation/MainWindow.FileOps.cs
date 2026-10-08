@@ -91,12 +91,22 @@ namespace Afney.Cad.Presentation
                 Log.Information("[MAIN] Dosya yükleniyor: {Path}", filePath);
                 StatusText.Text = "Dosya yükleniyor... Lütfen bekleyin.";
 
-                // UI donmasını önlemek için ağır işlemi arka plana at
+                // MÜHENDİSLİK (TB-04): Önceden SADECE import (CadImporter.Import) arka planda
+                // çalışıyordu; LoadDwgEntities'in kendi ağır işlemi (katman renk çıkarma,
+                // outlier temizleme — AsParallel/Parallel.ForEach, kısa-çizgi filtreleme —
+                // yine Parallel.ForEach, ve binlerce _database.AddEntity çağrısı) await'ten
+                // sonra UI thread'inde SENKRON çalışıyordu — büyük DWG'lerde arayüz saniyelerce
+                // donuyordu ("Yanıt Vermiyor"). CadViewport.InvalidateViewport artık
+                // Dispatcher-güvenli olduğundan (EntityAdded olayı üzerinden tetiklense bile)
+                // tüm işleme tek bir Task.Run'a taşındı. Sadece gerçek WPF kontrollerine
+                // dokunan adımlar (layer paneli/combo yenileme) zaten Dispatcher.Invoke
+                // kullanıyordu; StatusText ataması da aynı şekilde Dispatcher'a alındı.
                 var importer = new CadImporter();
-                var entities = await System.Threading.Tasks.Task.Run(() => importer.Import(filePath));
-
-                // Geri kalan işlemler UI thread'inde devam edecek (aşağıda)
-                LoadDwgEntities(filePath, entities, stopwatch, importer.LastUnsupportedEntityCounts);
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    var entities = importer.Import(filePath);
+                    LoadDwgEntities(filePath, entities, stopwatch, importer.LastUnsupportedEntityCounts);
+                });
             }
             catch (Exception ex)
             {
@@ -244,7 +254,10 @@ namespace Afney.Cad.Presentation
                 });
 
                 string statusMsg = $"Proje yüklendi: {activeEntities.Count} nesne.";
-                StatusText.Text = statusMsg;
+                // NOT (TB-04): Bu metot artık arka plan thread'inden çağrılabiliyor —
+                // StatusText (TextBlock) doğrudan atama cross-thread InvalidOperationException
+                // fırlatırdı; Dispatcher.Invoke ile UI thread'ine güvenli şekilde geçiliyor.
+                Dispatcher.Invoke(() => StatusText.Text = statusMsg);
 
                 // MÜHENDİSLİK: Önceden desteklenmeyen entity tipleri (3DSOLID, Mesh, MLeader,
                 // Table, Leader, Viewport, Dimension [sadece DXF'te] vb.) hiçbir uyarı olmadan

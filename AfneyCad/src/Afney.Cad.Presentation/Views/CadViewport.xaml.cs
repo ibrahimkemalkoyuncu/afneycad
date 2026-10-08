@@ -447,8 +447,22 @@ namespace Afney.Cad.Presentation.Views;
         /*
            NE: Ekranı Yenile (Redraw)
            NEDEN: Değişikliklerin ekrana yansıması için Canvas'ı yeniden çizilmeye zorlar.
+           NOT (TB-04): _database.EntityAdded/Removed bu metodu doğrudan çağırıyor
+                (satır ~258) — büyük DWG importu gibi bir arka plan thread'inden
+                _database.AddEntity() çağrılırsa, Dispatcher kontrolü OLMADAN
+                CadCanvas.InvalidateVisual() çapraz-thread InvalidOperationException
+                fırlatırdı ("The calling thread cannot access this object..."). Artık
+                çağıran thread UI thread'i değilse Dispatcher'a güvenli şekilde atlıyor.
         */
-        public void InvalidateViewport() => CadCanvas.InvalidateVisual();
+        public void InvalidateViewport()
+        {
+            if (!CadCanvas.CheckAccess())
+            {
+                CadCanvas.Dispatcher.BeginInvoke(new Action(() => CadCanvas.InvalidateVisual()));
+                return;
+            }
+            CadCanvas.InvalidateVisual();
+        }
 
         /*
            NE: Ekrana Sığdır (Zoom Extents)
