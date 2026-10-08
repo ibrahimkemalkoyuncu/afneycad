@@ -18,8 +18,23 @@ public static class SolidClassifier
 
     public static bool IsPointInside(Solid solid, Vector3D point, Vector3D? rayDirection = null)
     {
-        var dir = (rayDirection ?? DefaultRayDirection).Normalize();
         var (vertices, faces) = BRepTessellator.Tessellate(solid);
+        return IsPointInside(vertices, faces, point, rayDirection);
+    }
+
+    /*
+       NE: Önceden tessellate edilmiş veriyle İçeride/Dışarıda testi (TB-06).
+       NEDEN: `IsPointInside(Solid, ...)` her çağrıda `BRepTessellator.Tessellate(solid)`'i
+              yeniden çalıştırıyordu. Çağıranlar (`SegmentBasedSubdivider.ClassifyAndCollect`
+              gibi) AYNI Solid'e karşı birden fazla noktayı sırayla sınıflandırıyor — Solid o
+              döngü boyunca hiç mutasyona uğramıyorsa (çağıranın belgelediği gibi), tessellation
+              tek seferde çıkarılıp burada yeniden kullanılabilir. Büyük modellerde (çok yüzlü
+              Solid × çok fragman) bu, O(fragman × yüzey) tekrarlı tessellation maliyetini
+              O(yüzey) tek seferlik maliyete indirir.
+    */
+    public static bool IsPointInside(IReadOnlyList<Vector3D> vertices, IReadOnlyList<(int A, int B, int C)> faces, Vector3D point, Vector3D? rayDirection = null)
+    {
+        var dir = (rayDirection ?? DefaultRayDirection).Normalize();
 
         int crossings = 0;
         foreach (var (a, b, c) in faces)

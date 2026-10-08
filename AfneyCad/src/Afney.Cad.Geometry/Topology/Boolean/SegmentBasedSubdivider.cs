@@ -90,6 +90,12 @@ public static class SegmentBasedSubdivider
         var classifyAgainst = classificationSolid ?? b;
         var outsideFragments = new List<Face>();
 
+        // TB-06: `classifyAgainst` bu döngü boyunca mutasyona uğramıyor (sadece `a.Faces`
+        // FaceSplitter tarafından değiştiriliyor) — tessellation'ı bir kez çıkarıp her
+        // ClassifyAndCollect çağrısında yeniden kullanmak, her A-Face/fragman için ayrı ayrı
+        // yeniden tessellate etmekten (O(fragman × yüzey)) kaçınır.
+        var classifyTessellation = BRepTessellator.Tessellate(classifyAgainst);
+
         // ÖNEMLİ: `a.Faces` bölme sırasında mutasyona uğrar (Remove/Add) — orijinal Face
         // listesinin bir ANLIK GÖRÜNTÜSÜ (snapshot) üzerinde iterasyon yapılmalı.
         var originalFaces = a.Faces.ToList();
@@ -132,7 +138,7 @@ public static class SegmentBasedSubdivider
                 // Coplanar hiç yok VEYA coplanar ama izdüşümler örtüşmüyor (B ile gerçekten
                 // etkileşimsiz) durumu —
                 // Face BÖLÜNMEDEN, TAM olarak sınıflandırılır.
-                ClassifyAndCollect(originalFace, classifyAgainst, outsideFragments);
+                ClassifyAndCollect(originalFace, classifyTessellation, outsideFragments);
                 continue;
             }
 
@@ -166,7 +172,7 @@ public static class SegmentBasedSubdivider
             }
 
             foreach (var frag in activeFaces)
-                ClassifyAndCollect(frag, classifyAgainst, outsideFragments);
+                ClassifyAndCollect(frag, classifyTessellation, outsideFragments);
         }
 
         return outsideFragments;
@@ -229,10 +235,10 @@ public static class SegmentBasedSubdivider
         return segments;
     }
 
-    private static void ClassifyAndCollect(Face fragment, Solid b, List<Face> outsideFragments)
+    private static void ClassifyAndCollect(Face fragment, (List<Vector3D> Vertices, List<(int A, int B, int C)> Faces) classifyTessellation, List<Face> outsideFragments)
     {
         var representative = GetRepresentativePoint(fragment);
-        if (!SolidClassifier.IsPointInside(b, representative))
+        if (!SolidClassifier.IsPointInside(classifyTessellation.Vertices, classifyTessellation.Faces, representative))
             outsideFragments.Add(fragment);
     }
 
