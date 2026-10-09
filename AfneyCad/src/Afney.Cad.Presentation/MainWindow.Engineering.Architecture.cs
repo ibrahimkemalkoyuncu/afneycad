@@ -64,7 +64,10 @@ namespace Afney.Cad.Presentation
                 var clashes = clashService.DetectClashes(mechanicals);
 
                 var reportDialog = new ClashReportDialog(clashes,
-                    rescan: toleranceMm => clashService.DetectClashes(mechanicals, toleranceMm));
+                    rescan: toleranceMm => clashService.DetectClashes(mechanicals, toleranceMm),
+                    kernel: _mechanicalKernel,
+                    database: _database,
+                    selectionManager: _activeContext?.SelectionManager);
                 reportDialog.Owner = this;
                 reportDialog.ShowDialog();
 

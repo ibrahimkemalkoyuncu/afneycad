@@ -11,12 +11,31 @@ public partial class ClashReportDialog : Window
 {
     private List<ClashResult> _clashes;
     private readonly Func<double, List<ClashResult>>? _rescan;
+    private readonly Afney.Cad.Mechanical.MechanicalKernel? _kernel;
+    private readonly Afney.Cad.Database.Core.CadDatabase? _database;
+    private readonly Afney.Cad.Application.Services.SelectionManager? _selectionManager;
 
-    public ClashReportDialog(List<ClashResult> clashes, Func<double, List<ClashResult>>? rescan = null)
+    /*
+       NE: TB-08 — Reflection Yerine Doğrudan Enjeksiyon
+       NEDEN: Önceden `ApproveClash_Click`/`ClashesDataGrid_SelectionChanged`
+              `Application.Current.MainWindow as MainWindow` üzerinden reflection ile
+              `_mechanicalKernel`/`_selectionManager`/`_database` private alanlarına erişiyordu
+              — bu alanlardan biri yeniden adlandırılırsa/taşınırsa derleme hatası vermeden
+              SESSİZCE bozulurdu (`GetField` null döner, kod çalışmaya devam eder). Artık
+              çağıran taraf (`MainWindow.OnClashDetectionClick`) bu üç referansı doğrudan,
+              tip-güvenli parametre olarak veriyor.
+    */
+    public ClashReportDialog(List<ClashResult> clashes, Func<double, List<ClashResult>>? rescan = null,
+        Afney.Cad.Mechanical.MechanicalKernel? kernel = null,
+        Afney.Cad.Database.Core.CadDatabase? database = null,
+        Afney.Cad.Application.Services.SelectionManager? selectionManager = null)
     {
         InitializeComponent();
         _clashes = clashes;
         _rescan = rescan;
+        _kernel = kernel;
+        _database = database;
+        _selectionManager = selectionManager;
 
         LoadData();
     }
@@ -137,29 +156,21 @@ public partial class ClashReportDialog : Window
         if (ClashesDataGrid.SelectedItem is ClashResult selectedClash)
         {
             selectedClash.IsApproved = !selectedClash.IsApproved; // Toggle
-            
-            // Eğer Onaylandıysa, Kırmızı Vurguyu da kaldırmak için Entity'i bulup flag'i temizleyebiliriz
-            var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
-            if (mainWindow != null)
-            {
-                var kernelFieldInfo = mainWindow.GetType().GetField("_mechanicalKernel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                               ?? mainWindow.GetType().GetField("MechanicalKernel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                               
-                var kernel = kernelFieldInfo?.GetValue(mainWindow);
-                var graph = kernel?.GetType().GetProperty("TopologyGraph")?.GetValue(kernel) as Afney.Cad.Mechanical.Engine.MechanicalTopologyGraph;
 
-                if (graph != null)
+            // Eğer Onaylandıysa, Kırmızı Vurguyu da kaldırmak için Entity'i bulup flag'i temizleyebiliriz
+            var graph = _kernel?.TopologyGraph;
+            if (graph != null)
+            {
+                var node = graph.GetNode(selectedClash.EntityA_Id);
+                if (node != null && node.Entity is Afney.Cad.Mechanical.Entities.PipeEntity pipe)
                 {
-                    var node = graph.GetNode(selectedClash.EntityA_Id);
-                    if (node != null && node.Entity is Afney.Cad.Mechanical.Entities.PipeEntity pipe)
-                    {
-                        pipe.HasHydraulicViolation = !selectedClash.IsApproved;
-                    }
+                    pipe.HasHydraulicViolation = !selectedClash.IsApproved;
                 }
-                
-                // Viewport'u yenile
-                mainWindow.Viewport.InvalidateViewport();
             }
+
+            // Viewport'u yenile
+            var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+            mainWindow?.Viewport.InvalidateViewport();
 
             // Listeyi UI'da yenile
             ClashesDataGrid.Items.Refresh();
@@ -175,36 +186,19 @@ public partial class ClashReportDialog : Window
         // Listeden bir öğe seçildiğinde Viewport'u oraya odakla (Zoom/Pan)
         if (ClashesDataGrid.SelectedItem is ClashResult selectedClash)
         {
-            var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
-            if (mainWindow != null)
+            // Seçili varlığı Highlight yapmak için SelectionManager'a ekle
+            if (_selectionManager != null)
             {
-                // Çakışma pozisyonuna Focus/Pan yapısı
-                // Viewport içerisinde setOffset veya focus yapacak bir metot çağrılabilir. 
-                // Örn: mainWindow.Viewport.PanTo(selectedClash.Position);
-                // Burada mevcut mimariye uygun şekilde basitçe Invalidate() ediyoruz.
-                // Eğer Pan/Zoom API'si varsa buraya eklenecektir.
-                
-                // Seçili varlığı Highlihgt yapmak için SelectionManager'a ekle
-                var selectionManager = mainWindow.Viewport.GetType().GetField("_selectionManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(mainWindow.Viewport) as Afney.Cad.Application.Services.SelectionManager;
-                
-                if (selectionManager != null)
+                _selectionManager.ClearSelection();
+                var entity = _database?.GetAllEntities().FirstOrDefault(en => en.Id == selectedClash.EntityA_Id);
+                if (entity != null)
                 {
-                    selectionManager.ClearSelection();
-                    // Varlığı DB'den bul ve seç
-                    var db = mainWindow.Viewport.GetType().GetField("_database", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(mainWindow.Viewport) as Afney.Cad.Database.Core.CadDatabase;
-                    
-                    if (db != null)
-                    {
-                        var entity = db.GetAllEntities().FirstOrDefault(en => en.Id == selectedClash.EntityA_Id);
-                        if (entity != null)
-                        {
-                            selectionManager.AddToSelection(entity);
-                        }
-                    }
+                    _selectionManager.AddToSelection(entity);
                 }
-                
-                mainWindow.Viewport.InvalidateViewport();
             }
+
+            var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+            mainWindow?.Viewport.InvalidateViewport();
         }
     }
 }

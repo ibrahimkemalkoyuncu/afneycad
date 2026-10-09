@@ -115,6 +115,12 @@ Kalan: IFC importu (`IfcImportService`) bu turda denetlenmedi.
 
 Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz girdiyi sessizce varsayılana çevirmesi — her dialogun kendi UX kararını (hangi alan zorunlu, hangi uyarı mesajı) gerektiren çok daha büyük, ayrı bir iş.
 
+## TB-08 kapatıldı — ClashReportDialog reflection kaldırıldı (2026-10-10)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-30 | `ClashReportDialog.ApproveClash_Click`/`ClashesDataGrid_SelectionChanged`, `Application.Current.MainWindow as MainWindow` üzerinden `GetField("_mechanicalKernel"/"_selectionManager"/"_database", BindingFlags.NonPublic)` ile MainWindow/CadViewport'un private alanlarına erişiyordu — bu alanlardan biri yeniden adlandırılırsa/taşınırsa derleme hatası vermeden SESSİZCE bozulurdu (reflection `null` döner, kod çökmeden eksik çalışır). | `ClashReportDialog` constructor'ı artık opsiyonel `MechanicalKernel kernel`, `CadDatabase database`, `SelectionManager selectionManager` parametreleri alıyor; 3 reflection bloğu kaldırılıp doğrudan bu alanlara erişime çevrildi. `MainWindow.OnClashDetectionClick` (`MainWindow.Engineering.Architecture.cs`) çağrısı `_mechanicalKernel`/`_database`/`_activeContext?.SelectionManager`'ı geçiriyor. | Build 0 hata, 796/796 mevcut test (regresyon yok). Davranış değişmedi — sadece reflection yerine tip-güvenli parametre geçişi |
+
 ## TB-07 devam — en kritik dialoglarda sessiz-varsayılan görünürlüğü (2026-10-10)
 
 | ID | Problem | Değişiklik | Test |
