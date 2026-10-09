@@ -74,10 +74,17 @@ public partial class LayerStateManagerDialog : Window
             return;
         }
 
-        bool overwriting = _manager.Find(name) != null;
-        _manager.SaveCurrentState(name, _database, _hiddenLayers);
-        Refresh();
-        TxtInfo.Text = overwriting ? $"'{name}' güncellendi." : $"'{name}' kaydedildi.";
+        try
+        {
+            bool overwriting = _manager.Find(name) != null;
+            _manager.SaveCurrentState(name, _database, _hiddenLayers);
+            Refresh();
+            TxtInfo.Text = overwriting ? $"'{name}' güncellendi." : $"'{name}' kaydedildi.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Kaydedilirken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Apply_Click(object sender, RoutedEventArgs e)
@@ -85,9 +92,16 @@ public partial class LayerStateManagerDialog : Window
         var row = Selected;
         if (row == null) return;
 
-        _manager.ApplyState(row.Snapshot, _database, _hiddenLayers);
-        _onApplied?.Invoke();
-        TxtInfo.Text = $"'{row.Name}' uygulandı.";
+        try
+        {
+            _manager.ApplyState(row.Snapshot, _database, _hiddenLayers);
+            _onApplied?.Invoke();
+            TxtInfo.Text = $"'{row.Name}' uygulandı.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Uygulanırken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Delete_Click(object sender, RoutedEventArgs e)

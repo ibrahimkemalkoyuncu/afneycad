@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,6 +18,8 @@ public partial class HeatPumpDialog
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         double.TryParse(TxtHeatLoad.Text,    out double heat);
         double.TryParse(TxtCoolLoad.Text,    out double cool);
         double.TryParse(TxtDesignTemp.Text,  out double dtemp);
@@ -60,6 +63,11 @@ public partial class HeatPumpDialog
         else WarnBorder.Visibility = Visibility.Collapsed;
 
         StatusText.Text = $"✓ Hesap tamamlandı — {r.RecommendedUnit?.ModelName ?? "?"} seçildi.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void CatalogGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)

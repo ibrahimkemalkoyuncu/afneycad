@@ -79,10 +79,17 @@ public partial class ArchitecturalLibraryDialog
     {
         if (ItemGrid.SelectedItem is not ItemRow row) return;
 
-        var obstacle = _library.CreateObstacle(row.Item, Vector3D.Zero);
-        _kernel.ArchitecturalObstacles.Add(obstacle);
+        try
+        {
+            var obstacle = _library.CreateObstacle(row.Item, Vector3D.Zero);
+            _kernel.ArchitecturalObstacles.Add(obstacle);
 
-        StatusText.Text = $"✓ {row.Item.NameTR} BIM olarak eklendi.";
+            StatusText.Text = $"✓ {row.Item.NameTR} BIM olarak eklendi.";
+        }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show($"Eklenirken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

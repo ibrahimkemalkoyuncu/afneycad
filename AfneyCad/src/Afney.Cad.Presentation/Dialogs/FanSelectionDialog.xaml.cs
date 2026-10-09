@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Mechanical.Services;
@@ -14,6 +15,8 @@ public partial class FanSelectionDialog
 
     private void Search()
     {
+        try
+        {
         double.TryParse(TxtFlow.Text,         out double flow);
         double.TryParse(TxtPressure.Text,     out double press);
         double.TryParse(TxtSafetyFlow.Text,   out double sf);
@@ -50,6 +53,11 @@ public partial class FanSelectionDialog
             : "Kriterleri karşılayan fan bulunamadı.";
 
         if (results.Count > 0) FanGrid.SelectedIndex = 0;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Arama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void FanGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)

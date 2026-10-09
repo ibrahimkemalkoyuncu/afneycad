@@ -77,6 +77,8 @@ public partial class EnergyPerformanceDialog
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var r = EnergyPerformanceService.Calculate(BuildInput());
 
         ResClass.Text = r.EnergyClass;
@@ -105,10 +107,17 @@ public partial class EnergyPerformanceDialog
             : "✅ Bina iyi performans gösteriyor — belirgin iyileştirme gerekmiyor.";
 
         StatusText.Text = $"✓ Sınıf {r.EnergyClass} · {r.PrimaryEnergyKwhpm2:F0} kWh/(m²yıl) · CO₂: {r.CO2Kgpm2:F1} kg/(m²yıl)";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExportHtml_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var r = EnergyPerformanceService.Calculate(BuildInput());
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'><title>EKB Raporu</title>");
@@ -138,6 +147,11 @@ public partial class EnergyPerformanceDialog
         string path = Path.Combine(Path.GetTempPath(), $"EKB_{DateTime.Now:yyyyMMdd}.html");
         File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"HTML dışa aktarılırken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

@@ -72,16 +72,23 @@ public partial class FloorHeatingDialog
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
         if (_zones.Count == 0) { StatusText.Text = "⚠ Lütfen bölge ekleyin."; return; }
-        var result = FloorHeatingService.Calculate(BuildInput());
+        try
+        {
+            var result = FloorHeatingService.Calculate(BuildInput());
 
-        ResultGrid.ItemsSource = result.Zones;
-        SumPipe.Text     = $"{result.TotalPipeLenM:F0} m";
-        SumFlow.Text     = $"{result.TotalFlowLph:F1} L/sa";
-        SumDP.Text       = $"{result.MaxCircuitDP:F2} kPa";
-        SumManifold.Text = result.ManifoldSize;
+            ResultGrid.ItemsSource = result.Zones;
+            SumPipe.Text     = $"{result.TotalPipeLenM:F0} m";
+            SumFlow.Text     = $"{result.TotalFlowLph:F1} L/sa";
+            SumDP.Text       = $"{result.MaxCircuitDP:F2} kPa";
+            SumManifold.Text = result.ManifoldSize;
 
-        string warn = result.Warnings.Count > 0 ? " · ⚠ " + string.Join(" | ", result.Warnings) : "";
-        StatusText.Text = $"✓ {result.Zones.Count} bölge hesaplandı · Toplam {result.TotalPipeLenM:F0} m boru{warn}";
+            string warn = result.Warnings.Count > 0 ? " · ⚠ " + string.Join(" | ", result.Warnings) : "";
+            StatusText.Text = $"✓ {result.Zones.Count} bölge hesaplandı · Toplam {result.TotalPipeLenM:F0} m boru{warn}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExportHtml_Click(object sender, RoutedEventArgs e)
@@ -89,6 +96,8 @@ public partial class FloorHeatingDialog
         if (ResultGrid.ItemsSource is not System.Collections.Generic.List<FloorHeatingService.FloorHeatingZoneResult> zones || zones.Count == 0)
         { StatusText.Text = "⚠ Önce hesap yapın."; return; }
 
+        try
+        {
         var result = FloorHeatingService.Calculate(BuildInput());
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'><title>Yerden Isıtma Raporu</title>");
@@ -110,6 +119,11 @@ public partial class FloorHeatingDialog
         string path = Path.Combine(Path.GetTempPath(), $"YerdenIsitma_{DateTime.Now:yyyyMMdd_HHmm}.html");
         File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"HTML dışa aktarılırken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

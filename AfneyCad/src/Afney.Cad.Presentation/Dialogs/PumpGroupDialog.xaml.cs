@@ -305,6 +305,8 @@ public partial class PumpGroupDialog : Window
     {
         if (_selectedPump is null) return;
 
+        try
+        {
         bool isParallel = RbParallel.IsChecked == true;
         string comboTr  = isParallel ? "Paralel" : "Seri";
 
@@ -365,6 +367,11 @@ public partial class PumpGroupDialog : Window
         string path = Path.Combine(Path.GetTempPath(), $"AfneyCAD_PumpGroup_{DateTime.Now:yyyyMMdd_HHmm}.html");
         File.WriteAllText(path, sb.ToString(), System.Text.Encoding.UTF8);
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"HTML dışa aktarılırken hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private static void Card(StringBuilder sb, string label, string value, string color)

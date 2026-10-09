@@ -48,28 +48,35 @@ namespace Afney.Cad.Presentation.Dialogs
             if (!double.TryParse(TxtFlow.Text, out double q) || q <= 0) return;
             if (!double.TryParse(TxtHead.Text, out double h) || h <= 0) return;
 
-            string? brand = (BrandCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
-            if (brand == "Tüm Markalar") brand = null;
-
-            string? app = (AppCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
-            if (app == "Tümü") app = null;
-
-            var pumps = _svc.RecommendPumps(q, h, brand, app);
-            _currentRows = pumps.Select(p => new PumpRowVm(p)).ToList();
-            PumpGrid.ItemsSource = _currentRows;
-
-            if (pumps.Count > 0)
+            try
             {
-                _selectedPump = pumps[0];
-                PumpGrid.SelectedIndex = 0;
-                RefreshChart();
-                ChartPlaceholder.Visibility = Visibility.Collapsed;
+                string? brand = (BrandCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
+                if (brand == "Tüm Markalar") brand = null;
+
+                string? app = (AppCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
+                if (app == "Tümü") app = null;
+
+                var pumps = _svc.RecommendPumps(q, h, brand, app);
+                _currentRows = pumps.Select(p => new PumpRowVm(p)).ToList();
+                PumpGrid.ItemsSource = _currentRows;
+
+                if (pumps.Count > 0)
+                {
+                    _selectedPump = pumps[0];
+                    PumpGrid.SelectedIndex = 0;
+                    RefreshChart();
+                    ChartPlaceholder.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    _selectedPump = null;
+                    PumpChart.InvalidateVisual();
+                    ChartPlaceholder.Visibility = Visibility.Visible;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _selectedPump = null;
-                PumpChart.InvalidateVisual();
-                ChartPlaceholder.Visibility = Visibility.Visible;
+                MessageBox.Show($"Pompa seçimi sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -242,15 +249,23 @@ namespace Afney.Cad.Presentation.Dialogs
             if (!double.TryParse(TxtSuctionLoss.Text, out double hfs)) hfs = 0;
             if (!double.TryParse(TxtWaterTemp.Text, out double tempC)) tempC = 20;
 
-            var result = _svc.CheckCavitation(_selectedPump, zs, hfs, tempC);
-            CavitationResult.Text =
-                $"NPSHa: {result.NPSHa:F2} mSS\n" +
-                $"NPSHr: {result.NPSHr:F2} mSS\n" +
-                $"Marj : {result.Margin:F2} mSS\n\n" +
-                result.Recommendation;
-            CavitationResult.Foreground = result.IsSafe
-                ? System.Windows.Media.Brushes.LightGreen
-                : System.Windows.Media.Brushes.OrangeRed;
+            try
+            {
+                var result = _svc.CheckCavitation(_selectedPump, zs, hfs, tempC);
+                CavitationResult.Text =
+                    $"NPSHa: {result.NPSHa:F2} mSS\n" +
+                    $"NPSHr: {result.NPSHr:F2} mSS\n" +
+                    $"Marj : {result.Margin:F2} mSS\n\n" +
+                    result.Recommendation;
+                CavitationResult.Foreground = result.IsSafe
+                    ? System.Windows.Media.Brushes.LightGreen
+                    : System.Windows.Media.Brushes.OrangeRed;
+            }
+            catch (Exception ex)
+            {
+                CavitationResult.Text = $"Hata: {ex.Message}";
+                CavitationResult.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            }
         }
     }
 

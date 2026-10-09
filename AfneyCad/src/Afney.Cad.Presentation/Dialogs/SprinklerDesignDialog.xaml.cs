@@ -34,6 +34,8 @@ public partial class SprinklerDesignDialog
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         double.TryParse(TxtArea.Text,        out double area);
         double.TryParse(TxtCoverage.Text,    out double cov);
         double.TryParse(TxtMinPress.Text,    out double minP);
@@ -75,6 +77,11 @@ public partial class SprinklerDesignDialog
         else WarnBorder.Visibility = Visibility.Collapsed;
 
         StatusText.Text = $"✓ {r.TotalSprinklerCount} sprinkler · {r.TotalDesignFlowLpd:F0} L/dak · {r.SupplyPipeSize}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     public event Action? OpenFireFightingRequested;

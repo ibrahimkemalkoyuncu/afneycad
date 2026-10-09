@@ -107,6 +107,14 @@ Kalan kapsam dışı: Dimension, Elbow/Tee/Wall/Room gibi MEP fitting'leri — b
 
 Kalan: IFC importu (`IfcImportService`) bu turda denetlenmedi.
 
+## TB-07 kısmen kapatıldı — dialog try/catch sertleştirmesi (2026-10-09)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-28 | 94 dialogdan 13'ü hiç `catch` içermiyordu — servis çağrısı (parse edilen kullanıcı girdisiyle hesaplama, dosya I/O) bir istisna fırlatırsa WPF Dispatcher'a kadar yükselip UYGULAMAYI ÇÖKERTİYORDU (sessiz veri kaybı değil ama tüm oturumun kaybı). | 10 dialogun hesaplama/export metodu try/catch + Türkçe "Hata" MessageBox'ı ile sarıldı: `AHUDesignDialog.Calculate_Click`, `ArchitecturalLibraryDialog.Insert_Click`, `EnergyPerformanceDialog.Calculate_Click`/`ExportHtml_Click`, `FanSelectionDialog.Search`, `FloorHeatingDialog.Calculate_Click`/`ExportHtml_Click`, `HeatPumpDialog.Calculate_Click`, `LayerStateManagerDialog.SaveCurrent_Click`/`Apply_Click`, `PumpGroupDialog.ExportHtml_Click`, `PumpSelectionDialog.RunSelection`/`CheckCavitation_Click`, `SprinklerDesignDialog.Calculate_Click`. Hesaplama MANTIĞI hiçbir yerde değişmedi — sadece hata artık sessizce çökmek yerine görünür bir MessageBox'a dönüşüyor. Kalan 3 dialog (`NewProjectWizardDialog`, `PipeWizardDialog`, `StandardSelectionDialog`) BİLİNÇLİ atlandı — sadece statik şablon/enum okuması, parse/hesap riski yok. | Build 0 hata, 796/796 mevcut test (regresyon yok). Davranış değişikliği SADECE hata yolunda (önceden: çökme: şimdi: MessageBox) — normal/başarılı yol hiç değişmedi |
+
+Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz girdiyi sessizce varsayılana çevirmesi — her dialogun kendi UX kararını (hangi alan zorunlu, hangi uyarı mesajı) gerektiren çok daha büyük, ayrı bir iş.
+
 ## TB-06 kısmen kapatıldı — CSG Boolean tessellation önbellekleme (2026-10-09)
 
 | ID | Problem | Değişiklik | Test |

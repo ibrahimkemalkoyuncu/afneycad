@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using Afney.Cad.Mechanical.Services;
@@ -10,6 +11,8 @@ public partial class AHUDesignDialog
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         double.TryParse(TxtFlow.Text,       out double flow);
         double.TryParse(TxtReturn.Text,     out double ret);
         double.TryParse(TxtOutSummer.Text,  out double outS);
@@ -65,6 +68,11 @@ public partial class AHUDesignDialog
         else NotesBorder.Visibility = Visibility.Collapsed;
 
         StatusText.Text = $"✓ Isıtma {r.WinterHeatKw:F1} kW · Soğutma {r.TotalCoolKw:F1} kW · Fan {r.FanPowerKw:F2} kW";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
