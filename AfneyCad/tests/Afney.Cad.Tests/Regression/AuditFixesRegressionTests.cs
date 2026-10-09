@@ -421,4 +421,23 @@ public class AuditFixesRegressionTests
         Assert.Contains(ctx.Texts, t => t.text == "DN50");
         Assert.Contains(ctx.Texts, t => t.text == "12 adet");
     }
+
+    // ── TB-10: HatchEntity grip ile düzenlenemiyordu ─────────────────────────────
+
+    [Fact]
+    public void HatchEntity_MoveGripPointAt_UpdatesBoundaryVertex()
+    {
+        var hatch = new HatchEntity(new[]
+        {
+            new Vector3D(0, 0, 0),
+            new Vector3D(10, 0, 0),
+            new Vector3D(10, 10, 0),
+            new Vector3D(0, 10, 0)
+        }, 0xFFFFFFFF);
+
+        hatch.MoveGripPointAt(1, new Vector3D(20, 0, 0));
+
+        Assert.Equal(new Vector3D(20, 0, 0), hatch.BoundaryVertices[1]);
+        Assert.Equal(new Vector3D(0, 0, 0), hatch.BoundaryVertices[0]); // diğer köşeler değişmedi
+    }
 }

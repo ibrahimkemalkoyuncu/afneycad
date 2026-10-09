@@ -127,7 +127,13 @@ Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz gi
 |----|---------|------------|------|
 | AUD-32 | `TableEntity.Draw()`'ın veri-yerleştirme döngüsü hücre metnini okuyup boş olup olmadığını kontrol ediyordu ama dolu olduğunda bile hiçbir çizim yapmıyordu — döngü gövdesi sadece bir yorum satırıydı ("Gerçek uygulamada TextEntity.Draw mantığı buraya entegre edilir" — hiç yapılmamış bir TODO). Tablo ızgarası (çerçeve+satır/sütun çizgileri) doğru çiziliyordu ama BOM/metraj tablolarının İÇERİĞİ hiç görünmüyordu — boş kutular gibi render oluyordu. | `TextEntity.Draw`'daki ile AYNI `IRenderContext.DrawText(text, cellPos, 0, RowHeight * 0.5, Color, centerAlign: false)` çağrısı eklendi — sol kenardan küçük boşlukla, satır yüksekliğinin yarısı font boyutuyla. | `TableEntity_Draw_RendersCellText` — `FakeRenderContext` ile hücre metninin gerçekten `DrawText`'e ulaştığı doğrulandı (800/800) |
 
-Kalan (TB-10 içinde, ayrı bir işe bırakıldı): `HatchEntity` grip düzenleme eksikliği, `SchemaLayoutEngine`'in yerleşim üretmemesi, `PipingPathfinderService`/`PipingRoutingService` kod tekrarı.
+## TB-10 devam — HatchEntity grip ile düzenlenemiyordu (2026-10-10)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-33 | `HatchEntity.GetGripPoints()` sınır köşelerini döndürüyordu (grip kutucukları ekranda görünüyordu) ama `MoveGripPointAt` hiç override edilmemişti — taban sınıfın varsayılanı (`InvalidateCache()` dışında hiçbir şey yapmaz) devredeydi. Kullanıcı bir Hatch köşesini sürükleyince grip görsel olarak hareket ediyor GİBİ görünse bile sınır poligonu hiç değişmiyordu. | `LineEntity`/`ArcEntity`'deki aynı basit indeks-eşleştirme deseniyle `MoveGripPointAt(index, newPosition)` eklendi — `BoundaryVertices[index]` doğrudan güncelleniyor. | `HatchEntity_MoveGripPointAt_UpdatesBoundaryVertex` (801/801) |
+
+Kalan (TB-10 içinde, ayrı bir işe bırakıldı): `SchemaLayoutEngine`'in yerleşim üretmemesi, `PipingPathfinderService`/`PipingRoutingService` kod tekrarı.
 
 ## TB-08 kapatıldı — ClashReportDialog reflection kaldırıldı (2026-10-10)
 

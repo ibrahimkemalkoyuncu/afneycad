@@ -100,4 +100,21 @@ public class HatchEntity : CadEntity
         foreach (var v in BoundaryVertices)
             yield return v;
     }
+
+    /*
+       NE: Grip Noktasını Taşı (MoveGripPointAt)
+       NEDEN (TB-10): `GetGripPoints()` sınır köşelerini döndürüyordu (grip kutucukları
+              görünüyordu) ama bu override hiç yoktu — taban sınıfın varsayılanı
+              (`InvalidateCache()` dışında hiçbir şey yapmaz) devredeydi. Kullanıcı bir
+              Hatch köşesini sürükleyince grip görsel olarak hareket ediyor GİBİ görünse
+              bile sınır poligonu hiç değişmiyordu (sürükleme sessizce yutuluyordu). Artık
+              `index`'teki köşe doğrudan güncelleniyor — `LineEntity`/`ArcEntity`'deki aynı
+              basit indeks-eşleştirme deseniyle tutarlı.
+    */
+    public override void MoveGripPointAt(int index, Vector3D newPosition)
+    {
+        if (BoundaryVertices != null && index >= 0 && index < BoundaryVertices.Count)
+            BoundaryVertices[index] = newPosition;
+        base.MoveGripPointAt(index, newPosition);
+    }
 }
