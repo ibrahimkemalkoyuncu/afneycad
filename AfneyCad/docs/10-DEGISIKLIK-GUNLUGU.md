@@ -115,6 +115,14 @@ Kalan: IFC importu (`IfcImportService`) bu turda denetlenmedi.
 
 Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz girdiyi sessizce varsayılana çevirmesi — her dialogun kendi UX kararını (hangi alan zorunlu, hangi uyarı mesajı) gerektiren çok daha büyük, ayrı bir iş.
 
+## TB-10 kısmen kapatıldı — Arc/Circle Transform yarıçap ölçeklenmemesi (2026-10-10)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-31 | `ArcEntity.Transform(Matrix4x4)` SADECE `Center`'ı dönüştürüyordu, `Radius`'a hiç dokunmuyordu (kod içinde "Radius transform (Uniform scaling varsayımı)" yorumu bırakılmıştı — yapılmamış bir TODO). Bir SCALE/MIRROR işlemi (ölçekli matris) yayı yanlış boyutta bırakıyordu. Aynı taramada `CircleEntity.Transform`'da da BİREBİR aynı hata bulundu (ayrı, bağımsız keşif). | `BlockReferenceEntity.Transform` (AUD-15) ile AYNI teknik: matrisin birim-X vektörüne etkisinden (`matrix.Transform(X) - matrix.Transform(0)`'ın uzunluğu) tekdüze ölçek faktörü çıkarılıp `Radius`'a çarpılıyor. Rotasyon/öteleme-ONLY matrislerde scaleFactor=1 — eski davranış bu durumda birebir korunuyor (regresyon yok). | `ArcEntity_Transform_WithScaleMatrix_ScalesRadius`, `ArcEntity_Transform_WithRotationOnly_LeavesRadiusUnchanged`, `CircleEntity_Transform_WithScaleMatrix_ScalesRadius` (799/799) |
+
+Kalan (TB-10 içinde, ayrı bir işe bırakıldı): `HatchEntity` grip düzenleme eksikliği, `TableEntity` hücre metninin çizilmemesi, `SchemaLayoutEngine`'in yerleşim üretmemesi, `PipingPathfinderService`/`PipingRoutingService` kod tekrarı.
+
 ## TB-08 kapatıldı — ClashReportDialog reflection kaldırıldı (2026-10-10)
 
 | ID | Problem | Değişiklik | Test |

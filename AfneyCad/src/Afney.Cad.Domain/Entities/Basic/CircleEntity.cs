@@ -78,11 +78,21 @@ public class CircleEntity : CadEntity
 
     /*
        NE: Matris Dönüşümü (Transform)
-       NEDEN: Çember merkezine matris (taşıma vb.) uygulamak için.
+       NEDEN: Çember merkezine matris (taşıma, döndürme, ölçekleme) uygulamak için.
+       NOT (TB-10): `ArcEntity.Transform` ile AYNI hata — Radius önceden HİÇ dönüştürülmüyordu.
+              `BlockReferenceEntity.Transform` (AUD-15) ile aynı teknikle matrisin birim X
+              vektörüne etkisinden tekdüze ölçek faktörü çıkarılıp yarıçapa uygulanıyor.
+              Rotasyon/öteleme-ONLY matrislerde scaleFactor=1 — eski davranış BİREBİR korunur.
     */
     public override void Transform(Matrix4x4 matrix)
     {
+        var origin = matrix.Transform(Vector3D.Zero);
+        var xAxis = matrix.Transform(new Vector3D(1, 0, 0)) - origin;
+        double scaleFactor = xAxis.Length();
+
         Center = matrix.Transform(Center);
+        if (scaleFactor > 1e-9)
+            Radius *= scaleFactor;
     }
 
     /*

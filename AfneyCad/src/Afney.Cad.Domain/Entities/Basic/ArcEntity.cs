@@ -111,12 +111,25 @@ public class ArcEntity : CadEntity
 
     /*
        NE: Matris Dönüşümü (Transform)
-       NEDEN: Yayı döndürmek veya taşımak için merkez koordinatını matrisle çarpmak için.
+       NEDEN: Yayı döndürmek, taşımak veya ölçeklemek için merkez koordinatını matrisle
+              çarpmak için.
+       NOT (TB-10): Önceden Radius HİÇ dönüştürülmüyordu — bir SCALE/MIRROR işlemi (ör.
+              OffsetCommand'ın veya bir blok içi dönüşümün ürettiği ölçekli matris) yayın
+              merkezini taşıyor ama yarıçapını eski bırakıyordu (görsel olarak yanlış
+              boyutta bir yay). `BlockReferenceEntity.Transform`'daki (AUD-15) AYNI teknikle
+              — matrisin birim X vektörüne etkisinden tekdüze ölçek faktörü çıkarılıp
+              yarıçapa uygulanıyor. Rotasyon/öteleme-ONLY matrislerde scaleFactor=1 — eski
+              davranış BİREBİR korunur.
     */
     public override void Transform(Matrix4x4 matrix)
     {
+        var origin = matrix.Transform(Vector3D.Zero);
+        var xAxis = matrix.Transform(new Vector3D(1, 0, 0)) - origin;
+        double scaleFactor = xAxis.Length();
+
         Center = matrix.Transform(Center);
-        // Radius transform (Uniform scaling varsayımı)
+        if (scaleFactor > 1e-9)
+            Radius *= scaleFactor;
     }
 
     /*

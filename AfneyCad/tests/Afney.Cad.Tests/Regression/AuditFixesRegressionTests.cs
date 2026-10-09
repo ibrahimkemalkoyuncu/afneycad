@@ -376,4 +376,33 @@ public class AuditFixesRegressionTests
 
         Assert.Empty(db.GetAllEntities().OfType<LineEntity>());
     }
+
+    // ── TB-10: Arc/Circle Transform yarıçap ölçeklenmemesi ───────────────────────
+
+    [Fact]
+    public void ArcEntity_Transform_WithScaleMatrix_ScalesRadius()
+    {
+        var arc = new ArcEntity(Vector3D.Zero, 10.0, 0, Math.PI);
+        arc.Transform(Matrix4x4.CreateScale(2.0));
+
+        Assert.Equal(20.0, arc.Radius, 6);
+    }
+
+    [Fact]
+    public void ArcEntity_Transform_WithRotationOnly_LeavesRadiusUnchanged()
+    {
+        var arc = new ArcEntity(new Vector3D(1, 0, 0), 10.0, 0, Math.PI);
+        arc.Transform(Matrix4x4.CreateRotationZ(Math.PI / 2));
+
+        Assert.Equal(10.0, arc.Radius, 6);
+    }
+
+    [Fact]
+    public void CircleEntity_Transform_WithScaleMatrix_ScalesRadius()
+    {
+        var circle = new CircleEntity(Vector3D.Zero, 5.0);
+        circle.Transform(Matrix4x4.CreateScale(3.0));
+
+        Assert.Equal(15.0, circle.Radius, 6);
+    }
 }
