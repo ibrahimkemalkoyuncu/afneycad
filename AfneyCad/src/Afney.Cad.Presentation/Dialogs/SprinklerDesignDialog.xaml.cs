@@ -41,16 +41,34 @@ public partial class SprinklerDesignDialog
         double.TryParse(TxtMinPress.Text,    out double minP);
         double.TryParse(TxtStaticPress.Text, out double statP);
 
+        // NOT (TB-07): Aşağıdaki > 0 kontrolleri ve varsayılan değerler ESKİ davranışla
+        // BİREBİR aynı — tek fark, hangi alanın varsayılana düştüğü artık kullanıcıya
+        // görünür (önceden tamamen sessizdi).
+        var fieldWarnings = new System.Collections.Generic.List<string>();
+        if (area  <= 0) fieldWarnings.Add("Koruma Alanı: boş/geçersiz → varsayılan 500 kullanıldı");
+        if (cov   <= 0) fieldWarnings.Add("Max Kapsama: boş/geçersiz → varsayılan 12 kullanıldı");
+        if (minP  <= 0) fieldWarnings.Add("Min Basınç: boş/geçersiz → varsayılan 0.70 kullanıldı");
+        if (statP <= 0) fieldWarnings.Add("Statik Basınç: boş/geçersiz → varsayılan 7.0 kullanıldı");
+
+        area  = area  > 0 ? area  : 500;
+        cov   = cov   > 0 ? cov   : 12;
+        minP  = minP  > 0 ? minP  : 0.70;
+        statP = statP > 0 ? statP : 7.0;
+
+        if (fieldWarnings.Count > 0)
+            MessageBox.Show("⚠ Aşağıdaki alanlar boş/geçersiz, varsayılan değer kullanıldı:\n\n" + string.Join("\n", fieldWarnings),
+                "Girdi Uyarısı", MessageBoxButton.OK, MessageBoxImage.Warning);
+
         double kFactor = CboKFactor.SelectedIndex switch { 1=>80, 2=>115, 3=>202, _=>57 };
 
         var inp = new NFPA13SprinklerService.SprinklerInput
         {
             Hazard          = GetHazard(),
-            AreaM2          = area   > 0 ? area  : 500,
+            AreaM2          = area,
             KFactor         = kFactor,
-            MaxCoverageM2   = cov    > 0 ? cov   : 12,
-            MinPressureBar  = minP   > 0 ? minP  : 0.70,
-            StaticPressureBar = statP > 0 ? statP : 7.0,
+            MaxCoverageM2   = cov,
+            MinPressureBar  = minP,
+            StaticPressureBar = statP,
             DryPipe         = ChkDryPipe.IsChecked == true
         };
 

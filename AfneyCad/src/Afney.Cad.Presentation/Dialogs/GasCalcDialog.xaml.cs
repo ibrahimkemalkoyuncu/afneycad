@@ -56,51 +56,63 @@ public partial class GasCalcDialog : Window
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
-        var opts = BuildOptions();
-
-        var devices = _devices.Select(d => new GasCalcSheetService.GasDevice
+        try
         {
-            Name           = d.Name,
-            NominalPowerKw = d.NominalPowerKw,
-            LoadFactor     = d.LoadFactor
-        }).ToList();
+            var fieldWarnings = new List<string>();
+            var opts = BuildOptions(fieldWarnings);
 
-        var segments = _segments.Select(s =>
-        {
-            var ids = s.DeviceIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => double.TryParse(x.Trim(), out double idx) ? idx : -1.0)
-                .ToArray();
-            return (s.Name, s.LengthM, ids);
-        }).ToList();
+            if (fieldWarnings.Count > 0)
+                MessageBox.Show("⚠ Aşağıdaki alanlar boş/geçersiz, varsayılan değer kullanıldı:\n\n" + string.Join("\n", fieldWarnings),
+                    "Girdi Uyarısı", MessageBoxButton.OK, MessageBoxImage.Warning);
 
-        _lastResult = _svc.Calculate(devices, segments, opts);
+            var devices = _devices.Select(d => new GasCalcSheetService.GasDevice
+            {
+                Name           = d.Name,
+                NominalPowerKw = d.NominalPowerKw,
+                LoadFactor     = d.LoadFactor
+            }).ToList();
 
-        ResultGrid.ItemsSource = null;
-        ResultGrid.ItemsSource = _lastResult.Rows;
+            var segments = _segments.Select(s =>
+            {
+                var ids = s.DeviceIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => double.TryParse(x.Trim(), out double idx) ? idx : -1.0)
+                    .ToArray();
+                return (s.Name, s.LengthM, ids);
+            }).ToList();
 
-        PanelNotes.Children.Clear();
-        foreach (var note in _lastResult.Notes)
+            _lastResult = _svc.Calculate(devices, segments, opts);
+
+            ResultGrid.ItemsSource = null;
+            ResultGrid.ItemsSource = _lastResult.Rows;
+
+            PanelNotes.Children.Clear();
+            foreach (var note in _lastResult.Notes)
+                PanelNotes.Children.Add(new TextBlock
+                {
+                    Text = "• " + note,
+                    Foreground = System.Windows.Media.Brushes.LightCyan,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 1, 0, 1)
+                });
+
             PanelNotes.Children.Add(new TextBlock
             {
-                Text = "• " + note,
-                Foreground = System.Windows.Media.Brushes.LightCyan,
-                FontSize = 11,
-                Margin = new Thickness(0, 1, 0, 1)
+                Text = _lastResult.Summary,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = _lastResult.WarningCount > 0
+                    ? System.Windows.Media.Brushes.Orange
+                    : System.Windows.Media.Brushes.LightGreen,
+                FontSize = 12,
+                Margin = new Thickness(0, 6, 0, 0)
             });
 
-        PanelNotes.Children.Add(new TextBlock
+            TxtStatus.Text = $"Hesap tamamlandı — {_lastResult.Rows.Count} segment, " +
+                             $"Q={_lastResult.TotalFlowM3h:F3} m³/h, ΔP={_lastResult.TotalPressureDrop:F3} mbar";
+        }
+        catch (Exception ex)
         {
-            Text = _lastResult.Summary,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = _lastResult.WarningCount > 0
-                ? System.Windows.Media.Brushes.Orange
-                : System.Windows.Media.Brushes.LightGreen,
-            FontSize = 12,
-            Margin = new Thickness(0, 6, 0, 0)
-        });
-
-        TxtStatus.Text = $"Hesap tamamlandı — {_lastResult.Rows.Count} segment, " +
-                         $"Q={_lastResult.TotalFlowM3h:F3} m³/h, ΔP={_lastResult.TotalPressureDrop:F3} mbar";
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExportHtml_Click(object sender, RoutedEventArgs e)
@@ -170,12 +182,12 @@ public partial class GasCalcDialog : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-    private GasCalcSheetService.CalcOptions BuildOptions() => new()
+    private GasCalcSheetService.CalcOptions BuildOptions(List<string> fieldWarnings) => new()
     {
-        SupplyPressureMbar = ParseDouble(TxtSupplyP.Text, 21.0),
-        MinDevicePressure  = ParseDouble(TxtMinP.Text, 17.0),
-        MaxVelocityMs      = ParseDouble(TxtMaxV.Text, 8.0),
-        GasDensity         = ParseDouble(TxtDensity.Text, 0.72),
+        SupplyPressureMbar = NumericInputHelper.GetDoubleOrWarn(TxtSupplyP.Text, 21.0, "Besleme Basıncı", fieldWarnings),
+        MinDevicePressure  = NumericInputHelper.GetDoubleOrWarn(TxtMinP.Text, 17.0, "Min. Cihaz Basıncı", fieldWarnings),
+        MaxVelocityMs      = NumericInputHelper.GetDoubleOrWarn(TxtMaxV.Text, 8.0, "Maks. Hız", fieldWarnings),
+        GasDensity         = NumericInputHelper.GetDoubleOrWarn(TxtDensity.Text, 0.72, "Gaz Yoğunluğu", fieldWarnings),
         PipeMaterial       = (CmbMaterial.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Çelik",
     };
 

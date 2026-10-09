@@ -21,11 +21,12 @@ namespace Afney.Cad.Presentation.Dialogs
         {
             try
             {
+                var fieldWarnings = new System.Collections.Generic.List<string>();
                 var input = new FireFightingService.SprinklerDesignInput
                 {
-                    ProtectedAreaM2       = GetDouble(AreaInput.Text,    500),
-                    CeilingHeightM        = GetDouble(HeightInput.Text,  3.0),
-                    FloorToSystemPressure = GetDouble(PressureInput.Text, 0),
+                    ProtectedAreaM2       = NumericInputHelper.GetDoubleOrWarn(AreaInput.Text, 500, "Korunan Alan", fieldWarnings),
+                    CeilingHeightM        = NumericInputHelper.GetDoubleOrWarn(HeightInput.Text, 3.0, "Tavan Yüksekliği", fieldWarnings),
+                    FloorToSystemPressure = NumericInputHelper.GetDoubleOrWarn(PressureInput.Text, 0, "Statik Basınç", fieldWarnings),
                     IsWetSystem           = WetSystemCheck.IsChecked == true,
                     Hazard = HazardCombo.SelectedIndex switch
                     {
@@ -35,6 +36,10 @@ namespace Afney.Cad.Presentation.Dialogs
                         _ => FireFightingService.EN12845HazardClass.LightHazard
                     }
                 };
+
+                if (fieldWarnings.Count > 0)
+                    MessageBox.Show("⚠ Aşağıdaki alanlar boş/geçersiz, varsayılan değer kullanıldı:\n\n" + string.Join("\n", fieldWarnings),
+                        "Girdi Uyarısı", MessageBoxButton.OK, MessageBoxImage.Warning);
 
                 _sprinklerResult = _svc.DesignSprinklerSystem(input);
 
@@ -75,12 +80,13 @@ namespace Afney.Cad.Presentation.Dialogs
         {
             try
             {
+                var fieldWarnings = new System.Collections.Generic.List<string>();
                 var input = new FireFightingService.HydrantSystemInput
                 {
-                    BuildingAreaM2        = GetDouble(HydBuildingArea.Text,    1500),
-                    NumberOfFloors        = GetInt(HydFloors.Text,               8),
-                    FloorHeightM          = GetDouble(HydFloorHeight.Text,     3.5),
-                    AvailablePressureBar  = GetDouble(HydAvailPressure.Text,   3.5),
+                    BuildingAreaM2        = NumericInputHelper.GetDoubleOrWarn(HydBuildingArea.Text, 1500, "Bina Alanı", fieldWarnings),
+                    NumberOfFloors        = NumericInputHelper.GetIntOrWarn(HydFloors.Text, 8, "Kat Sayısı", fieldWarnings),
+                    FloorHeightM          = NumericInputHelper.GetDoubleOrWarn(HydFloorHeight.Text, 3.5, "Kat Yüksekliği", fieldWarnings),
+                    AvailablePressureBar  = NumericInputHelper.GetDoubleOrWarn(HydAvailPressure.Text, 3.5, "Mevcut Basınç", fieldWarnings),
                     HydrantType           = HydTypeCombo.SelectedIndex == 0
                         ? FireFightingService.HydrantType.Indoor
                         : FireFightingService.HydrantType.Outdoor,
@@ -92,6 +98,10 @@ namespace Afney.Cad.Presentation.Dialogs
                         _ => FireFightingService.EN12845HazardClass.LightHazard
                     }
                 };
+
+                if (fieldWarnings.Count > 0)
+                    MessageBox.Show("⚠ Aşağıdaki alanlar boş/geçersiz, varsayılan değer kullanıldı:\n\n" + string.Join("\n", fieldWarnings),
+                        "Girdi Uyarısı", MessageBoxButton.OK, MessageBoxImage.Warning);
 
                 _hydrantResult = _svc.DesignHydrantSystem(input);
 

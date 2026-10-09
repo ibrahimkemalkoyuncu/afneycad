@@ -25,36 +25,49 @@ public partial class RainWaterCalcDialog : Window
 
     private void Calculate_Click(object sender, RoutedEventArgs e)
     {
-        var opts = BuildOptions();
-        _lastResult = _svc.Calculate(_database, opts);
-
-        CalcGrid.ItemsSource = null;
-        CalcGrid.ItemsSource = _lastResult.Rows;
-
-        PanelNotes.Children.Clear();
-        foreach (var note in _lastResult.Notes)
-            PanelNotes.Children.Add(new TextBlock
-            {
-                Text = "• " + note,
-                Foreground = System.Windows.Media.Brushes.LightCyan,
-                FontSize = 11,
-                Margin = new Thickness(0, 1, 0, 1)
-            });
-
-        var summaryBlock = new TextBlock
+        try
         {
-            Text = _lastResult.Summary,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = _lastResult.WarningCount > 0
-                ? System.Windows.Media.Brushes.Orange
-                : System.Windows.Media.Brushes.LightGreen,
-            FontSize = 12,
-            Margin = new Thickness(0, 4, 0, 0)
-        };
-        PanelNotes.Children.Add(summaryBlock);
+            var fieldWarnings = new System.Collections.Generic.List<string>();
+            var opts = BuildOptions(fieldWarnings);
 
-        TxtStatus.Text = $"Hesap tamamlandı — {_lastResult.TotalAreas} alan, " +
-                         $"{_lastResult.TotalAreaM2:F1} m², Q={_lastResult.TotalFlowLs:F3} l/s";
+            if (fieldWarnings.Count > 0)
+                MessageBox.Show("⚠ Aşağıdaki alanlar boş/geçersiz, varsayılan değer kullanıldı:\n\n" + string.Join("\n", fieldWarnings),
+                    "Girdi Uyarısı", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+            _lastResult = _svc.Calculate(_database, opts);
+
+            CalcGrid.ItemsSource = null;
+            CalcGrid.ItemsSource = _lastResult.Rows;
+
+            PanelNotes.Children.Clear();
+            foreach (var note in _lastResult.Notes)
+                PanelNotes.Children.Add(new TextBlock
+                {
+                    Text = "• " + note,
+                    Foreground = System.Windows.Media.Brushes.LightCyan,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 1, 0, 1)
+                });
+
+            var summaryBlock = new TextBlock
+            {
+                Text = _lastResult.Summary,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = _lastResult.WarningCount > 0
+                    ? System.Windows.Media.Brushes.Orange
+                    : System.Windows.Media.Brushes.LightGreen,
+                FontSize = 12,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+            PanelNotes.Children.Add(summaryBlock);
+
+            TxtStatus.Text = $"Hesap tamamlandı — {_lastResult.TotalAreas} alan, " +
+                             $"{_lastResult.TotalAreaM2:F1} m², Q={_lastResult.TotalFlowLs:F3} l/s";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Hesaplama sırasında hata oluştu:\n{ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExportHtml_Click(object sender, RoutedEventArgs e)
@@ -85,13 +98,13 @@ public partial class RainWaterCalcDialog : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-    private RainWaterCalcSheetService.CalcOptions BuildOptions()
+    private RainWaterCalcSheetService.CalcOptions BuildOptions(System.Collections.Generic.List<string> fieldWarnings)
     {
         return new RainWaterCalcSheetService.CalcOptions
         {
             Location          = (CmbLocation.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "İstanbul",
-            RainfallIntensity = ParseDouble(TxtRainfall.Text, 0.030),
-            DefaultSlopePct   = ParseDouble(TxtSlope.Text, 1.0),
+            RainfallIntensity = NumericInputHelper.GetDoubleOrWarn(TxtRainfall.Text, 0.030, "Yağış Yoğunluğu", fieldWarnings),
+            DefaultSlopePct   = NumericInputHelper.GetDoubleOrWarn(TxtSlope.Text, 1.0, "Boru Eğimi", fieldWarnings),
             PipeMaterial      = (CmbMaterial.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "PVC",
             ManningN          = GetManningN((CmbMaterial.SelectedItem as ComboBoxItem)?.Content?.ToString()),
         };

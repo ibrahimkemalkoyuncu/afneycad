@@ -115,6 +115,12 @@ Kalan: IFC importu (`IfcImportService`) bu turda denetlenmedi.
 
 Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz girdiyi sessizce varsayılana çevirmesi — her dialogun kendi UX kararını (hangi alan zorunlu, hangi uyarı mesajı) gerektiren çok daha büyük, ayrı bir iş.
 
+## TB-07 devam — en kritik dialoglarda sessiz-varsayılan görünürlüğü (2026-10-10)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-29 | Can/mal güvenliği etkileyen hesap diyaloglarında (`FireFightingDialog`, `GasCalcDialog`, `RainWaterCalcDialog`, `SprinklerDesignDialog`) boş/geçersiz sayısal alanlar SESSİZCE bir varsayılana düşüyordu — kullanıcı kendi girdisinin kullanılmadığını fark etmeden yangın/gaz/yağmur suyu hesabının "kendi değerleriyle" yapıldığını sanabiliyordu. | Yeni `Dialogs/NumericInputHelper.cs` (`GetDoubleOrWarn`/`GetIntOrWarn`) — AYNI varsayılana-düşme davranışını korur (hesap SONUCU hiç değişmedi), sadece hangi alanların varsayılana düştüğünü bir listede toplar. 4 dialogun en kritik hesap metotları (`FireFightingDialog.SprinklerCalculate_Click`/`HydrantCalculate_Click`, `GasCalcDialog.Calculate_Click`, `RainWaterCalcDialog.Calculate_Click`, `SprinklerDesignDialog.Calculate_Click`) bunu kullanacak şekilde güncellendi; varsayılana düşen alan varsa hesaptan ÖNCE tek bir uyarı MessageBox'ı gösteriliyor. `GasCalcDialog.Calculate_Click`/`BuildOptions` ayrıca try/catch almadığı için o da eklendi. `SprinklerDesignDialog`'da ESKİ `>0` kontrol mantığı (sadece boş/parse-hatası değil, "0 veya negatif" de varsayılana düşürüyordu) BİREBİR korundu — sadece görünürlük eklendi, eşik mantığı değişmedi. `SepticTankDialog`/`WasteWaterDesignDialog` incelendi, zaten `Parse`/açık doğrulama kullandıkları (sessiz varsayılan yok) için dokunulmadı. | Build 0 hata, 796/796 mevcut test (regresyon yok). Davranış değişikliği SADECE görünürlükte — varsayılan değerler ve hesap sonuçları birebir aynı |
+
 ## TB-06 kısmen kapatıldı — CSG Boolean tessellation önbellekleme (2026-10-09)
 
 | ID | Problem | Değişiklik | Test |
