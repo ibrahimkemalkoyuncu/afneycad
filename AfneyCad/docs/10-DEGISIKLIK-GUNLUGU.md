@@ -121,7 +121,13 @@ Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz gi
 |----|---------|------------|------|
 | AUD-31 | `ArcEntity.Transform(Matrix4x4)` SADECE `Center`'ı dönüştürüyordu, `Radius`'a hiç dokunmuyordu (kod içinde "Radius transform (Uniform scaling varsayımı)" yorumu bırakılmıştı — yapılmamış bir TODO). Bir SCALE/MIRROR işlemi (ölçekli matris) yayı yanlış boyutta bırakıyordu. Aynı taramada `CircleEntity.Transform`'da da BİREBİR aynı hata bulundu (ayrı, bağımsız keşif). | `BlockReferenceEntity.Transform` (AUD-15) ile AYNI teknik: matrisin birim-X vektörüne etkisinden (`matrix.Transform(X) - matrix.Transform(0)`'ın uzunluğu) tekdüze ölçek faktörü çıkarılıp `Radius`'a çarpılıyor. Rotasyon/öteleme-ONLY matrislerde scaleFactor=1 — eski davranış bu durumda birebir korunuyor (regresyon yok). | `ArcEntity_Transform_WithScaleMatrix_ScalesRadius`, `ArcEntity_Transform_WithRotationOnly_LeavesRadiusUnchanged`, `CircleEntity_Transform_WithScaleMatrix_ScalesRadius` (799/799) |
 
-Kalan (TB-10 içinde, ayrı bir işe bırakıldı): `HatchEntity` grip düzenleme eksikliği, `TableEntity` hücre metninin çizilmemesi, `SchemaLayoutEngine`'in yerleşim üretmemesi, `PipingPathfinderService`/`PipingRoutingService` kod tekrarı.
+## TB-10 devam — TableEntity hücre metni çizilmiyordu (2026-10-10)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-32 | `TableEntity.Draw()`'ın veri-yerleştirme döngüsü hücre metnini okuyup boş olup olmadığını kontrol ediyordu ama dolu olduğunda bile hiçbir çizim yapmıyordu — döngü gövdesi sadece bir yorum satırıydı ("Gerçek uygulamada TextEntity.Draw mantığı buraya entegre edilir" — hiç yapılmamış bir TODO). Tablo ızgarası (çerçeve+satır/sütun çizgileri) doğru çiziliyordu ama BOM/metraj tablolarının İÇERİĞİ hiç görünmüyordu — boş kutular gibi render oluyordu. | `TextEntity.Draw`'daki ile AYNI `IRenderContext.DrawText(text, cellPos, 0, RowHeight * 0.5, Color, centerAlign: false)` çağrısı eklendi — sol kenardan küçük boşlukla, satır yüksekliğinin yarısı font boyutuyla. | `TableEntity_Draw_RendersCellText` — `FakeRenderContext` ile hücre metninin gerçekten `DrawText`'e ulaştığı doğrulandı (800/800) |
+
+Kalan (TB-10 içinde, ayrı bir işe bırakıldı): `HatchEntity` grip düzenleme eksikliği, `SchemaLayoutEngine`'in yerleşim üretmemesi, `PipingPathfinderService`/`PipingRoutingService` kod tekrarı.
 
 ## TB-08 kapatıldı — ClashReportDialog reflection kaldırıldı (2026-10-10)
 

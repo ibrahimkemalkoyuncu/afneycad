@@ -78,8 +78,15 @@ public class TableEntity : CadEntity
                 string text = GetCell(i, j);
                 if (!string.IsNullOrEmpty(text))
                 {
-                    // Mini Text Render (Bunu basitleştirerek çiziyoruz)
-                    // Gerçek uygulamada TextEntity.Draw mantığı buraya entegre edilir.
+                    // MÜHENDİSLİK (TB-10): Bu dal önceden TAMAMEN boştu (yorum satırında
+                    // "entegre edilir" diye not edilmiş ama hiç yapılmamış bir TODO) — tablo
+                    // ızgarası çizilip hücre verisi hiç görünmüyordu (BOM/metraj tabloları
+                    // içerik olmadan boş kutular gibi görünüyordu). `TextEntity.Draw`'daki
+                    // aynı `IRenderContext.DrawText` çağrısıyla, sol kenardan küçük bir
+                    // boşlukla (centerAlign:false) hücre metni çiziliyor. Font boyutu satır
+                    // yüksekliğinin yarısına sabitlendi (AutoCAD TABLE hücre metninin satıra
+                    // taşmaması için kullandığı yaygın oranla tutarlı).
+                    context.DrawText(text, cellPos, 0, RowHeight * 0.5, Color, centerAlign: false);
                 }
             }
         }

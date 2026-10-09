@@ -405,4 +405,20 @@ public class AuditFixesRegressionTests
 
         Assert.Equal(15.0, circle.Radius, 6);
     }
+
+    // ── TB-10: TableEntity hücre metni çizilmiyordu ──────────────────────────────
+
+    [Fact]
+    public void TableEntity_Draw_RendersCellText()
+    {
+        var table = new TableEntity(Vector3D.Zero, 2, 2);
+        table.SetCell(0, 0, "DN50");
+        table.SetCell(1, 1, "12 adet");
+
+        var ctx = new Afney.Cad.Tests.Domain.FakeRenderContext();
+        table.Draw(ctx);
+
+        Assert.Contains(ctx.Texts, t => t.text == "DN50");
+        Assert.Contains(ctx.Texts, t => t.text == "12 adet");
+    }
 }
