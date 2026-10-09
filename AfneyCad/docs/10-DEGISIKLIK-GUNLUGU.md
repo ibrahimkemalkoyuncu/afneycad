@@ -133,7 +133,9 @@ Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz gi
 |----|---------|------------|------|
 | AUD-33 | `HatchEntity.GetGripPoints()` sınır köşelerini döndürüyordu (grip kutucukları ekranda görünüyordu) ama `MoveGripPointAt` hiç override edilmemişti — taban sınıfın varsayılanı (`InvalidateCache()` dışında hiçbir şey yapmaz) devredeydi. Kullanıcı bir Hatch köşesini sürükleyince grip görsel olarak hareket ediyor GİBİ görünse bile sınır poligonu hiç değişmiyordu. | `LineEntity`/`ArcEntity`'deki aynı basit indeks-eşleştirme deseniyle `MoveGripPointAt(index, newPosition)` eklendi — `BoundaryVertices[index]` doğrudan güncelleniyor. | `HatchEntity_MoveGripPointAt_UpdatesBoundaryVertex` (801/801) |
 
-Kalan (TB-10 içinde, ayrı bir işe bırakıldı): `SchemaLayoutEngine`'in yerleşim üretmemesi, `PipingPathfinderService`/`PipingRoutingService` kod tekrarı.
+## TB-10 kapatıldı — kalan 2 alt-madde ölü/yetim kod çıktı (2026-10-10)
+
+Kalan 2 alt-maddeyi kapatmadan önce koda bakıldı: `SchemaLayoutEngine.ComputeLayout` hiçbir yerden çağrılmıyor (`grep -rn "new SchemaLayoutEngine"` boş sonuç) — `FixtureSchema` modelinde 2D konum alanı bile yok, tamamen yetim/tamamlanmamış bir özellik, canlı render yoluna hiç bağlı değil. `PipingRoutingService` de hiçbir yerden çağrılmıyor (`grep -rn "PipingRoutingService"` sadece kendi dosyasında eşleşiyor) — `MechanicalKernel.Pathfinder` SADECE `PipingPathfinderService`'i kullanıyor; "kod tekrarı" denilen şey aslında bir canlı implementasyon + bir ölü kopyaydı. Kullanıcının önceki "ölü kod silinmesin" tercihi gereği ikisine de dokunulmadı; TB-10 bu doğrulamayla KAPATILDI (kod değişikliği gerektiren 3 alt-madde zaten AUD-31/32/33 ile düzeltilmişti).
 
 ## TB-08 kapatıldı — ClashReportDialog reflection kaldırıldı (2026-10-10)
 
