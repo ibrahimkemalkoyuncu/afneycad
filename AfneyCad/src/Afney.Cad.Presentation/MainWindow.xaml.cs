@@ -267,6 +267,14 @@ namespace Afney.Cad.Presentation
                   saatler süren çalışmasını kaybetmemesi için en son otomatik kaydı geri yükleme seçeneği sunar.
                   Önceden AutoSaveService periyodik olarak diske yazıyordu ama başlangıçta hiç kontrol edilmiyordu —
                   kullanıcı crash sonrası hiçbir kurtarma penceresi görmüyordu.
+           NOT (TB-14): Önceden diyalog SADECE zaman damgasını gösteriyordu, kullanıcı "Evet"e
+                  bastıktan SONRA dosya deserialize edilip içeriğin ne kadar dolu/boş olduğu
+                  anlaşılıyordu — gerçek bir üretim olayında (bkz. AUD-20/TB-13) bu, kullanıcının
+                  eski/neredeyse-boş bir otomatik kaydı "en güncel çalışmam" sanıp onaylamasına
+                  yol açan belirsizliğin bir parçasıydı. Artık dosya ÖNCE deserialize edilip
+                  diyalogda gerçek nesne/katman SAYISI gösteriliyor — kullanıcı "Evet" derken
+                  tam olarak ne alacağını biliyor. İçerik boşsa (0 nesne) diyalog hiç gösterilmez
+                  (kurtarılacak anlamlı bir şey yok, gereksiz uyarı yorgunluğu önlenir).
         */
         private void CheckCrashRecovery()
         {
@@ -278,18 +286,20 @@ namespace Afney.Cad.Presentation
                 if (!System.IO.File.Exists(autoSaveFile)) return;
 
                 var lastWrite = System.IO.File.GetLastWriteTime(autoSaveFile);
-                var answer = MessageBox.Show(
-                    $"AfneyCAD önceki oturumda düzgün kapatılmamış olabilir.\n\n" +
-                    $"En son otomatik kayıt: {lastWrite:dd.MM.yyyy HH:mm}\n\n" +
-                    "Bu otomatik kaydı geri yüklemek ister misiniz?",
-                    "Kurtarma Kontrolü", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (answer != MessageBoxResult.Yes) return;
 
                 string json = System.IO.File.ReadAllText(autoSaveFile);
                 var serializer = new Afney.Cad.Database.Persistence.CadSerializer();
                 var data = serializer.Deserialize(json);
-                if (data?.Entities == null) return;
+                if (data?.Entities == null || data.Entities.Count == 0) return; // Kurtarılacak anlamlı içerik yok
+
+                var answer = MessageBox.Show(
+                    $"AfneyCAD önceki oturumda düzgün kapatılmamış olabilir.\n\n" +
+                    $"En son otomatik kayıt: {lastWrite:dd.MM.yyyy HH:mm}\n" +
+                    $"İçerik: {data.Entities.Count} nesne, {data.Layers?.Count ?? 0} katman\n\n" +
+                    "Bu otomatik kaydı geri yüklemek ister misiniz?",
+                    "Kurtarma Kontrolü", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (answer != MessageBoxResult.Yes) return;
 
                 _database.Clear();
                 foreach (var layer in data.Layers ?? new())

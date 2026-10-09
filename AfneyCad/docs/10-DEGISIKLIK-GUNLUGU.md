@@ -137,6 +137,12 @@ Kalan (bilinçli, kullanıcı onayıyla ertelendi): ~75/94 dialogun geçersiz gi
 
 Kalan 2 alt-maddeyi kapatmadan önce koda bakıldı: `SchemaLayoutEngine.ComputeLayout` hiçbir yerden çağrılmıyor (`grep -rn "new SchemaLayoutEngine"` boş sonuç) — `FixtureSchema` modelinde 2D konum alanı bile yok, tamamen yetim/tamamlanmamış bir özellik, canlı render yoluna hiç bağlı değil. `PipingRoutingService` de hiçbir yerden çağrılmıyor (`grep -rn "PipingRoutingService"` sadece kendi dosyasında eşleşiyor) — `MechanicalKernel.Pathfinder` SADECE `PipingPathfinderService`'i kullanıyor; "kod tekrarı" denilen şey aslında bir canlı implementasyon + bir ölü kopyaydı. Kullanıcının önceki "ölü kod silinmesin" tercihi gereği ikisine de dokunulmadı; TB-10 bu doğrulamayla KAPATILDI (kod değişikliği gerektiren 3 alt-madde zaten AUD-31/32/33 ile düzeltilmişti).
 
+## TB-14 kapatıldı — kurtarma diyaloğu UX sertleştirmesi (2026-10-10)
+
+| ID | Problem | Değişiklik | Test |
+|----|---------|------------|------|
+| AUD-34 | `CheckCrashRecovery` diyaloğu SADECE otomatik kaydın zaman damgasını gösteriyordu — içeriğin (kaç nesne/katman) ne kadar dolu/boş olduğu SADECE kullanıcı "Evet" dedikten SONRA (dosya deserialize edildiğinde) anlaşılıyordu. Gerçek üretim olayında (AUD-20/TB-13 — kullanıcının 1.3MB'lık projesi 8KB'a düşmüştü) bu belirsizlik, eski/neredeyse-boş bir otomatik kaydın yanlışlıkla "en güncel çalışma" sanılıp onaylanmasının bir parçasıydı. | Dosya artık diyalogdan ÖNCE deserialize ediliyor; mesaj metnine gerçek nesne/katman SAYISI eklendi. İçerik boşsa (0 nesne) diyalog hiç gösterilmiyor (kurtarılacak anlamlı bir şey yoksa gereksiz uyarı yorgunluğu önleniyor). TB-13'ün Kaydet-öncesi `.bak` yedekleme güvenlik ağı zaten devredeydi — bu değişiklik ek bir görünürlük katmanı. | Build 0 hata, 801/801 mevcut test (regresyon yok). UI-diyalog akışı — WPF test harness'i olmadan birim testi pratik değil, diğer UI-thread fix'leriyle (TB-04/TB-05) aynı konvansiyon |
+
 ## TB-08 kapatıldı — ClashReportDialog reflection kaldırıldı (2026-10-10)
 
 | ID | Problem | Değişiklik | Test |
