@@ -14,8 +14,8 @@ AfneyCad/
 │   ├── Afney.Cad.Infrastructure/  # DWG/DXF/IFC Import-Export servisleri
 │   ├── Afney.Cad.Mechanical/      # MEP kernel, hesaplama motorları, servisler
 │   ├── Afney.Cad.Render/          # Skia tabanlı çizim motoru
-│   ├── Afney.Cad.SpatialIndex/    # R-Tree uzamsal indeks
-│   └── Afney.Cad.Common/          # Paylaşılan yardımcılar
+│   ├── Afney.Cad.SpatialIndex/    # QuadTree uzamsal indeks (R-Tree değil — sadece 2D, Z yok sayılır)
+│   └── Afney.Cad.Common/          # Boş proje (hiç kaynak dosyası yok, sadece derleme artefaktları)
 ```
 
 ## MainWindow Partial Class Haritası
@@ -24,28 +24,28 @@ Session #38'de 4745 satırlık MainWindow.xaml.cs 6 dosyaya ayrıldı:
 
 | Dosya | Satır | Sorumluluk |
 |-------|-------|------------|
-| `MainWindow.xaml.cs` | 365 | Core: fields, ctor, tab/panel/keyboard yönetimi |
-| `MainWindow.FileOps.cs` | 588 | Dosya aç/kaydet/import/export (DWG/DXF/IFC/PDF/PNG/Excel) |
-| `MainWindow.Layers.cs` | 208 | Layer picker, görünürlük, dondurma, sistem katman toggle |
-| `MainWindow.ViewControls.cs` | 135 | Zoom, 2D/3D toggle, OSnap, Ortho, Undo/Redo |
+| `MainWindow.xaml.cs` | 640 | Core: fields, ctor, tab/panel/keyboard yönetimi |
+| `MainWindow.FileOps.cs` | 886 | Dosya aç/kaydet/import/export (DWG/DXF/IFC/PDF/PNG/Excel) |
+| `MainWindow.Layers.cs` | 316 | Layer picker, görünürlük, dondurma, sistem katman toggle |
+| `MainWindow.ViewControls.cs` | 183 | Zoom, 2D/3D toggle, OSnap, Ortho, Undo/Redo |
 
 Session #70'te `MainWindow.Commands.cs` (1324 satıra tekrar büyümüştü) 3 alt dosyaya ayrıldı:
 
 | Dosya | Satır | Sorumluluk |
 |-------|-------|------------|
-| `MainWindow.Commands.Drawing.cs` | 392 | Temel çizim (Line/Circle/Polyline/Trim/Extend/Mirror/Move/Copy/Offset/Hatch) + Boyutlandırma |
-| `MainWindow.Commands.Mechanical.cs` | 592 | Mekanik çizim (boru/vitrifiye/kolon), Blok işlemleri, Mimari (ArchDetect/Bom/DefineBuilding) |
-| `MainWindow.Commands.Console.cs` | 388 | Komut satırı (CommandInput_KeyDown/ExecuteCommand) + BOM/Metraj |
+| `MainWindow.Commands.Drawing.cs` | 495 | Temel çizim (Line/Circle/Polyline/Trim/Extend/Mirror/Move/Copy/Offset/Hatch) + Boyutlandırma |
+| `MainWindow.Commands.Mechanical.cs` | 689 | Mekanik çizim (boru/vitrifiye/kolon), Blok işlemleri, Mimari (ArchDetect/Bom/DefineBuilding) |
+| `MainWindow.Commands.Console.cs` | 435 | Komut satırı (CommandInput_KeyDown/ExecuteCommand) + BOM/Metraj |
 
 Session #63'te `MainWindow.Engineering.cs` (2623 satıra büyümüştü) 5 alt dosyaya ayrıldı:
 
 | Dosya | Satır | Sorumluluk |
 |-------|-------|------------|
-| `MainWindow.Engineering.Hydraulics.cs` | 495 | Hesaplama: hidrolik analiz, otomatik çaplandırma, debi, basınç kaybı, pompa |
-| `MainWindow.Engineering.Rooms.cs` | 602 | Mahal (oda) tanımlama, bağlantı, riser, kolon |
-| `MainWindow.Engineering.Architecture.cs` | 246 | Mimari analiz: tanıma, çakışma, basınç/çakışma overlay |
-| `MainWindow.Engineering.Reports.cs` | 950 | Raporlama, etiketleme, özel hesaplar (pis su/yağmur/gaz/septik/yangın/ısıtma/HVAC), araçlar |
-| `MainWindow.Engineering.Library.cs` | 446 | Kütüphane/katalog (fixture/valve/mimari/üretici/standart) |
+| `MainWindow.Engineering.Hydraulics.cs` | 532 | Hesaplama: hidrolik analiz, otomatik çaplandırma, debi, basınç kaybı, pompa |
+| `MainWindow.Engineering.Rooms.cs` | 613 | Mahal (oda) tanımlama, bağlantı, riser, kolon |
+| `MainWindow.Engineering.Architecture.cs` | 268 | Mimari analiz: tanıma, çakışma, basınç/çakışma overlay |
+| `MainWindow.Engineering.Reports.cs` | 1021 | Raporlama, etiketleme, özel hesaplar (pis su/yağmur/gaz/septik/yangın/ısıtma/HVAC), araçlar |
+| `MainWindow.Engineering.Library.cs` | 555 | Kütüphane/katalog (fixture/valve/mimari/üretici/standart) |
 
 Session #52'de eklenen `MainWindow.Engineering.HvacExtra.cs` (56 satır) ayrı bir dosya: EN 12831 Isıtma Yükü, ASHRAE Psikrometri, ERV/HRV Isı Geri Kazanım, VDI 2081 Akustik, TS 825 Enerji Simülasyonu ve Gelişmiş Soğutma dialoglarını (kod tabanında zaten tam olan ama arayüze bağlı olmayan servisler için) açar.
 
@@ -53,9 +53,9 @@ Session #52'de eklenen `MainWindow.Engineering.HvacExtra.cs` (56 satır) ayrı b
 
 | Dosya | Satır | Sorumluluk |
 |-------|-------|------------|
-| `Views/CadViewport.xaml.cs` | 455 | Core: fields, zoom/pan state, ZoomToSelection/ZoomExtents |
-| `Views/CadViewport.Input.cs` | 738 | Fare/klavye olayları, grip sürükleme, seçim, snap |
-| `Views/CadViewport.Rendering.cs` | 432 | Skia render döngüsü, layer/entity çizimi |
+| `Views/CadViewport.xaml.cs` | 574 | Core: fields, zoom/pan state, ZoomToSelection/ZoomExtents |
+| `Views/CadViewport.Input.cs` | 934 | Fare/klavye olayları, grip sürükleme, seçim, snap |
+| `Views/CadViewport.Rendering.cs` | 483 | Skia render döngüsü, layer/entity çizimi |
 | `Views/CadViewport.ContextMenu.cs` | 317 | Sağ tık bağlam menüsü |
 
 ### MainWindow.xaml.cs (Core)
