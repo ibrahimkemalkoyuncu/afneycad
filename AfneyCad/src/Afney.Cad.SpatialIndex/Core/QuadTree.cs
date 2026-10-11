@@ -125,6 +125,37 @@ public class QuadTree
     }
 
     /*
+       NE: Her Yerde Ara ve Sil (RemoveAnywhere) — TB-12
+       NEDEN: `Remove(entity)`, `entity.GetBoundingBox()`'un GÜNCEL (çağrı anındaki) değerini
+              kullanıp SADECE bu güncel kutuyla kesişen düğümlere iner. Ama `CadDatabase.
+              UpdateEntity` çağrıldığında nesne ZATEN taşınmış/yeniden boyutlanmıştır — Insert
+              sırasında kaydedildiği ESKİ konum artık güncel kutuyla kesişmeyen bir düğümde
+              kalabilir, bu yüzden normal `Remove` oraya hiç inmez ve hayalet referans kalıcı
+              olarak düğümde kalır (bellek şişmesi — işlevsel sonucu bozmaz çünkü `QueryRange`
+              her zaman nesnenin GÜNCEL kutusuyla test eder, ama yine de gerçek bir sızıntıdır).
+              Bu metot kutuyla hiç ilgilenmeden AĞACIN TAMAMINI tarayıp nesneyi bulduğu HER
+              düğümden söker — sadece `CadDatabase.UpdateEntity`'nin hızlı yol başarısız
+              olduğunda (TAŞINMIŞ nesne) devreye giren, nadir çalışan bir düzeltme yoludur;
+              sık çağrılan normal silme (RemoveEntity) hâlâ hızlı `Remove`'u kullanır.
+    */
+    public bool RemoveAnywhere(CadEntity entity)
+    {
+        bool removed = _entities.Remove(entity);
+
+        if (_divided)
+        {
+            if (_northWest!.RemoveAnywhere(entity)) removed = true;
+            if (_northEast!.RemoveAnywhere(entity)) removed = true;
+            if (_southWest!.RemoveAnywhere(entity)) removed = true;
+            if (_southEast!.RemoveAnywhere(entity)) removed = true;
+
+            TryMergeChildren();
+        }
+
+        return removed;
+    }
+
+    /*
        NE: Çocukları Birleştir (TryMergeChildren)
        NEDEN: Uzun düzenleme oturumlarında (çok sayıda ekle/sil) ağaç sürekli bölünüp hiç
               toparlanmazsa, düğümler zamanla seyrekleşir (çoğu boş/az dolu). Silme sonrası

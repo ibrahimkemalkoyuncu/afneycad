@@ -123,8 +123,13 @@ public class CadDatabase
         {
             lock (_indexLock)
             {
-                // Önce eski konumdan sil
-                _spatialIndex.Remove(entity);
+                // NOT (TB-12): Bu noktada nesnenin konumu/boyutu ZATEN değişmiş durumda —
+                // hızlı Remove(entity) GÜNCEL kutuyla arar, eski konumdaki düğümde kalmış
+                // olabilecek referansı bulamayabilir. Hızlı yol bulamazsa (nesne taşınmışsa)
+                // tüm ağacı tarayan RemoveAnywhere'a düşülüyor — hayalet referans/bellek
+                // şişmesi kalıcı olarak önleniyor.
+                if (!_spatialIndex.Remove(entity))
+                    _spatialIndex.RemoveAnywhere(entity);
                 // Yeni konumla ekle
                 _spatialIndex.Insert(entity);
             }

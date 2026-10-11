@@ -184,4 +184,58 @@ public class QuadTreeTests
         Assert.Single(remaining);
         Assert.Contains(entities[^1], remaining);
     }
+
+    // ── TB-12: Taşınmış nesnenin hayalet (stale) referansı ───────────────────────
+
+    /*
+       NE: Alt düğüme dağıtılmış (bölünmeyi tetikleyecek kadar nesne eklenmiş) bir ağaç kurar.
+       NEDEN: Kök düğüm bölünmediği sürece `Remove`, `_entities.Remove` (referans bazlı liste
+              silme) ile ÇALIŞIR — bbox uyuşmazlığı SADECE nesne bir ÇOCUK düğüme dağıtıldıktan
+              sonra görünür hale gelir (çocuğun `Intersects(bounds, YENİ kutu)` kontrolü nesnenin
+              ESKİ konumundaki çocuğa hiç inmez).
+    */
+    private static QuadTree BuildSubdividedTreeWithSwCluster(out CircleEntity target)
+    {
+        var tree = new QuadTree(WorldBounds(), capacity: 4);
+        target = CreateCircle(-900, -900);
+        tree.Insert(target);
+        // Kapasiteyi (4) aşacak şekilde SW çeyreğine komşu nesneler ekle — bölünmeyi tetikler.
+        tree.Insert(CreateCircle(-850, -850));
+        tree.Insert(CreateCircle(-800, -800));
+        tree.Insert(CreateCircle(-750, -750));
+        tree.Insert(CreateCircle(-700, -700));
+        return tree;
+    }
+
+    [Fact]
+    public void Remove_AfterEntityMovedToDifferentQuadrant_FailsToFindStaleReference()
+    {
+        var tree = BuildSubdividedTreeWithSwCluster(out var circle);
+        Assert.True(tree.IsDivided);
+
+        // Nesne BAŞKA bir çeyreğe taşınıyor (çağıran taraf UpdateEntity'den ÖNCE Move/Transform yapar)
+        circle.Center = new Vector3D(900, 900, 0);
+        circle.NotifyGeometryChanged(); // Move()/Transform()'un yaptığı önbellek geçersizleştirmesi
+
+        // Normal Remove, GÜNCEL (yeni) kutuyla arar — eski (SW) çocuk düğüme hiç inmez,
+        // orada kalan referansı bulamaz.
+        bool removed = tree.Remove(circle);
+        Assert.False(removed);
+    }
+
+    [Fact]
+    public void RemoveAnywhere_AfterEntityMovedToDifferentQuadrant_RemovesStaleReference()
+    {
+        var tree = BuildSubdividedTreeWithSwCluster(out var circle);
+        circle.Center = new Vector3D(900, 900, 0);
+        circle.NotifyGeometryChanged();
+
+        // RemoveAnywhere kutuyla ilgilenmeden tüm ağacı tarar — eski düğümdeki hayalet
+        // referansı buluyor ve siliyor (TB-12 düzeltmesi).
+        bool removed = tree.RemoveAnywhere(circle);
+        Assert.True(removed);
+
+        // Tekrar çağrıldığında artık bulunamaz (gerçekten silinmiş).
+        Assert.False(tree.RemoveAnywhere(circle));
+    }
 }
