@@ -5,7 +5,7 @@ namespace Afney.Cad.Mechanical.Services;
 
 /*
    NE: Enerji Performans Servisi (EnergyPerformanceService)
-   NEDEN: EPBD (Binaların Enerji Performansı Direktifi) + TS 825:2023 — bina
+   NEDEN: EPBD (Binaların Enerji Performansı Direktifi) + TS 825:2024 — bina
           enerji sertifikası. Türkiye'de enerji kimlik belgesi (EKB) zorunlu.
           Sınıf A'dan G'ye kadar puanlama.
 
@@ -174,7 +174,7 @@ public class EnergyPerformanceService
         return result;
     }
 
-    // ── TS 825:2023 U-Değeri Limitleri ──────────────────────────────────────────
+    // ── TS 825:2024 U-Değeri Limitleri ──────────────────────────────────────────
 
     public static readonly Dictionary<string, double> TS825_U_Limits = new()
     {

@@ -141,7 +141,7 @@ public partial class EnergyPerformanceDialog
             foreach (var rec in r.Recommendations) sb.Append($"<li>{rec}</li>");
             sb.Append("</ul>");
         }
-        sb.Append($"<p style='color:#555;font-size:10px'>AfneyCAD EnergyPerformanceService · TS 825:2023 · EPBD · {DateTime.Now:dd.MM.yyyy HH:mm}</p>");
+        sb.Append($"<p style='color:#555;font-size:10px'>AfneyCAD EnergyPerformanceService · TS 825:2024 · EPBD · {DateTime.Now:dd.MM.yyyy HH:mm}</p>");
         sb.Append("</body></html>");
 
         string path = Path.Combine(Path.GetTempPath(), $"EKB_{DateTime.Now:yyyyMMdd}.html");

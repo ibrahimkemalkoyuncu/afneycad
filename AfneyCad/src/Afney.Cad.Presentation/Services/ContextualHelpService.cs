@@ -112,7 +112,7 @@ public class ContextualHelpService
         new("energy",       "Enerji Performansı (EKB)",
             """
             <h2>⚡ Enerji Kimlik Belgesi (EKB)</h2>
-            <p>EPBD / TS 825:2023 — bina enerji sertifikası hesabı.</p>
+            <p>EPBD / TS 825:2024 — bina enerji sertifikası hesabı.</p>
             <h3>Sınıflar (kWh/m²yıl birincil enerji)</h3>
             <ul>
             <li>A++: ≤25 · A+: ≤50 · A: ≤75 · B: ≤100 · C: ≤125 · D: ≤150 · E: ≤175 · F: ≤225 · G: >225</li>
