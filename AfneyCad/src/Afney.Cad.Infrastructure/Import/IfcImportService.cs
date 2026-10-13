@@ -135,6 +135,43 @@ public class IfcImportService
     }
 
     /*
+       NE: Bilinen Ama Desteklenmeyen IFC Eleman Tipleri (TB-03/AUD-38)
+       NEDEN: `ParseProducts`'ın `productTypes` kümesi dışındaki HER IFC tipi (ör. IFCCOLUMN,
+              IFCBEAM, IFCSTAIR, IFCROOF, IFCRAILING, IFCCURTAINWALL — Revit/ArchiCAD
+              çıktılarında ÇOK yaygın) sessizce atlanıyordu — DWG/DXF importundaki AUD-24'ten
+              ÖNCEKİ hatayla BİREBİR aynı desen. DWG/DXF'in aksine IFC'nin ham STEP satırları
+              SADECE gerçek bina/MEP elemanlarını değil, binlerce destek kaydını da (IFCCARTESIANPOINT,
+              IFCDIRECTION, IFCPROPERTYSET, vb.) içerir — bunları da saymak kullanıcıyı anlamsız
+              bir uyarı yığınıyla boğardı. Bu yüzden "desteklenmeyen" sayımı, DWG/DXF'teki gibi
+              "productTypes dışındaki HER ŞEY" değil, gerçek IFC şemasından bilinen, yaygın
+              IfcElement/IfcProduct alt tiplerinin KÜÇÜK bir KÜRATE edilmiş listesiyle sınırlı —
+              kapsam dışı kalan nadir/egzotik tipler (ör. IFCCIVILELEMENT) bu listeye dahil
+              edilmedi, ayrı bir oturumda genişletilebilir.
+    */
+    private static readonly HashSet<string> KnownUnsupportedProductTypes = new()
+    {
+        "IFCCOLUMN", "IFCBEAM", "IFCMEMBER", "IFCPLATE",
+        "IFCSTAIR", "IFCSTAIRFLIGHT", "IFCRAMP", "IFCRAMPFLIGHT",
+        "IFCROOF", "IFCRAILING", "IFCCURTAINWALL", "IFCCOVERING",
+        "IFCFURNISHINGELEMENT", "IFCOPENINGELEMENT", "IFCBUILDINGELEMENTPART",
+        "IFCSANITARYTERMINAL", "IFCFLOWTERMINAL", "IFCFLOWSTORAGEDEVICE",
+        "IFCFLOWMOVINGDEVICE", "IFCFLOWCONTROLLER", "IFCFLOWTREATMENTDEVICE",
+        "IFCLIGHTFIXTURE", "IFCDISTRIBUTIONCHAMBERELEMENT", "IFCPUMP", "IFCFAN",
+    };
+
+    private static Dictionary<string, int> CountUnsupportedTypes(Dictionary<int, IfcRawEntity> entities, HashSet<string> handledTypes)
+    {
+        var counts = new Dictionary<string, int>();
+        foreach (var e in entities.Values)
+        {
+            if (handledTypes.Contains(e.Type)) continue;
+            if (!KnownUnsupportedProductTypes.Contains(e.Type)) continue;
+            counts[e.Type] = counts.TryGetValue(e.Type, out int c) ? c + 1 : 1;
+        }
+        return counts;
+    }
+
+    /*
        NE: IFC Dosyasını Analiz Et (önizleme — database'e yazmaz)
        NEDEN: Dialog'da import öncesi içerik bilgisi göstermek için.
     */
@@ -157,6 +194,7 @@ public class IfcImportService
             double unitScale = options.ScaleFactor > 0 ? options.ScaleFactor : DetectUnitScale(entities);
             var placements   = ParsePlacements(entities);
             var products     = ParseProducts(entities, placements, unitScale);
+            result.UnsupportedTypeCounts = CountUnsupportedTypes(entities, ProductTypes);
 
             foreach (var product in products)
             {
@@ -222,6 +260,7 @@ public class IfcImportService
             double unitScale = options.ScaleFactor > 0 ? options.ScaleFactor : DetectUnitScale(entities);
             var placements   = ParsePlacements(entities);
             var products     = ParseProducts(entities, placements, unitScale);
+            result.UnsupportedTypeCounts = CountUnsupportedTypes(entities, ProductTypes);
 
             EnsureLayers();
 
@@ -448,31 +487,32 @@ public class IfcImportService
         return new Vector3D(x, y, z);
     }
 
+    private static readonly HashSet<string> ProductTypes = new()
+    {
+        "IFCWALL", "IFCWALLSTANDARDCASE", "IFCSLAB",
+        "IFCWINDOW", "IFCDOOR", "IFCSPACE",
+        "IFCPIPESEGMENT", "IFCDUCTSEGMENT", "IFCFLOWSEGMENT",
+        // NE/NEDEN — bu oturumda eklendi: IfcFlowFitting alt tipleri (dirsek/T-parçası)
+        // ve IfcValve. Önceden IFC import'ta HİÇ ele alınmıyordu (sadece düz boru/kanal
+        // gövdeleri aktarılıyordu) — bkz. dosya başı MEP İÇERİ AKTARIMI notu.
+        "IFCFLOWFITTING", "IFCPIPEFITTING", "IFCDUCTFITTING", "IFCVALVE",
+        // NE/NEDEN — bu oturumda eklendi: SolidEntity'nin (CSG Boolean UNION/SUBTRACT/
+        // INTERSECT sonuçları) IFC round-trip'i. AfneyCAD'in kendi IfcExportService'i
+        // (ExportSolid) genel katı cisimleri IFCBUILDINGELEMENTPROXY olarak yazar — IFC
+        // şemasının "sınıflandırılmamış eleman" catch-all tipi.
+        "IFCBUILDINGELEMENTPROXY"
+    };
+
     private static List<IfcProduct> ParseProducts(
         Dictionary<int, IfcRawEntity> entities,
         Dictionary<int, IfcPlacementInfo> placements,
         double scale)
     {
         var result = new List<IfcProduct>();
-        var productTypes = new HashSet<string>
-        {
-            "IFCWALL", "IFCWALLSTANDARDCASE", "IFCSLAB",
-            "IFCWINDOW", "IFCDOOR", "IFCSPACE",
-            "IFCPIPESEGMENT", "IFCDUCTSEGMENT", "IFCFLOWSEGMENT",
-            // NE/NEDEN — bu oturumda eklendi: IfcFlowFitting alt tipleri (dirsek/T-parçası)
-            // ve IfcValve. Önceden IFC import'ta HİÇ ele alınmıyordu (sadece düz boru/kanal
-            // gövdeleri aktarılıyordu) — bkz. dosya başı MEP İÇERİ AKTARIMI notu.
-            "IFCFLOWFITTING", "IFCPIPEFITTING", "IFCDUCTFITTING", "IFCVALVE",
-            // NE/NEDEN — bu oturumda eklendi: SolidEntity'nin (CSG Boolean UNION/SUBTRACT/
-            // INTERSECT sonuçları) IFC round-trip'i. AfneyCAD'in kendi IfcExportService'i
-            // (ExportSolid) genel katı cisimleri IFCBUILDINGELEMENTPROXY olarak yazar — IFC
-            // şemasının "sınıflandırılmamış eleman" catch-all tipi.
-            "IFCBUILDINGELEMENTPROXY"
-        };
 
         foreach (var e in entities.Values)
         {
-            if (!productTypes.Contains(e.Type)) continue;
+            if (!ProductTypes.Contains(e.Type)) continue;
 
             var product = new IfcProduct { Id = e.Id, IfcType = e.Type };
 
@@ -1402,6 +1442,9 @@ public class IfcImportResult
     public List<string> Warnings { get; set; } = [];
     public List<string> Errors   { get; set; } = [];
     public List<string> Layers   { get; set; } = [];
+    // NE: TB-03/AUD-38 — desteklenmeyen (ama bilinen) IFC tiplerinin sayımı (ör. IFCCOLUMN,
+    // IFCBEAM, IFCSTAIR). Önceden bu tipler hiçbir uyarı olmadan sessizce atlanıyordu.
+    public Dictionary<string, int> UnsupportedTypeCounts { get; set; } = [];
 
     public int ImportedCount => WallCount + SlabCount + WindowCount + DoorCount + SpaceCount + MepCount + FittingCount + SolidCount;
     public int TotalCount    => ImportedCount;

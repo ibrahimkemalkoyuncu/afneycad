@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using Microsoft.Win32;
@@ -145,12 +146,37 @@ namespace Afney.Cad.Presentation.Dialogs
                         sb.AppendLine($"  {err}");
                 }
 
+                // MÜHENDİSLİK (TB-03/AUD-38): Önceden IfcColumn/IfcBeam/IfcStair/IfcRoof gibi
+                // yaygın mimari elemanlar hiçbir uyarı olmadan sessizce atlanıyordu — DWG/DXF
+                // importundaki AUD-24 ile aynı desen. Artık kullanıcıya özetleniyor.
+                string? unsupportedList = null;
+                if (result.UnsupportedTypeCounts.Count > 0)
+                {
+                    unsupportedList = string.Join("\n", result.UnsupportedTypeCounts
+                        .OrderByDescending(kv => kv.Value)
+                        .Select(kv => $"  • {kv.Key}: {kv.Value} adet"));
+                    sb.AppendLine();
+                    sb.AppendLine("⚠ Desteklenmeyen tipler (atlandı):");
+                    sb.AppendLine(unsupportedList);
+                }
+
                 PreviewLog.Text = sb.ToString();
                 PreviewLog.Foreground = System.Windows.Media.Brushes.LightGreen;
 
-                MessageBox.Show(
-                    $"IFC aktarımı tamamlandı.\n{result.ImportedCount} eleman içeri alındı.",
-                    "Aktarım Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (unsupportedList != null)
+                {
+                    MessageBox.Show(
+                        $"IFC aktarımı tamamlandı.\n{result.ImportedCount} eleman içeri alındı.\n\n" +
+                        $"⚠ Bazı eleman türleri desteklenmediği için atlandı:\n{unsupportedList}\n\n" +
+                        "Bu elemanlar çizimde GÖRÜNMEYECEK.",
+                        "Kısmi İçe Aktarım", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"IFC aktarımı tamamlandı.\n{result.ImportedCount} eleman içeri alındı.",
+                        "Aktarım Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
 
                 DialogResult = true;
                 Close();
