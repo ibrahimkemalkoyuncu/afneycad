@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Afney.Cad.Database.Core;
+using Afney.Cad.Domain.Entities.Annotation;
 using Afney.Cad.Domain.Entities.Basic;
 using Afney.Cad.Geometry.Primitives;
 using Afney.Cad.Geometry.Topology;
@@ -128,5 +129,48 @@ public class AcadSharpDocumentBuilderTests
 
         Assert.Equal(spline.ControlPoints.Count, acSpline.ControlPoints.Count);
         Assert.Equal(spline.Degree, acSpline.Degree);
+    }
+
+    /*
+       NE: TB-02 — Dimension/Elbow/Tee/Wall/Room Artık DWG/DXF Export'tan Dışlanmıyor
+       NEDEN: `ToAcad()` bu 5 tipi hiç tanımıyordu, hepsi `skippedEntitySummary`'e düşüyordu.
+    */
+    [Fact]
+    public void Build_DimensionElbowTeeWallRoom_AreNoLongerSkipped()
+    {
+        var db = new CadDatabase();
+
+        db.AddEntity(new DimensionEntity(new Vector3D(0, 0, 0), new Vector3D(1000, 0, 0),
+            new Vector3D(0, 200, 0), DimensionType.Linear));
+
+        db.AddEntity(new ElbowEntity(new Vector3D(0, 0, 0), 100, new Vector3D(-1, 0, 0), new Vector3D(0, 1, 0)));
+
+        db.AddEntity(new TeeEntity(new Vector3D(500, 500, 0), 100, 50, new Vector3D(1, 0, 0), new Vector3D(0, 1, 0)));
+
+        db.AddEntity(new WallEntity(new Vector3D(0, 0, 0), new Vector3D(3000, 0, 0), 200));
+
+        var roomBoundary = new LwPolylineEntity(new[]
+        {
+            new Vector3D(0, 0, 0), new Vector3D(2000, 0, 0),
+            new Vector3D(2000, 2000, 0), new Vector3D(0, 2000, 0)
+        }, true);
+        db.AddEntity(new RoomEntity(roomBoundary));
+
+        var doc = AcadSharpDocumentBuilder.Build(db, out var skipped);
+
+        Assert.DoesNotContain(skipped, s => s.StartsWith("DimensionEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("ElbowEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("TeeEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("WallEntity"));
+        Assert.DoesNotContain(skipped, s => s.StartsWith("RoomEntity"));
+
+        // Dimension → en az bir çizgi + bir metin (ölçü çizgisi + uzatma çizgileri + değer metni)
+        Assert.Contains(doc.ModelSpace.Entities, e => e is ACadSharp.Entities.TextEntity);
+        // Wall → kapalı 4 köşeli polyline
+        Assert.Contains(doc.ModelSpace.Entities, e => e is ACadSharp.Entities.LwPolyline lw && lw.IsClosed && lw.Vertices.Count == 4);
+        // Room → kapalı polyline (kendi Boundary'si)
+        Assert.Contains(doc.ModelSpace.Entities, e => e is ACadSharp.Entities.LwPolyline lw && lw.IsClosed && lw.Vertices.Count == 4);
+        // Elbow/Tee → en az 4 ek çizgi (2+2)
+        Assert.True(doc.ModelSpace.Entities.Count(e => e is ACadSharp.Entities.Line) >= 4);
     }
 }

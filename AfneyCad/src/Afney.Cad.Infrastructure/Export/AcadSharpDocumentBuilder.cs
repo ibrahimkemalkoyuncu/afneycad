@@ -18,6 +18,7 @@ using AfneyPolyline = Afney.Cad.Domain.Entities.Basic.LwPolylineEntity;
 using AfneySpline   = Afney.Cad.Domain.Entities.Basic.SplineEntity;
 using AfneyHatch    = Afney.Cad.Domain.Entities.Basic.HatchEntity;
 using AfneySolid    = Afney.Cad.Domain.Entities.Basic.SolidEntity;
+using AfneyDimension = Afney.Cad.Domain.Entities.Annotation.DimensionEntity;
 
 namespace Afney.Cad.Infrastructure.Export;
 
@@ -123,7 +124,107 @@ public static class AcadSharpDocumentBuilder
 
         if (single != null) return new List<ACadSharp.Entities.Entity> { single };
         if (e is AfneySolid solid) return ToAcadFaces(solid);
+
+        // MÜHENDİSLİK (TB-02): DimensionEntity/ElbowEntity/TeeEntity/WallEntity/RoomEntity
+        // önceden switch'te eşleşmiyordu — `null` dönüp sessizce atlanıyordu. Her biri birden
+        // fazla ACadSharp nesnesine karşılık geldiğinden (ölçü = çizgiler+metin, dirsek/T-parçası
+        // = birkaç çizgi) `single` yerine doğrudan liste döndürüyorlar.
+        if (e is AfneyDimension dim) return ToAcadDimensionParts(dim);
+        if (e is ElbowEntity elbow) return ToAcadElbowLines(elbow);
+        if (e is TeeEntity tee) return ToAcadTeeLines(tee);
+        if (e is WallEntity wall) return new List<ACadSharp.Entities.Entity> { ToAcadWallPolyline(wall) };
+        if (e is RoomEntity room) return new List<ACadSharp.Entities.Entity> { ToAcadPolyline(room.Boundary) };
+
         return new List<ACadSharp.Entities.Entity>();
+    }
+
+    /*
+       NE: Ölçü → Temel Bileşenler (ToAcadDimensionParts)
+       NEDEN: Gerçek bir AutoCAD DIMENSION nesnesi kurmak bir DimensionStyle (DIMSTYLE
+              tablosu) referansı gerektirir — ACadSharp'ta bu kurulum, sadece dışa aktarım
+              için orantısız bir karmaşıklık. `DimensionEntity.ExplodeToBasicEntities()`
+              (EXPLODE komutunun da kullandığı, zaten test edilmiş metot) ölçüyü çizim
+              mantığıyla AYNI geometriyi kullanarak uzatma çizgileri + ölçü çizgisi + metne
+              ayırıyor — bu temel parçalar (Line/Text) zaten `ToAcad`'ın desteklediği
+              tiplerdir, tekrar `ToAcad`'a verilip birleştiriliyor. Sonuç: AutoCAD'de
+              düzenlenebilir bir DIMENSION nesnesi DEĞİL ama GÖRÜNÜR (önceden tamamen
+              kayboluyordu) ve geometrik olarak doğru bir ölçü çizimi.
+    */
+    private static List<ACadSharp.Entities.Entity> ToAcadDimensionParts(AfneyDimension dim)
+    {
+        var result = new List<ACadSharp.Entities.Entity>();
+        foreach (var part in dim.ExplodeToBasicEntities())
+            result.AddRange(ToAcad(part));
+        return result;
+    }
+
+    /*
+       NE: Dirsek → İki Çizgi (ToAcadElbowLines)
+       NEDEN: `ElbowEntity.Draw`'daki AYNI basit görselleştirme (gelen + giden boru
+              doğrultusu, merkezden iki çizgi) — gerçek bir dirsek gövdesi/süpürülmüş
+              yüzey modeli DEĞİL, ama önceden TAMAMEN kaybolan bir elemanın en azından
+              plan görünümünde yerini ve yönünü doğru gösteriyor.
+    */
+    private static List<ACadSharp.Entities.Entity> ToAcadElbowLines(ElbowEntity elbow)
+    {
+        var p1 = elbow.Center - elbow.IncomingVector * elbow.Radius;
+        var p2 = elbow.Center + elbow.OutgoingVector * elbow.Radius;
+        return new List<ACadSharp.Entities.Entity>
+        {
+            new Line { StartPoint = V(p1), EndPoint = V(elbow.Center) },
+            new Line { StartPoint = V(elbow.Center), EndPoint = V(p2) }
+        };
+    }
+
+    /*
+       NE: T-Parçası → İki Çizgi (ToAcadTeeLines)
+       NEDEN: `TeeEntity.Draw` ile AYNI basitleştirme — ana hat + dal hattı iki çizgi
+              olarak yazılır (gerçek T-parçası gövdesi değil, plan görünümü için yeterli).
+    */
+    private static List<ACadSharp.Entities.Entity> ToAcadTeeLines(TeeEntity tee)
+    {
+        double length = tee.MainDiameter * 2.5;
+        var p1 = tee.Center - tee.MainDirection * (length / 2);
+        var p2 = tee.Center + tee.MainDirection * (length / 2);
+        var pBranch = tee.Center + tee.BranchDirection * (length / 2);
+        return new List<ACadSharp.Entities.Entity>
+        {
+            new Line { StartPoint = V(p1), EndPoint = V(p2) },
+            new Line { StartPoint = V(tee.Center), EndPoint = V(pBranch) }
+        };
+    }
+
+    /*
+       NE: Mimari Duvar → Kapalı Polyline (ToAcadWallPolyline)
+       NEDEN: `WallEntity.Draw` ile AYNI geometri — merkez hattı, ThicknessMm genişliğinde
+              bir dikdörtgene (4 köşe) açılır. `ToPipePolyline`'ın (genişlikli iki-nokta
+              polyline) AKSİNE burada gerçek bir KAPALI dikdörtgen üretiliyor çünkü duvar
+              görsel olarak dolgu değil kontur çizgileriyle (iç/dış yüz) temsil ediliyor.
+    */
+    private static LwPolyline ToAcadWallPolyline(WallEntity wall)
+    {
+        var dir = wall.EndPoint - wall.StartPoint;
+        double len = dir.Length();
+        var lw = new LwPolyline { IsClosed = true };
+        if (len < 1e-9)
+        {
+            lw.Vertices.Add(new LwPolyline.Vertex(V2(wall.StartPoint)));
+            return lw;
+        }
+
+        var norm = new Vector3D(-dir.Y / len, dir.X / len, 0);
+        double halfT = wall.ThicknessMm / 2.0;
+
+        var p1 = new Vector3D(wall.StartPoint.X + norm.X * halfT, wall.StartPoint.Y + norm.Y * halfT, 0);
+        var p2 = new Vector3D(wall.StartPoint.X - norm.X * halfT, wall.StartPoint.Y - norm.Y * halfT, 0);
+        var p3 = new Vector3D(wall.EndPoint.X - norm.X * halfT, wall.EndPoint.Y - norm.Y * halfT, 0);
+        var p4 = new Vector3D(wall.EndPoint.X + norm.X * halfT, wall.EndPoint.Y + norm.Y * halfT, 0);
+
+        lw.Vertices.Add(new LwPolyline.Vertex(V2(p1)));
+        lw.Vertices.Add(new LwPolyline.Vertex(V2(p2)));
+        lw.Vertices.Add(new LwPolyline.Vertex(V2(p3)));
+        lw.Vertices.Add(new LwPolyline.Vertex(V2(p4)));
+        return lw;
     }
 
     private static ACadSharp.Entities.TextEntity ToAcadText(AfneyText t)
